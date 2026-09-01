@@ -1,7 +1,5 @@
-// 스포이즘 ERP — Phase 0 스타터 스키마
-// 범위: 인증(Account/RefreshToken) + 조직(Branch/Staff) + 회원(Member) 뼈대만.
-// 나머지 엔티티(Program/Reservation/Payment/Post/Facility 등)는
-// 01~08 기능 문서를 기준으로 해당 Phase에서 점진적으로 추가합니다.
+// 스포이즘 ERP — 전체 스키마
+// 01~08 기능 문서의 데이터 모델을 그대로 반영합니다. 문서 번호는 각 모델 위 주석 참고.
 
 generator client {
   provider = "prisma-client-js"
@@ -12,11 +10,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ── 공통 enum ──────────────────────────────────────────
+
 enum Role {
   SUPER_ADMIN
   BRANCH_ADMIN
   MEMBER
 }
+
+// ── 01. 권한관리 / 조직 ────────────────────────────────
 
 model Account {
   id               String    @id @default(uuid())
@@ -33,17 +35,18 @@ model Account {
   staff         Staff?
   member        Member?
   refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
 
   @@index([role])
 }
 
 model RefreshToken {
-  id         String    @id @default(uuid())
-  accountId  String
-  tokenHash  String
-  expiresAt  DateTime
-  revokedAt  DateTime?
-  createdAt  DateTime  @default(now())
+  id        String    @id @default(uuid())
+  accountId String
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
 
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
@@ -55,60 +58,508 @@ model Branch {
   name                String
   address             String?
   phone               String?
-  standardCheckInTime String?  // "HH:mm" — 03문서 지각 판정 기준
+  standardCheckInTime String? // "HH:mm" — 03문서 지각 판정 기준
   isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  staff   Staff[]
-  members Member[]
+  staff        Staff[]
+  members      Member[]
+  facilities   Facility[]
+  instructors  Instructor[]
+  programs     Program[]
+  posts        Post[]
 
   @@index([isActive])
 }
 
+// ── 02. 인사정보관리 ───────────────────────────────────
+
+enum StaffStatus {
+  ACTIVE // 재직
+  ON_LEAVE // 휴직
+  RESIGNED // 퇴사
+}
+
 model Staff {
-  id             String    @id @default(uuid())
-  accountId      String    @unique
+  id             String      @id @default(uuid())
+  accountId      String      @unique
   branchId       String
-  staffCode      String    @unique
+  staffCode      String      @unique
   name           String
   phone          String?
   position       String? // 팀장/지점장/트레이너/행정직원 등
   employmentType String? // 정규직/계약직/파트타임
   hireDate       DateTime
   resignDate     DateTime?
-  status         String    @default("재직") // 재직/휴직/퇴사
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  status         StaffStatus @default(ACTIVE)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   branch  Branch  @relation(fields: [branchId], references: [id])
+
+  changeRequests    StaffProfileChangeRequest[]
+  attendanceRecords AttendanceRecord[]
+  leaveRequests     LeaveRequest[]
+  leaveBalances     LeaveBalance[]
+  workLogs          WorkLog[]
+  instructorProfile Instructor?
 
   @@index([branchId])
   @@index([status])
 }
 
+enum ChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model StaffProfileChangeRequest {
+  id         String               @id @default(uuid())
+  staffId    String
+  field      String
+  oldValue   String?
+  newValue   String
+  status     ChangeRequestStatus  @default(PENDING)
+  reviewedBy String?
+  reviewedAt DateTime?
+  createdAt  DateTime             @default(now())
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, status])
+}
+
+// ── 03. 근태관리 ───────────────────────────────────────
+
+enum AttendanceStatus {
+  NORMAL // 정상
+  LATE // 지각
+  EARLY_LEAVE // 조퇴
+  ABSENT // 결근
+  ON_LEAVE // 휴가
+}
+
+model AttendanceRecord {
+  id          String           @id @default(uuid())
+  staffId     String
+  date        DateTime         @db.Date
+  checkInAt   DateTime?
+  checkOutAt  DateTime?
+  status      AttendanceStatus @default(NORMAL)
+  note        String?
+  createdAt   DateTime         @default(now())
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, date])
+  @@index([staffId, date])
+}
+
+enum LeaveType {
+  ANNUAL // 연차
+  SICK // 병가
+  FAMILY_EVENT // 경조사
+  OTHER
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model LeaveRequest {
+  id         String      @id @default(uuid())
+  staffId    String
+  type       LeaveType
+  startDate  DateTime    @db.Date
+  endDate    DateTime    @db.Date
+  days       Int
+  reason     String?
+  status     LeaveStatus @default(PENDING)
+  approverId String?
+  reviewedAt DateTime?
+  createdAt  DateTime    @default(now())
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, status])
+}
+
+model LeaveBalance {
+  id         String @id @default(uuid())
+  staffId    String
+  year       Int
+  totalDays  Int
+  usedDays   Int    @default(0)
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, year])
+}
+
+model WorkLog {
+  id        String   @id @default(uuid())
+  staffId   String
+  date      DateTime @db.Date
+  content   String
+  createdAt DateTime @default(now())
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, date])
+}
+
+// ── 04. 게시판(공지사항) ───────────────────────────────
+
+enum PostScope {
+  HQ_TO_BRANCH
+  BRANCH_TO_MEMBER
+}
+
+enum PostCategory {
+  NOTICE // 공지
+  TRAINING_MATERIAL // 교육자료
+  EVENT // 이벤트
+  OTHER
+}
+
+model Post {
+  id             String       @id @default(uuid())
+  scope          PostScope
+  branchId       String? // HQ_TO_BRANCH + null = 전체 지점 공지
+  authorId       String
+  category       PostCategory @default(NOTICE)
+  title          String
+  content        String
+  pinned         Boolean      @default(false)
+  visibleToMember Boolean     @default(false) // HQ 공지의 회원 노출 여부
+  viewCount      Int          @default(0)
+  publishedAt    DateTime     @default(now())
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  branch      Branch?          @relation(fields: [branchId], references: [id])
+  attachments Attachment[]
+  readReceipts PostReadReceipt[]
+
+  @@index([scope, branchId, publishedAt])
+}
+
+model Attachment {
+  id       String @id @default(uuid())
+  postId   String
+  url      String
+  fileName String
+  fileType String
+  fileSize Int
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model PostReadReceipt {
+  id        String   @id @default(uuid())
+  postId    String
+  accountId String
+  readAt    DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, accountId])
+}
+
+// ── 05. 회원관리 ───────────────────────────────────────
+
+enum MemberStatus {
+  ACTIVE // 활성
+  DORMANT // 휴면
+  WITHDRAWN // 탈퇴
+}
+
 model Member {
-  id         String    @id @default(uuid())
-  accountId  String?   @unique
-  branchId   String
-  memberNo   String    @unique
-  name       String
-  phone      String?
-  birthDate  DateTime?
-  gender     String?
-  joinedAt   DateTime  @default(now())
-  status     String    @default("활성") // 활성/휴면/탈퇴
-  memo       String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id        String       @id @default(uuid())
+  accountId String?      @unique
+  branchId  String
+  memberNo  String       @unique
+  name      String
+  phone     String?
+  birthDate DateTime?    @db.Date
+  gender    String?
+  joinedAt  DateTime     @default(now())
+  status    MemberStatus @default(ACTIVE)
+  memo      String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   account Account? @relation(fields: [accountId], references: [id])
   branch  Branch   @relation(fields: [branchId], references: [id])
 
+  enrollments  CourseEnrollment[]
+  ptSessions   PTSession[]
+  reservations Reservation[]
+  payments     Payment[]
+  checkIns     FacilityCheckIn[]
+
   @@index([branchId])
   @@index([phone])
 }
+
+enum EnrollmentStatus {
+  ACTIVE
+  EXPIRED
+}
+
+model CourseEnrollment {
+  id         String           @id @default(uuid())
+  memberId   String
+  programId  String
+  enrolledAt DateTime         @default(now())
+  expiresAt  DateTime?
+  status     EnrollmentStatus @default(ACTIVE)
+
+  member  Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  program Program @relation(fields: [programId], references: [id])
+
+  @@index([memberId])
+}
+
+model PTSession {
+  id             String   @id @default(uuid())
+  memberId       String
+  programId      String
+  totalSessions  Int
+  usedSessions   Int      @default(0)
+  purchasedAt    DateTime @default(now())
+
+  member  Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  program Program        @relation(fields: [programId], references: [id])
+  logs    PTSessionLog[]
+
+  @@index([memberId])
+}
+
+model PTSessionLog {
+  id          String   @id @default(uuid())
+  ptSessionId String
+  usedAt      DateTime @default(now())
+  note        String?
+
+  ptSession PTSession @relation(fields: [ptSessionId], references: [id], onDelete: Cascade)
+
+  @@index([ptSessionId])
+}
+
+// ── 07. 강사·프로그램 게시 ──────────────────────────────
+
+model Instructor {
+  id        String  @id @default(uuid())
+  branchId  String
+  staffId   String? @unique // 소속 직원이 겸임하는 경우 연결(선택)
+  name      String
+  specialty String?
+  bio       String?
+  photoUrl  String?
+  phone     String?
+  isActive  Boolean @default(true)
+
+  branch   Branch  @relation(fields: [branchId], references: [id])
+  staff    Staff?  @relation(fields: [staffId], references: [id])
+  programs Program[]
+
+  @@index([branchId])
+}
+
+enum AgeGroup {
+  ALL // 전체
+  CHILD // 유아동
+  TEEN // 청소년
+  ADULT // 성인
+  SENIOR // 시니어
+}
+
+enum PricingType {
+  FREE_ACCESS // 자유이용형 — 예약/결제 대상 아님 (08문서 FacilityCheckIn만 사용)
+  PAID_SESSION // 회차 예약형 — price=0이면 무료 회차
+  PT_PACKAGE // 세션 차감형(PT) — 05문서 PTSession으로 관리
+}
+
+model Program {
+  id           String      @id @default(uuid())
+  branchId     String
+  facilityId   String?
+  instructorId String?
+  name         String
+  category     String // 종목: 헬스/수영/골프/요가/독서실이용 등
+  ageGroup     AgeGroup    @default(ALL)
+  description  String?
+  price        Int         @default(0)
+  pricingType  PricingType
+  capacity     Int?
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  facility   Facility?   @relation(fields: [facilityId], references: [id])
+  instructor Instructor? @relation(fields: [instructorId], references: [id])
+
+  scheduleTemplates ProgramScheduleTemplate[]
+  scheduleSlots     ScheduleSlot[]
+  enrollments       CourseEnrollment[]
+  ptSessions        PTSession[]
+
+  @@index([branchId, category, ageGroup, pricingType])
+}
+
+model ProgramScheduleTemplate {
+  id        String   @id @default(uuid())
+  programId String
+  dayOfWeek Int // 0(일)~6(토)
+  startTime String // "HH:mm"
+  endTime   String
+
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+}
+
+// ── 06. 예약 및 결제 ────────────────────────────────────
+
+model ScheduleSlot {
+  id        String   @id @default(uuid())
+  programId String
+  date      DateTime @db.Date
+  startTime String
+  endTime   String
+  capacity  Int
+
+  program      Program       @relation(fields: [programId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
+
+  @@index([programId, date])
+}
+
+enum ReservationStatus {
+  REQUESTED // 신청
+  CONFIRMED // 확정
+  CANCELLED // 취소
+  COMPLETED // 완료
+  NO_SHOW // 노쇼
+}
+
+model Reservation {
+  id             String            @id @default(uuid())
+  memberId       String
+  scheduleSlotId String
+  status         ReservationStatus @default(REQUESTED)
+  createdAt      DateTime          @default(now())
+  cancelledAt    DateTime?
+  cancelReason   String?
+
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  scheduleSlot ScheduleSlot @relation(fields: [scheduleSlotId], references: [id])
+  payment      Payment?
+
+  @@unique([memberId, scheduleSlotId])
+  @@index([scheduleSlotId, status])
+  @@index([memberId, status])
+}
+
+enum PaymentMethod {
+  MOCK_CARD
+  FREE
+}
+
+enum PaymentStatus {
+  PENDING // 대기
+  APPROVED // 승인
+  FAILED // 실패
+  REFUNDED // 환불
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  reservationId  String        @unique
+  memberId       String
+  amount         Int
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  mockApprovalNo String?
+  approvedAt     DateTime?
+  refundedAt     DateTime?
+  createdAt      DateTime      @default(now())
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  member      Member      @relation(fields: [memberId], references: [id])
+
+  @@index([memberId])
+}
+
+// ── 08. 혼잡도 관리 ─────────────────────────────────────
+
+enum FacilityType {
+  GYM
+  POOL
+  GOLF
+  READING_ROOM
+  ETC
+}
+
+model Facility {
+  id       String       @id @default(uuid())
+  branchId String
+  name     String
+  type     FacilityType
+  capacity Int
+  isActive Boolean      @default(true)
+
+  branch             Branch              @relation(fields: [branchId], references: [id])
+  programs           Program[]
+  congestionSnapshots CongestionSnapshot[]
+  checkIns           FacilityCheckIn[]
+
+  @@index([branchId])
+}
+
+enum CongestionSource {
+  AUTO
+  MANUAL
+}
+
+model CongestionSnapshot {
+  id           String           @id @default(uuid())
+  facilityId   String
+  currentCount Int
+  capacity     Int
+  level        Int // 1~5
+  source       CongestionSource
+  recordedAt   DateTime         @default(now())
+
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@index([facilityId, recordedAt])
+}
+
+model FacilityCheckIn {
+  id         String    @id @default(uuid())
+  facilityId String
+  memberId   String
+  checkInAt  DateTime  @default(now())
+  checkOutAt DateTime?
+
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  member   Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([facilityId, checkOutAt])
+}
+
+// ── 공통: 변경 이력 ─────────────────────────────────────
 
 model AuditLog {
   id        String   @id @default(uuid())
@@ -119,6 +570,8 @@ model AuditLog {
   before    Json?
   after     Json?
   createdAt DateTime @default(now())
+
+  actor Account? @relation(fields: [actorId], references: [id])
 
   @@index([entity, entityId])
 }
