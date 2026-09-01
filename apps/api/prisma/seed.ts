@@ -4,7 +4,7 @@
  *
  * 실행: npm run prisma:seed --workspace=apps/api  (package.json의 prisma.seed 설정 참고)
  */
-import { PrismaClient, Role, PricingType, AgeGroup, FacilityType, ReservationStatus, PaymentMethod, PaymentStatus, CongestionSource } from '@prisma/client';
+import { PrismaClient, Role, PricingType, ProgramStatus, AgeGroup, FacilityType, ReservationStatus, PaymentMethod, PaymentStatus, CongestionSource } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -162,6 +162,8 @@ async function main() {
       price: 30000,
       pricingType: PricingType.PAID_SESSION,
       capacity: 15,
+      status: ProgramStatus.RUNNING,
+      startDate: new Date('2026-01-05'),
     },
   });
 
@@ -179,6 +181,8 @@ async function main() {
       ageGroup: AgeGroup.ADULT,
       price: 60000, // 1회당 단가(참고용, 결제는 세션 패키지 구매 시 별도 처리)
       pricingType: PricingType.PT_PACKAGE,
+      status: ProgramStatus.RUNNING,
+      startDate: new Date('2026-01-05'),
     },
   });
 
@@ -194,6 +198,28 @@ async function main() {
       category: '헬스',
       ageGroup: AgeGroup.ALL,
       pricingType: PricingType.FREE_ACCESS,
+      status: ProgramStatus.RUNNING,
+      startDate: new Date('2025-01-01'),
+    },
+  });
+
+  // 준비중 상태 예시 — 다음 달 개강 예정인 신규 프로그램(지점별 "진행중/준비중" 구분을 보여주기 위한 데이터)
+  await prisma.program.upsert({
+    where: { id: 'program-seocho-pilates' },
+    update: {},
+    create: {
+      id: 'program-seocho-pilates',
+      branchId: seocho.id,
+      facilityId: gym.id,
+      instructorId: seoyeonInstructor.id,
+      name: '필라테스 (10월 개강 예정)',
+      category: '필라테스',
+      ageGroup: AgeGroup.ADULT,
+      price: 35000,
+      pricingType: PricingType.PAID_SESSION,
+      capacity: 12,
+      status: ProgramStatus.PREPARING,
+      startDate: new Date('2026-10-01'),
     },
   });
 

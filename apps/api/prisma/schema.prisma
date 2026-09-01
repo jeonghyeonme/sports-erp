@@ -389,21 +389,30 @@ enum PricingType {
   PT_PACKAGE // 세션 차감형(PT) — 05문서 PTSession으로 관리
 }
 
+enum ProgramStatus {
+  PREPARING // 준비중 — 등록됐지만 startDate 이전
+  RUNNING // 진행중
+  PAUSED // 휴강(일시중단)
+  ENDED // 종료
+}
+
 model Program {
-  id           String      @id @default(uuid())
+  id           String        @id @default(uuid())
   branchId     String
   facilityId   String?
   instructorId String?
   name         String
   category     String // 종목: 헬스/수영/골프/요가/독서실이용 등
-  ageGroup     AgeGroup    @default(ALL)
+  ageGroup     AgeGroup      @default(ALL)
   description  String?
-  price        Int         @default(0)
+  price        Int           @default(0)
   pricingType  PricingType
   capacity     Int?
-  isActive     Boolean     @default(true)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  status       ProgramStatus @default(PREPARING) // 지점별 "진행중" 파악의 핵심 필드 — §3-2 참고
+  startDate    DateTime      @db.Date // 모집/개강일
+  endDate      DateTime?     @db.Date // 종료 예정일(상시 운영이면 null)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   branch     Branch      @relation(fields: [branchId], references: [id])
   facility   Facility?   @relation(fields: [facilityId], references: [id])
@@ -414,6 +423,7 @@ model Program {
   enrollments       CourseEnrollment[]
   ptSessions        PTSession[]
 
+  @@index([branchId, status]) // 지점별 진행중 프로그램 조회 최적화
   @@index([branchId, category, ageGroup, pricingType])
 }
 
