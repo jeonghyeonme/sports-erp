@@ -21,6 +21,7 @@ async function main() {
     create: {
       id: 'branch-seocho',
       name: '서초점',
+      code: 'SEOCHO',
       address: '서울시 서초구',
       standardCheckInTime: '09:00',
     },
@@ -32,6 +33,7 @@ async function main() {
     create: {
       id: 'branch-gangnam',
       name: '강남점',
+      code: 'GANGNAM',
       address: '서울시 강남구',
       standardCheckInTime: '09:00',
     },
