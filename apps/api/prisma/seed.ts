@@ -74,23 +74,21 @@ async function main() {
     },
   });
 
-  // 박서연 — 서초점 트레이너 겸 요가 강사 (Staff 계정, 로그인은 관리자 화면 미사용 가정이라 Account 없이 Staff만 둘 수도 있지만
-  // 근태/업무일지를 본인이 기록해야 하므로 Account를 만들고 role은 BRANCH_ADMIN이 아닌 별도 직원 로그인이 필요 — 여기서는
-  // 01문서 범위상 Staff 로그인도 결국 하나의 Account/Role 체계를 쓰므로 BRANCH_ADMIN이 아닌 일반 직원 로그인 확장은
-  // Phase 2에서 별도 처리하고, 시드에서는 Staff 레코드만 생성합니다(계정 없이 관리자가 대리 입력하는 경우를 재현).
-  const seoyeonStaff = await prisma.staff.create({
-    data: {
-      accountId: (
-        await prisma.account.upsert({
-          where: { email: 'park.seoyeon@spoism.example' },
-          update: {},
-          create: {
-            email: 'park.seoyeon@spoism.example',
-            passwordHash,
-            role: Role.BRANCH_ADMIN, // TODO(Phase 2): STAFF 전용 역할 분리
-          },
-        })
-      ).id,
+  // 박서연 — 서초점 트레이너 겸 요가 강사 (Role=STAFF: 관리 권한 없이 본인 근태/업무일지만 셀프서비스)
+  const seoyeonAccount = await prisma.account.upsert({
+    where: { email: 'park.seoyeon@spoism.example' },
+    update: {},
+    create: {
+      email: 'park.seoyeon@spoism.example',
+      passwordHash,
+      role: Role.STAFF,
+    },
+  });
+  const seoyeonStaff = await prisma.staff.upsert({
+    where: { accountId: seoyeonAccount.id },
+    update: {},
+    create: {
+      accountId: seoyeonAccount.id,
       branchId: seocho.id,
       staffCode: 'SEOCHO-002',
       name: '박서연',
@@ -308,6 +306,7 @@ async function main() {
   console.log(`  로그인 테스트 계정 (모두 동일 비밀번호: ${DEMO_PASSWORD})`);
   console.log('  - jeong.haneul@spoism.example  (SUPER_ADMIN · 본사)');
   console.log('  - kim.minsu@spoism.example     (BRANCH_ADMIN · 서초점)');
+  console.log('  - park.seoyeon@spoism.example  (STAFF · 서초점 트레이너)');
   console.log('  - lee.sujin@example.com        (MEMBER · 서초점)');
 }
 

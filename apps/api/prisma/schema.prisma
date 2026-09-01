@@ -15,6 +15,7 @@ datasource db {
 enum Role {
   SUPER_ADMIN
   BRANCH_ADMIN
+  STAFF // 지점 소속 일반 직원(트레이너 등) — 관리 권한 없이 본인 근태/휴가/업무일지만 셀프서비스 (01문서 §7)
   MEMBER
 }
 
