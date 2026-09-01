@@ -1,0 +1,124 @@
+// 스포이즘 ERP — Phase 0 스타터 스키마
+// 범위: 인증(Account/RefreshToken) + 조직(Branch/Staff) + 회원(Member) 뼈대만.
+// 나머지 엔티티(Program/Reservation/Payment/Post/Facility 등)는
+// 01~08 기능 문서를 기준으로 해당 Phase에서 점진적으로 추가합니다.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  BRANCH_ADMIN
+  MEMBER
+}
+
+model Account {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  role             Role
+  isActive         Boolean   @default(true)
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  staff         Staff?
+  member        Member?
+  refreshTokens RefreshToken[]
+
+  @@index([role])
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  accountId  String
+  tokenHash  String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+model Branch {
+  id                  String   @id @default(uuid())
+  name                String
+  address             String?
+  phone               String?
+  standardCheckInTime String?  // "HH:mm" — 03문서 지각 판정 기준
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  staff   Staff[]
+  members Member[]
+
+  @@index([isActive])
+}
+
+model Staff {
+  id             String    @id @default(uuid())
+  accountId      String    @unique
+  branchId       String
+  staffCode      String    @unique
+  name           String
+  phone          String?
+  position       String? // 팀장/지점장/트레이너/행정직원 등
+  employmentType String? // 정규직/계약직/파트타임
+  hireDate       DateTime
+  resignDate     DateTime?
+  status         String    @default("재직") // 재직/휴직/퇴사
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  branch  Branch  @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@index([status])
+}
+
+model Member {
+  id         String    @id @default(uuid())
+  accountId  String?   @unique
+  branchId   String
+  memberNo   String    @unique
+  name       String
+  phone      String?
+  birthDate  DateTime?
+  gender     String?
+  joinedAt   DateTime  @default(now())
+  status     String    @default("활성") // 활성/휴면/탈퇴
+  memo       String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  account Account? @relation(fields: [accountId], references: [id])
+  branch  Branch   @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@index([phone])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  entity    String
+  entityId  String
+  action    String
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}

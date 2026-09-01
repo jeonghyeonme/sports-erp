@@ -1,0 +1,21 @@
+{
+  "name": "sports-erp",
+  "private": true,
+  "version": "0.1.0",
+  "description": "스포이즘 ERP 포트폴리오 프로젝트 (모노레포)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/admin-web",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "prisma:generate": "npm run prisma:generate --workspace=apps/api",
+    "prisma:migrate": "npm run prisma:migrate --workspace=apps/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
