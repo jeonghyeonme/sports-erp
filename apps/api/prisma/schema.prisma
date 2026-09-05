@@ -106,6 +106,7 @@ model Staff {
   leaveBalances     LeaveBalance[]
   workLogs          WorkLog[]
   instructorProfile Instructor?
+  assignedMembers   Member[]                    @relation("StaffAssignedMembers")
 
   @@index([branchId])
   @@index([status])
@@ -284,22 +285,24 @@ enum MemberStatus {
 }
 
 model Member {
-  id        String       @id @default(uuid())
-  accountId String?      @unique
-  branchId  String
-  memberNo  String       @unique
-  name      String
-  phone     String?
-  birthDate DateTime?    @db.Date
-  gender    String?
-  joinedAt  DateTime     @default(now())
-  status    MemberStatus @default(ACTIVE)
-  memo      String?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id              String       @id @default(uuid())
+  accountId       String?      @unique
+  branchId        String
+  assignedStaffId String? // 담당 트레이너 등(선택) — 없으면 회원권만 등록하고 담당 직원이 없는 회원
+  memberNo        String       @unique
+  name            String
+  phone           String?
+  birthDate       DateTime?    @db.Date
+  gender          String?
+  joinedAt        DateTime     @default(now())
+  status          MemberStatus @default(ACTIVE)
+  memo            String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  account Account? @relation(fields: [accountId], references: [id])
-  branch  Branch   @relation(fields: [branchId], references: [id])
+  account       Account? @relation(fields: [accountId], references: [id])
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  assignedStaff Staff?   @relation("StaffAssignedMembers", fields: [assignedStaffId], references: [id])
 
   enrollments  CourseEnrollment[]
   ptSessions   PTSession[]
@@ -309,6 +312,7 @@ model Member {
 
   @@index([branchId])
   @@index([phone])
+  @@index([assignedStaffId])
 }
 
 enum EnrollmentStatus {

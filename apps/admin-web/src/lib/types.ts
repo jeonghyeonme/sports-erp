@@ -33,11 +33,23 @@ export interface BranchSummary {
 export interface MemberRow {
   id: string;
   branchId: string;
+  assignedStaffId?: string;
+  assignedStaffName?: string;
   memberNo: string;
   name: string;
   phone?: string;
   status: 'ACTIVE' | 'DORMANT' | 'WITHDRAWN';
   joinedAt: string;
+}
+
+export interface PermissionStaffRow {
+  staffId: string;
+  branchId: string;
+  branchName: string;
+  staffCode: string;
+  name: string;
+  position?: string;
+  role: Extract<Role, 'STAFF' | 'BRANCH_ADMIN'>;
 }
 
 export interface StaffRow {

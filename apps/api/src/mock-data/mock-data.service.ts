@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import {
   MockAccount,
@@ -8,6 +8,7 @@ import {
   MockPost,
   MockProgram,
   MockStaff,
+  Role,
 } from './mock-data.types';
 
 // 데모 계정 공통 비밀번호. prisma/seed.ts의 DEMO_PASSWORD와 동일하게 맞춰서,
@@ -115,6 +116,7 @@ export class MockDataService {
       id: 'member-sujin',
       accountId: 'account-sujin',
       branchId: 'branch-seocho',
+      assignedStaffId: 'staff-seoyeon', // 박서연 트레이너 담당
       memberNo: 'SEOCHO2026-001',
       name: '이수진',
       phone: '010-1234-5678',
@@ -275,5 +277,37 @@ export class MockDataService {
         (p) => p.branchId === branchId && p.status === 'RUNNING',
       ).length,
     };
+  }
+
+  // 본사(SUPER_ADMIN) 전용 — 지점 직원의 현재 권한(Account.role)을 지점명과 함께 조회.
+  staffWithRole() {
+    return this.staff.map((s) => {
+      const account = this.findAccountById(s.accountId);
+      const branch = this.findBranchById(s.branchId);
+      return {
+        staffId: s.id,
+        branchId: s.branchId,
+        branchName: branch?.name ?? s.branchId,
+        staffCode: s.staffCode,
+        name: s.name,
+        position: s.position,
+        role: account?.role ?? 'STAFF',
+      };
+    });
+  }
+
+  // 본사(SUPER_ADMIN)가 지점 직원을 STAFF <-> BRANCH_ADMIN으로 전환.
+  // 실제 JWT는 로그인 시점에 role을 서명해 담으므로, 이미 로그인된 세션은 재로그인해야 반영된다.
+  updateStaffRole(staffId: string, role: Extract<Role, 'STAFF' | 'BRANCH_ADMIN'>) {
+    const staff = this.staff.find((s) => s.id === staffId);
+    if (!staff) {
+      throw new NotFoundException({ code: 'STAFF_NOT_FOUND', message: '직원을 찾을 수 없습니다.' });
+    }
+    const account = this.accounts.find((a) => a.id === staff.accountId);
+    if (!account) {
+      throw new NotFoundException({ code: 'ACCOUNT_NOT_FOUND', message: '연결된 계정을 찾을 수 없습니다.' });
+    }
+    account.role = role;
+    return this.staffWithRole().find((s) => s.staffId === staffId);
   }
 }

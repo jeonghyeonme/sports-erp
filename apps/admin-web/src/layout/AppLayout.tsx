@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/programs', label: '프로그램' },
   { to: '/board', label: '게시판' },
   { to: '/facilities', label: '시설·혼잡도' },
+  { to: '/permissions', label: '권한 관리', roles: ['SUPER_ADMIN'] },
 ];
 
 const ROLE_LABEL: Record<Role, string> = {

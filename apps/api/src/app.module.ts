@@ -10,6 +10,7 @@ import { StaffModule } from './modules/staff/staff.module';
 import { ProgramsModule } from './modules/programs/programs.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { FacilitiesModule } from './modules/facilities/facilities.module';
+import { PermissionsModule } from './modules/permissions/permissions.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -27,6 +28,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     ProgramsModule,
     PostsModule,
     FacilitiesModule,
+    PermissionsModule,
   ],
   controllers: [AppController],
   providers: [

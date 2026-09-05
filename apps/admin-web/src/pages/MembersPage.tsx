@@ -24,6 +24,7 @@ export function MembersPage() {
               <th>회원번호</th>
               <th>이름</th>
               <th>연락처</th>
+              <th>담당 직원</th>
               <th>상태</th>
               <th>가입일</th>
             </tr>
@@ -34,6 +35,7 @@ export function MembersPage() {
                 <td>{m.memberNo}</td>
                 <td>{m.name}</td>
                 <td>{m.phone ?? '-'}</td>
+                <td>{m.assignedStaffName ?? '회원권만(미배정)'}</td>
                 <td>
                   <span className={`badge ${m.status}`}>{m.status}</span>
                 </td>

@@ -16,6 +16,13 @@ export class MembersController {
     const members = branchId
       ? this.mockData.members.filter((m) => m.branchId === branchId)
       : this.mockData.members;
-    return ok(members);
+    return ok(
+      members.map((m) => ({
+        ...m,
+        assignedStaffName: m.assignedStaffId
+          ? this.mockData.staff.find((s) => s.id === m.assignedStaffId)?.name
+          : undefined,
+      })),
+    );
   }
 }

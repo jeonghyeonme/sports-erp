@@ -42,6 +42,7 @@ export interface MockMember {
   id: string;
   accountId?: string;
   branchId: string;
+  assignedStaffId?: string; // 담당 트레이너 등(선택) — 없으면 회원권만 등록하고 담당 직원이 없는 회원
   memberNo: string;
   name: string;
   phone?: string;
