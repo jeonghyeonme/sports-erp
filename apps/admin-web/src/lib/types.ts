@@ -1,0 +1,97 @@
+// TODO: packages/types(@sports-erp/types)로 옮겨 admin-web/member-app/api가 공유하도록 통합 예정.
+// 지금은 Vite 워크스페이스 심볼릭 링크 해석 이슈를 피하기 위해 admin-web 안에 로컬로 둡니다.
+
+export type Role = 'SUPER_ADMIN' | 'BRANCH_ADMIN' | 'STAFF' | 'MEMBER';
+export type ProgramStatus = 'PREPARING' | 'RUNNING' | 'PAUSED' | 'ENDED';
+export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
+
+export interface AuthUser {
+  accountId: string;
+  email: string;
+  name: string;
+  role: Role;
+  branchId?: string;
+  branchName?: string;
+  staffId?: string;
+  memberId?: string;
+}
+
+export interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: { code: string; message: string };
+}
+
+export interface BranchSummary {
+  id: string;
+  name: string;
+  memberCount: number;
+  staffCount: number;
+  runningProgramCount: number;
+}
+
+export interface MemberRow {
+  id: string;
+  branchId: string;
+  assignedStaffId?: string;
+  assignedStaffName?: string;
+  memberNo: string;
+  name: string;
+  phone?: string;
+  status: 'ACTIVE' | 'DORMANT' | 'WITHDRAWN';
+  joinedAt: string;
+}
+
+export interface PermissionStaffRow {
+  staffId: string;
+  branchId: string;
+  branchName: string;
+  staffCode: string;
+  name: string;
+  position?: string;
+  role: Extract<Role, 'STAFF' | 'BRANCH_ADMIN'>;
+}
+
+export interface StaffRow {
+  id: string;
+  branchId: string;
+  staffCode: string;
+  name: string;
+  position?: string;
+  employmentType?: string;
+  hireDate: string;
+}
+
+export interface ProgramRow {
+  id: string;
+  branchId: string;
+  name: string;
+  category: string;
+  pricingType: PricingType;
+  price: number;
+  capacity?: number;
+  status: ProgramStatus;
+  startDate: string;
+  instructorName?: string;
+}
+
+export interface PostRow {
+  id: string;
+  scope: 'HQ_TO_BRANCH' | 'BRANCH_TO_MEMBER';
+  branchId?: string;
+  authorName: string;
+  category: string;
+  title: string;
+  content: string;
+  publishedAt: string;
+}
+
+export interface FacilityRow {
+  id: string;
+  branchId: string;
+  name: string;
+  type: 'GYM' | 'POOL' | 'GOLF' | 'READING_ROOM' | 'ETC';
+  capacity: number;
+  currentCount: number;
+  level: number;
+}

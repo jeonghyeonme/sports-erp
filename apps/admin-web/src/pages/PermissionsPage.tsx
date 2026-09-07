@@ -1,0 +1,100 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
+import { api } from '../lib/api';
+import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { ApiEnvelope, PermissionStaffRow } from '../lib/types';
+
+const ROLE_LABEL = {
+  BRANCH_ADMIN: '지점 관리자',
+  STAFF: '지점 직원',
+} as const;
+
+interface ApiErrorBody {
+  code?: string;
+  message?: string;
+}
+
+export function PermissionsPage() {
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError, error } = useApiList<PermissionStaffRow>(
+    ['permissions', 'staff'],
+    '/permissions/staff',
+  );
+
+  const updateRole = useMutation<
+    PermissionStaffRow,
+    AxiosError<ApiErrorBody>,
+    { staffId: string; role: 'STAFF' | 'BRANCH_ADMIN' }
+  >({
+    mutationFn: async ({ staffId, role }) =>
+      (
+        await api.patch<ApiEnvelope<PermissionStaffRow>>(`/permissions/staff/${staffId}/role`, {
+          role,
+        })
+      ).data.data!,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions', 'staff'] });
+    },
+  });
+
+  return (
+    <>
+      <div className="page-header">
+        <h2>권한 관리</h2>
+        <p className="page-desc">
+          01문서 §7 권한 매트릭스 — 본사(SUPER_ADMIN)만 지점 직원의 권한을 지점 관리자/지점 직원으로 전환할 수
+          있습니다. 변경 후 해당 직원이 재로그인해야 반영됩니다(JWT는 로그인 시점 권한을 그대로 담기 때문).
+        </p>
+      </div>
+
+      {isError && <div className="forbidden-note">{apiErrorMessage(error)}</div>}
+      {updateRole.isError && (
+        <div className="forbidden-note">{apiErrorMessage(updateRole.error)}</div>
+      )}
+      {isLoading && <div className="loading-state">불러오는 중...</div>}
+      {!isLoading && !isError && data && data.length === 0 && (
+        <div className="empty-state">표시할 직원이 없습니다.</div>
+      )}
+
+      {!isError && data && data.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>지점</th>
+              <th>직원코드</th>
+              <th>이름</th>
+              <th>직급</th>
+              <th>권한</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((s) => (
+              <tr key={s.staffId}>
+                <td>{s.branchName}</td>
+                <td>{s.staffCode}</td>
+                <td>{s.name}</td>
+                <td>{s.position ?? '-'}</td>
+                <td>
+                  <select
+                    className="role-select"
+                    value={s.role}
+                    disabled={updateRole.isPending}
+                    onChange={(e) =>
+                      updateRole.mutate({
+                        staffId: s.staffId,
+                        role: e.target.value as 'STAFF' | 'BRANCH_ADMIN',
+                      })
+                    }
+                  >
+                    <option value="STAFF">{ROLE_LABEL.STAFF}</option>
+                    <option value="BRANCH_ADMIN">{ROLE_LABEL.BRANCH_ADMIN}</option>
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
+  );
+}

@@ -9,19 +9,28 @@ export interface ApiEnvelope<T> {
   meta?: { page: number; pageSize: number; total: number };
 }
 
-/** GET /auth/me 및 로그인 응답에 포함되는 인증 주체 요약 정보 */
 export interface AuthUser {
   accountId: string;
   email: string;
   role: Role;
-  branchId: string | null;
-  staffId: string | null;
-  memberId: string | null;
-  name: string | null;
+  name: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface LoginResponse {
   accessToken: string;
-  refreshToken: string;
   user: AuthUser;
+}
+
+export type ProgramStatus = 'PREPARING' | 'RUNNING' | 'PAUSED' | 'ENDED';
+export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
+
+export interface BranchSummary {
+  id: string;
+  name: string;
+  address?: string;
+  memberCount: number;
+  staffCount: number;
+  runningProgramCount: number;
 }
