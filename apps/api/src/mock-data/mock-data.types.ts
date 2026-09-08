@@ -7,11 +7,18 @@ export type Role = 'SUPER_ADMIN' | 'BRANCH_ADMIN' | 'STAFF' | 'MEMBER';
 export type ProgramStatus = 'PREPARING' | 'RUNNING' | 'PAUSED' | 'ENDED';
 export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
 export type PostScope = 'HQ_TO_BRANCH' | 'BRANCH_TO_MEMBER';
+export type BranchContractStatus = 'ACTIVE' | 'RENEWAL_DUE' | 'EXPIRED' | 'TERMINATED';
 
 export interface MockBranch {
   id: string;
   name: string;
   address?: string;
+  region: string; // 광역 단위(예: "서울", "경기") — 대시보드에서 지점을 지역별로 묶어 보여주는 데 사용
+  // 위탁계약 필드 — 01문서 §2-1. Branch는 매장이 아니라 위탁운영 계약 현장이라는 재해석의 핵심 데이터.
+  contractPartner: string;
+  contractStartAt: string;
+  contractEndAt?: string;
+  contractStatus: BranchContractStatus;
 }
 
 export interface MockAccount {

@@ -4,6 +4,7 @@
 export type Role = 'SUPER_ADMIN' | 'BRANCH_ADMIN' | 'STAFF' | 'MEMBER';
 export type ProgramStatus = 'PREPARING' | 'RUNNING' | 'PAUSED' | 'ENDED';
 export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
+export type BranchContractStatus = 'ACTIVE' | 'RENEWAL_DUE' | 'EXPIRED' | 'TERMINATED';
 
 export interface AuthUser {
   accountId: string;
@@ -25,14 +26,20 @@ export interface ApiEnvelope<T> {
 export interface BranchSummary {
   id: string;
   name: string;
+  region: string;
   memberCount: number;
   staffCount: number;
   runningProgramCount: number;
+  contractStatus: BranchContractStatus;
+  contractStartAt?: string;
+  contractEndAt?: string;
+  contractPartner?: string;
 }
 
 export interface MemberRow {
   id: string;
   branchId: string;
+  branchName?: string;
   assignedStaffId?: string;
   assignedStaffName?: string;
   memberNo: string;
@@ -55,6 +62,7 @@ export interface PermissionStaffRow {
 export interface StaffRow {
   id: string;
   branchId: string;
+  branchName?: string;
   staffCode: string;
   name: string;
   position?: string;
@@ -65,6 +73,7 @@ export interface StaffRow {
 export interface ProgramRow {
   id: string;
   branchId: string;
+  branchName?: string;
   name: string;
   category: string;
   pricingType: PricingType;
@@ -89,6 +98,7 @@ export interface PostRow {
 export interface FacilityRow {
   id: string;
   branchId: string;
+  branchName?: string;
   name: string;
   type: 'GYM' | 'POOL' | 'GOLF' | 'READING_ROOM' | 'ETC';
   capacity: number;

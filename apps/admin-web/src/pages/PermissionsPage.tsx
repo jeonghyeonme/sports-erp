@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
@@ -20,6 +21,20 @@ export function PermissionsPage() {
     ['permissions', 'staff'],
     '/permissions/staff',
   );
+  const [search, setSearch] = useState('');
+
+  // 98개 지점 규모에서는 이 화면도 "지점별로 훑어보기"가 아니라 "직원 한 명을 찾아 권한을 바꾸는"
+  // 단발 작업이라, 지점 아코디언 대신 지점명/이름/직원코드 통합 검색만 얹는다.
+  const rows = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return data ?? [];
+    return (data ?? []).filter(
+      (s) =>
+        s.branchName.toLowerCase().includes(term) ||
+        s.name.toLowerCase().includes(term) ||
+        s.staffCode.toLowerCase().includes(term),
+    );
+  }, [data, search]);
 
   const updateRole = useMutation<
     PermissionStaffRow,
@@ -56,7 +71,21 @@ export function PermissionsPage() {
         <div className="empty-state">표시할 직원이 없습니다.</div>
       )}
 
-      {!isError && data && data.length > 0 && (
+      {!isLoading && !isError && data && data.length > 0 && (
+        <div className="list-toolbar">
+          <input
+            className="search-input"
+            placeholder="지점명 · 이름 · 직원코드 검색"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      )}
+      {!isLoading && !isError && data && data.length > 0 && rows.length === 0 && (
+        <div className="empty-state">검색 결과가 없습니다.</div>
+      )}
+
+      {!isError && rows.length > 0 && (
         <table>
           <thead>
             <tr>
@@ -68,7 +97,7 @@ export function PermissionsPage() {
             </tr>
           </thead>
           <tbody>
-            {data.map((s) => (
+            {rows.map((s) => (
               <tr key={s.staffId}>
                 <td>{s.branchName}</td>
                 <td>{s.staffCode}</td>

@@ -18,7 +18,9 @@ export class StaffController {
     const staff = branchId
       ? this.mockData.staff.filter((s) => s.branchId === branchId)
       : this.mockData.staff;
-    return ok(staff);
+    return ok(
+      staff.map((s) => ({ ...s, branchName: this.mockData.findBranchById(s.branchId)?.name })),
+    );
   }
 
   // STAFF 본인 레코드만 셀프서비스로 조회(02문서 §7) — 동료 직원 정보는 노출하지 않는다.

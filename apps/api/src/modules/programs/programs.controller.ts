@@ -19,6 +19,8 @@ export class ProgramsController {
     if (branchId) programs = programs.filter((p) => p.branchId === branchId);
     if (status) programs = programs.filter((p) => p.status === status);
     if (pricingType) programs = programs.filter((p) => p.pricingType === pricingType);
-    return ok(programs);
+    return ok(
+      programs.map((p) => ({ ...p, branchName: this.mockData.findBranchById(p.branchId)?.name })),
+    );
   }
 }

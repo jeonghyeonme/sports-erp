@@ -10,6 +10,7 @@ import {
   MockStaff,
   Role,
 } from './mock-data.types';
+import { generateLightBranches } from './branch-generator';
 
 // 데모 계정 공통 비밀번호. prisma/seed.ts의 DEMO_PASSWORD와 동일하게 맞춰서,
 // 나중에 실제 DB로 전환해도 로그인 테스트 계정 정보가 바뀌지 않도록 합니다.
@@ -25,9 +26,33 @@ export const MOCK_DEMO_PASSWORD = 'demo-password-1234';
 export class MockDataService {
   private readonly passwordHash = bcrypt.hashSync(MOCK_DEMO_PASSWORD, 10);
 
+  // 원본 RFP가 명시하는 "전국 98개 업장" 규모를 화면에서 실제로 검증하기 위한 생성 데이터.
+  // 서초점·강남점 2개는 아래처럼 손으로 채운 "히어로" 지점(데모 로그인 계정이 여기 물려 있음)이고,
+  // 나머지 96개는 branch-generator.ts가 인덱스 기반으로 결정적으로 만든다.
+  private readonly generated = generateLightBranches();
+
   readonly branches: MockBranch[] = [
-    { id: 'branch-seocho', name: '서초점', address: '서울시 서초구' },
-    { id: 'branch-gangnam', name: '강남점', address: '서울시 강남구' },
+    {
+      id: 'branch-seocho',
+      name: '서초점',
+      address: '서울시 서초구',
+      region: '서울',
+      contractPartner: '서초 OO아파트 입주자대표회의',
+      contractStartAt: '2024-03-01',
+      contractEndAt: '2027-02-28',
+      contractStatus: 'ACTIVE',
+    },
+    {
+      id: 'branch-gangnam',
+      name: '강남점',
+      address: '서울시 강남구',
+      region: '서울',
+      contractPartner: '강남 OO오피스텔 관리사무소',
+      contractStartAt: '2023-10-01',
+      contractEndAt: '2026-10-15',
+      contractStatus: 'RENEWAL_DUE',
+    },
+    ...this.generated.branches,
   ];
 
   readonly accounts: MockAccount[] = [
@@ -109,6 +134,7 @@ export class MockDataService {
       employmentType: '정규직',
       hireDate: '2023-01-10',
     },
+    ...this.generated.staff,
   ];
 
   readonly members: MockMember[] = [
@@ -141,6 +167,7 @@ export class MockDataService {
       status: 'DORMANT',
       joinedAt: '2025-05-20',
     },
+    ...this.generated.members,
   ];
 
   readonly programs: MockProgram[] = [
@@ -200,6 +227,7 @@ export class MockDataService {
       status: 'RUNNING',
       startDate: '2026-02-01',
     },
+    ...this.generated.programs,
   ];
 
   readonly posts: MockPost[] = [
@@ -252,6 +280,7 @@ export class MockDataService {
       currentCount: 12,
       level: 2,
     },
+    ...this.generated.facilities,
   ];
 
   findAccountByEmail(email: string): MockAccount | undefined {
@@ -271,11 +300,16 @@ export class MockDataService {
     return {
       id: branchId,
       name: branch?.name ?? branchId,
+      region: branch?.region ?? '기타',
       memberCount: this.members.filter((m) => m.branchId === branchId).length,
       staffCount: this.staff.filter((s) => s.branchId === branchId).length,
       runningProgramCount: this.programs.filter(
         (p) => p.branchId === branchId && p.status === 'RUNNING',
       ).length,
+      contractPartner: branch?.contractPartner,
+      contractStatus: branch?.contractStatus ?? 'ACTIVE',
+      contractStartAt: branch?.contractStartAt,
+      contractEndAt: branch?.contractEndAt,
     };
   }
 

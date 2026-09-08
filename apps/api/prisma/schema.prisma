@@ -55,15 +55,21 @@ model RefreshToken {
 }
 
 model Branch {
-  id                  String   @id @default(uuid())
+  id                  String             @id @default(uuid())
   name                String
-  code                String   @unique // 지점 코드 — memberNo/staffCode 생성에 사용 (예: "SEOCHO"). 01/05문서 참고
+  code                String             @unique // 지점 코드 — memberNo/staffCode 생성에 사용 (예: "SEOCHO"). 01/05문서 참고
   address             String?
+  region              String // 광역 단위(예: "서울", "경기") — address(상세 주소)와 별개로 대시보드 지역별 그룹핑에 사용
   phone               String?
   standardCheckInTime String? // "HH:mm" — 03문서 지각 판정 기준
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  isActive            Boolean            @default(true)
+  // 위탁계약 필드 — 01문서 §2-1. Branch는 매장이 아니라 위탁운영 계약 현장이라는 재해석의 핵심 데이터.
+  contractPartner     String // 위탁계약 상대방(예: "서초 OO아파트 입주자대표회의") — 관리자 전용 정보
+  contractStartAt     DateTime
+  contractEndAt       DateTime?
+  contractStatus      BranchContractStatus @default(ACTIVE)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   staff        Staff[]
   members      Member[]
@@ -73,6 +79,16 @@ model Branch {
   posts        Post[]
 
   @@index([isActive])
+  @@index([contractStatus])
+  @@index([contractEndAt])
+  @@index([region])
+}
+
+enum BranchContractStatus {
+  ACTIVE
+  RENEWAL_DUE
+  EXPIRED
+  TERMINATED
 }
 
 // ── 02. 인사정보관리 ───────────────────────────────────

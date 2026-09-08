@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
-import { BranchSummary, MemberRow, ProgramRow, StaffRow } from '../lib/types';
+import { BranchSummary, FacilityRow, MemberRow, ProgramRow, StaffRow } from '../lib/types';
 import { BriefcaseIcon } from '../components/icons';
+import { CONTRACT_STATUS_LABEL, contractRemainingLabel } from '../lib/contract-status';
 
 const PRICING_LABEL: Record<ProgramRow['pricingType'], string> = {
   FREE_ACCESS: '자유이용',
@@ -50,11 +51,14 @@ export function BranchDetailPage() {
   const staffQuery = useApiList<StaffRow>(['staff', branchId], `/staff?branchId=${branchId}`);
   const membersQuery = useApiList<MemberRow>(['members', branchId], `/members?branchId=${branchId}`);
   const programsQuery = useApiList<ProgramRow>(['programs', branchId], `/programs?branchId=${branchId}`);
+  const facilitiesQuery = useApiList<FacilityRow>(['facilities', branchId], `/facilities?branchId=${branchId}`);
 
-  const branchName = branchesQuery.data?.find((b) => b.id === branchId)?.name ?? branchId;
+  const branch = branchesQuery.data?.find((b) => b.id === branchId);
+  const branchName = branch?.name ?? branchId;
   const members = membersQuery.data ?? [];
   const staff = staffQuery.data ?? [];
   const programs = programsQuery.data ?? [];
+  const facilities = facilitiesQuery.data ?? [];
   const unassignedMembers = members.filter((m) => !m.assignedStaffId);
 
   return (
@@ -65,9 +69,41 @@ export function BranchDetailPage() {
         </Link>
         <h2>{branchName}</h2>
         <p className="page-desc">
-          지점 → 직원 → 회원, 지점 → 프로그램 순서로 소속 데이터를 확인합니다.
+          지점 → 직원 → 회원, 지점 → 프로그램 → 혼잡도 순서로 소속 데이터를 확인합니다.
         </p>
       </div>
+
+      <section className="detail-section">
+        <h3 className="section-title">계약 정보</h3>
+        {branch && (
+          <div className="card">
+            <div className="stat-row">
+              <span>계약 상대방</span>
+              <strong>{branch.contractPartner ?? '-'}</strong>
+            </div>
+            <div className="stat-row">
+              <span>계약 기간</span>
+              <strong>
+                {branch.contractStartAt ?? '-'} ~ {branch.contractEndAt ?? '상시'}
+              </strong>
+            </div>
+            <div className="stat-row">
+              <span>계약 상태</span>
+              <span className={`badge ${branch.contractStatus}`}>
+                {CONTRACT_STATUS_LABEL[branch.contractStatus]}
+              </span>
+            </div>
+            <div className="stat-row" style={{ marginBottom: 0 }}>
+              <span>잔여</span>
+              <strong>{contractRemainingLabel(branch.contractEndAt)}</strong>
+            </div>
+          </div>
+        )}
+        <p className="page-desc">
+          계약서 스캔본을 업로드하면 OCR·AI가 이 필드들을 자동으로 채우는 기능은 설계돼 있습니다(2-4문서 §1-1,
+          Phase 2~3 예정) — 지금은 mock 값을 그대로 보여줍니다.
+        </p>
+      </section>
 
       <section className="detail-section">
         <h3 className="section-title">
@@ -94,7 +130,7 @@ export function BranchDetailPage() {
                     className="staff-row"
                     onClick={() => setExpandedStaffId(expanded ? null : s.id)}
                   >
-                    <span className="icon-chip tone-violet">
+                    <span className="icon-chip">
                       <BriefcaseIcon />
                     </span>
                     <div className="staff-row-body">
@@ -170,6 +206,49 @@ export function BranchDetailPage() {
           </table>
         )}
       </section>
+
+      <section className="detail-section">
+        <h3 className="section-title">
+          혼잡도
+          <span className="section-count">{facilities.length}개 시설</span>
+        </h3>
+
+        {facilitiesQuery.isError && <div className="forbidden-note">{apiErrorMessage(facilitiesQuery.error)}</div>}
+        {facilitiesQuery.isLoading && <div className="loading-state">불러오는 중...</div>}
+        {!facilitiesQuery.isError && !facilitiesQuery.isLoading && facilities.length === 0 && (
+          <div className="empty-state">등록된 시설이 없습니다.</div>
+        )}
+
+        {!facilitiesQuery.isError && facilities.length > 0 && <FacilityCards rows={facilities} />}
+      </section>
     </>
+  );
+}
+
+export function FacilityCards({ rows }: { rows: FacilityRow[] }) {
+  return (
+    <div className="card-grid">
+      {rows.map((f) => (
+        <div className="card" key={f.id}>
+          <h3>{f.name}</h3>
+          <div className="stat-row">
+            <span>현재 인원</span>
+            <strong>
+              {f.currentCount} / {f.capacity}명
+            </strong>
+          </div>
+          <div className="congestion-bar">
+            <div
+              className="congestion-bar-fill"
+              style={{ width: `${Math.min(100, (f.currentCount / f.capacity) * 100)}%` }}
+            />
+          </div>
+          <div className="stat-row" style={{ marginTop: 8 }}>
+            <span>혼잡도 단계</span>
+            <strong>{f.level} / 5</strong>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

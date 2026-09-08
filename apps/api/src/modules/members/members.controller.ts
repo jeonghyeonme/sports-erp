@@ -19,6 +19,7 @@ export class MembersController {
     return ok(
       members.map((m) => ({
         ...m,
+        branchName: this.mockData.findBranchById(m.branchId)?.name,
         assignedStaffName: m.assignedStaffId
           ? this.mockData.staff.find((s) => s.id === m.assignedStaffId)?.name
           : undefined,

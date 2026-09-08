@@ -14,6 +14,8 @@ export class FacilitiesController {
     const facilities = branchId
       ? this.mockData.facilities.filter((f) => f.branchId === branchId)
       : this.mockData.facilities;
-    return ok(facilities);
+    return ok(
+      facilities.map((f) => ({ ...f, branchName: this.mockData.findBranchById(f.branchId)?.name })),
+    );
   }
 }
