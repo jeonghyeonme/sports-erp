@@ -30,6 +30,9 @@ Thumbs.db
 !.vscode/extensions.json
 .idea/
 
+# claude code (personal overrides, not team-shared)
+.claude/settings.local.json
+
 # prisma
 apps/api/prisma/migrations/dev.db
 
