@@ -33,10 +33,11 @@ model Account {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  staff         Staff?
-  member        Member?
-  refreshTokens RefreshToken[]
-  auditLogs     AuditLog[]
+  staff                Staff?
+  member               Member?
+  refreshTokens        RefreshToken[]
+  auditLogs            AuditLog[]
+  staffAssignmentsMade StaffAssignment[] // 이 계정이 SUPER_ADMIN으로서 발령한 파견 이력(assignedBy)
 
   @@index([role])
 }
@@ -55,28 +56,30 @@ model RefreshToken {
 }
 
 model Branch {
-  id                  String             @id @default(uuid())
-  name                String
-  code                String             @unique // 지점 코드 — memberNo/staffCode 생성에 사용 (예: "SEOCHO"). 01/05문서 참고
-  address             String?
-  region              String // 광역 단위(예: "서울", "경기") — address(상세 주소)와 별개로 대시보드 지역별 그룹핑에 사용
-  phone               String?
-  standardCheckInTime String? // "HH:mm" — 03문서 지각 판정 기준
-  isActive            Boolean            @default(true)
+  id                        String               @id @default(uuid())
+  name                      String
+  code                      String               @unique // 지점 코드 — memberNo/staffCode 생성에 사용 (예: "SEOCHO"). 01/05문서 참고
+  address                   String?
+  region                    String // 광역 단위(예: "서울", "경기") — address(상세 주소)와 별개로 대시보드 지역별 그룹핑에 사용
+  phone                     String?
+  standardCheckInTime       String? // "HH:mm" — 03문서 지각 판정 기준
+  cancellationDeadlineHours Int? // 예약 무료취소 기준 시간(예: 24) — nullable이면 전역 기본값 사용, 06문서 §6 참고. 01문서 §2-1의 cancellationPolicy를 단순 컬럼으로 구현
+  isActive                  Boolean              @default(true)
   // 위탁계약 필드 — 01문서 §2-1. Branch는 매장이 아니라 위탁운영 계약 현장이라는 재해석의 핵심 데이터.
-  contractPartner     String // 위탁계약 상대방(예: "서초 OO아파트 입주자대표회의") — 관리자 전용 정보
-  contractStartAt     DateTime
-  contractEndAt       DateTime?
-  contractStatus      BranchContractStatus @default(ACTIVE)
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  contractPartner           String // 위탁계약 상대방(예: "서초 OO아파트 입주자대표회의") — 관리자 전용 정보
+  contractStartAt           DateTime
+  contractEndAt             DateTime?
+  contractStatus            BranchContractStatus @default(ACTIVE)
+  createdAt                 DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
 
-  staff        Staff[]
-  members      Member[]
-  facilities   Facility[]
-  instructors  Instructor[]
-  programs     Program[]
-  posts        Post[]
+  staff            Staff[]
+  staffAssignments StaffAssignment[]
+  members          Member[]
+  facilities       Facility[]
+  instructors      Instructor[]
+  programs         Program[]
+  posts            Post[]
 
   @@index([isActive])
   @@index([contractStatus])
@@ -124,9 +127,31 @@ model Staff {
   workLogs          WorkLog[]
   instructorProfile Instructor?
   assignedMembers   Member[]                    @relation("StaffAssignedMembers")
+  assignments       StaffAssignment[] // 파견 이력 — 01문서 §2-2
 
   @@index([branchId])
   @@index([status])
+}
+
+// 파견 이력 — 01문서 §2-2, 02문서 §3~§7. Staff.branchId는 이 중 endDate=null인 레코드의
+// branchId와 항상 동기화되는 비정규화 캐시(원천은 이 테이블). 한 직원당 endDate=null 레코드는
+// 최대 1건이어야 한다는 불변식은 애플리케이션 레벨(트랜잭션)에서 보장한다.
+model StaffAssignment {
+  id         String    @id @default(uuid())
+  staffId    String
+  branchId   String
+  startDate  DateTime  @db.Date
+  endDate    DateTime? @db.Date // null = 현재 진행 중인 파견
+  assignedBy String // FK → Account, 항상 SUPER_ADMIN(파견 발령은 본사 전용)
+  note       String?
+  createdAt  DateTime  @default(now())
+
+  staff             Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  branch            Branch  @relation(fields: [branchId], references: [id])
+  assignedByAccount Account @relation(fields: [assignedBy], references: [id])
+
+  @@index([staffId, endDate])
+  @@index([branchId, startDate])
 }
 
 enum ChangeRequestStatus {
@@ -136,15 +161,15 @@ enum ChangeRequestStatus {
 }
 
 model StaffProfileChangeRequest {
-  id         String               @id @default(uuid())
+  id         String              @id @default(uuid())
   staffId    String
   field      String
   oldValue   String?
   newValue   String
-  status     ChangeRequestStatus  @default(PENDING)
+  status     ChangeRequestStatus @default(PENDING)
   reviewedBy String?
   reviewedAt DateTime?
-  createdAt  DateTime             @default(now())
+  createdAt  DateTime            @default(now())
 
   staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
@@ -162,14 +187,14 @@ enum AttendanceStatus {
 }
 
 model AttendanceRecord {
-  id          String           @id @default(uuid())
-  staffId     String
-  date        DateTime         @db.Date
-  checkInAt   DateTime?
-  checkOutAt  DateTime?
-  status      AttendanceStatus @default(NORMAL)
-  note        String?
-  createdAt   DateTime         @default(now())
+  id         String           @id @default(uuid())
+  staffId    String
+  date       DateTime         @db.Date
+  checkInAt  DateTime?
+  checkOutAt DateTime?
+  status     AttendanceStatus @default(NORMAL)
+  note       String?
+  createdAt  DateTime         @default(now())
 
   staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
@@ -209,11 +234,11 @@ model LeaveRequest {
 }
 
 model LeaveBalance {
-  id         String @id @default(uuid())
-  staffId    String
-  year       Int
-  totalDays  Int
-  usedDays   Int    @default(0)
+  id        String @id @default(uuid())
+  staffId   String
+  year      Int
+  totalDays Int
+  usedDays  Int    @default(0)
 
   staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
@@ -247,23 +272,23 @@ enum PostCategory {
 }
 
 model Post {
-  id             String       @id @default(uuid())
-  scope          PostScope
-  branchId       String? // HQ_TO_BRANCH + null = 전체 지점 공지
-  authorId       String
-  category       PostCategory @default(NOTICE)
-  title          String
-  content        String
-  pinned         Boolean      @default(false)
-  visibleToMember Boolean     @default(false) // HQ 공지의 회원 노출 여부
-  viewCount      Int          @default(0)
-  publishedAt    DateTime     @default(now())
-  deletedAt      DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id              String       @id @default(uuid())
+  scope           PostScope
+  branchId        String? // HQ_TO_BRANCH + null = 전체 지점 공지
+  authorId        String
+  category        PostCategory @default(NOTICE)
+  title           String
+  content         String
+  pinned          Boolean      @default(false)
+  visibleToMember Boolean      @default(false) // HQ 공지의 회원 노출 여부
+  viewCount       Int          @default(0)
+  publishedAt     DateTime     @default(now())
+  deletedAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  branch      Branch?          @relation(fields: [branchId], references: [id])
-  attachments Attachment[]
+  branch       Branch?           @relation(fields: [branchId], references: [id])
+  attachments  Attachment[]
   readReceipts PostReadReceipt[]
 
   @@index([scope, branchId, publishedAt])
@@ -352,12 +377,12 @@ model CourseEnrollment {
 }
 
 model PTSession {
-  id             String   @id @default(uuid())
-  memberId       String
-  programId      String
-  totalSessions  Int
-  usedSessions   Int      @default(0)
-  purchasedAt    DateTime @default(now())
+  id            String   @id @default(uuid())
+  memberId      String
+  programId     String
+  totalSessions Int
+  usedSessions  Int      @default(0)
+  purchasedAt   DateTime @default(now())
 
   member  Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
   program Program        @relation(fields: [programId], references: [id])
@@ -390,8 +415,8 @@ model Instructor {
   phone     String?
   isActive  Boolean @default(true)
 
-  branch   Branch  @relation(fields: [branchId], references: [id])
-  staff    Staff?  @relation(fields: [staffId], references: [id])
+  branch   Branch    @relation(fields: [branchId], references: [id])
+  staff    Staff?    @relation(fields: [staffId], references: [id])
   programs Program[]
 
   @@index([branchId])
@@ -450,7 +475,7 @@ model Program {
 }
 
 model ProgramScheduleTemplate {
-  id        String   @id @default(uuid())
+  id        String @id @default(uuid())
   programId String
   dayOfWeek Int // 0(일)~6(토)
   startTime String // "HH:mm"
@@ -551,10 +576,10 @@ model Facility {
   capacity Int
   isActive Boolean      @default(true)
 
-  branch             Branch              @relation(fields: [branchId], references: [id])
-  programs           Program[]
+  branch              Branch               @relation(fields: [branchId], references: [id])
+  programs            Program[]
   congestionSnapshots CongestionSnapshot[]
-  checkIns           FacilityCheckIn[]
+  checkIns            FacilityCheckIn[]
 
   @@index([branchId])
 }

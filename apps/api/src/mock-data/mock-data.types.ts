@@ -14,6 +14,9 @@ export interface MockBranch {
   name: string;
   address?: string;
   region: string; // 광역 단위(예: "서울", "경기") — 대시보드에서 지점을 지역별로 묶어 보여주는 데 사용
+  code: string; // 지점 코드 — staffCode/memberNo 생성에 사용(예: "SEOCHO"). 01문서 §2-1
+  standardCheckInTime?: string; // "HH:mm" — 03문서 지각 판정 기준
+  cancellationDeadlineHours?: number; // 예약 무료취소 기준 시간(예: 24) — 01문서 §2-1 cancellationPolicy, 06문서 §6
   // 위탁계약 필드 — 01문서 §2-1. Branch는 매장이 아니라 위탁운영 계약 현장이라는 재해석의 핵심 데이터.
   contractPartner: string;
   contractStartAt: string;
