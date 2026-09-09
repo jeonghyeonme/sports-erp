@@ -6,6 +6,7 @@
 export type Role = 'SUPER_ADMIN' | 'BRANCH_ADMIN' | 'STAFF' | 'MEMBER';
 export type ProgramStatus = 'PREPARING' | 'RUNNING' | 'PAUSED' | 'ENDED';
 export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
+export type AgeGroup = 'ALL' | 'CHILD' | 'TEEN' | 'ADULT' | 'SENIOR';
 export type PostScope = 'HQ_TO_BRANCH' | 'BRANCH_TO_MEMBER';
 export type BranchContractStatus = 'ACTIVE' | 'RENEWAL_DUE' | 'EXPIRED' | 'TERMINATED';
 
@@ -63,13 +64,19 @@ export interface MockMember {
 export interface MockProgram {
   id: string;
   branchId: string;
+  facilityId?: string; // FK → MockFacility. 08문서 참고
   name: string;
   category: string;
+  ageGroup: AgeGroup; // 01문서가 인용하는 원본 RFP "연령대별 리스트" 요건. 07문서 §3
+  description?: string;
   pricingType: PricingType;
   price: number;
   capacity?: number;
   status: ProgramStatus;
   startDate: string;
+  endDate?: string; // 종료 예정일 — 상시 운영이면 undefined(=null). 07문서 §3
+  // instructorId(FK)가 아니라 이름 문자열로 비정규화 — 별도 Instructor mock 엔티티가
+  // 아직 없어서(2-3문서 §2-2 참고), 존재하지 않는 엔티티를 가리키는 매달린 FK를 만들지 않기 위한 의도적 단순화
   instructorName?: string;
 }
 

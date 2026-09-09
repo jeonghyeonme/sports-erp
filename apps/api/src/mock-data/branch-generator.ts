@@ -3,7 +3,7 @@
 // 히어로 데이터로 남아있고, 이 파일은 그 나머지를 채운다). 전부 인덱스 기반 결정적 생성이라
 // 서버를 몇 번을 재기동해도 같은 결과가 나온다 — Math.random은 쓰지 않는다.
 
-import { MockBranch, MockFacility, MockMember, MockProgram, MockStaff } from './mock-data.types';
+import { AgeGroup, MockBranch, MockFacility, MockMember, MockProgram, MockStaff } from './mock-data.types';
 
 // 지점명에 쓰는 구체적 지역(area)과, 대시보드에서 "지역별로 묶기"에 쓰는 광역 단위(region)를 분리한다 —
 // "강동점"처럼 실제 동네 느낌은 살리면서도, 대시보드에서는 서울/부산/경기 같은 광역으로 접을 수 있게.
@@ -47,12 +47,18 @@ const STAFF_NAME_POOL = [
 ];
 const STAFF_POSITIONS = ['트레이너', '지점장', '매니저'];
 
-const PROGRAM_POOL: Array<{ name: string; category: string; price: number }> = [
-  { name: '헬스장 자유이용', category: '헬스', price: 0 },
-  { name: '아침 요가', category: '요가', price: 28000 },
-  { name: '필라테스', category: '필라테스', price: 38000 },
-  { name: '퍼스널 트레이닝', category: 'PT', price: 65000 },
-  { name: '스피닝', category: '스피닝', price: 25000 },
+const PROGRAM_POOL: Array<{
+  name: string;
+  category: string;
+  price: number;
+  ageGroup: AgeGroup;
+  description: string;
+}> = [
+  { name: '헬스장 자유이용', category: '헬스', price: 0, ageGroup: 'ALL', description: '헬스장 시설을 자유롭게 이용할 수 있는 상시 운영 프로그램입니다.' },
+  { name: '아침 요가', category: '요가', price: 28000, ageGroup: 'ADULT', description: '기초 체력과 유연성을 함께 기르는 아침 요가 클래스입니다.' },
+  { name: '필라테스', category: '필라테스', price: 38000, ageGroup: 'ADULT', description: '소규모 그룹으로 진행하는 필라테스 클래스입니다.' },
+  { name: '퍼스널 트레이닝', category: 'PT', price: 65000, ageGroup: 'ADULT', description: '1:1 맞춤 트레이닝 프로그램(세션 차감형).' },
+  { name: '스피닝', category: '스피닝', price: 25000, ageGroup: 'TEEN', description: '음악에 맞춰 진행하는 실내 사이클 클래스입니다.' },
 ];
 
 function pad(n: number, width: number) {
@@ -163,8 +169,11 @@ export function generateLightBranches(): GeneratedDataset {
       programs.push({
         id: `program-gen-${pad(i + 1, 3)}-${p + 1}`,
         branchId,
+        facilityId: `facility-gen-${pad(i + 1, 3)}`,
         name: template.name,
         category: template.category,
+        ageGroup: template.ageGroup,
+        description: template.description,
         pricingType: template.price === 0 ? 'FREE_ACCESS' : p === 0 ? 'PAID_SESSION' : 'PT_PACKAGE',
         price: template.price,
         status,
