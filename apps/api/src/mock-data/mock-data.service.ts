@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import {
   MockAccount,
@@ -11,6 +12,7 @@ import {
   Role,
 } from './mock-data.types';
 import { generateLightBranches } from './branch-generator';
+import { AppException } from '../common/exceptions/app.exception';
 
 // 데모 계정 공통 비밀번호. prisma/seed.ts의 DEMO_PASSWORD와 동일하게 맞춰서,
 // 나중에 실제 DB로 전환해도 로그인 테스트 계정 정보가 바뀌지 않도록 합니다.
@@ -364,5 +366,124 @@ export class MockDataService {
     }
     account.role = role;
     return this.staffWithRole().find((s) => s.staffId === staffId);
+  }
+
+  findMemberById(id: string): MockMember | undefined {
+    return this.members.find((m) => m.id === id);
+  }
+
+  // `{지점코드}{연도}-{순번}` — 05문서 §3 memberNo 규칙.
+  private generateMemberNo(branchId: string): string {
+    const branch = this.findBranchById(branchId);
+    const code = branch?.code ?? 'BR';
+    const year = new Date().getFullYear();
+    const prefix = `${code}${year}`;
+    const seq =
+      this.members.filter((m) => m.branchId === branchId && m.memberNo.startsWith(prefix)).length + 1;
+    return `${prefix}-${String(seq).padStart(3, '0')}`;
+  }
+
+  private assertStaffInBranch(staffId: string, branchId: string): void {
+    const staff = this.staff.find((s) => s.id === staffId);
+    if (!staff || staff.branchId !== branchId) {
+      throw new AppException(
+        'STAFF_BRANCH_MISMATCH',
+        '담당 직원은 회원과 같은 지점 소속이어야 합니다.',
+        400,
+      );
+    }
+  }
+
+  // 현장 오프라인 등록 — 05문서 §5 POST /members, §6 비즈니스 로직. BRANCH_ADMIN 전용(컨트롤러에서 강제).
+  createMember(
+    branchId: string,
+    input: {
+      name: string;
+      phone?: string;
+      birthDate?: string;
+      gender?: string;
+      assignedStaffId?: string;
+      memo?: string;
+    },
+  ): { member: MockMember; warnings: string[] } {
+    const branch = this.findBranchById(branchId);
+    if (!branch) {
+      throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+    }
+    if (branch.contractStatus === 'TERMINATED') {
+      throw new AppException(
+        'BRANCH_TERMINATED',
+        '위탁계약이 종료된 지점에는 신규 회원을 등록할 수 없습니다.',
+        409,
+      );
+    }
+    if (input.assignedStaffId) {
+      this.assertStaffInBranch(input.assignedStaffId, branchId);
+    }
+
+    const warnings: string[] = [];
+    if (
+      input.phone &&
+      this.members.some(
+        (m) => m.branchId === branchId && m.phone === input.phone && m.status === 'ACTIVE',
+      )
+    ) {
+      warnings.push('같은 지점에 동일한 전화번호를 쓰는 활성 회원이 이미 있습니다.');
+    }
+
+    const member: MockMember = {
+      id: `member-${randomUUID()}`,
+      branchId,
+      assignedStaffId: input.assignedStaffId,
+      memberNo: this.generateMemberNo(branchId),
+      name: input.name,
+      phone: input.phone,
+      birthDate: input.birthDate,
+      gender: input.gender,
+      memo: input.memo,
+      status: 'ACTIVE',
+      joinedAt: new Date().toISOString().slice(0, 10),
+    };
+    this.members.push(member);
+    return { member, warnings };
+  }
+
+  // 05문서 §5 PATCH /members/:id — 지점/본인 범위 검증은 컨트롤러가 먼저 마친다.
+  updateMember(
+    id: string,
+    input: Partial<Pick<MockMember, 'name' | 'phone' | 'birthDate' | 'gender' | 'memo' | 'assignedStaffId'>>,
+  ): MockMember {
+    const member = this.members.find((m) => m.id === id);
+    if (!member) {
+      throw new AppException('MEMBER_NOT_FOUND', '회원을 찾을 수 없습니다.', 404);
+    }
+    if (input.assignedStaffId !== undefined) {
+      if (input.assignedStaffId) {
+        this.assertStaffInBranch(input.assignedStaffId, member.branchId);
+      }
+      member.assignedStaffId = input.assignedStaffId || undefined;
+    }
+    if (input.name !== undefined) member.name = input.name;
+    if (input.phone !== undefined) member.phone = input.phone;
+    if (input.birthDate !== undefined) member.birthDate = input.birthDate;
+    if (input.gender !== undefined) member.gender = input.gender;
+    if (input.memo !== undefined) member.memo = input.memo;
+    return member;
+  }
+
+  // 05문서 §5 PATCH /members/:id/status, §6 "탈퇴 시 소프트 삭제 + Account.isActive=false".
+  updateMemberStatus(id: string, status: MockMember['status']): MockMember {
+    const member = this.members.find((m) => m.id === id);
+    if (!member) {
+      throw new AppException('MEMBER_NOT_FOUND', '회원을 찾을 수 없습니다.', 404);
+    }
+    member.status = status;
+    // WITHDRAWN이면 잠그고, 그 외(ACTIVE/DORMANT)로 되돌아오면 다시 로그인 가능하게 푼다 —
+    // 안 풀면 관리자가 탈퇴를 취소해도 회원이 영구히 로그인 못 하는 상태로 남는다.
+    if (member.accountId) {
+      const account = this.accounts.find((a) => a.id === member.accountId);
+      if (account) account.isActive = status !== 'WITHDRAWN';
+    }
+    return member;
   }
 }

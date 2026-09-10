@@ -1,5 +1,6 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { RequestUser } from '../interfaces/request-user.interface';
+import { AppException } from '../exceptions/app.exception';
 
 /**
  * 01문서 §3.3의 BranchScopeGuard.
@@ -21,10 +22,14 @@ export class BranchScopeGuard implements CanActivate {
       request.params?.branchId ?? request.query?.branchId;
 
     if (requestedBranchId && requestedBranchId !== user.branchId) {
-      throw new ForbiddenException({
-        code: 'BRANCH_SCOPE_VIOLATION',
-        message: '다른 지점의 데이터에는 접근할 수 없습니다.',
-      });
+      // ForbiddenException(HttpException 일반)에 code를 실어도 AllExceptionsFilter가 그대로
+      // 통과시키지 않고 HTTP status 이름(FORBIDDEN)으로 덮어쓰므로, 커스텀 code가 필요하면
+      // AppException을 써야 한다(2026-09-10 Write API 작업 중 curl로 실측 확인).
+      throw new AppException(
+        'BRANCH_SCOPE_VIOLATION',
+        '다른 지점의 데이터에는 접근할 수 없습니다.',
+        403,
+      );
     }
 
     request.query.branchId = user.branchId;

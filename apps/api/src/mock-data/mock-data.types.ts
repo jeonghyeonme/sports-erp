@@ -31,6 +31,7 @@ export interface MockAccount {
   passwordHash: string;
   role: Role;
   name: string;
+  isActive?: boolean; // 미설정=활성. 회원 탈퇴/직원 퇴사 시 false로 전환(05문서 §6, 01문서 §3.2)
   // 실제 스키마에서는 Account에 branchId가 없고 Staff/Member를 거쳐 조회하지만,
   // 더미 데이터에서는 조회 편의를 위해 비정규화해서 들고 있습니다.
   branchId?: string;
@@ -57,8 +58,11 @@ export interface MockMember {
   memberNo: string;
   name: string;
   phone?: string;
+  birthDate?: string;
+  gender?: string;
   status: 'ACTIVE' | 'DORMANT' | 'WITHDRAWN';
   joinedAt: string;
+  memo?: string; // 관리자 메모(특이사항). 05문서 §3
 }
 
 export interface MockProgram {
