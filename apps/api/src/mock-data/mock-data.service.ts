@@ -9,6 +9,7 @@ import {
   MockPost,
   MockProgram,
   MockStaff,
+  MockStaffAssignment,
   Role,
 } from './mock-data.types';
 import { generateLightBranches } from './branch-generator';
@@ -126,9 +127,11 @@ export class MockDataService {
       branchId: 'branch-seocho',
       staffCode: 'SEOCHO-001',
       name: '김민수',
+      phone: '010-1111-2222',
       position: '지점장',
       employmentType: '정규직',
       hireDate: '2021-03-02',
+      status: 'ACTIVE',
     },
     {
       id: 'staff-seoyeon',
@@ -136,9 +139,11 @@ export class MockDataService {
       branchId: 'branch-seocho',
       staffCode: 'SEOCHO-002',
       name: '박서연',
+      phone: '010-2222-3333',
       position: '트레이너',
       employmentType: '정규직',
       hireDate: '2022-07-11',
+      status: 'ACTIVE',
     },
     {
       id: 'staff-choi',
@@ -146,12 +151,24 @@ export class MockDataService {
       branchId: 'branch-gangnam',
       staffCode: 'GANGNAM-001',
       name: '최강남',
+      phone: '010-3333-4444',
       position: '지점장',
       employmentType: '정규직',
       hireDate: '2023-01-10',
+      status: 'ACTIVE',
     },
     ...this.generated.staff,
   ];
+
+  // 최초 파견 이력 — 02문서 §3 "신규 등록 시 최초 StaffAssignment 자동 생성" 원칙을
+  // 시드 데이터에도 그대로 적용해, 모든 기존 직원이 처음부터 정확히 1건의 활성 파견을 갖게 한다.
+  readonly staffAssignments: MockStaffAssignment[] = this.staff.map((s) => ({
+    id: `assignment-${s.id}`,
+    staffId: s.id,
+    branchId: s.branchId,
+    startDate: s.hireDate,
+    assignedBy: 'account-haneul',
+  }));
 
   readonly members: MockMember[] = [
     {
@@ -515,5 +532,166 @@ export class MockDataService {
     }
     program.status = status;
     return program;
+  }
+
+  findStaffById(id: string): MockStaff | undefined {
+    return this.staff.find((s) => s.id === id);
+  }
+
+  // `{최초배치지점코드}-{순번}` — 02문서 §3·§6. 파견 전환이 일어나도 재생성하지 않으므로
+  // "이 지점 코드로 이미 발급된 적 있는 staffCode 개수"를 기준으로 순번을 매긴다.
+  private generateStaffCode(branchId: string): string {
+    const branch = this.findBranchById(branchId);
+    const code = branch?.code ?? 'BR';
+    const seq = this.staff.filter((s) => s.staffCode.startsWith(`${code}-`)).length + 1;
+    return `${code}-${String(seq).padStart(3, '0')}`;
+  }
+
+  // 신규 채용 등록 — 02문서 §5 POST /staff, SUPER_ADMIN 전용(컨트롤러에서 강제).
+  // Staff는 Account와 1:1이라 로그인 계정도 함께 만들고, 최초 StaffAssignment까지 원자적으로 생성한다.
+  hireStaff(
+    input: {
+      branchId: string;
+      name: string;
+      email: string;
+      phone?: string;
+      position?: string;
+      employmentType?: string;
+      hireDate?: string;
+      note?: string;
+    },
+    assignedByAccountId: string,
+  ): MockStaff {
+    const branch = this.findBranchById(input.branchId);
+    if (!branch) {
+      throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+    }
+    if (this.findAccountByEmail(input.email)) {
+      throw new AppException('EMAIL_ALREADY_EXISTS', '이미 사용 중인 이메일입니다.', 409);
+    }
+
+    const hireDate = input.hireDate ?? new Date().toISOString().slice(0, 10);
+    const staffId = `staff-${randomUUID()}`;
+    const accountId = `account-${randomUUID()}`;
+
+    this.accounts.push({
+      id: accountId,
+      email: input.email,
+      passwordHash: this.passwordHash,
+      role: 'STAFF',
+      name: input.name,
+      branchId: input.branchId,
+      staffId,
+    });
+
+    const staff: MockStaff = {
+      id: staffId,
+      accountId,
+      branchId: input.branchId,
+      staffCode: this.generateStaffCode(input.branchId),
+      name: input.name,
+      phone: input.phone,
+      position: input.position,
+      employmentType: input.employmentType,
+      hireDate,
+      status: 'ACTIVE',
+    };
+    this.staff.push(staff);
+
+    this.staffAssignments.push({
+      id: `assignment-${randomUUID()}`,
+      staffId,
+      branchId: input.branchId,
+      startDate: hireDate,
+      assignedBy: assignedByAccountId,
+      note: input.note,
+    });
+
+    return staff;
+  }
+
+  // 02문서 §5 PATCH /staff/:id — branchId는 이 메서드로 바꿀 수 없다(파견 발령 API 전용).
+  updateStaff(
+    id: string,
+    input: Partial<Pick<MockStaff, 'name' | 'phone' | 'position' | 'employmentType'>>,
+  ): MockStaff {
+    const staff = this.staff.find((s) => s.id === id);
+    if (!staff) {
+      throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
+    }
+    if (input.name !== undefined) staff.name = input.name;
+    if (input.phone !== undefined) staff.phone = input.phone;
+    if (input.position !== undefined) staff.position = input.position;
+    if (input.employmentType !== undefined) staff.employmentType = input.employmentType;
+    return staff;
+  }
+
+  // 02문서 §5 PATCH /staff/:id/resign, §6 — Staff.status + Account.isActive + 활성 StaffAssignment
+  // 마감을 한 번에 처리한다(실DB 전환 시 여기가 트랜잭션으로 묶여야 할 지점).
+  resignStaff(id: string): MockStaff {
+    const staff = this.staff.find((s) => s.id === id);
+    if (!staff) {
+      throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
+    }
+    if (staff.status === 'RESIGNED') {
+      throw new AppException('STAFF_ALREADY_RESIGNED', '이미 퇴사 처리된 직원입니다.', 409);
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    staff.status = 'RESIGNED';
+    staff.resignDate = today;
+
+    const account = this.accounts.find((a) => a.id === staff.accountId);
+    if (account) account.isActive = false;
+
+    const activeAssignment = this.staffAssignments.find((a) => a.staffId === id && !a.endDate);
+    if (activeAssignment) activeAssignment.endDate = today;
+
+    return staff;
+  }
+
+  // 파견 발령(재배치) — 02문서 §5 POST /staff/:id/assignments, §6 불변식(활성 파견 최대 1건).
+  // SUPER_ADMIN 전용(컨트롤러에서 강제). 기존 활성 파견을 마감하고 새 파견을 열며 Staff/Account의
+  // branchId 캐시도 함께 갱신한다 — 이미 로그인된 세션은 재로그인해야 새 branchId가 반영된다
+  // (updateStaffRole과 동일한 제약, 01문서 §3.2).
+  assignStaff(id: string, newBranchId: string, assignedByAccountId: string, note?: string): MockStaff {
+    const staff = this.staff.find((s) => s.id === id);
+    if (!staff) {
+      throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
+    }
+    if (staff.status === 'RESIGNED') {
+      throw new AppException('STAFF_ALREADY_RESIGNED', '퇴사한 직원은 재파견할 수 없습니다.', 409);
+    }
+    const branch = this.findBranchById(newBranchId);
+    if (!branch) {
+      throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const activeAssignment = this.staffAssignments.find((a) => a.staffId === id && !a.endDate);
+    if (activeAssignment) activeAssignment.endDate = today;
+
+    this.staffAssignments.push({
+      id: `assignment-${randomUUID()}`,
+      staffId: id,
+      branchId: newBranchId,
+      startDate: today,
+      assignedBy: assignedByAccountId,
+      note,
+    });
+
+    staff.branchId = newBranchId;
+    const account = this.accounts.find((a) => a.id === staff.accountId);
+    if (account) account.branchId = newBranchId;
+
+    return staff;
+  }
+
+  // 02문서 §5 GET /staff/:id/assignments — 최신 파견이 먼저 오도록 정렬.
+  staffAssignmentHistory(staffId: string): MockStaffAssignment[] {
+    return this.staffAssignments
+      .filter((a) => a.staffId === staffId)
+      .slice()
+      .sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
   }
 }

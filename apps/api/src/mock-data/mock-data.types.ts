@@ -9,6 +9,7 @@ export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
 export type AgeGroup = 'ALL' | 'CHILD' | 'TEEN' | 'ADULT' | 'SENIOR';
 export type PostScope = 'HQ_TO_BRANCH' | 'BRANCH_TO_MEMBER';
 export type BranchContractStatus = 'ACTIVE' | 'RENEWAL_DUE' | 'EXPIRED' | 'TERMINATED';
+export type StaffStatus = 'ACTIVE' | 'ON_LEAVE' | 'RESIGNED';
 
 export interface MockBranch {
   id: string;
@@ -42,12 +43,27 @@ export interface MockAccount {
 export interface MockStaff {
   id: string;
   accountId: string;
-  branchId: string;
+  branchId: string; // **현재 파견 지점**(비정규화 캐시) — 원천은 MockStaffAssignment. 02문서 §3
   staffCode: string;
   name: string;
+  phone?: string;
   position?: string;
   employmentType?: string;
   hireDate: string;
+  resignDate?: string;
+  status: StaffStatus;
+}
+
+// 파견 이력 — 01문서 §2-2, 02문서 §3. endDate=undefined인 레코드가 직원당 항상 최대 1건이어야
+// 한다는 불변식은 MockDataService.assignStaff/resignStaff가 보장한다.
+export interface MockStaffAssignment {
+  id: string;
+  staffId: string;
+  branchId: string;
+  startDate: string;
+  endDate?: string; // undefined = 현재 진행 중인 파견
+  assignedBy: string; // FK → MockAccount.id, 항상 SUPER_ADMIN
+  note?: string;
 }
 
 export interface MockMember {

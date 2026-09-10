@@ -144,6 +144,7 @@ export function generateLightBranches(): GeneratedDataset {
         position: STAFF_POSITIONS[s % STAFF_POSITIONS.length],
         employmentType: s === 0 ? '정규직' : '파트타임',
         hireDate: toDateStr(addDays(now, -(200 + (i * 3 + s) * 11))),
+        status: 'ACTIVE',
       });
     }
 
