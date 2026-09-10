@@ -14,6 +14,14 @@ import {
 import { generateLightBranches } from './branch-generator';
 import { AppException } from '../common/exceptions/app.exception';
 
+// 07문서 §3-2 상태 전이표. ENDED는 종결 상태라 다음 상태가 없다.
+const PROGRAM_STATUS_TRANSITIONS: Record<MockProgram['status'], MockProgram['status'][]> = {
+  PREPARING: ['RUNNING', 'ENDED'],
+  RUNNING: ['PAUSED', 'ENDED'],
+  PAUSED: ['RUNNING', 'ENDED'],
+  ENDED: [],
+};
+
 // 데모 계정 공통 비밀번호. prisma/seed.ts의 DEMO_PASSWORD와 동일하게 맞춰서,
 // 나중에 실제 DB로 전환해도 로그인 테스트 계정 정보가 바뀌지 않도록 합니다.
 export const MOCK_DEMO_PASSWORD = 'demo-password-1234';
@@ -485,5 +493,27 @@ export class MockDataService {
       if (account) account.isActive = status !== 'WITHDRAWN';
     }
     return member;
+  }
+
+  findProgramById(id: string): MockProgram | undefined {
+    return this.programs.find((p) => p.id === id);
+  }
+
+  // 07문서 §5 PATCH /programs/:id/status, §3-2 전이표. 표에 없는 전이(자기 자신 포함)는 409.
+  updateProgramStatus(id: string, status: MockProgram['status']): MockProgram {
+    const program = this.programs.find((p) => p.id === id);
+    if (!program) {
+      throw new AppException('PROGRAM_NOT_FOUND', '프로그램을 찾을 수 없습니다.', 404);
+    }
+    const allowed = PROGRAM_STATUS_TRANSITIONS[program.status];
+    if (!allowed.includes(status)) {
+      throw new AppException(
+        'INVALID_STATUS_TRANSITION',
+        `${program.status} 상태에서 ${status}(으)로 전이할 수 없습니다.`,
+        409,
+      );
+    }
+    program.status = status;
+    return program;
   }
 }
