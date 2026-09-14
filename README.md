@@ -9,6 +9,8 @@
 [![PostgreSQL](https://img.shields.io/badge/DB-PostgreSQL-4169E1?logo=postgresql&logoColor=white)](docker-compose.yml)
 [![License](https://img.shields.io/badge/license-Portfolio--only-lightgrey)](#license)
 
+**📊 [2주차 진행상황 발표 자료 보기](https://claude.ai/code/artifact/cea04fa5-eabc-4b78-a55b-838a5da1a402)** — 화살표키/버튼으로 슬라이드를 넘기며 볼 수 있는 웹 발표자료입니다.
+
 ---
 
 ## 소개
@@ -86,6 +88,7 @@ docs/
 | # | 문서 | 내용 |
 |---|---|---|
 | 4-1 | [발표자료 핸드오프](docs/4.presentation/4-1_발표자료_핸드오프.md) | 진행상황 발표 준비용 핸드오프 요약 — `docs/4.presentation/` 디렉터리에 별도 보관, 발표자료 작성 시에만 갱신 |
+| 4-2 | [2주차 발표 슬라이드 구성](docs/4.presentation/4-2_2주차발표_슬라이드구성.md) | 2주차 발표 슬라이드 구성안 — [배포된 발표자료 보기](https://claude.ai/code/artifact/cea04fa5-eabc-4b78-a55b-838a5da1a402) |
 
 원본 제안요청서(RFP) PDF는 `docs/제안요청서 원본.pdf`에 있습니다.
 
