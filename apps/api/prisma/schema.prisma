@@ -1,5 +1,5 @@
 // 스포이즘 ERP — 전체 스키마
-// 01~08 기능 문서의 데이터 모델을 그대로 반영합니다. 문서 번호는 각 모델 위 주석 참고.
+// 1-2~1-9 기능 문서의 데이터 모델을 그대로 반영합니다. 문서 번호는 각 모델 위 주석 참고(docs/1.spec/ 하위 폴더는 README 문서 표 참고).
 
 generator client {
   provider = "prisma-client-js"
@@ -15,11 +15,11 @@ datasource db {
 enum Role {
   SUPER_ADMIN
   BRANCH_ADMIN
-  STAFF // 지점 소속 일반 직원(트레이너 등) — 관리 권한 없이 본인 근태/휴가/업무일지만 셀프서비스 (01문서 §7)
+  STAFF // 지점 소속 일반 직원(트레이너 등) — 관리 권한 없이 본인 근태/휴가/업무일지만 셀프서비스 (1-2문서 §7)
   MEMBER
 }
 
-// ── 01. 권한관리 / 조직 ────────────────────────────────
+// ── 1-2. 권한관리 / 조직 ────────────────────────────────
 
 model Account {
   id               String    @id @default(uuid())
@@ -58,14 +58,14 @@ model RefreshToken {
 model Branch {
   id                        String               @id @default(uuid())
   name                      String
-  code                      String               @unique // 지점 코드 — memberNo/staffCode 생성에 사용 (예: "SEOCHO"). 01/05문서 참고
+  code                      String               @unique // 지점 코드 — memberNo/staffCode 생성에 사용 (예: "SEOCHO"). 1-3(staffCode)/1-6(memberNo)문서 참고
   address                   String?
   region                    String // 광역 단위(예: "서울", "경기") — address(상세 주소)와 별개로 대시보드 지역별 그룹핑에 사용
   phone                     String?
-  standardCheckInTime       String? // "HH:mm" — 03문서 지각 판정 기준
-  cancellationDeadlineHours Int? // 예약 무료취소 기준 시간(예: 24) — nullable이면 전역 기본값 사용, 06문서 §6 참고. 01문서 §2-1의 cancellationPolicy를 단순 컬럼으로 구현
+  standardCheckInTime       String? // "HH:mm" — 1-4문서 지각 판정 기준
+  cancellationDeadlineHours Int? // 예약 무료취소 기준 시간(예: 24) — nullable이면 전역 기본값 사용, 1-7문서 §6 참고. 1-1문서 §2-1의 cancellationPolicy를 단순 컬럼으로 구현
   isActive                  Boolean              @default(true)
-  // 위탁계약 필드 — 01문서 §2-1. Branch는 매장이 아니라 위탁운영 계약 현장이라는 재해석의 핵심 데이터.
+  // 위탁계약 필드 — 1-1문서 §2-1. Branch는 매장이 아니라 위탁운영 계약 현장이라는 재해석의 핵심 데이터.
   contractPartner           String // 위탁계약 상대방(예: "서초 OO아파트 입주자대표회의") — 관리자 전용 정보
   contractStartAt           DateTime
   contractEndAt             DateTime?
@@ -94,7 +94,7 @@ enum BranchContractStatus {
   TERMINATED
 }
 
-// ── 02. 인사정보관리 ───────────────────────────────────
+// ── 1-3. 인사정보관리 ───────────────────────────────────
 
 enum StaffStatus {
   ACTIVE // 재직
@@ -127,13 +127,13 @@ model Staff {
   workLogs          WorkLog[]
   instructorProfile Instructor?
   assignedMembers   Member[]                    @relation("StaffAssignedMembers")
-  assignments       StaffAssignment[] // 파견 이력 — 01문서 §2-2
+  assignments       StaffAssignment[] // 파견 이력 — 1-1문서 §2-2
 
   @@index([branchId])
   @@index([status])
 }
 
-// 파견 이력 — 01문서 §2-2, 02문서 §3~§7. Staff.branchId는 이 중 endDate=null인 레코드의
+// 파견 이력 — 1-1문서 §2-2, 1-3문서 §3~§7. Staff.branchId는 이 중 endDate=null인 레코드의
 // branchId와 항상 동기화되는 비정규화 캐시(원천은 이 테이블). 한 직원당 endDate=null 레코드는
 // 최대 1건이어야 한다는 불변식은 애플리케이션 레벨(트랜잭션)에서 보장한다.
 model StaffAssignment {
@@ -176,7 +176,7 @@ model StaffProfileChangeRequest {
   @@index([staffId, status])
 }
 
-// ── 03. 근태관리 ───────────────────────────────────────
+// ── 1-4. 근태관리 ───────────────────────────────────────
 
 enum AttendanceStatus {
   NORMAL // 정상
@@ -257,7 +257,7 @@ model WorkLog {
   @@index([staffId, date])
 }
 
-// ── 04. 게시판(공지사항) ───────────────────────────────
+// ── 1-5. 게시판(공지사항) ───────────────────────────────
 
 enum PostScope {
   HQ_TO_BRANCH
@@ -318,7 +318,7 @@ model PostReadReceipt {
   @@unique([postId, accountId])
 }
 
-// ── 05. 회원관리 ───────────────────────────────────────
+// ── 1-6. 회원관리 ───────────────────────────────────────
 
 enum MemberStatus {
   ACTIVE // 활성
@@ -402,7 +402,7 @@ model PTSessionLog {
   @@index([ptSessionId])
 }
 
-// ── 07. 강사·프로그램 게시 ──────────────────────────────
+// ── 1-8. 강사·프로그램 게시 ──────────────────────────────
 
 model Instructor {
   id        String  @id @default(uuid())
@@ -431,9 +431,9 @@ enum AgeGroup {
 }
 
 enum PricingType {
-  FREE_ACCESS // 자유이용형 — 예약/결제 대상 아님 (08문서 FacilityCheckIn만 사용)
+  FREE_ACCESS // 자유이용형 — 예약/결제 대상 아님 (1-9문서 FacilityCheckIn만 사용)
   PAID_SESSION // 회차 예약형 — price=0이면 무료 회차
-  PT_PACKAGE // 세션 차감형(PT) — 05문서 PTSession으로 관리
+  PT_PACKAGE // 세션 차감형(PT) — 1-6문서 PTSession으로 관리
 }
 
 enum ProgramStatus {
@@ -486,7 +486,7 @@ model ProgramScheduleTemplate {
   @@index([programId])
 }
 
-// ── 06. 예약 및 결제 ────────────────────────────────────
+// ── 1-7. 예약 및 결제 ────────────────────────────────────
 
 model ScheduleSlot {
   id        String   @id @default(uuid())
@@ -558,7 +558,7 @@ model Payment {
   @@index([memberId])
 }
 
-// ── 08. 혼잡도 관리 ─────────────────────────────────────
+// ── 1-9. 혼잡도 관리 ─────────────────────────────────────
 
 enum FacilityType {
   GYM

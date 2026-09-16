@@ -11,6 +11,8 @@
 
 **📊 [2주차 진행상황 발표 자료 보기](https://claude.ai/code/artifact/cea04fa5-eabc-4b78-a55b-838a5da1a402)** — 화살표키/버튼으로 슬라이드를 넘기며 볼 수 있는 웹 발표자료입니다.
 
+**📄 산출물(원본 RFP 대응)** — [기업 분석 자료](docs/5.deliverables/5-1_기업분석자료.html)(산출물2) · [개발 작업계획서](docs/5.deliverables/5-2_개발작업계획서.html)(산출물3) — 저장소 보관본, 보기 좋은 버전은 [문서 목차 §5.deliverables](#5deliverables--원본-rfp-산출물-제출본) 참고
+
 ---
 
 ## 소개
@@ -31,7 +33,8 @@
 | API | NestJS + TypeScript |
 | DB / ORM | PostgreSQL + Prisma |
 | 인증 | JWT(Access/Refresh) + RBAC |
-| 인프라 | Docker Compose(로컬) |
+| 로컬 인프라 | Docker Compose(PostgreSQL) |
+| 배포 | Cloudflare Pages(admin-web) · Render(api) · Supabase(예정, 실 DB 전환 시) |
 
 ## 폴더 구조
 
@@ -43,7 +46,7 @@ apps/
 packages/
   types/        클라이언트-서버가 공유하는 타입
 docs/
-  1.spec/         기능 설계서 1-1~1-9 (아키텍처부터 혼잡도관리까지)
+  1.spec/         기능 설계서 1-1~1-10 (아키텍처부터 혼잡도관리, 자원관리까지)
   2.decisions/    기술 결정사항·트러블슈팅·요구사항추적표·차별화전략 (2-1~2-4)
   3.design/       admin-web 디자인 시스템(토큰·레이아웃 원칙) — 화면이 늘어날수록 계속 갱신
   4.presentation/ 발표 핸드오프 문서(4-1) — 발표 준비 시에만 갱신
@@ -52,30 +55,60 @@ docs/
 
 ## 문서
 
-이 프로젝트의 모든 설계 결정은 `docs/`에 문서화되어 있습니다. 코드를 보기 전에 `1-1_공통설계서`부터 읽는 걸 권장합니다. 디렉터리 번호(1~4)가 카테고리, 그 하위 번호(1-1, 2-3 등)가 개별 문서입니다 — `docs/1.spec/`은 기능 설계서, `docs/2.decisions/`는 의사결정·분석 기록, `docs/3.design/`은 UI 디자인 시스템으로 성격을 나눴습니다.
+이 프로젝트의 모든 설계 결정은 `docs/`에 문서화되어 있습니다. 코드를 보기 전에 `1-1_공통설계서`부터 읽는 걸 권장합니다. 구조는 3단계입니다 — **1차** 최상위 폴더(`1.spec`/`2.decisions`/`3.design`/`4.presentation`), **2차** 그 안의 기능군별 하위 폴더, **3차** 개별 문서(`1-1`, `2-3` 등, 파일명은 하위 폴더가 바뀌어도 그대로).
 
 ### 1.spec — 기능 설계서
 
+**00_공통**
+
 | # | 문서 | 내용 |
 |---|---|---|
-| 1-1 | [공통설계서](docs/1.spec/1-1_공통설계서.md) | 아키텍처, ERD 개요, 인증/RBAC, API 컨벤션, 개발 로드맵 |
-| 1-2 | [권한관리](docs/1.spec/1-2_권한관리.md) | Role 4종, 지점 데이터 격리, 퇴사 처리 |
-| 1-3 | [인사정보관리](docs/1.spec/1-3_인사정보관리.md) | 직원 CRUD, 파견(Assignment) 모델, 변경 신청/승인 |
-| 1-4 | [근태관리](docs/1.spec/1-4_근태관리.md) | 출퇴근, 휴가, 업무일지 |
-| 1-5 | [게시판(공지사항)](docs/1.spec/1-5_게시판_공지사항.md) | 본사→지점→회원 계층형 게시판 |
-| 1-6 | [회원관리](docs/1.spec/1-6_회원관리.md) | 회원 CRUD, 수강내역, PT세션 |
-| 1-7 | [예약및결제](docs/1.spec/1-7_예약및결제.md) | 예약, 동시성 처리, 모의 결제 |
-| 1-8 | [강사프로그램게시](docs/1.spec/1-8_강사프로그램게시.md) | 강사·프로그램, pricingType |
-| 1-9 | [혼잡도관리](docs/1.spec/1-9_혼잡도관리.md) | 시설별 혼잡도 자동계산 |
+| 1-1 | [공통설계서](docs/1.spec/00_공통/1-1_공통설계서.md) | 아키텍처, ERD 개요, 인증/RBAC, API 컨벤션, 개발 로드맵 |
+
+**10_인사조직**
+
+| # | 문서 | 내용 |
+|---|---|---|
+| 1-2 | [권한관리](docs/1.spec/10_인사조직/1-2_권한관리.md) | Role 4종, 지점 데이터 격리, 퇴사 처리 |
+| 1-3 | [인사정보관리](docs/1.spec/10_인사조직/1-3_인사정보관리.md) | 직원 CRUD, 파견(Assignment) 모델, 변경 신청/승인 |
+| 1-4 | [근태관리](docs/1.spec/10_인사조직/1-4_근태관리.md) | 출퇴근, 휴가, 업무일지 |
+
+**20_이용자서비스**
+
+| # | 문서 | 내용 |
+|---|---|---|
+| 1-6 | [회원관리](docs/1.spec/20_이용자서비스/1-6_회원관리.md) | 회원 CRUD, 수강내역, PT세션 |
+| 1-7 | [예약및결제](docs/1.spec/20_이용자서비스/1-7_예약및결제.md) | 예약, 동시성 처리, 모의 결제 |
+| 1-8 | [강사프로그램게시](docs/1.spec/20_이용자서비스/1-8_강사프로그램게시.md) | 강사·프로그램, pricingType |
+
+**30_운영지원**
+
+| # | 문서 | 내용 |
+|---|---|---|
+| 1-5 | [게시판(공지사항)](docs/1.spec/30_운영지원/1-5_게시판_공지사항.md) | 본사→지점→회원 계층형 게시판 |
+| 1-9 | [혼잡도관리](docs/1.spec/30_운영지원/1-9_혼잡도관리.md) | 시설별 혼잡도 자동계산 |
+
+**40_자원문서관리**
+
+| # | 문서 | 내용 |
+|---|---|---|
+| 1-10 | [기업구조및자원관리분석](docs/1.spec/40_자원문서관리/1-10_기업구조및자원관리분석.md) | 원본 RFP "기업 분석 자료" 산출물 대응 — 조직구조 분석 + 자산·비품관리/문서관리 신규 설계 |
 
 ### 2.decisions — 의사결정·분석 기록
 
+**50_결정및이슈기록**
+
 | # | 문서 | 내용 |
 |---|---|---|
-| 2-1 | [기술결정사항](docs/2.decisions/2-1_기술결정사항.md) | 주요 기술 결정의 근거·타당성·장단점 분석(ADR 스타일) |
-| 2-2 | [트러블슈팅](docs/2.decisions/2-2_트러블슈팅.md) | 구현 중 실제로 부딪힌 문제와 해결 과정 |
-| 2-3 | [요구사항추적표](docs/2.decisions/2-3_요구사항추적표.md) | 원본 제안요청서 항목별 대응표 + 설계문서 vs 실제 코드(mock) 차이 분석 |
-| 2-4 | [차별화전략](docs/2.decisions/2-4_차별화전략.md) | RFP 사업 맥락 재해석 기반 차별화 기능 제안(위탁계약 관리, 계약서 OCR·AI 분석 등) |
+| 2-1 | [기술결정사항](docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md) | 주요 기술 결정의 근거·타당성·장단점 분석(ADR 스타일) |
+| 2-2 | [트러블슈팅](docs/2.decisions/50_결정및이슈기록/2-2_트러블슈팅.md) | 구현 중 실제로 부딪힌 문제와 해결 과정 |
+
+**60_분석및제안**
+
+| # | 문서 | 내용 |
+|---|---|---|
+| 2-3 | [요구사항추적표](docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md) | 원본 제안요청서 항목별 대응표 + 설계문서 vs 실제 코드(mock) 차이 분석 |
+| 2-4 | [차별화전략](docs/2.decisions/60_분석및제안/2-4_차별화전략.md) | RFP 사업 맥락 재해석 기반 차별화 기능 제안(위탁계약 관리, 계약서 OCR·AI 분석 등) |
 
 ### 3.design — 디자인 시스템
 
@@ -89,6 +122,15 @@ docs/
 |---|---|---|
 | 4-1 | [발표자료 핸드오프](docs/4.presentation/4-1_발표자료_핸드오프.md) | 진행상황 발표 준비용 핸드오프 요약 — `docs/4.presentation/` 디렉터리에 별도 보관, 발표자료 작성 시에만 갱신 |
 | 4-2 | [2주차 발표 슬라이드 구성](docs/4.presentation/4-2_2주차발표_슬라이드구성.md) | 2주차 발표 슬라이드 구성안 — [배포된 발표자료 보기](https://claude.ai/code/artifact/cea04fa5-eabc-4b78-a55b-838a5da1a402) |
+
+### 5.deliverables — 원본 RFP 산출물 제출본
+
+다른 문서를 참조하지 않는 자기완결형 HTML입니다 — 내용의 근거는 아래 표의 "기반 문서"에 있지만, 산출물 자체는 그 문서들과 별개로 완결되어 있습니다.
+
+| # | 산출물 | 내용 | 기반 문서 |
+|---|---|---|---|
+| 5-1 | [기업 분석 자료](docs/5.deliverables/5-1_기업분석자료.html) ([보기 좋은 버전](https://claude.ai/code/artifact/460e474f-2ded-4031-ae5b-07cf1efa3731)) | 산출물2(기업 경영/관리 현황 분석) — 사업구조 재해석, 지점·계약 현황, 인적/물적자원 관리 현황 | [1-10](docs/1.spec/40_자원문서관리/1-10_기업구조및자원관리분석.md) |
+| 5-2 | [개발 작업계획서](docs/5.deliverables/5-2_개발작업계획서.html) ([보기 좋은 버전](https://claude.ai/code/artifact/05918b0b-f045-42c8-928e-bdf0f44133b7)) | 산출물3 — 개발 단계(Phase 0~6) 흐름과 각 단계별 범위·데모 산출물 | [1-1 §7](docs/1.spec/00_공통/1-1_공통설계서.md) |
 
 원본 제안요청서(RFP) PDF는 `docs/제안요청서 원본.pdf`에 있습니다.
 
@@ -119,16 +161,42 @@ npm run dev:api     # http://localhost:3000/api/v1/health
 npm run dev:web     # http://localhost:5173
 ```
 
+## 배포
+
+결정 근거는 [2-1문서 D23](docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md)을 참고하세요. GitHub 저장소 연결 후 아래 값을 각 서비스 대시보드에 입력하면 push 시 자동 재배포됩니다.
+
+**api → [Render](https://render.com)** — 저장소 루트의 [render.yaml](render.yaml)을 Blueprint로 인식시키면 아래 값이 자동 채워집니다(수동 설정 시 동일하게 입력).
+
+| 항목 | 값 |
+|---|---|
+| Build Command | `npm install && npm run build --workspace=apps/api` |
+| Start Command | `npm run start:prod --workspace=apps/api` |
+| Health Check Path | `/api/v1/health` |
+| 환경변수 | `JWT_ACCESS_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_SECRET`, `JWT_REFRESH_EXPIRES_IN` (`apps/api/.env.example` 참고). `DATABASE_URL`은 Supabase 연동 전까지는 비워둡니다. |
+
+**admin-web → [Cloudflare Pages](https://pages.cloudflare.com)**
+
+| 항목 | 값 |
+|---|---|
+| Build Command | `npm install && npm run build --workspace=apps/admin-web` |
+| Build Output Directory | `apps/admin-web/dist` |
+| 환경변수 | `VITE_API_BASE_URL=<Render에서 발급된 api 주소>/api/v1` |
+
+SPA 새로고침 404 방지용 [`apps/admin-web/public/_redirects`](apps/admin-web/public/_redirects)가 빌드 결과물에 포함되어 있어야 합니다(Vite가 `public/`을 그대로 복사하므로 별도 설정 불필요).
+
+**DB(실 DB 전환 시) → [Supabase](https://supabase.com)** — 무료 프로젝트 생성 후 연결 문자열을 Render의 `DATABASE_URL`에 넣고 `AppModule`에서 `MockDataModule`을 `PrismaModule`로 교체합니다. 무료 프로젝트는 7일간 미사용 시 자동 일시정지되니, 시연 전엔 미리 한 번 깨워두세요.
+
 ## 로드맵
 
-`docs/1.spec/1-1_공통설계서.md` §7의 Phase 구성을 따릅니다. 각 Phase는 세로로(기능 하나씩) 완성하며, 끝날 때마다 실제로 눌러볼 수 있는 데모가 나오는 것을 목표로 합니다.
+`docs/1.spec/00_공통/1-1_공통설계서.md` §7의 Phase 구성을 따릅니다. 각 Phase는 세로로(기능 하나씩) 완성하며, 끝날 때마다 실제로 눌러볼 수 있는 데모가 나오는 것을 목표로 합니다.
 
 - [x] **Phase 0 — 프로젝트 셋업**: 모노레포 구조, Git, 환경설정, Prisma 스타터 스키마
-- [ ] **Phase 1 — 권한관리 + 회원관리**: 로그인/JWT/RBAC, BranchScopeGuard, 회원 CRUD ([1-2](docs/1.spec/1-2_권한관리.md), [1-6](docs/1.spec/1-6_회원관리.md))
-- [ ] **Phase 2 — 인사정보관리 + 근태관리**: 직원 CRUD, 파견 모델, 출퇴근/휴가 ([1-3](docs/1.spec/1-3_인사정보관리.md), [1-4](docs/1.spec/1-4_근태관리.md))
-- [ ] **Phase 3 — 강사·프로그램 + 예약/결제**: pricingType, 정원 동시성 처리, 모의 결제, 회원 앱 착수 ([1-8](docs/1.spec/1-8_강사프로그램게시.md), [1-7](docs/1.spec/1-7_예약및결제.md))
-- [ ] **Phase 4 — 게시판 + 혼잡도관리**: 계층형 게시판, 혼잡도 자동계산 ([1-5](docs/1.spec/1-5_게시판_공지사항.md), [1-9](docs/1.spec/1-9_혼잡도관리.md))
+- [ ] **Phase 1 — 권한관리 + 회원관리**: 로그인/JWT/RBAC, BranchScopeGuard, 회원 CRUD ([1-2](docs/1.spec/10_인사조직/1-2_권한관리.md), [1-6](docs/1.spec/20_이용자서비스/1-6_회원관리.md))
+- [ ] **Phase 2 — 인사정보관리 + 근태관리**: 직원 CRUD, 파견 모델, 출퇴근/휴가 ([1-3](docs/1.spec/10_인사조직/1-3_인사정보관리.md), [1-4](docs/1.spec/10_인사조직/1-4_근태관리.md))
+- [ ] **Phase 3 — 강사·프로그램 + 예약/결제**: pricingType, 정원 동시성 처리, 모의 결제, 회원 앱 착수 ([1-8](docs/1.spec/20_이용자서비스/1-8_강사프로그램게시.md), [1-7](docs/1.spec/20_이용자서비스/1-7_예약및결제.md))
+- [ ] **Phase 4 — 게시판 + 혼잡도관리**: 계층형 게시판, 혼잡도 자동계산 ([1-5](docs/1.spec/30_운영지원/1-5_게시판_공지사항.md), [1-9](docs/1.spec/30_운영지원/1-9_혼잡도관리.md))
 - [ ] **Phase 5 — 통합·배포·발표 준비**: 통합 테스트, UI 폴리싱, 배포, 시연 시나리오
+- [ ] **Phase 6(확장) — 자산·비품관리 + 문서관리 + 매출/정산**: 원본 산출물2(기업 분석 자료) 대응 ([1-10](docs/1.spec/40_자원문서관리/1-10_기업구조및자원관리분석.md)) + 부가세 분리·매출 집계·강사 정산 ([1-7](docs/1.spec/20_이용자서비스/1-7_예약및결제.md))
 
 ## License
 

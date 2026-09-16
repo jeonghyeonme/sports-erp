@@ -1,0 +1,313 @@
+<title>스포이즘 ERP 개발계획</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#f8fafc;
+    --surface:#ffffff;
+    --surface-alt:#f1f5f9;
+    --border:#e2e8f0;
+    --border-strong:#cbd5e1;
+    --text:#0f172a;
+    --text-muted:#64748b;
+    --sidebar-bg:#0f172a;
+    --sidebar-text:#cbd5e1;
+    --primary:#0f766e;
+    --primary-soft:#f0fdfa;
+    --success-bg:#dcfce7; --success-text:#15803d;
+    --warning-bg:#fef9c3; --warning-text:#a16207;
+    --neutral-bg:#e2e8f0; --neutral-text:#475569;
+    --radius-sm:4px; --radius-md:6px; --radius-pill:999px;
+    --shadow-float:0 1px 2px rgba(0,0,0,0.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0a0f1a;
+      --surface:#111827;
+      --surface-alt:#1a2436;
+      --border:#233042;
+      --border-strong:#334155;
+      --text:#e2e8f0;
+      --text-muted:#8b9bb4;
+      --sidebar-bg:#060a12;
+      --sidebar-text:#94a3b8;
+      --primary:#2dd4bf;
+      --primary-soft:rgba(45,212,191,0.10);
+      --success-bg:rgba(34,197,94,0.14); --success-text:#4ade80;
+      --warning-bg:rgba(234,179,8,0.14); --warning-text:#facc15;
+      --neutral-bg:rgba(148,163,184,0.14); --neutral-text:#b6c2d4;
+      --shadow-float:0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0a0f1a;
+    --surface:#111827;
+    --surface-alt:#1a2436;
+    --border:#233042;
+    --border-strong:#334155;
+    --text:#e2e8f0;
+    --text-muted:#8b9bb4;
+    --sidebar-bg:#060a12;
+    --sidebar-text:#94a3b8;
+    --primary:#2dd4bf;
+    --primary-soft:rgba(45,212,191,0.10);
+    --success-bg:rgba(34,197,94,0.14); --success-text:#4ade80;
+    --warning-bg:rgba(234,179,8,0.14); --warning-text:#facc15;
+    --neutral-bg:rgba(148,163,184,0.14); --neutral-text:#b6c2d4;
+    --shadow-float:0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans',-apple-system,sans-serif;
+    font-size:13px;
+    line-height:1.6;
+    padding-inline:24px;
+    padding-block:40px;
+  }
+  .page{max-width:920px;margin-inline:auto;display:flex;flex-direction:column;gap:32px;}
+
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* header */
+  .doc-head{border-bottom:1px solid var(--border-strong);padding-bottom:20px;display:flex;flex-direction:column;gap:10px;}
+  .eyebrow{
+    font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--primary);
+  }
+  h1{
+    font-size:26px;font-weight:700;margin:0;letter-spacing:-.01em;text-wrap:balance;
+  }
+  .doc-meta{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--text-muted);font-size:12px;}
+  .doc-meta b{color:var(--text);font-weight:600;}
+
+  h2{font-size:15px;font-weight:700;margin:0 0 4px;letter-spacing:-.005em;}
+  .section-sub{color:var(--text-muted);font-size:12px;margin:0 0 14px;max-width:62ch;}
+
+  /* principle callout */
+  .principle{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-left:3px solid var(--primary);
+    border-radius:var(--radius-md);
+    padding:16px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .principle p{margin:0;font-size:12.5px;color:var(--text);}
+  .principle p.muted{color:var(--text-muted);}
+
+  /* phase flow */
+  .flow{
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);
+    padding:18px;
+  }
+  .flow-step{
+    display:flex;align-items:center;gap:8px;
+    background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);
+    padding:8px 14px;
+  }
+  .flow-step.ext{border-style:dashed;border-color:var(--border-strong);}
+  .step-num{
+    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;
+    color:var(--primary);background:var(--primary-soft);
+    width:20px;height:20px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .step-name{font-size:12.5px;font-weight:600;color:var(--text);display:flex;flex-direction:column;line-height:1.3;}
+  .step-name em{font-style:normal;font-size:9.5px;font-weight:500;color:var(--text-muted);}
+  .flow-arrow{color:var(--border-strong);font-size:14px;flex:none;}
+
+  /* phase table */
+  .table-wrap{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    overflow-x:auto;
+  }
+  table{width:100%;border-collapse:collapse;min-width:760px;}
+  thead th{
+    background:var(--surface-alt);
+    text-align:left;
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    padding:9px 14px;
+    border-bottom:1px solid var(--border-strong);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:11px 14px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+    font-size:12.5px;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover td{background:var(--surface-alt);}
+  .phase-cell{white-space:nowrap;}
+  .phase-cell .p-name{font-weight:700;}
+  .phase-cell .p-ext{margin-left:6px;font-style:normal;font-size:10px;color:var(--text-muted);background:var(--surface-alt);padding:1px 6px;border-radius:var(--radius-pill);}
+  .doc-tag{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+    background:var(--primary-soft);color:var(--primary);
+    padding:1px 6px;border-radius:var(--radius-sm);
+    white-space:nowrap;display:inline-block;margin:1px 3px 1px 0;
+  }
+  .scope-text{color:var(--text);max-width:34ch;}
+  .deliver-text{color:var(--text-muted);max-width:26ch;}
+
+  /* risk note */
+  .risk{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:14px 18px;
+    font-size:12px;
+    color:var(--text-muted);
+    display:flex;
+    gap:10px;
+  }
+  .risk .tag{
+    flex:none;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;
+    color:var(--warning-text);background:var(--warning-bg);
+    padding:2px 8px;border-radius:var(--radius-sm);height:fit-content;
+  }
+  .risk b{color:var(--text);}
+
+  footer{
+    border-top:1px solid var(--border);
+    padding-top:16px;
+    color:var(--text-muted);
+    font-size:11px;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  @media (max-width:640px){
+    h1{font-size:21px;}
+    .doc-meta{flex-direction:column;gap:4px;}
+  }
+</style>
+
+<div class="page">
+
+  <div class="doc-head">
+    <div class="eyebrow">산출물 3 · 개발 작업계획서</div>
+    <h1>스포이즘 ERP 개발 작업계획서</h1>
+    <div class="doc-meta">
+      <span><b>과업</b> 스포이즘 기업성장을 위한 ERP 시스템 개발</span>
+      <span><b>수행 방식</b> 1인 개발, 기능 단위로 세로 완성</span>
+      <span><b>구성</b> Phase 0~6, 참고용 순서(실제 진행은 기능 간을 오가며 비선형적)</span>
+      <span><b>근거</b> <span class="mono">1-1_공통설계서.md §7</span></span>
+    </div>
+  </div>
+
+  <section>
+    <div class="principle">
+      <p><b>적용 원칙 —</b> 8개 기능 + 확장 범위를 날짜로 쪼개기보다, 기능 단위로 묶어 "이 정도 범위가 끝나면 이런 데모가 나온다"는 완성 단계만 정의한다. 실제 작업 순서는 기능 간을 오가며 유동적으로 진행된다.</p>
+      <p class="muted">기능 문서마다 있는 "Phase 1(필수) / Phase 2(선택)" 구분이 실질적인 우선순위다 — 범위를 줄여야 하면 각 Phase의 선택 항목부터 쳐낸다(아래 참고).</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>개발 단계</h2>
+    <p class="section-sub">시간표가 아니라 완성 단위 구분이다 — 순서는 참고용이고, 각 단계 끝에 눌러볼 수 있는 데모가 남는 것만 기준으로 삼는다.</p>
+    <div class="flow">
+      <div class="flow-step"><span class="step-num">0</span><span class="step-name">셋업</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="step-num">1</span><span class="step-name">권한·회원</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="step-num">2</span><span class="step-name">인사·근태</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="step-num">3</span><span class="step-name">프로그램·예약</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="step-num">4</span><span class="step-name">게시판·혼잡도</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="step-num">5</span><span class="step-name">통합·배포</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step ext"><span class="step-num">6</span><span class="step-name">자원·정산<em>확장</em></span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Phase별 상세</h2>
+    <p class="section-sub">각 Phase는 완료 시점에 실제로 시연 가능한 데모를 산출물로 남긴다.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Phase</th>
+            <th>범위</th>
+            <th>데모 산출물</th>
+            <th>관련 문서</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="phase-cell"><span class="p-name">Phase 0</span></td>
+            <td class="scope-text">모노레포 구조, Git, 환경설정, DB 스키마 전체 설계, 인증 뼈대, 배포 파이프라인</td>
+            <td class="deliver-text">로그인만 되는 빈 앱</td>
+            <td><span class="doc-tag">1-1</span></td>
+          </tr>
+          <tr>
+            <td class="phase-cell"><span class="p-name">Phase 1</span></td>
+            <td class="scope-text">권한관리(RBAC 4-Role, BranchScopeGuard) + 회원관리(핵심 CRUD)</td>
+            <td class="deliver-text">관리자가 회원 CRUD하는 웹</td>
+            <td><span class="doc-tag">1-2</span><span class="doc-tag">1-6</span></td>
+          </tr>
+          <tr>
+            <td class="phase-cell"><span class="p-name">Phase 2</span></td>
+            <td class="scope-text">인사정보관리(파견 모델) + 근태관리</td>
+            <td class="deliver-text">직원 · 근태 관리</td>
+            <td><span class="doc-tag">1-3</span><span class="doc-tag">1-4</span></td>
+          </tr>
+          <tr>
+            <td class="phase-cell"><span class="p-name">Phase 3</span></td>
+            <td class="scope-text">강사·프로그램 게시 + 예약/결제(모의)</td>
+            <td class="deliver-text">회원 앱에서 예약 가능</td>
+            <td><span class="doc-tag">1-8</span><span class="doc-tag">1-7</span></td>
+          </tr>
+          <tr>
+            <td class="phase-cell"><span class="p-name">Phase 4</span></td>
+            <td class="scope-text">게시판(공지사항) + 혼잡도관리</td>
+            <td class="deliver-text">공지 · 혼잡도까지 완성</td>
+            <td><span class="doc-tag">1-5</span><span class="doc-tag">1-9</span></td>
+          </tr>
+          <tr>
+            <td class="phase-cell"><span class="p-name">Phase 5</span></td>
+            <td class="scope-text">통합 테스트, UI 폴리싱, 배포, 발표자료(ERD·시연 시나리오)</td>
+            <td class="deliver-text">최종 데모</td>
+            <td><span class="doc-tag">4-1</span></td>
+          </tr>
+          <tr>
+            <td class="phase-cell"><span class="p-name">Phase 6</span><em class="p-ext">확장</em></td>
+            <td class="scope-text">자산·비품관리, 문서관리(산출물2 대응) · 부가세 분리, 매출 집계, 강사 정산 · 교육 실시 기록</td>
+            <td class="deliver-text">확장 범위 데모</td>
+            <td><span class="doc-tag">1-10</span><span class="doc-tag">1-7</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="risk">
+      <span class="tag">범위 조정</span>
+      <div><b>범위를 줄여야 할 경우</b> 각 Phase 문서에 표시된 "Phase 2(선택)" 항목부터 순서대로 제외한다 — 예: 근태관리의 자동 결근 배치, 예약/결제의 노쇼 자동 처리, 혼잡도관리의 QR 자동계산 등. 핵심 기능(각 문서 "Phase 1 필수")은 유지하고, 완성도를 높이는 항목만 스트레치 목표로 미룬다.</div>
+    </div>
+  </section>
+
+  <footer>
+    <span>원본 제안요청서 Ⅳ.과업내용 3.산출물 — 산출물 3(개발 작업계획서) 대응</span>
+    <span class="mono">docs/1.spec/00_공통/1-1_공통설계서.md §7</span>
+  </footer>
+
+</div>
