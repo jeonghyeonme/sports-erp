@@ -2,224 +2,311 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
   :root{
-    --bg:#f8fafc;
-    --surface:#ffffff;
-    --surface-alt:#f1f5f9;
-    --border:#e2e8f0;
-    --border-strong:#cbd5e1;
-    --text:#0f172a;
-    --text-muted:#64748b;
-    --sidebar-bg:#0f172a;
-    --sidebar-text:#cbd5e1;
-    --primary:#0f766e;
-    --primary-soft:#f0fdfa;
+    --bg:#f8fafc; --surface:#ffffff; --surface-alt:#f1f5f9;
+    --border:#e2e8f0; --border-strong:#cbd5e1;
+    --text:#0f172a; --text-muted:#64748b;
+    --primary:#0f766e; --primary-soft:#f0fdfa;
     --success-bg:#dcfce7; --success-text:#15803d;
     --warning-bg:#fef9c3; --warning-text:#a16207;
-    --neutral-bg:#e2e8f0; --neutral-text:#475569;
+    --danger-bg:#fee2e2; --danger-text:#b91c1c;
     --radius-sm:4px; --radius-md:6px; --radius-pill:999px;
-    --shadow-float:0 1px 2px rgba(0,0,0,0.06);
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --bg:#0a0f1a;
-      --surface:#111827;
-      --surface-alt:#1a2436;
-      --border:#233042;
-      --border-strong:#334155;
-      --text:#e2e8f0;
-      --text-muted:#8b9bb4;
-      --sidebar-bg:#060a12;
-      --sidebar-text:#94a3b8;
-      --primary:#2dd4bf;
-      --primary-soft:rgba(45,212,191,0.10);
+      --bg:#0a0f1a; --surface:#111827; --surface-alt:#1a2436;
+      --border:#233042; --border-strong:#334155;
+      --text:#e2e8f0; --text-muted:#8b9bb4;
+      --primary:#2dd4bf; --primary-soft:rgba(45,212,191,0.10);
       --success-bg:rgba(34,197,94,0.14); --success-text:#4ade80;
       --warning-bg:rgba(234,179,8,0.14); --warning-text:#facc15;
-      --neutral-bg:rgba(148,163,184,0.14); --neutral-text:#b6c2d4;
-      --shadow-float:0 1px 3px rgba(0,0,0,0.4);
+      --danger-bg:rgba(239,68,68,0.14); --danger-text:#f87171;
     }
   }
   :root[data-theme="dark"]{
-    --bg:#0a0f1a;
-    --surface:#111827;
-    --surface-alt:#1a2436;
-    --border:#233042;
-    --border-strong:#334155;
-    --text:#e2e8f0;
-    --text-muted:#8b9bb4;
-    --sidebar-bg:#060a12;
-    --sidebar-text:#94a3b8;
-    --primary:#2dd4bf;
-    --primary-soft:rgba(45,212,191,0.10);
+    --bg:#0a0f1a; --surface:#111827; --surface-alt:#1a2436;
+    --border:#233042; --border-strong:#334155;
+    --text:#e2e8f0; --text-muted:#8b9bb4;
+    --primary:#2dd4bf; --primary-soft:rgba(45,212,191,0.10);
     --success-bg:rgba(34,197,94,0.14); --success-text:#4ade80;
     --warning-bg:rgba(234,179,8,0.14); --warning-text:#facc15;
-    --neutral-bg:rgba(148,163,184,0.14); --neutral-text:#b6c2d4;
-    --shadow-float:0 1px 3px rgba(0,0,0,0.4);
+    --danger-bg:rgba(239,68,68,0.14); --danger-text:#f87171;
   }
 
   *{box-sizing:border-box;}
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:'IBM Plex Sans',-apple-system,sans-serif;
-    font-size:13px;
-    line-height:1.6;
-    padding-inline:24px;
-    padding-block:40px;
-  }
-  .page{max-width:920px;margin-inline:auto;display:flex;flex-direction:column;gap:32px;}
-
+  body{background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',-apple-system,sans-serif; font-size:13px; line-height:1.6; padding-inline:24px; padding-block:40px;}
+  .page{max-width:960px;margin-inline:auto;display:flex;flex-direction:column;gap:34px;}
   .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
-  .num{font-variant-numeric:tabular-nums;}
 
   /* header */
   .doc-head{border-bottom:1px solid var(--border-strong);padding-bottom:20px;display:flex;flex-direction:column;gap:10px;}
-  .eyebrow{
-    font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
-    color:var(--primary);
-  }
-  h1{
-    font-size:26px;font-weight:700;margin:0;letter-spacing:-.01em;text-wrap:balance;
-  }
+  .eyebrow{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--primary);}
+  h1{font-size:26px;font-weight:700;margin:0;letter-spacing:-.01em;text-wrap:balance;}
   .doc-meta{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--text-muted);font-size:12px;}
   .doc-meta b{color:var(--text);font-weight:600;}
 
   h2{font-size:15px;font-weight:700;margin:0 0 4px;letter-spacing:-.005em;}
-  .section-sub{color:var(--text-muted);font-size:12px;margin:0 0 14px;max-width:62ch;}
+  .section-sub{color:var(--text-muted);font-size:12px;margin:0 0 14px;max-width:64ch;}
 
   /* principle callout */
-  .principle{
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-left:3px solid var(--primary);
-    border-radius:var(--radius-md);
-    padding:16px 18px;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
+  .principle{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:var(--radius-md);padding:16px 18px;display:flex;flex-direction:column;gap:8px;}
   .principle p{margin:0;font-size:12.5px;color:var(--text);}
   .principle p.muted{color:var(--text-muted);}
 
-  /* phase flow */
-  .flow{
-    display:flex;flex-wrap:wrap;align-items:center;gap:10px;
-    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);
-    padding:18px;
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px 20px;}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:var(--radius-pill);font-size:10px;font-weight:600;white-space:nowrap;}
+  .badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .badge.target{background:var(--primary-soft);color:var(--primary);}
+  .badge.current{background:var(--warning-bg);color:var(--warning-text);}
+
+  /* ---- system architecture (tiered boxes) ---- */
+  .arch{display:flex;flex-direction:column;align-items:center;gap:0;margin-top:6px;}
+  .arch-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;width:100%;}
+  .arch-box{background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 16px;font-size:12px;font-weight:600;text-align:center;flex:1 1 0;min-width:130px;}
+  .arch-box .sub{display:block;font-size:10px;font-weight:500;color:var(--text-muted);margin-top:3px;}
+  .arch-arrow{color:var(--border-strong);font-size:15px;line-height:1;padding:3px 0;}
+  .arch-box.db{position:relative;}
+
+  /* ---- folder tree ---- */
+  .tree{font-family:'IBM Plex Mono',monospace;font-size:11.5px;line-height:1.85;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 18px;overflow-x:auto;}
+  .tree ul{list-style:none;margin:0;padding-left:18px;border-left:1px dashed var(--border-strong);}
+  .tree > ul{border-left:none;padding-left:0;}
+  .tree li{position:relative;white-space:nowrap;}
+  .tree li::before{content:"";position:absolute;left:-18px;top:11px;width:14px;height:1px;background:var(--border-strong);}
+  .tree .d{color:var(--primary);font-weight:600;}
+  .tree .c{color:var(--text-muted);font-style:italic;}
+
+  /* ---- guard pipeline ---- */
+  .pipeline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .pipe-box{background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);padding:9px 13px;font-size:11.5px;font-weight:600;text-align:center;}
+  .pipe-box .d{display:block;font-size:10px;font-weight:500;color:var(--text-muted);margin-top:2px;max-width:16ch;}
+  .pipe-arrow{color:var(--border-strong);font-size:14px;}
+
+  /* ---- role chips ---- */
+  .role-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0;}
+  .role-chip{font-size:11px;font-weight:700;padding:4px 12px;border-radius:var(--radius-pill);background:var(--primary-soft);color:var(--primary);}
+  .role-chip.staff{background:var(--surface-alt);color:var(--text-muted);}
+
+  /* ---- hub / domain-cluster diagram ---- */
+  .hub-wrap{display:flex;flex-direction:column;align-items:center;margin-top:10px;}
+  .hub-center{background:var(--primary);color:#fff;border-radius:var(--radius-md);padding:11px 22px;font-weight:700;font-size:13px;text-align:center;}
+  .hub-center .sub{display:block;font-size:10px;font-weight:500;opacity:.85;margin-top:2px;}
+  .hub-stem{width:2px;height:16px;background:var(--border-strong);}
+  .hub-bus{height:2px;background:var(--border-strong);width:100%;}
+  .hub-domains{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;width:100%;}
+  .hub-domain{display:flex;flex-direction:column;align-items:center;}
+  .hub-domain .stem{width:2px;height:14px;background:var(--border-strong);}
+  .hub-domain .box{background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);padding:11px 12px;width:100%;text-align:center;}
+  .hub-domain .box .t{font-size:11.5px;font-weight:700;margin-bottom:7px;}
+  .hub-domain .box .chips{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;}
+  .chip{font-size:9.5px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 6px;color:var(--text-muted);white-space:nowrap;}
+  .hub-caption{color:var(--text-muted);font-size:11.5px;margin-top:10px;max-width:70ch;}
+  @media (max-width:700px){ .hub-domains{grid-template-columns:repeat(2,1fr);} .hub-bus{display:none;} .hub-domain .stem{display:none;} }
+
+  /* ---- timeline / gantt ---- */
+  .timeline-bar{display:flex;height:38px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);width:100%;}
+  .timeline-seg{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;border-right:1px solid rgba(255,255,255,.35);white-space:nowrap;overflow:hidden;}
+  .timeline-seg:last-child{border-right:none;}
+  .timeline-ext{
+    margin-top:8px;display:flex;align-items:center;gap:8px;height:34px;border-radius:var(--radius-sm);
+    border:1.5px dashed var(--border-strong);color:var(--text-muted);font-size:11px;font-weight:600;
+    padding:0 12px;width:fit-content;
   }
-  .flow-step{
-    display:flex;align-items:center;gap:8px;
-    background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);
-    padding:8px 14px;
-  }
+
+  /* phase flow (module shorthand chips) */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;margin-top:10px;}
+  .flow-step{display:flex;align-items:center;gap:8px;background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius-md);padding:7px 12px;}
   .flow-step.ext{border-style:dashed;border-color:var(--border-strong);}
-  .step-num{
-    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;
-    color:var(--primary);background:var(--primary-soft);
-    width:20px;height:20px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;flex:none;
-  }
-  .step-name{font-size:12.5px;font-weight:600;color:var(--text);display:flex;flex-direction:column;line-height:1.3;}
-  .step-name em{font-style:normal;font-size:9.5px;font-weight:500;color:var(--text-muted);}
-  .flow-arrow{color:var(--border-strong);font-size:14px;flex:none;}
+  .step-num{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:11px;color:var(--primary);background:var(--primary-soft);width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;}
+  .step-name{font-size:12px;font-weight:600;color:var(--text);display:flex;flex-direction:column;line-height:1.3;}
+  .step-name em{font-style:normal;font-size:9px;font-weight:500;color:var(--text-muted);}
+  .flow-arrow{color:var(--border-strong);font-size:13px;flex:none;}
 
   /* phase table */
-  .table-wrap{
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:var(--radius-md);
-    overflow-x:auto;
-  }
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow-x:auto;}
   table{width:100%;border-collapse:collapse;min-width:760px;}
-  thead th{
-    background:var(--surface-alt);
-    text-align:left;
-    font-size:10.5px;
-    font-weight:600;
-    letter-spacing:.06em;
-    text-transform:uppercase;
-    color:var(--text-muted);
-    padding:9px 14px;
-    border-bottom:1px solid var(--border-strong);
-    white-space:nowrap;
-  }
-  tbody td{
-    padding:11px 14px;
-    border-bottom:1px solid var(--border);
-    vertical-align:top;
-    font-size:12.5px;
-  }
+  thead th{background:var(--surface-alt);text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);padding:9px 14px;border-bottom:1px solid var(--border-strong);white-space:nowrap;}
+  tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:top;font-size:12.5px;}
   tbody tr:last-child td{border-bottom:none;}
   tbody tr:hover td{background:var(--surface-alt);}
   .phase-cell{white-space:nowrap;}
   .phase-cell .p-name{font-weight:700;}
   .phase-cell .p-ext{margin-left:6px;font-style:normal;font-size:10px;color:var(--text-muted);background:var(--surface-alt);padding:1px 6px;border-radius:var(--radius-pill);}
-  .doc-tag{
-    font-family:'IBM Plex Mono',monospace;font-size:10.5px;
-    background:var(--primary-soft);color:var(--primary);
-    padding:1px 6px;border-radius:var(--radius-sm);
-    white-space:nowrap;display:inline-block;margin:1px 3px 1px 0;
-  }
+  .doc-tags{display:flex;flex-wrap:wrap;gap:4px;max-width:18ch;}
+  .doc-tag{font-size:10.5px;font-weight:600;background:var(--primary-soft);color:var(--primary);padding:1px 7px;border-radius:var(--radius-sm);white-space:nowrap;display:inline-block;}
   .scope-text{color:var(--text);max-width:34ch;}
   .deliver-text{color:var(--text-muted);max-width:26ch;}
 
   /* risk note */
-  .risk{
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:var(--radius-md);
-    padding:14px 18px;
-    font-size:12px;
-    color:var(--text-muted);
-    display:flex;
-    gap:10px;
-  }
-  .risk .tag{
-    flex:none;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;
-    color:var(--warning-text);background:var(--warning-bg);
-    padding:2px 8px;border-radius:var(--radius-sm);height:fit-content;
-  }
+  .risk{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 18px;font-size:12px;color:var(--text-muted);display:flex;gap:10px;}
+  .risk .tag{flex:none;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--warning-text);background:var(--warning-bg);padding:2px 8px;border-radius:var(--radius-sm);height:fit-content;}
   .risk b{color:var(--text);}
 
-  footer{
-    border-top:1px solid var(--border);
-    padding-top:16px;
-    color:var(--text-muted);
-    font-size:11px;
-    display:flex;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:8px;
-  }
+  footer{border-top:1px solid var(--border);padding-top:16px;color:var(--text-muted);font-size:11px;display:flex;flex-direction:column;gap:6px;}
+  footer .src{display:flex;gap:8px;flex-wrap:wrap;}
+  footer .tag{background:var(--surface-alt);padding:2px 7px;border-radius:var(--radius-sm);}
 
-  @media (max-width:640px){
-    h1{font-size:21px;}
-    .doc-meta{flex-direction:column;gap:4px;}
-  }
+  @media (max-width:640px){ h1{font-size:21px;} .doc-meta{flex-direction:column;gap:4px;} .arch-row{flex-direction:column;} }
 </style>
 
 <div class="page">
 
   <div class="doc-head">
-    <div class="eyebrow">산출물 3 · 개발 작업계획서</div>
+    <div class="eyebrow">산출물 3 · 개발 작업계획서 겸 프로젝트 구조 개요</div>
     <h1>스포이즘 ERP 개발 작업계획서</h1>
     <div class="doc-meta">
       <span><b>과업</b> 스포이즘 기업성장을 위한 ERP 시스템 개발</span>
       <span><b>수행 방식</b> 1인 개발, 기능 단위로 세로 완성</span>
-      <span><b>구성</b> Phase 0~6, 참고용 순서(실제 진행은 기능 간을 오가며 비선형적)</span>
-      <span><b>근거</b> <span class="mono">1-1_공통설계서.md §7</span></span>
+      <span><b>구성</b> 시스템 구조 → 개발 단계 → Phase별 상세</span>
+      <span><b>근거</b> 내부 공통설계서(아키텍처·ERD·로드맵)</span>
     </div>
   </div>
 
   <section>
     <div class="principle">
       <p><b>적용 원칙 —</b> 8개 기능 + 확장 범위를 날짜로 쪼개기보다, 기능 단위로 묶어 "이 정도 범위가 끝나면 이런 데모가 나온다"는 완성 단계만 정의한다. 실제 작업 순서는 기능 간을 오가며 유동적으로 진행된다.</p>
-      <p class="muted">기능 문서마다 있는 "Phase 1(필수) / Phase 2(선택)" 구분이 실질적인 우선순위다 — 범위를 줄여야 하면 각 Phase의 선택 항목부터 쳐낸다(아래 참고).</p>
+      <p class="muted">이 문서는 일정표 역할과 함께, 시스템이 어떤 구조로 짜여 있는지(아키텍처·폴더·권한·도메인)를 한 장에서 훑어볼 수 있는 개요 역할도 겸한다.</p>
     </div>
   </section>
 
+  <section class="card">
+    <h2>시스템 아키텍처</h2>
+    <p class="section-sub">클라이언트 2종이 동일한 REST API를 공유한다 — 화면만 다르고 도메인 로직은 API 서버 한 곳에 모은다.</p>
+    <div class="arch">
+      <div class="arch-row">
+        <div class="arch-box">본사 관리자<span class="sub">SUPER_ADMIN</span></div>
+        <div class="arch-box">지점 관리자<span class="sub">BRANCH_ADMIN</span></div>
+        <div class="arch-box">회원<span class="sub">MEMBER</span></div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-row">
+        <div class="arch-box">admin-web<span class="sub">React + Vite (브라우저)</span></div>
+        <div class="arch-box">member-app<span class="sub">React Native/Expo (모바일) · 미착수</span></div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-row">
+        <div class="arch-box" style="max-width:340px;">api<span class="sub">NestJS · REST · /api/v1</span></div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-row">
+        <div class="arch-box db" style="max-width:340px;">
+          <span class="badge target" style="margin-right:6px;">설계 목표</span>PostgreSQL (Prisma)
+          <span class="sub"><span class="badge current" style="margin-top:4px;">현재 구현</span> MockDataService(인메모리) — Prisma 스키마는 있으나 대부분 미연결</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>프로젝트 구조 (모노레포)</h2>
+    <p class="section-sub">npm workspaces로 API·웹·모바일·공유 타입을 한 저장소에서 관리한다.</p>
+    <div class="tree">
+      <ul>
+        <li>sports-erp/
+          <ul>
+            <li><span class="d">apps/</span>
+              <ul>
+                <li><span class="d">api/</span> <span class="c">— NestJS, 현재 MockDataService로 동작</span>
+                  <ul>
+                    <li>src/modules/ <span class="c">auth · branch · staff · attendance · board · member · program · reservation · payment · congestion</span></li>
+                    <li>src/common/ <span class="c">guards · filters · interceptors · decorators</span></li>
+                    <li>prisma/schema.prisma <span class="c">설계는 있으나 미연결</span></li>
+                  </ul>
+                </li>
+                <li><span class="d">admin-web/</span> <span class="c">— React + Vite, 본사/지점 관리자 웹</span></li>
+                <li><span class="d">member-app/</span> <span class="c">— React Native(Expo), Phase 3 착수 예정</span></li>
+              </ul>
+            </li>
+            <li><span class="d">packages/types/</span> <span class="c">— 클라이언트-서버 공유 DTO 타입</span></li>
+            <li><span class="d">docs/</span> <span class="c">— 설계서 · 의사결정기록 · 디자인시스템 · 산출물</span></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>인증 · 권한 구조</h2>
+    <p class="section-sub">4단계 역할(Role)과 3중 가드 체인으로 "누가 무엇을 볼 수 있는가"를 강제한다.</p>
+    <div class="role-row">
+      <span class="role-chip">SUPER_ADMIN</span>
+      <span class="role-chip">BRANCH_ADMIN</span>
+      <span class="role-chip staff">STAFF</span>
+      <span class="role-chip staff">MEMBER</span>
+    </div>
+    <div class="pipeline">
+      <div class="pipe-box">JwtAuthGuard<span class="d">토큰 검증 · req.user 주입</span></div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-box">RolesGuard<span class="d">선언된 역할만 허용</span></div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-box">BranchScopeGuard<span class="d">본인 소속 지점만 접근</span></div>
+    </div>
+    <div class="table-wrap" style="margin-top:14px;">
+      <table>
+        <thead><tr><th>리소스</th><th>SUPER_ADMIN</th><th>BRANCH_ADMIN</th><th>STAFF</th><th>MEMBER</th></tr></thead>
+        <tbody>
+          <tr><td>지점</td><td>CRUD 전체</td><td>조회(본인 지점)</td><td>조회(본인 지점)</td><td>—</td></tr>
+          <tr><td>직원/근태</td><td>채용·파견 CRUD</td><td>일상 관리만</td><td>본인 데이터만</td><td>—</td></tr>
+          <tr><td>회원</td><td>조회 전체</td><td>CRUD(본인 지점)</td><td>—</td><td>본인 정보만</td></tr>
+          <tr><td>예약/결제</td><td>조회 전체</td><td>조회(본인 지점)</td><td>—</td><td>본인 예약 CRUD</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>핵심 도메인 구조</h2>
+    <p class="section-sub">모든 도메인 엔티티는 직접 또는 간접적으로 <span class="mono" style="font-size:11.5px;">branchId</span>를 가진다 — 지점(Branch)이 데이터 격리의 기준 단위다.</p>
+    <div class="hub-wrap">
+      <div class="hub-center">Branch(지점)<span class="sub">위탁계약 현장 · 격리 단위</span></div>
+      <div class="hub-stem"></div>
+      <div class="hub-bus"></div>
+      <div class="hub-domains">
+        <div class="hub-domain">
+          <div class="stem"></div>
+          <div class="box">
+            <div class="t">조직 · 인사</div>
+            <div class="chips"><span class="chip">Staff</span><span class="chip">StaffAssignment</span><span class="chip">Account</span><span class="chip">AttendanceRecord</span><span class="chip">LeaveRequest</span></div>
+          </div>
+        </div>
+        <div class="hub-domain">
+          <div class="stem"></div>
+          <div class="box">
+            <div class="t">회원 서비스</div>
+            <div class="chips"><span class="chip">Member</span><span class="chip">Program</span><span class="chip">Reservation</span><span class="chip">Payment</span><span class="chip">PTSession</span><span class="chip">InstructorSettlement</span></div>
+          </div>
+        </div>
+        <div class="hub-domain">
+          <div class="stem"></div>
+          <div class="box">
+            <div class="t">운영 지원</div>
+            <div class="chips"><span class="chip">Post</span><span class="chip">Facility</span><span class="chip">CongestionSnapshot</span><span class="chip">FacilityCheckIn</span></div>
+          </div>
+        </div>
+        <div class="hub-domain">
+          <div class="stem"></div>
+          <div class="box">
+            <div class="t">자원 · 문서</div>
+            <div class="chips"><span class="chip">Asset</span><span class="chip">AssetInventoryCheck</span><span class="chip">Document</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="hub-caption">네 도메인 모두 지점 관리자(BRANCH_ADMIN) 조회 시 자동으로 본인 지점 데이터로 필터링된다(BranchScopeGuard). 모든 도메인의 주요 변경 사항은 별도로 AuditLog에 누가·언제·무엇을 바꿨는지 기록된다.</p>
+  </section>
+
   <section>
-    <h2>개발 단계</h2>
-    <p class="section-sub">시간표가 아니라 완성 단위 구분이다 — 순서는 참고용이고, 각 단계 끝에 눌러볼 수 있는 데모가 남는 것만 기준으로 삼는다.</p>
+    <h2>개발 단계 타임라인</h2>
+    <p class="section-sub">권장 총 8~10주 — 막대 폭은 각 Phase 권장 소요기간에 비례한다. Phase 6은 원본 필수 요구사항이 아닌 확장 범위라 별도 트랙으로 뺐다.</p>
+    <div class="timeline-bar">
+      <div class="timeline-seg" style="width:7.4%;background:#0f766e;">P0</div>
+      <div class="timeline-seg" style="width:22.2%;background:#0d9488;">P1 · 1.5주</div>
+      <div class="timeline-seg" style="width:14.8%;background:#14b8a6;">P2 · 1주</div>
+      <div class="timeline-seg" style="width:22.2%;background:#0d9488;">P3 · 1.5주</div>
+      <div class="timeline-seg" style="width:14.8%;background:#14b8a6;">P4 · 1주</div>
+      <div class="timeline-seg" style="width:18.5%;background:#0f766e;">P5 · 1~1.5주</div>
+    </div>
+    <div class="timeline-ext">⇢ Phase 6(확장) · +1.5주 · 원본 산출물2 대응 + 재무 연계 보강</div>
+
     <div class="flow">
       <div class="flow-step"><span class="step-num">0</span><span class="step-name">셋업</span></div>
       <span class="flow-arrow">→</span>
@@ -255,43 +342,43 @@
             <td class="phase-cell"><span class="p-name">Phase 0</span></td>
             <td class="scope-text">모노레포 구조, Git, 환경설정, DB 스키마 전체 설계, 인증 뼈대, 배포 파이프라인</td>
             <td class="deliver-text">로그인만 되는 빈 앱</td>
-            <td><span class="doc-tag">1-1</span></td>
+            <td><div class="doc-tags"><span class="doc-tag">공통설계서</span></div></td>
           </tr>
           <tr>
             <td class="phase-cell"><span class="p-name">Phase 1</span></td>
-            <td class="scope-text">권한관리(RBAC 4-Role, BranchScopeGuard) + 회원관리(핵심 CRUD)</td>
-            <td class="deliver-text">관리자가 회원 CRUD하는 웹</td>
-            <td><span class="doc-tag">1-2</span><span class="doc-tag">1-6</span></td>
+            <td class="scope-text">권한관리(4단계 역할 기반 접근제어, 지점별 데이터 격리) + 회원관리(핵심 등록·조회·수정·삭제)</td>
+            <td class="deliver-text">관리자가 회원 정보를 등록·수정하는 웹</td>
+            <td><div class="doc-tags"><span class="doc-tag">권한관리</span><span class="doc-tag">회원관리</span></div></td>
           </tr>
           <tr>
             <td class="phase-cell"><span class="p-name">Phase 2</span></td>
             <td class="scope-text">인사정보관리(파견 모델) + 근태관리</td>
             <td class="deliver-text">직원 · 근태 관리</td>
-            <td><span class="doc-tag">1-3</span><span class="doc-tag">1-4</span></td>
+            <td><div class="doc-tags"><span class="doc-tag">인사정보관리</span><span class="doc-tag">근태관리</span></div></td>
           </tr>
           <tr>
             <td class="phase-cell"><span class="p-name">Phase 3</span></td>
             <td class="scope-text">강사·프로그램 게시 + 예약/결제(모의)</td>
             <td class="deliver-text">회원 앱에서 예약 가능</td>
-            <td><span class="doc-tag">1-8</span><span class="doc-tag">1-7</span></td>
+            <td><div class="doc-tags"><span class="doc-tag">강사·프로그램</span><span class="doc-tag">예약및결제</span></div></td>
           </tr>
           <tr>
             <td class="phase-cell"><span class="p-name">Phase 4</span></td>
             <td class="scope-text">게시판(공지사항) + 혼잡도관리</td>
             <td class="deliver-text">공지 · 혼잡도까지 완성</td>
-            <td><span class="doc-tag">1-5</span><span class="doc-tag">1-9</span></td>
+            <td><div class="doc-tags"><span class="doc-tag">게시판</span><span class="doc-tag">혼잡도관리</span></div></td>
           </tr>
           <tr>
             <td class="phase-cell"><span class="p-name">Phase 5</span></td>
             <td class="scope-text">통합 테스트, UI 폴리싱, 배포, 발표자료(ERD·시연 시나리오)</td>
             <td class="deliver-text">최종 데모</td>
-            <td><span class="doc-tag">4-1</span></td>
+            <td><div class="doc-tags"><span class="doc-tag">발표핸드오프</span></div></td>
           </tr>
           <tr>
             <td class="phase-cell"><span class="p-name">Phase 6</span><em class="p-ext">확장</em></td>
             <td class="scope-text">자산·비품관리, 문서관리(산출물2 대응) · 부가세 분리, 매출 집계, 강사 정산 · 교육 실시 기록</td>
             <td class="deliver-text">확장 범위 데모</td>
-            <td><span class="doc-tag">1-10</span><span class="doc-tag">1-7</span></td>
+            <td><div class="doc-tags"><span class="doc-tag">자원관리분석</span><span class="doc-tag">예약및결제</span></div></td>
           </tr>
         </tbody>
       </table>
@@ -307,7 +394,10 @@
 
   <footer>
     <span>원본 제안요청서 Ⅳ.과업내용 3.산출물 — 산출물 3(개발 작업계획서) 대응</span>
-    <span class="mono">docs/1.spec/00_공통/1-1_공통설계서.md §7</span>
+    <div class="src">
+      <span class="tag">내부 설계문서 — 아키텍처·ERD·로드맵</span>
+      <span class="tag">내부 설계문서 — 인증·권한 구조</span>
+    </div>
   </footer>
 
 </div>
