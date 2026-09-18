@@ -160,6 +160,7 @@ export function generateLightBranches(): GeneratedDataset {
         phone: `010-${pad((i * 7 + m) % 10000, 4)}-${pad((i * 13 + m) % 10000, 4)}`,
         status: (i + m) % 9 === 0 ? 'DORMANT' : 'ACTIVE',
         joinedAt: toDateStr(addDays(now, -(30 + (i * 5 + m) * 6))),
+        guardianConsent: false,
       });
     }
 

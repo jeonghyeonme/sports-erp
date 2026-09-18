@@ -7,6 +7,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { MembersModule } from './modules/members/members.module';
 import { StaffModule } from './modules/staff/staff.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ProgramsModule } from './modules/programs/programs.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { FacilitiesModule } from './modules/facilities/facilities.module';
@@ -25,6 +26,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     BranchesModule,
     MembersModule,
     StaffModule,
+    AttendanceModule,
     ProgramsModule,
     PostsModule,
     FacilitiesModule,

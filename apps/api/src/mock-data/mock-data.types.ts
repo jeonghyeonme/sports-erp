@@ -10,6 +10,9 @@ export type AgeGroup = 'ALL' | 'CHILD' | 'TEEN' | 'ADULT' | 'SENIOR';
 export type PostScope = 'HQ_TO_BRANCH' | 'BRANCH_TO_MEMBER';
 export type BranchContractStatus = 'ACTIVE' | 'RENEWAL_DUE' | 'EXPIRED' | 'TERMINATED';
 export type StaffStatus = 'ACTIVE' | 'ON_LEAVE' | 'RESIGNED';
+export type AttendanceStatus = 'NORMAL' | 'LATE' | 'EARLY_LEAVE' | 'ABSENT' | 'ON_LEAVE';
+export type LeaveType = 'ANNUAL' | 'SICK' | 'FAMILY_EVENT' | 'OTHER';
+export type LeaveRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface MockBranch {
   id: string;
@@ -24,6 +27,15 @@ export interface MockBranch {
   contractStartAt: string;
   contractEndAt?: string;
   contractStatus: BranchContractStatus;
+}
+
+// 01문서 §3 RefreshToken — 원문 대신 해시로 저장, 로그아웃/rotate 시 revokedAt만 채운다(물리삭제 안 함).
+export interface MockRefreshToken {
+  id: string; // JWT의 jti(리프레시 토큰 고유 id)와 동일
+  accountId: string;
+  tokenHash: string;
+  expiresAt: string;
+  revokedAt?: string;
 }
 
 export interface MockAccount {
@@ -66,6 +78,48 @@ export interface MockStaffAssignment {
   note?: string;
 }
 
+// 03문서 §3 AttendanceRecord — staffId+date가 하루 1레코드(unique).
+export interface MockAttendanceRecord {
+  id: string;
+  staffId: string;
+  date: string; // YYYY-MM-DD
+  checkInAt?: string; // ISO datetime
+  checkOutAt?: string;
+  status: AttendanceStatus;
+  note?: string;
+}
+
+// 03문서 §3 LeaveRequest.
+export interface MockLeaveRequest {
+  id: string;
+  staffId: string;
+  type: LeaveType;
+  startDate: string;
+  endDate: string;
+  days: number;
+  reason?: string;
+  status: LeaveRequestStatus;
+  approverId?: string;
+  reviewedAt?: string;
+}
+
+// 03문서 §3 LeaveBalance — type=ANNUAL(연차)만 이 잔여일수에 반영된다. staffId+year가 1건.
+export interface MockLeaveBalance {
+  staffId: string;
+  year: number;
+  totalDays: number;
+  usedDays: number;
+}
+
+// 03문서 §3 WorkLog — staffId+date가 하루 1건 권장(수정은 허용).
+export interface MockWorkLog {
+  id: string;
+  staffId: string;
+  date: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface MockMember {
   id: string;
   accountId?: string;
@@ -78,6 +132,7 @@ export interface MockMember {
   gender?: string;
   status: 'ACTIVE' | 'DORMANT' | 'WITHDRAWN';
   joinedAt: string;
+  guardianConsent: boolean; // default false — 미성년 회원의 법정대리인 동의 여부. 05문서 §3, §6
   memo?: string; // 관리자 메모(특이사항). 05문서 §3
 }
 

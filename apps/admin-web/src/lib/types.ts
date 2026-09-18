@@ -95,6 +95,58 @@ export interface PostRow {
   publishedAt: string;
 }
 
+export type AttendanceStatus = 'NORMAL' | 'LATE' | 'EARLY_LEAVE' | 'ABSENT' | 'ON_LEAVE';
+export type LeaveType = 'ANNUAL' | 'SICK' | 'FAMILY_EVENT' | 'OTHER';
+export type LeaveRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface AttendanceRecordRow {
+  id: string;
+  staffId: string;
+  date: string;
+  checkInAt?: string;
+  checkOutAt?: string;
+  status: AttendanceStatus;
+  note?: string;
+}
+
+export interface AttendanceSummaryRow {
+  staffId: string;
+  name: string;
+  normal: number;
+  late: number;
+  absent: number;
+  earlyLeave: number;
+  onLeave: number;
+}
+
+export interface LeaveBalanceRow {
+  staffId: string;
+  year: number;
+  totalDays: number;
+  usedDays: number;
+}
+
+export interface LeaveRequestRow {
+  id: string;
+  staffId: string;
+  type: LeaveType;
+  startDate: string;
+  endDate: string;
+  days: number;
+  reason?: string;
+  status: LeaveRequestStatus;
+  approverId?: string;
+  reviewedAt?: string;
+}
+
+export interface WorkLogRow {
+  id: string;
+  staffId: string;
+  date: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface FacilityRow {
   id: string;
   branchId: string;

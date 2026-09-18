@@ -2,18 +2,26 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import {
+  AttendanceStatus,
+  LeaveType,
   MockAccount,
+  MockAttendanceRecord,
   MockBranch,
   MockFacility,
+  MockLeaveBalance,
+  MockLeaveRequest,
   MockMember,
   MockPost,
   MockProgram,
+  MockRefreshToken,
   MockStaff,
   MockStaffAssignment,
+  MockWorkLog,
   Role,
 } from './mock-data.types';
 import { generateLightBranches } from './branch-generator';
 import { AppException } from '../common/exceptions/app.exception';
+import { RequestUser } from '../common/interfaces/request-user.interface';
 
 // 07문서 §3-2 상태 전이표. ENDED는 종결 상태라 다음 상태가 없다.
 const PROGRAM_STATUS_TRANSITIONS: Record<MockProgram['status'], MockProgram['status'][]> = {
@@ -181,6 +189,7 @@ export class MockDataService {
       phone: '010-1234-5678',
       status: 'ACTIVE',
       joinedAt: '2026-03-15',
+      guardianConsent: false,
     },
     {
       id: 'member-younghee',
@@ -190,6 +199,7 @@ export class MockDataService {
       phone: '010-2345-6789',
       status: 'ACTIVE',
       joinedAt: '2026-02-01',
+      guardianConsent: false,
     },
     {
       id: 'member-dormant',
@@ -199,6 +209,7 @@ export class MockDataService {
       phone: '010-9999-0000',
       status: 'DORMANT',
       joinedAt: '2025-05-20',
+      guardianConsent: false,
     },
     ...this.generated.members,
   ];
@@ -331,12 +342,54 @@ export class MockDataService {
     ...this.generated.facilities,
   ];
 
+  readonly refreshTokens: MockRefreshToken[] = [];
+
   findAccountByEmail(email: string): MockAccount | undefined {
     return this.accounts.find((a) => a.email === email);
   }
 
   findAccountById(id: string): MockAccount | undefined {
     return this.accounts.find((a) => a.id === id);
+  }
+
+  // 01문서 §6 — role/branchId를 매 요청 이 조회 결과로 새로 구성하는 단일 원천.
+  // AuthService(로그인)와 JwtStrategy(매 요청 검증)가 둘 다 이 메서드를 써야
+  // "JWT에 박제된 값" 문제가 재발하지 않는다.
+  toRequestUser(account: MockAccount): RequestUser {
+    const branch = account.branchId ? this.findBranchById(account.branchId) : undefined;
+    return {
+      accountId: account.id,
+      email: account.email,
+      name: account.name,
+      role: account.role,
+      branchId: account.branchId,
+      branchName: branch?.name,
+      staffId: account.staffId,
+      memberId: account.memberId,
+    };
+  }
+
+  updateAccountPassword(accountId: string, passwordHash: string): void {
+    const account = this.findAccountById(accountId);
+    if (!account) {
+      throw new AppException('ACCOUNT_NOT_FOUND', '계정을 찾을 수 없습니다.', 404);
+    }
+    account.passwordHash = passwordHash;
+  }
+
+  // 01문서 §3 RefreshToken — id는 서명한 JWT의 jti와 동일하게 맞춰 조회 키로 쓴다.
+  storeRefreshToken(id: string, accountId: string, tokenHash: string, expiresAt: string): void {
+    this.refreshTokens.push({ id, accountId, tokenHash, expiresAt });
+  }
+
+  findRefreshToken(id: string): MockRefreshToken | undefined {
+    return this.refreshTokens.find((t) => t.id === id);
+  }
+
+  // 로그아웃·rotate 공통 — 이미 revoke된 토큰에 다시 호출해도 안전(idempotent).
+  revokeRefreshToken(id: string): void {
+    const token = this.findRefreshToken(id);
+    if (token) token.revokedAt = new Date().toISOString();
   }
 
   findBranchById(id: string): MockBranch | undefined {
@@ -428,6 +481,7 @@ export class MockDataService {
       birthDate?: string;
       gender?: string;
       assignedStaffId?: string;
+      guardianConsent?: boolean;
       memo?: string;
     },
   ): { member: MockMember; warnings: string[] } {
@@ -444,6 +498,15 @@ export class MockDataService {
     }
     if (input.assignedStaffId) {
       this.assertStaffInBranch(input.assignedStaffId, branchId);
+    }
+    // 05문서 §6 — 만 19세 미만은 법정대리인 동의 없이는 등록/가입 자체를 막는다(체크박스 수준).
+    // birthDate를 안 넘긴 경우는 나이를 알 수 없으니 이 검사 대상이 아니다.
+    if (input.birthDate && this.isMinor(input.birthDate) && !input.guardianConsent) {
+      throw new AppException(
+        'GUARDIAN_CONSENT_REQUIRED',
+        '만 19세 미만 회원은 법정대리인 동의가 필요합니다.',
+        400,
+      );
     }
 
     const warnings: string[] = [];
@@ -465,12 +528,25 @@ export class MockDataService {
       phone: input.phone,
       birthDate: input.birthDate,
       gender: input.gender,
+      guardianConsent: input.guardianConsent ?? false,
       memo: input.memo,
       status: 'ACTIVE',
       joinedAt: new Date().toISOString().slice(0, 10),
     };
     this.members.push(member);
     return { member, warnings };
+  }
+
+  // 05문서 §6 — 만 19세 미만 판정(생일 지남 여부까지 반영한 만 나이 계산).
+  private isMinor(birthDate: string): boolean {
+    const dob = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const beforeBirthdayThisYear =
+      today.getMonth() < dob.getMonth() ||
+      (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate());
+    if (beforeBirthdayThisYear) age--;
+    return age < 19;
   }
 
   // 05문서 §5 PATCH /members/:id — 지점/본인 범위 검증은 컨트롤러가 먼저 마친다.
@@ -693,5 +769,205 @@ export class MockDataService {
       .filter((a) => a.staffId === staffId)
       .slice()
       .sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
+  }
+
+  // ── 03. 근태관리 ──────────────────────────────────────────────────────────
+
+  readonly attendanceRecords: MockAttendanceRecord[] = [];
+  readonly leaveRequests: MockLeaveRequest[] = [];
+  readonly leaveBalances: MockLeaveBalance[] = [];
+  readonly workLogs: MockWorkLog[] = [];
+
+  // 03문서 §6 "자동 지각 판정" — Branch.standardCheckInTime 대비 10분 초과 시 LATE.
+  // 체크인 중복 방지(§6): staffId+date로 이미 checkInAt이 있으면 409.
+  checkIn(staffId: string): MockAttendanceRecord {
+    const staff = this.staff.find((s) => s.id === staffId);
+    if (!staff) {
+      throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
+    }
+    const today = new Date();
+    const date = today.toISOString().slice(0, 10);
+    if (this.attendanceRecords.some((r) => r.staffId === staffId && r.date === date && r.checkInAt)) {
+      throw new AppException('ALREADY_CHECKED_IN', '오늘 이미 체크인했습니다.', 409);
+    }
+
+    const branch = this.findBranchById(staff.branchId);
+    const status: AttendanceStatus = this.isLate(today, branch?.standardCheckInTime) ? 'LATE' : 'NORMAL';
+
+    let record = this.attendanceRecords.find((r) => r.staffId === staffId && r.date === date);
+    if (record) {
+      record.checkInAt = today.toISOString();
+      record.status = status;
+    } else {
+      record = {
+        id: `attendance-${randomUUID()}`,
+        staffId,
+        date,
+        checkInAt: today.toISOString(),
+        status,
+      };
+      this.attendanceRecords.push(record);
+    }
+    return record;
+  }
+
+  checkOut(staffId: string): MockAttendanceRecord {
+    const date = new Date().toISOString().slice(0, 10);
+    const record = this.attendanceRecords.find((r) => r.staffId === staffId && r.date === date);
+    if (!record || !record.checkInAt) {
+      throw new AppException('NOT_CHECKED_IN', '오늘 체크인 기록이 없습니다.', 400);
+    }
+    if (record.checkOutAt) {
+      throw new AppException('ALREADY_CHECKED_OUT', '오늘 이미 체크아웃했습니다.', 409);
+    }
+    record.checkOutAt = new Date().toISOString();
+    return record;
+  }
+
+  // 지점 출근 기준시각(HH:mm) 대비 10분 초과 여부. 지점에 기준시각이 없으면 지각 판정 자체를 하지 않는다.
+  private isLate(checkInAt: Date, standardCheckInTime?: string): boolean {
+    if (!standardCheckInTime) return false;
+    const [h, m] = standardCheckInTime.split(':').map(Number);
+    const standard = new Date(checkInAt);
+    standard.setHours(h, m + 10, 0, 0);
+    return checkInAt > standard;
+  }
+
+  // 03문서 §5 GET /attendance/summary — 지점 근태 요약(상태별 집계). month는 "YYYY-MM".
+  attendanceSummary(branchId: string, month: string) {
+    const staffIds = new Set(this.staff.filter((s) => s.branchId === branchId).map((s) => s.id));
+    const records = this.attendanceRecords.filter(
+      (r) => staffIds.has(r.staffId) && r.date.startsWith(month),
+    );
+    return this.staff
+      .filter((s) => s.branchId === branchId)
+      .map((s) => {
+        const own = records.filter((r) => r.staffId === s.id);
+        return {
+          staffId: s.id,
+          name: s.name,
+          normal: own.filter((r) => r.status === 'NORMAL').length,
+          late: own.filter((r) => r.status === 'LATE').length,
+          absent: own.filter((r) => r.status === 'ABSENT').length,
+          earlyLeave: own.filter((r) => r.status === 'EARLY_LEAVE').length,
+          onLeave: own.filter((r) => r.status === 'ON_LEAVE').length,
+        };
+      });
+  }
+
+  // 03문서 §3 "입사연차 기준 자동계산" — 근로기준법 원칙의 단순화: 1년 미만은 11일,
+  // 1년 이상은 15일에서 시작해 2년마다 1일 가산(최대 25일). 정밀한 월별 개근 판정은 범위 밖.
+  private calcAnnualLeaveTotalDays(hireDate: string, asOfYear: number): number {
+    const hire = new Date(hireDate);
+    const yearsOfService = asOfYear - hire.getFullYear();
+    if (yearsOfService < 1) return 11;
+    return Math.min(15 + Math.floor((yearsOfService - 1) / 2), 25);
+  }
+
+  // year를 안 주면 올해 기준. 해당 연도 레코드가 아직 없으면 그 자리에서 계산해 생성한다(지연 생성).
+  leaveBalance(staffId: string, year?: number): MockLeaveBalance {
+    const targetYear = year ?? new Date().getFullYear();
+    let balance = this.leaveBalances.find((b) => b.staffId === staffId && b.year === targetYear);
+    if (!balance) {
+      const staff = this.staff.find((s) => s.id === staffId);
+      if (!staff) {
+        throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
+      }
+      balance = {
+        staffId,
+        year: targetYear,
+        totalDays: this.calcAnnualLeaveTotalDays(staff.hireDate, targetYear),
+        usedDays: 0,
+      };
+      this.leaveBalances.push(balance);
+    }
+    return balance;
+  }
+
+  // 03문서 §6 "연차 일수 계산" — 종료일 포함(inclusive), 주말 제외는 Phase 2.
+  private calcLeaveDays(startDate: string, endDate: string): number {
+    const ms = new Date(endDate).getTime() - new Date(startDate).getTime();
+    return Math.floor(ms / 86_400_000) + 1;
+  }
+
+  // 03문서 §6 — 잔여일수 초과 신청도 막지 않고 경고만 반환(마이너스 연차를 관리자 재량으로 승인하는 실무 반영).
+  requestLeave(
+    staffId: string,
+    input: { type: LeaveType; startDate: string; endDate: string; reason?: string },
+  ): { request: MockLeaveRequest; warning?: string } {
+    const days = this.calcLeaveDays(input.startDate, input.endDate);
+    if (days <= 0) {
+      throw new AppException('INVALID_DATE_RANGE', '종료일은 시작일 이후여야 합니다.', 400);
+    }
+
+    let warning: string | undefined;
+    if (input.type === 'ANNUAL') {
+      const balance = this.leaveBalance(staffId);
+      if (balance.totalDays - balance.usedDays < days) {
+        warning = '잔여 연차보다 많은 일수를 신청했습니다. 관리자 재량으로 승인될 수 있습니다.';
+      }
+    }
+
+    const request: MockLeaveRequest = {
+      id: `leave-${randomUUID()}`,
+      staffId,
+      type: input.type,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      days,
+      reason: input.reason,
+      status: 'PENDING',
+    };
+    this.leaveRequests.push(request);
+    return { request, warning };
+  }
+
+  private findLeaveRequestOrThrow(id: string): MockLeaveRequest {
+    const request = this.leaveRequests.find((r) => r.id === id);
+    if (!request) {
+      throw new AppException('LEAVE_REQUEST_NOT_FOUND', '휴가 신청을 찾을 수 없습니다.', 404);
+    }
+    return request;
+  }
+
+  // 03문서 §6 — 승인 시점에만 차감(신청만으로는 차감 안 함 → 반려 시 복구 로직 불필요).
+  // type=ANNUAL(연차)만 LeaveBalance.usedDays에 반영, SICK/FAMILY_EVENT/OTHER는 이력만 남긴다.
+  approveLeaveRequest(id: string, approverId: string): MockLeaveRequest {
+    const request = this.findLeaveRequestOrThrow(id);
+    if (request.status !== 'PENDING') {
+      throw new AppException('LEAVE_REQUEST_ALREADY_REVIEWED', '이미 처리된 휴가 신청입니다.', 409);
+    }
+    request.status = 'APPROVED';
+    request.approverId = approverId;
+    request.reviewedAt = new Date().toISOString();
+
+    if (request.type === 'ANNUAL') {
+      const balance = this.leaveBalance(request.staffId);
+      balance.usedDays += request.days;
+    }
+    return request;
+  }
+
+  rejectLeaveRequest(id: string, approverId: string): MockLeaveRequest {
+    const request = this.findLeaveRequestOrThrow(id);
+    if (request.status !== 'PENDING') {
+      throw new AppException('LEAVE_REQUEST_ALREADY_REVIEWED', '이미 처리된 휴가 신청입니다.', 409);
+    }
+    request.status = 'REJECTED';
+    request.approverId = approverId;
+    request.reviewedAt = new Date().toISOString();
+    return request;
+  }
+
+  // staffId+date 하루 1건 권장(§3) — 같은 날 다시 작성하면 새 글을 추가하지 않고 내용을 덮어쓴다.
+  upsertWorkLog(staffId: string, date: string, content: string): MockWorkLog {
+    let log = this.workLogs.find((l) => l.staffId === staffId && l.date === date);
+    if (log) {
+      log.content = content;
+    } else {
+      log = { id: `worklog-${randomUUID()}`, staffId, date, content, createdAt: new Date().toISOString() };
+      this.workLogs.push(log);
+    }
+    return log;
   }
 }
