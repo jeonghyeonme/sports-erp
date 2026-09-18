@@ -9,6 +9,7 @@ import { MembersModule } from './modules/members/members.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ProgramsModule } from './modules/programs/programs.module';
+import { InstructorsModule } from './modules/instructors/instructors.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { FacilitiesModule } from './modules/facilities/facilities.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
@@ -28,6 +29,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     StaffModule,
     AttendanceModule,
     ProgramsModule,
+    InstructorsModule,
     PostsModule,
     FacilitiesModule,
     PermissionsModule,

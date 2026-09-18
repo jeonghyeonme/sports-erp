@@ -1,7 +1,18 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
-import { BranchSummary, FacilityRow, MemberRow, ProgramRow, StaffRow } from '../lib/types';
+import {
+  ApiEnvelope,
+  BranchSummary,
+  FacilityRow,
+  MemberRow,
+  ProgramRow,
+  ProgramStatus,
+  ProgramStatusSummary,
+  StaffRow,
+} from '../lib/types';
 import { BriefcaseIcon } from '../components/icons';
 import { CONTRACT_STATUS_LABEL, contractRemainingLabel } from '../lib/contract-status';
 
@@ -9,6 +20,13 @@ const PRICING_LABEL: Record<ProgramRow['pricingType'], string> = {
   FREE_ACCESS: '자유이용',
   PAID_SESSION: '회차 예약',
   PT_PACKAGE: 'PT 패키지',
+};
+
+const STATUS_LABEL: Record<ProgramStatus, string> = {
+  PREPARING: '준비중',
+  RUNNING: '진행중',
+  PAUSED: '휴강',
+  ENDED: '종료',
 };
 
 function MemberTable({ rows }: { rows: MemberRow[] }) {
@@ -51,6 +69,13 @@ export function BranchDetailPage() {
   const staffQuery = useApiList<StaffRow>(['staff', branchId], `/staff?branchId=${branchId}`);
   const membersQuery = useApiList<MemberRow>(['members', branchId], `/members?branchId=${branchId}`);
   const programsQuery = useApiList<ProgramRow>(['programs', branchId], `/programs?branchId=${branchId}`);
+  // 07문서 §5 지점 현황판 API — 이미 완성돼 있었지만 화면 어디서도 호출하지 않던 것을 여기서 연결한다.
+  const programSummaryQuery = useQuery<ProgramStatusSummary | undefined>({
+    queryKey: ['programs-summary', branchId],
+    queryFn: async () =>
+      (await api.get<ApiEnvelope<ProgramStatusSummary>>(`/branches/${branchId}/programs/summary`)).data.data,
+    enabled: !!branchId,
+  });
   const facilitiesQuery = useApiList<FacilityRow>(['facilities', branchId], `/facilities?branchId=${branchId}`);
 
   const branch = branchesQuery.data?.find((b) => b.id === branchId);
@@ -168,6 +193,17 @@ export function BranchDetailPage() {
           프로그램
           <span className="section-count">{programs.length}개</span>
         </h3>
+
+        {programSummaryQuery.data && (
+          <div className="kpi-grid">
+            {(['PREPARING', 'RUNNING', 'PAUSED', 'ENDED'] as ProgramStatus[]).map((status) => (
+              <div className="kpi-panel" key={status}>
+                <div className="kpi-label">{STATUS_LABEL[status]}</div>
+                <div className="kpi-value">{programSummaryQuery.data!.byStatus[status] ?? 0}개</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {programsQuery.isError && <div className="forbidden-note">{apiErrorMessage(programsQuery.error)}</div>}
         {programsQuery.isLoading && <div className="loading-state">불러오는 중...</div>}

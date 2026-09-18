@@ -136,10 +136,27 @@ export interface MockMember {
   memo?: string; // 관리자 메모(특이사항). 05문서 §3
 }
 
+// 07문서 §3 Instructor — 2026-09-18까지는 Program.instructorName 문자열 비정규화로 대체돼 있었으나
+// (당시엔 "존재하지 않는 엔티티를 가리키는 매달린 FK를 만들지 않기 위한 의도적 단순화"), 이제 엔티티가
+// 생겼으므로 Program은 이 엔티티를 instructorId(FK)로 가리킨다.
+export interface MockInstructor {
+  id: string;
+  branchId: string;
+  name: string;
+  specialty?: string; // 전문분야(요가/필라테스/수영/골프 등)
+  bio?: string;
+  photoUrl?: string;
+  phone?: string;
+  isActive: boolean;
+  // 강사 수수료율(0~1) — null/undefined면 정산 대상 아님(본사 직속 등 별도 급여체계). 1-7문서 강사 정산에서 사용.
+  commissionRate?: number;
+}
+
 export interface MockProgram {
   id: string;
   branchId: string;
   facilityId?: string; // FK → MockFacility. 08문서 참고
+  instructorId?: string; // FK → MockInstructor, nullable
   name: string;
   category: string;
   ageGroup: AgeGroup; // 01문서가 인용하는 원본 RFP "연령대별 리스트" 요건. 07문서 §3
@@ -150,9 +167,6 @@ export interface MockProgram {
   status: ProgramStatus;
   startDate: string;
   endDate?: string; // 종료 예정일 — 상시 운영이면 undefined(=null). 07문서 §3
-  // instructorId(FK)가 아니라 이름 문자열로 비정규화 — 별도 Instructor mock 엔티티가
-  // 아직 없어서(2-3문서 §2-2 참고), 존재하지 않는 엔티티를 가리키는 매달린 FK를 만들지 않기 위한 의도적 단순화
-  instructorName?: string;
 }
 
 export interface MockPost {

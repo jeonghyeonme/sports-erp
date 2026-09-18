@@ -4,6 +4,7 @@
 export type Role = 'SUPER_ADMIN' | 'BRANCH_ADMIN' | 'STAFF' | 'MEMBER';
 export type ProgramStatus = 'PREPARING' | 'RUNNING' | 'PAUSED' | 'ENDED';
 export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
+export type AgeGroup = 'ALL' | 'CHILD' | 'TEEN' | 'ADULT' | 'SENIOR';
 export type BranchContractStatus = 'ACTIVE' | 'RENEWAL_DUE' | 'EXPIRED' | 'TERMINATED';
 
 export interface AuthUser {
@@ -78,14 +79,37 @@ export interface ProgramRow {
   id: string;
   branchId: string;
   branchName?: string;
+  facilityId?: string;
+  instructorId?: string;
   name: string;
   category: string;
+  ageGroup: AgeGroup;
+  description?: string;
   pricingType: PricingType;
   price: number;
   capacity?: number;
   status: ProgramStatus;
   startDate: string;
+  endDate?: string;
   instructorName?: string;
+}
+
+export interface InstructorRow {
+  id: string;
+  branchId: string;
+  branchName?: string;
+  name: string;
+  specialty?: string;
+  bio?: string;
+  phone?: string;
+  isActive: boolean;
+  commissionRate?: number;
+}
+
+export interface ProgramStatusSummary {
+  branchId: string;
+  byStatus: Record<ProgramStatus, number>;
+  runningPrograms: ProgramRow[];
 }
 
 export interface PostRow {

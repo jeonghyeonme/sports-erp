@@ -8,6 +8,7 @@ import {
   MockAttendanceRecord,
   MockBranch,
   MockFacility,
+  MockInstructor,
   MockLeaveBalance,
   MockLeaveRequest,
   MockMember,
@@ -214,11 +215,24 @@ export class MockDataService {
     ...this.generated.members,
   ];
 
+  readonly instructors: MockInstructor[] = [
+    {
+      id: 'instructor-seoyeon',
+      branchId: 'branch-seocho',
+      name: '박서연',
+      specialty: '요가·필라테스',
+      isActive: true,
+      commissionRate: 0.6,
+    },
+    ...this.generated.instructors,
+  ];
+
   readonly programs: MockProgram[] = [
     {
       id: 'program-seocho-yoga',
       branchId: 'branch-seocho',
       facilityId: 'facility-seocho-gym',
+      instructorId: 'instructor-seoyeon',
       name: '아침 요가',
       category: '요가',
       ageGroup: 'ADULT',
@@ -228,12 +242,12 @@ export class MockDataService {
       capacity: 15,
       status: 'RUNNING',
       startDate: '2026-01-05',
-      instructorName: '박서연',
     },
     {
       id: 'program-seocho-pt',
       branchId: 'branch-seocho',
       facilityId: 'facility-seocho-gym',
+      instructorId: 'instructor-seoyeon',
       name: '퍼스널 트레이닝',
       category: 'PT',
       ageGroup: 'ADULT',
@@ -242,7 +256,6 @@ export class MockDataService {
       price: 60000,
       status: 'RUNNING',
       startDate: '2026-01-05',
-      instructorName: '박서연',
     },
     {
       id: 'program-seocho-freegym',
@@ -261,6 +274,7 @@ export class MockDataService {
       id: 'program-seocho-pilates',
       branchId: 'branch-seocho',
       facilityId: 'facility-seocho-gym',
+      instructorId: 'instructor-seoyeon',
       name: '필라테스 (10월 개강 예정)',
       category: '필라테스',
       ageGroup: 'ADULT',
@@ -270,7 +284,6 @@ export class MockDataService {
       capacity: 12,
       status: 'PREPARING',
       startDate: '2026-10-01',
-      instructorName: '박서연',
     },
     {
       id: 'program-gangnam-pilates',
@@ -608,6 +621,170 @@ export class MockDataService {
     }
     program.status = status;
     return program;
+  }
+
+  private assertInstructorInBranch(instructorId: string, branchId: string): void {
+    const instructor = this.instructors.find((i) => i.id === instructorId);
+    if (!instructor || instructor.branchId !== branchId) {
+      throw new AppException(
+        'INSTRUCTOR_BRANCH_MISMATCH',
+        '강사는 프로그램과 같은 지점 소속이어야 합니다.',
+        400,
+      );
+    }
+  }
+
+  // 07문서 §6 — pricingType=FREE_ACCESS는 예약 개념이 없어 price·capacity가 무의미하므로 서버에서도 강제로 비운다
+  // (클라이언트가 값을 보내도 무시 — 방어적 검증).
+  private normalizeProgramPricing(input: {
+    pricingType: MockProgram['pricingType'];
+    price: number;
+    capacity?: number;
+  }): { price: number; capacity?: number } {
+    if (input.pricingType === 'FREE_ACCESS') {
+      return { price: 0, capacity: undefined };
+    }
+    return { price: input.price, capacity: input.capacity };
+  }
+
+  // 07문서 §5 POST /programs — BRANCH_ADMIN 전용(컨트롤러에서 강제).
+  createProgram(
+    branchId: string,
+    input: {
+      name: string;
+      category: string;
+      ageGroup: MockProgram['ageGroup'];
+      description?: string;
+      pricingType: MockProgram['pricingType'];
+      price: number;
+      capacity?: number;
+      facilityId?: string;
+      instructorId?: string;
+      startDate: string;
+      endDate?: string;
+    },
+  ): MockProgram {
+    if (input.instructorId) {
+      this.assertInstructorInBranch(input.instructorId, branchId);
+    }
+    const { price, capacity } = this.normalizeProgramPricing(input);
+    const program: MockProgram = {
+      id: `program-${randomUUID()}`,
+      branchId,
+      facilityId: input.facilityId,
+      instructorId: input.instructorId,
+      name: input.name,
+      category: input.category,
+      ageGroup: input.ageGroup,
+      description: input.description,
+      pricingType: input.pricingType,
+      price,
+      capacity,
+      status: 'PREPARING',
+      startDate: input.startDate,
+      endDate: input.endDate,
+    };
+    this.programs.push(program);
+    return program;
+  }
+
+  // 07문서 §5 PATCH /programs/:id — 상태는 이 메서드로 바꿀 수 없다(상태 전이 API 전용).
+  updateProgram(
+    id: string,
+    input: Partial<
+      Pick<
+        MockProgram,
+        | 'name'
+        | 'category'
+        | 'ageGroup'
+        | 'description'
+        | 'pricingType'
+        | 'price'
+        | 'capacity'
+        | 'facilityId'
+        | 'instructorId'
+        | 'startDate'
+        | 'endDate'
+      >
+    >,
+  ): MockProgram {
+    const program = this.findProgramById(id);
+    if (!program) {
+      throw new AppException('PROGRAM_NOT_FOUND', '프로그램을 찾을 수 없습니다.', 404);
+    }
+    if (input.instructorId !== undefined) {
+      if (input.instructorId) this.assertInstructorInBranch(input.instructorId, program.branchId);
+      program.instructorId = input.instructorId || undefined;
+    }
+    if (input.name !== undefined) program.name = input.name;
+    if (input.category !== undefined) program.category = input.category;
+    if (input.ageGroup !== undefined) program.ageGroup = input.ageGroup;
+    if (input.description !== undefined) program.description = input.description;
+    if (input.facilityId !== undefined) program.facilityId = input.facilityId || undefined;
+    if (input.startDate !== undefined) program.startDate = input.startDate;
+    if (input.endDate !== undefined) program.endDate = input.endDate || undefined;
+
+    const pricingType = input.pricingType ?? program.pricingType;
+    const price = input.price ?? program.price;
+    const capacity = input.capacity ?? program.capacity;
+    const normalized = this.normalizeProgramPricing({ pricingType, price, capacity });
+    program.pricingType = pricingType;
+    program.price = normalized.price;
+    program.capacity = normalized.capacity;
+
+    return program;
+  }
+
+  // 07문서 §5 DELETE /programs/:id "삭제(소프트)" — Program은 물리 삭제 대신 이미 있는 status
+  // 생애주기의 종결 상태(ENDED)로 전이한다(1-1문서 D9 소프트 삭제 원칙, §3-2 전이표를 그대로 재사용).
+  endProgram(id: string): MockProgram {
+    return this.updateProgramStatus(id, 'ENDED');
+  }
+
+  findInstructorById(id: string): MockInstructor | undefined {
+    return this.instructors.find((i) => i.id === id);
+  }
+
+  // 07문서 §5 POST /instructors — BRANCH_ADMIN 전용(컨트롤러에서 강제).
+  hireInstructor(
+    branchId: string,
+    input: { name: string; specialty?: string; bio?: string; phone?: string; commissionRate?: number },
+  ): MockInstructor {
+    const instructor: MockInstructor = {
+      id: `instructor-${randomUUID()}`,
+      branchId,
+      name: input.name,
+      specialty: input.specialty,
+      bio: input.bio,
+      phone: input.phone,
+      commissionRate: input.commissionRate,
+      isActive: true,
+    };
+    this.instructors.push(instructor);
+    return instructor;
+  }
+
+  // 07문서 §5 PATCH /instructors/:id.
+  updateInstructor(
+    id: string,
+    input: Partial<Pick<MockInstructor, 'name' | 'specialty' | 'bio' | 'phone' | 'commissionRate' | 'isActive'>>,
+  ): MockInstructor {
+    const instructor = this.findInstructorById(id);
+    if (!instructor) {
+      throw new AppException('INSTRUCTOR_NOT_FOUND', '강사를 찾을 수 없습니다.', 404);
+    }
+    if (input.name !== undefined) instructor.name = input.name;
+    if (input.specialty !== undefined) instructor.specialty = input.specialty;
+    if (input.bio !== undefined) instructor.bio = input.bio;
+    if (input.phone !== undefined) instructor.phone = input.phone;
+    if (input.commissionRate !== undefined) instructor.commissionRate = input.commissionRate;
+    if (input.isActive !== undefined) instructor.isActive = input.isActive;
+    return instructor;
+  }
+
+  // 07문서 §6 — 물리 삭제 대신 소프트 삭제(isActive=false), 기존 연결된 프로그램은 깨지지 않는다.
+  deactivateInstructor(id: string): MockInstructor {
+    return this.updateInstructor(id, { isActive: false });
   }
 
   findStaffById(id: string): MockStaff | undefined {

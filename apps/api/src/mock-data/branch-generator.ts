@@ -3,7 +3,7 @@
 // 히어로 데이터로 남아있고, 이 파일은 그 나머지를 채운다). 전부 인덱스 기반 결정적 생성이라
 // 서버를 몇 번을 재기동해도 같은 결과가 나온다 — Math.random은 쓰지 않는다.
 
-import { AgeGroup, MockBranch, MockFacility, MockMember, MockProgram, MockStaff } from './mock-data.types';
+import { AgeGroup, MockBranch, MockFacility, MockInstructor, MockMember, MockProgram, MockStaff } from './mock-data.types';
 
 // 지점명에 쓰는 구체적 지역(area)과, 대시보드에서 "지역별로 묶기"에 쓰는 광역 단위(region)를 분리한다 —
 // "강동점"처럼 실제 동네 느낌은 살리면서도, 대시보드에서는 서울/부산/경기 같은 광역으로 접을 수 있게.
@@ -79,6 +79,7 @@ export interface GeneratedDataset {
   members: MockMember[];
   programs: MockProgram[];
   facilities: MockFacility[];
+  instructors: MockInstructor[];
 }
 
 const LIGHT_BRANCH_COUNT = 96;
@@ -89,6 +90,7 @@ export function generateLightBranches(): GeneratedDataset {
   const members: MockMember[] = [];
   const programs: MockProgram[] = [];
   const facilities: MockFacility[] = [];
+  const instructors: MockInstructor[] = [];
   const now = new Date();
 
   for (let i = 0; i < LIGHT_BRANCH_COUNT; i++) {
@@ -164,6 +166,19 @@ export function generateLightBranches(): GeneratedDataset {
       });
     }
 
+    // 지점당 강사 1명(있으면 그 지점의 여러 프로그램을 함께 담당) — branchStaffIds가 있을 때만 생성.
+    let branchInstructorId: string | undefined;
+    if (branchStaffIds.length > 0) {
+      branchInstructorId = `instructor-gen-${pad(i + 1, 3)}`;
+      instructors.push({
+        id: branchInstructorId,
+        branchId,
+        name: STAFF_NAME_POOL[i % STAFF_NAME_POOL.length],
+        specialty: PROGRAM_POOL[i % PROGRAM_POOL.length].category,
+        isActive: true,
+      });
+    }
+
     const programCount = 1 + (i % 2);
     for (let p = 0; p < programCount; p++) {
       const template = PROGRAM_POOL[(i + p) % PROGRAM_POOL.length];
@@ -172,6 +187,7 @@ export function generateLightBranches(): GeneratedDataset {
         id: `program-gen-${pad(i + 1, 3)}-${p + 1}`,
         branchId,
         facilityId: `facility-gen-${pad(i + 1, 3)}`,
+        instructorId: branchInstructorId,
         name: template.name,
         category: template.category,
         ageGroup: template.ageGroup,
@@ -180,7 +196,6 @@ export function generateLightBranches(): GeneratedDataset {
         price: template.price,
         status,
         startDate: toDateStr(addDays(now, -(60 + (i + p) * 4))),
-        instructorName: branchStaffIds.length > 0 ? STAFF_NAME_POOL[(i + p) % STAFF_NAME_POOL.length] : undefined,
       });
     }
 
@@ -197,5 +212,5 @@ export function generateLightBranches(): GeneratedDataset {
     });
   }
 
-  return { branches, staff, members, programs, facilities };
+  return { branches, staff, members, programs, facilities, instructors };
 }

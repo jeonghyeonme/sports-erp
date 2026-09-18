@@ -10,6 +10,7 @@ import { MemberDetailPage } from './pages/MemberDetailPage';
 import { StaffPage } from './pages/StaffPage';
 import { AttendancePage } from './pages/AttendancePage';
 import { ProgramsPage } from './pages/ProgramsPage';
+import { InstructorsPage } from './pages/InstructorsPage';
 import { BoardPage } from './pages/BoardPage';
 import { FacilitiesPage } from './pages/FacilitiesPage';
 import { PermissionsPage } from './pages/PermissionsPage';
@@ -38,6 +39,7 @@ export default function App() {
                 <Route path="/staff" element={<StaffPage />} />
                 <Route path="/attendance" element={<AttendancePage />} />
                 <Route path="/programs" element={<ProgramsPage />} />
+                <Route path="/instructors" element={<InstructorsPage />} />
                 <Route path="/board" element={<BoardPage />} />
                 <Route path="/facilities" element={<FacilitiesPage />} />
                 <Route path="/permissions" element={<PermissionsPage />} />

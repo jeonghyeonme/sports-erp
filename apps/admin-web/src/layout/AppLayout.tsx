@@ -31,6 +31,7 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
     group('서비스 현황', [
       { to: '/members', label: '회원' },
       { to: '/programs', label: '프로그램' },
+      { to: '/instructors', label: '강사' },
       { to: '/board', label: '게시판' },
       { to: '/facilities', label: '시설·혼잡도' },
     ]),
@@ -40,6 +41,7 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
     group('회원 서비스', [
       { to: '/members', label: '회원' },
       { to: '/programs', label: '프로그램' },
+      { to: '/instructors', label: '강사' },
     ]),
     group('인력 관리', [
       { to: '/staff', label: '직원' },
