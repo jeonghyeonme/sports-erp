@@ -45,6 +45,10 @@ export interface MemberRow {
   memberNo: string;
   name: string;
   phone?: string;
+  birthDate?: string;
+  gender?: string;
+  guardianConsent?: boolean;
+  memo?: string;
   status: 'ACTIVE' | 'DORMANT' | 'WITHDRAWN';
   joinedAt: string;
 }

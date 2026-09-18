@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { BranchDetailPage } from './pages/BranchDetailPage';
 import { MembersPage } from './pages/MembersPage';
+import { MemberDetailPage } from './pages/MemberDetailPage';
 import { StaffPage } from './pages/StaffPage';
 import { AttendancePage } from './pages/AttendancePage';
 import { ProgramsPage } from './pages/ProgramsPage';
@@ -33,6 +34,7 @@ export default function App() {
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/branches/:branchId" element={<BranchDetailPage />} />
                 <Route path="/members" element={<MembersPage />} />
+                <Route path="/members/:id" element={<MemberDetailPage />} />
                 <Route path="/staff" element={<StaffPage />} />
                 <Route path="/attendance" element={<AttendancePage />} />
                 <Route path="/programs" element={<ProgramsPage />} />
