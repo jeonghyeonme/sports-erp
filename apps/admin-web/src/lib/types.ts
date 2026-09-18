@@ -112,14 +112,19 @@ export interface ProgramStatusSummary {
   runningPrograms: ProgramRow[];
 }
 
+export type PostCategory = 'NOTICE' | 'TRAINING_MATERIAL' | 'EVENT' | 'OTHER';
+
 export interface PostRow {
   id: string;
   scope: 'HQ_TO_BRANCH' | 'BRANCH_TO_MEMBER';
   branchId?: string;
-  authorName: string;
-  category: string;
+  branchName?: string;
+  authorId: string;
+  authorName?: string;
+  category: PostCategory;
   title: string;
   content: string;
+  viewCount: number;
   publishedAt: string;
 }
 

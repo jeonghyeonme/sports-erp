@@ -18,6 +18,7 @@ import {
   MockStaff,
   MockStaffAssignment,
   MockWorkLog,
+  PostScope,
   Role,
 } from './mock-data.types';
 import { generateLightBranches } from './branch-generator';
@@ -306,20 +307,22 @@ export class MockDataService {
     {
       id: 'post-hq-manual',
       scope: 'HQ_TO_BRANCH',
-      authorName: '정하늘',
+      authorId: 'account-haneul',
       category: 'TRAINING_MATERIAL',
       title: 'ERP 시스템 사용 매뉴얼 안내',
       content: '전 지점 팀장급 직원 대상 ERP 사용법 매뉴얼을 게시판에 업로드했습니다.',
+      viewCount: 0,
       publishedAt: '2026-08-20',
     },
     {
       id: 'post-seocho-event',
       scope: 'BRANCH_TO_MEMBER',
       branchId: 'branch-seocho',
-      authorName: '김민수',
+      authorId: 'account-minsu',
       category: 'EVENT',
       title: '9월 아침 요가 이벤트 안내',
       content: '9월 한 달간 아침 요가 신규 회원 20% 할인 이벤트를 진행합니다.',
+      viewCount: 0,
       publishedAt: '2026-08-28',
     },
   ];
@@ -785,6 +788,86 @@ export class MockDataService {
   // 07문서 §6 — 물리 삭제 대신 소프트 삭제(isActive=false), 기존 연결된 프로그램은 깨지지 않는다.
   deactivateInstructor(id: string): MockInstructor {
     return this.updateInstructor(id, { isActive: false });
+  }
+
+  findPostById(id: string): MockPost | undefined {
+    return this.posts.find((p) => p.id === id && !p.deletedAt);
+  }
+
+  // 04문서 §5 POST /posts — SUPER_ADMIN은 HQ_TO_BRANCH(전체공지 또는 특정 지점 지정 가능),
+  // BRANCH_ADMIN은 BRANCH_TO_MEMBER만 작성 가능하고 scope·branchId는 서버가 본인 지점으로 강제한다.
+  createPost(
+    author: { accountId: string; role: Role; branchId?: string },
+    input: { title: string; content: string; category: MockPost['category']; branchId?: string },
+  ): MockPost {
+    let scope: PostScope;
+    let branchId: string | undefined;
+
+    if (author.role === 'SUPER_ADMIN') {
+      scope = 'HQ_TO_BRANCH';
+      branchId = input.branchId;
+      if (branchId && !this.findBranchById(branchId)) {
+        throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+      }
+    } else {
+      if (!author.branchId) {
+        throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
+      }
+      const branch = this.findBranchById(author.branchId);
+      if (branch?.contractStatus === 'TERMINATED') {
+        throw new AppException(
+          'BRANCH_TERMINATED',
+          '위탁계약이 종료된 지점에서는 새 게시글을 작성할 수 없습니다.',
+          409,
+        );
+      }
+      scope = 'BRANCH_TO_MEMBER';
+      branchId = author.branchId;
+    }
+
+    const post: MockPost = {
+      id: `post-${randomUUID()}`,
+      scope,
+      branchId,
+      authorId: author.accountId,
+      category: input.category,
+      title: input.title,
+      content: input.content,
+      viewCount: 0,
+      publishedAt: new Date().toISOString().slice(0, 10),
+    };
+    this.posts.push(post);
+    return post;
+  }
+
+  // 04문서 §5 PATCH /posts/:id — 작성자 본인만 수정 가능(컨트롤러에서 authorId 검사).
+  updatePost(id: string, input: Partial<Pick<MockPost, 'title' | 'content' | 'category'>>): MockPost {
+    const post = this.findPostById(id);
+    if (!post) {
+      throw new AppException('POST_NOT_FOUND', '게시글을 찾을 수 없습니다.', 404);
+    }
+    if (input.title !== undefined) post.title = input.title;
+    if (input.content !== undefined) post.content = input.content;
+    if (input.category !== undefined) post.category = input.category;
+    return post;
+  }
+
+  // 04문서 §6 — 물리 삭제 대신 deletedAt으로 소프트 삭제.
+  deletePost(id: string): void {
+    const post = this.findPostById(id);
+    if (!post) {
+      throw new AppException('POST_NOT_FOUND', '게시글을 찾을 수 없습니다.', 404);
+    }
+    post.deletedAt = new Date().toISOString();
+  }
+
+  incrementPostView(id: string): MockPost {
+    const post = this.findPostById(id);
+    if (!post) {
+      throw new AppException('POST_NOT_FOUND', '게시글을 찾을 수 없습니다.', 404);
+    }
+    post.viewCount += 1;
+    return post;
   }
 
   findStaffById(id: string): MockStaff | undefined {

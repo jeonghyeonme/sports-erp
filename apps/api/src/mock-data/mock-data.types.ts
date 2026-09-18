@@ -8,6 +8,7 @@ export type ProgramStatus = 'PREPARING' | 'RUNNING' | 'PAUSED' | 'ENDED';
 export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
 export type AgeGroup = 'ALL' | 'CHILD' | 'TEEN' | 'ADULT' | 'SENIOR';
 export type PostScope = 'HQ_TO_BRANCH' | 'BRANCH_TO_MEMBER';
+export type PostCategory = 'NOTICE' | 'TRAINING_MATERIAL' | 'EVENT' | 'OTHER';
 export type BranchContractStatus = 'ACTIVE' | 'RENEWAL_DUE' | 'EXPIRED' | 'TERMINATED';
 export type StaffStatus = 'ACTIVE' | 'ON_LEAVE' | 'RESIGNED';
 export type AttendanceStatus = 'NORMAL' | 'LATE' | 'EARLY_LEAVE' | 'ABSENT' | 'ON_LEAVE';
@@ -172,12 +173,14 @@ export interface MockProgram {
 export interface MockPost {
   id: string;
   scope: PostScope;
-  branchId?: string;
-  authorName: string;
-  category: string;
+  branchId?: string; // scope=HQ_TO_BRANCH이고 전체공지면 undefined(=null)
+  authorId: string; // FK → MockAccount — "작성자 본인만 수정" 권한 판단에 사용(04문서 §5)
+  category: PostCategory;
   title: string;
   content: string;
+  viewCount: number;
   publishedAt: string;
+  deletedAt?: string; // 소프트 삭제(04문서 §6)
 }
 
 export interface MockFacility {
