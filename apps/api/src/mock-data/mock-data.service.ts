@@ -13,9 +13,12 @@ import {
   MockLeaveBalance,
   MockLeaveRequest,
   MockMember,
+  MockPayment,
   MockPost,
   MockProgram,
   MockRefreshToken,
+  MockReservation,
+  MockScheduleSlot,
   MockStaff,
   MockStaffAssignment,
   MockWorkLog,
@@ -303,6 +306,30 @@ export class MockDataService {
     },
     ...this.generated.programs,
   ];
+
+  // 06문서 §3 — '아침 요가'(PAID_SESSION, capacity 15)에 데모용 회차 2건을 시드해둔다.
+  // 두 번째 회차는 정원을 일부러 작게 잡아 SLOT_FULL(정원 초과) 케이스를 바로 테스트할 수 있게 한다.
+  readonly scheduleSlots: MockScheduleSlot[] = [
+    {
+      id: 'slot-seocho-yoga-1',
+      programId: 'program-seocho-yoga',
+      date: '2026-09-21',
+      startTime: '07:00',
+      endTime: '08:00',
+      capacity: 15,
+    },
+    {
+      id: 'slot-seocho-yoga-2',
+      programId: 'program-seocho-yoga',
+      date: '2026-09-22',
+      startTime: '07:00',
+      endTime: '08:00',
+      capacity: 2,
+    },
+  ];
+
+  readonly reservations: MockReservation[] = [];
+  readonly payments: MockPayment[] = [];
 
   readonly posts: MockPost[] = [
     {
@@ -1298,5 +1325,201 @@ export class MockDataService {
     facility.currentCount = currentCount;
     facility.level = this.computeCongestionLevel(currentCount, facility.capacity);
     return facility;
+  }
+
+  findScheduleSlotById(id: string): MockScheduleSlot | undefined {
+    return this.scheduleSlots.find((s) => s.id === id);
+  }
+
+  listScheduleSlots(programId: string, date?: string): MockScheduleSlot[] {
+    let slots = this.scheduleSlots.filter((s) => s.programId === programId);
+    if (date) slots = slots.filter((s) => s.date === date);
+    return slots;
+  }
+
+  // 06문서 §3 — bookedCount는 캐시 필드를 두지 않고 매번 계산한다(REQUESTED/CONFIRMED만 유효 예약).
+  bookedCount(scheduleSlotId: string): number {
+    return this.reservations.filter(
+      (r) => r.scheduleSlotId === scheduleSlotId && (r.status === 'REQUESTED' || r.status === 'CONFIRMED'),
+    ).length;
+  }
+
+  // 06문서 §5 POST /programs/:id/slots — BRANCH_ADMIN 전용(컨트롤러에서 강제).
+  createScheduleSlot(
+    programId: string,
+    input: { date: string; startTime: string; endTime: string; capacity?: number },
+  ): MockScheduleSlot {
+    const program = this.findProgramById(programId);
+    if (!program) {
+      throw new AppException('PROGRAM_NOT_FOUND', '프로그램을 찾을 수 없습니다.', 404);
+    }
+    if (program.pricingType !== 'PAID_SESSION') {
+      throw new AppException(
+        'SLOT_NOT_APPLICABLE',
+        '회차 예약형(PAID_SESSION) 프로그램에만 회차를 추가할 수 있습니다.',
+        400,
+      );
+    }
+    const capacity = input.capacity ?? program.capacity;
+    if (!capacity || capacity < 1) {
+      throw new AppException('INVALID_CAPACITY', '정원은 1명 이상이어야 합니다.', 400);
+    }
+    const slot: MockScheduleSlot = {
+      id: `slot-${randomUUID()}`,
+      programId,
+      date: input.date,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      capacity,
+    };
+    this.scheduleSlots.push(slot);
+    return slot;
+  }
+
+  findReservationById(id: string): MockReservation | undefined {
+    return this.reservations.find((r) => r.id === id);
+  }
+
+  findPaymentByReservationId(reservationId: string): MockPayment | undefined {
+    return this.payments.find((p) => p.reservationId === reservationId);
+  }
+
+  // 06문서 §6 부가세 분리 — amount(회원이 실제로 낸 금액)에서 공급가액/부가세를 역산한다(부가가치세율 10%).
+  private computeVat(amount: number): { supplyAmount: number; vat: number } {
+    const supplyAmount = Math.round(amount / 1.1);
+    return { supplyAmount, vat: amount - supplyAmount };
+  }
+
+  // 06문서 §6 "동시 예약(정원 초과) 방지" — 설계는 Postgres `SELECT ... FOR UPDATE`로 ScheduleSlot 행을
+  // 먼저 잠가 팬텀 삽입을 막으라고 명시하지만, MockDataService는 단일 Node 프로세스에서 동기적으로
+  // 실행되는 인메모리 배열이라 이 메서드 안에 `await`가 없는 한 두 요청이 실제로 동시에 끼어들 수
+  // 없다(자바스크립트 이벤트 루프의 단일 스레드 특성이 곧 그 락 역할을 대신한다) — 그래서 정원 체크와
+  // INSERT 사이에 별도 락 코드가 없어도 팬텀 삽입이 발생하지 않는다. 실DB 전환 시에는 문서가 명시한
+  // `ScheduleSlot` 행 락을 그대로 적용해야 한다.
+  createReservation(memberId: string, scheduleSlotId: string): { reservation: MockReservation; payment?: MockPayment } {
+    const slot = this.findScheduleSlotById(scheduleSlotId);
+    if (!slot) {
+      throw new AppException('SLOT_NOT_FOUND', '회차를 찾을 수 없습니다.', 404);
+    }
+    const program = this.findProgramById(slot.programId);
+    if (!program) {
+      throw new AppException('PROGRAM_NOT_FOUND', '프로그램을 찾을 수 없습니다.', 404);
+    }
+    if (program.pricingType !== 'PAID_SESSION') {
+      throw new AppException('NOT_RESERVABLE', '예약 가능한 프로그램이 아닙니다.', 400);
+    }
+    if (program.status !== 'RUNNING') {
+      throw new AppException('PROGRAM_NOT_RUNNING', '진행중인 프로그램이 아닙니다.', 409);
+    }
+    const branch = this.findBranchById(program.branchId);
+    if (branch?.contractStatus === 'TERMINATED') {
+      throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 예약할 수 없습니다.', 409);
+    }
+    const duplicate = this.reservations.find(
+      (r) =>
+        r.memberId === memberId &&
+        r.scheduleSlotId === scheduleSlotId &&
+        (r.status === 'REQUESTED' || r.status === 'CONFIRMED'),
+    );
+    if (duplicate) {
+      throw new AppException('ALREADY_RESERVED', '이미 이 회차를 예약했습니다.', 409);
+    }
+    if (this.bookedCount(scheduleSlotId) >= slot.capacity) {
+      throw new AppException('SLOT_FULL', '정원이 가득 찼습니다.', 409);
+    }
+
+    const reservation: MockReservation = {
+      id: `reservation-${randomUUID()}`,
+      memberId,
+      scheduleSlotId,
+      status: program.price > 0 ? 'REQUESTED' : 'CONFIRMED',
+      createdAt: new Date().toISOString(),
+    };
+    this.reservations.push(reservation);
+
+    if (program.price <= 0) {
+      return { reservation };
+    }
+
+    // 서버가 Program 가격을 재조회해 결제금액을 결정한다(클라이언트 금액 신뢰 안 함, §7).
+    const payment: MockPayment = {
+      id: `payment-${randomUUID()}`,
+      reservationId: reservation.id,
+      memberId,
+      amount: program.price,
+      supplyAmount: 0,
+      vat: 0,
+      method: 'MOCK_CARD',
+      status: 'PENDING',
+    };
+    this.payments.push(payment);
+    return { reservation, payment };
+  }
+
+  // 06문서 §5 POST /payments/:reservationId/mock-pay — 모의결제 승인.
+  mockPay(reservationId: string): { reservation: MockReservation; payment: MockPayment } {
+    const reservation = this.findReservationById(reservationId);
+    if (!reservation) {
+      throw new AppException('RESERVATION_NOT_FOUND', '예약을 찾을 수 없습니다.', 404);
+    }
+    const payment = this.findPaymentByReservationId(reservationId);
+    if (!payment || payment.status !== 'PENDING') {
+      throw new AppException('PAYMENT_NOT_PENDING', '결제 대기 상태가 아닙니다.', 409);
+    }
+    const { supplyAmount, vat } = this.computeVat(payment.amount);
+    payment.supplyAmount = supplyAmount;
+    payment.vat = vat;
+    payment.status = 'APPROVED';
+    payment.mockApprovalNo = `MOCK-${randomUUID().slice(0, 8).toUpperCase()}`;
+    payment.approvedAt = new Date().toISOString();
+    reservation.status = 'CONFIRMED';
+    return { reservation, payment };
+  }
+
+  // 06문서 §6 취소/환불 정책 — Branch.cancellationDeadlineHours(기본 24시간) 전 취소만 전액 환불.
+  cancelReservation(id: string, cancelReason?: string): MockReservation {
+    const reservation = this.findReservationById(id);
+    if (!reservation) {
+      throw new AppException('RESERVATION_NOT_FOUND', '예약을 찾을 수 없습니다.', 404);
+    }
+    if (reservation.status !== 'REQUESTED' && reservation.status !== 'CONFIRMED') {
+      throw new AppException('RESERVATION_NOT_CANCELLABLE', '취소할 수 없는 예약 상태입니다.', 409);
+    }
+
+    const payment = this.findPaymentByReservationId(id);
+    if (payment && payment.status === 'PENDING') {
+      payment.status = 'FAILED';
+    } else if (payment && payment.status === 'APPROVED') {
+      const slot = this.findScheduleSlotById(reservation.scheduleSlotId);
+      const program = slot ? this.findProgramById(slot.programId) : undefined;
+      const branch = program ? this.findBranchById(program.branchId) : undefined;
+      const deadlineHours = branch?.cancellationDeadlineHours ?? 24;
+      const slotStart = slot ? new Date(`${slot.date}T${slot.startTime}:00`) : undefined;
+      const withinDeadline =
+        slotStart !== undefined && slotStart.getTime() - Date.now() >= deadlineHours * 60 * 60 * 1000;
+      if (withinDeadline) {
+        payment.status = 'REFUNDED';
+        payment.refundedAt = new Date().toISOString();
+      }
+      // 마감시간 이내 취소는 환불 없이 Payment.status=APPROVED가 그대로 남는다(§6 "환불 불가").
+    }
+
+    reservation.status = 'CANCELLED';
+    reservation.cancelledAt = new Date().toISOString();
+    reservation.cancelReason = cancelReason;
+    return reservation;
+  }
+
+  // 06문서 §5 PATCH /reservations/:id/check-in — BRANCH_ADMIN 전용(컨트롤러에서 강제).
+  checkInReservation(id: string): MockReservation {
+    const reservation = this.findReservationById(id);
+    if (!reservation) {
+      throw new AppException('RESERVATION_NOT_FOUND', '예약을 찾을 수 없습니다.', 404);
+    }
+    if (reservation.status !== 'CONFIRMED') {
+      throw new AppException('RESERVATION_NOT_CONFIRMED', '확정된 예약만 체크인할 수 있습니다.', 409);
+    }
+    reservation.status = 'COMPLETED';
+    return reservation;
   }
 }

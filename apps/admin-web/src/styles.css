@@ -519,7 +519,8 @@ tbody tr:hover td {
 .badge.RUNNING,
 .badge.ACTIVE,
 .badge.NORMAL,
-.badge.APPROVED {
+.badge.APPROVED,
+.badge.CONFIRMED {
   background: #dcfce7;
   color: #15803d;
 }
@@ -527,7 +528,8 @@ tbody tr:hover td {
 .badge.PREPARING,
 .badge.LATE,
 .badge.EARLY_LEAVE,
-.badge.PENDING {
+.badge.PENDING,
+.badge.REQUESTED {
   background: #fef9c3;
   color: #a16207;
 }
@@ -535,14 +537,19 @@ tbody tr:hover td {
 .badge.PAUSED,
 .badge.DORMANT,
 .badge.ABSENT,
-.badge.REJECTED {
+.badge.REJECTED,
+.badge.CANCELLED,
+.badge.FAILED,
+.badge.NO_SHOW {
   background: #fee2e2;
   color: #b91c1c;
 }
 
 .badge.ENDED,
 .badge.WITHDRAWN,
-.badge.ON_LEAVE {
+.badge.ON_LEAVE,
+.badge.COMPLETED,
+.badge.REFUNDED {
   background: #e2e8f0;
   color: #475569;
 }

@@ -13,6 +13,8 @@ import { InstructorsModule } from './modules/instructors/instructors.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { FacilitiesModule } from './modules/facilities/facilities.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
+import { ReservationsModule } from './modules/reservations/reservations.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -33,6 +35,8 @@ import { RolesGuard } from './common/guards/roles.guard';
     PostsModule,
     FacilitiesModule,
     PermissionsModule,
+    ReservationsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [

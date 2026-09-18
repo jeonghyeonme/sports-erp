@@ -42,6 +42,7 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
       { to: '/members', label: '회원' },
       { to: '/programs', label: '프로그램' },
       { to: '/instructors', label: '강사' },
+      { to: '/reservations', label: '예약 관리' },
     ]),
     group('인력 관리', [
       { to: '/staff', label: '직원' },
@@ -67,6 +68,7 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
   MEMBER: [
     link('/', '대시보드'),
     link('/programs', '프로그램'),
+    link('/reservations', '예약'),
     link('/board', '게시판'),
     link('/facilities', '시설·혼잡도'),
   ],

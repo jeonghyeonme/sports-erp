@@ -94,6 +94,54 @@ export interface ProgramRow {
   instructorName?: string;
 }
 
+export type ReservationStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
+export type PaymentMethod = 'MOCK_CARD' | 'FREE';
+export type PaymentStatus = 'PENDING' | 'APPROVED' | 'FAILED' | 'REFUNDED';
+
+export interface ScheduleSlotRow {
+  id: string;
+  programId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  capacity: number;
+  bookedCount: number;
+}
+
+export interface PaymentRow {
+  id: string;
+  reservationId: string;
+  memberId: string;
+  memberName?: string;
+  programName?: string;
+  branchName?: string;
+  amount: number;
+  supplyAmount: number;
+  vat: number;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  mockApprovalNo?: string;
+  approvedAt?: string;
+  refundedAt?: string;
+}
+
+export interface ReservationRow {
+  id: string;
+  memberId: string;
+  memberName?: string;
+  scheduleSlotId: string;
+  slot?: ScheduleSlotRow;
+  programId?: string;
+  programName?: string;
+  branchId?: string;
+  branchName?: string;
+  status: ReservationStatus;
+  createdAt: string;
+  cancelledAt?: string;
+  cancelReason?: string;
+  payment?: PaymentRow;
+}
+
 export interface InstructorRow {
   id: string;
   branchId: string;

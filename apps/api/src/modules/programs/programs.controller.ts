@@ -10,6 +10,7 @@ import { ok } from '../../common/http/api-response';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
 import { UpdateProgramStatusDto } from './dto/update-program-status.dto';
+import { CreateScheduleSlotDto } from './dto/create-schedule-slot.dto';
 
 // 07문서 §7 — 회원 포함 모든 역할이 조회 가능(본인 소속 지점 기준 필터 기본 적용)
 @Controller('programs')
@@ -72,6 +73,24 @@ export class ProgramsController {
     this.assertOwnBranch(program, user);
     const updated = this.mockData.endProgram(id);
     return ok(this.toListItem(updated));
+  }
+
+  // 06문서 §5 GET /programs/:id/slots?date= — 로그인한 모든 역할이 잔여좌석 조회 가능.
+  @Get(':id/slots')
+  listSlots(@Param('id') id: string, @Query('date') date?: string) {
+    this.findProgramOrThrow(id);
+    const slots = this.mockData.listScheduleSlots(id, date);
+    return ok(slots.map((s) => ({ ...s, bookedCount: this.mockData.bookedCount(s.id) })));
+  }
+
+  // 06문서 §5(1-8문서 §5 소관) POST /programs/:id/slots — 회차 개별 추가, BRANCH_ADMIN 본인 지점만.
+  @Post(':id/slots')
+  @Roles('BRANCH_ADMIN')
+  createSlot(@Param('id') id: string, @Body() dto: CreateScheduleSlotDto, @CurrentUser() user: RequestUser) {
+    const program = this.findProgramOrThrow(id);
+    this.assertOwnBranch(program, user);
+    const slot = this.mockData.createScheduleSlot(id, dto);
+    return ok({ ...slot, bookedCount: 0 });
   }
 
   private findProgramOrThrow(id: string): MockProgram {

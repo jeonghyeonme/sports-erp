@@ -15,6 +15,9 @@ export type AttendanceStatus = 'NORMAL' | 'LATE' | 'EARLY_LEAVE' | 'ABSENT' | 'O
 export type LeaveType = 'ANNUAL' | 'SICK' | 'FAMILY_EVENT' | 'OTHER';
 export type LeaveRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type FacilityType = 'GYM' | 'POOL' | 'GOLF' | 'READING_ROOM' | 'ETC';
+export type ReservationStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
+export type PaymentMethod = 'MOCK_CARD' | 'FREE';
+export type PaymentStatus = 'PENDING' | 'APPROVED' | 'FAILED' | 'REFUNDED';
 
 export interface MockBranch {
   id: string;
@@ -169,6 +172,44 @@ export interface MockProgram {
   status: ProgramStatus;
   startDate: string;
   endDate?: string; // 종료 예정일 — 상시 운영이면 undefined(=null). 07문서 §3
+}
+
+// 06문서 §3 ScheduleSlot(프로그램 회차) — PAID_SESSION 프로그램만 대상(FREE_ACCESS는 회차 개념이 없음).
+export interface MockScheduleSlot {
+  id: string;
+  programId: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime: string;
+  capacity: number;
+}
+
+// 06문서 §3 Reservation. bookedCount는 캐시 필드를 두지 않고 매번
+// Reservation(scheduleSlotId, status IN REQUESTED/CONFIRMED) 카운트로 계산한다(§6).
+export interface MockReservation {
+  id: string;
+  memberId: string;
+  scheduleSlotId: string;
+  status: ReservationStatus;
+  createdAt: string;
+  cancelledAt?: string;
+  cancelReason?: string;
+}
+
+// 06문서 §3 Payment — PT_PACKAGE 구매 결제(ptSessionId)는 PTSession 엔티티 자체가 아직 없어
+// 이번 범위에서 제외한다(회원관리 PT세션 백엔드와 함께 보류, 2-3문서 참고). reservationId만 사용.
+export interface MockPayment {
+  id: string;
+  reservationId: string;
+  memberId: string;
+  amount: number; // 실 결제금액(공급가액+부가세)
+  supplyAmount: number; // round(amount / 1.1)
+  vat: number; // amount - supplyAmount
+  method: PaymentMethod;
+  status: PaymentStatus;
+  mockApprovalNo?: string;
+  approvedAt?: string;
+  refundedAt?: string;
 }
 
 export interface MockPost {
