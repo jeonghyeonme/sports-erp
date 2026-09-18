@@ -14,6 +14,7 @@ export type StaffStatus = 'ACTIVE' | 'ON_LEAVE' | 'RESIGNED';
 export type AttendanceStatus = 'NORMAL' | 'LATE' | 'EARLY_LEAVE' | 'ABSENT' | 'ON_LEAVE';
 export type LeaveType = 'ANNUAL' | 'SICK' | 'FAMILY_EVENT' | 'OTHER';
 export type LeaveRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type FacilityType = 'GYM' | 'POOL' | 'GOLF' | 'READING_ROOM' | 'ETC';
 
 export interface MockBranch {
   id: string;
@@ -187,8 +188,8 @@ export interface MockFacility {
   id: string;
   branchId: string;
   name: string;
-  type: 'GYM' | 'POOL' | 'GOLF' | 'READING_ROOM' | 'ETC';
+  type: FacilityType;
   capacity: number;
   currentCount: number;
-  level: number;
+  level: number; // 1~5, currentCount/capacity 비율로 계산(08문서 §4). MANUAL 보정 시에도 즉시 재계산.
 }

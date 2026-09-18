@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import {
   AttendanceStatus,
+  FacilityType,
   LeaveType,
   MockAccount,
   MockAttendanceRecord,
@@ -1229,5 +1230,73 @@ export class MockDataService {
       this.workLogs.push(log);
     }
     return log;
+  }
+
+  findFacilityById(id: string): MockFacility | undefined {
+    return this.facilities.find((f) => f.id === id);
+  }
+
+  // 08문서 §4 5단계 매핑 — 수동 보정이든 정원 변경이든 currentCount/capacity 비율이 바뀔 때마다 재계산한다.
+  private computeCongestionLevel(currentCount: number, capacity: number): number {
+    const ratio = (currentCount / capacity) * 100;
+    if (ratio <= 20) return 1;
+    if (ratio <= 40) return 2;
+    if (ratio <= 60) return 3;
+    if (ratio <= 80) return 4;
+    return 5;
+  }
+
+  // 08문서 §6 POST /facilities — BRANCH_ADMIN 전용(컨트롤러에서 강제). capacity 1 이상 필수(§7 나눗셈 오류 방지).
+  createFacility(branchId: string, input: { name: string; type: FacilityType; capacity: number }): MockFacility {
+    if (input.capacity < 1) {
+      throw new AppException('INVALID_CAPACITY', '정원은 1명 이상이어야 합니다.', 400);
+    }
+    const facility: MockFacility = {
+      id: `facility-${randomUUID()}`,
+      branchId,
+      name: input.name,
+      type: input.type,
+      capacity: input.capacity,
+      currentCount: 0,
+      level: 1,
+    };
+    this.facilities.push(facility);
+    return facility;
+  }
+
+  // 08문서 §6 PATCH /facilities/:id — 정원이 바뀌면 현재 인원 대비 혼잡도 단계를 즉시 재계산한다.
+  updateFacility(
+    id: string,
+    input: Partial<{ name: string; type: FacilityType; capacity: number }>,
+  ): MockFacility {
+    const facility = this.findFacilityById(id);
+    if (!facility) {
+      throw new AppException('FACILITY_NOT_FOUND', '시설을 찾을 수 없습니다.', 404);
+    }
+    if (input.capacity !== undefined && input.capacity < 1) {
+      throw new AppException('INVALID_CAPACITY', '정원은 1명 이상이어야 합니다.', 400);
+    }
+    if (input.name !== undefined) facility.name = input.name;
+    if (input.type !== undefined) facility.type = input.type;
+    if (input.capacity !== undefined) {
+      facility.capacity = input.capacity;
+      facility.level = this.computeCongestionLevel(facility.currentCount, facility.capacity);
+    }
+    return facility;
+  }
+
+  // 08문서 §6 POST /facilities/:id/congestion/manual, §4 "수동 보정"(source=MANUAL) — Phase 1 범위라
+  // 별도 CongestionSnapshot 이력 테이블 없이 MockFacility.currentCount/level을 직접 덮어쓴다.
+  setManualCongestion(id: string, currentCount: number): MockFacility {
+    const facility = this.findFacilityById(id);
+    if (!facility) {
+      throw new AppException('FACILITY_NOT_FOUND', '시설을 찾을 수 없습니다.', 404);
+    }
+    if (currentCount < 0) {
+      throw new AppException('INVALID_CURRENT_COUNT', '현재 인원은 0명 이상이어야 합니다.', 400);
+    }
+    facility.currentCount = currentCount;
+    facility.level = this.computeCongestionLevel(currentCount, facility.capacity);
+    return facility;
   }
 }

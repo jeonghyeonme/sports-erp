@@ -180,12 +180,14 @@ export interface WorkLogRow {
   createdAt: string;
 }
 
+export type FacilityType = 'GYM' | 'POOL' | 'GOLF' | 'READING_ROOM' | 'ETC';
+
 export interface FacilityRow {
   id: string;
   branchId: string;
   branchName?: string;
   name: string;
-  type: 'GYM' | 'POOL' | 'GOLF' | 'READING_ROOM' | 'ETC';
+  type: FacilityType;
   capacity: number;
   currentCount: number;
   level: number;
