@@ -15,6 +15,8 @@ import { BoardPage } from './pages/BoardPage';
 import { PostDetailPage } from './pages/PostDetailPage';
 import { FacilitiesPage } from './pages/FacilitiesPage';
 import { ReservationsPage } from './pages/ReservationsPage';
+import { AssetsPage } from './pages/AssetsPage';
+import { DocumentsPage } from './pages/DocumentsPage';
 import { PermissionsPage } from './pages/PermissionsPage';
 
 const queryClient = new QueryClient();
@@ -46,6 +48,8 @@ export default function App() {
                 <Route path="/board/:id" element={<PostDetailPage />} />
                 <Route path="/facilities" element={<FacilitiesPage />} />
                 <Route path="/reservations" element={<ReservationsPage />} />
+                <Route path="/assets" element={<AssetsPage />} />
+                <Route path="/documents" element={<DocumentsPage />} />
                 <Route path="/permissions" element={<PermissionsPage />} />
               </Route>
             </Route>

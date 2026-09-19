@@ -2,10 +2,16 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import {
+  AssetCategory,
+  AssetStatus,
+  AssetType,
   AttendanceStatus,
+  DocumentCategory,
   FacilityType,
   LeaveType,
   MockAccount,
+  MockAsset,
+  MockDocument,
   MockAttendanceRecord,
   MockBranch,
   MockFacility,
@@ -330,6 +336,76 @@ export class MockDataService {
 
   readonly reservations: MockReservation[] = [];
   readonly payments: MockPayment[] = [];
+
+  // 1-10문서 §4 — 서초점 데모 자산. 러닝머신은 100만원 초과라 FIXED_ASSET, 소독제는 CONSUMABLE.
+  readonly assets: MockAsset[] = [
+    {
+      id: 'asset-seocho-treadmill',
+      assetCode: 'SEOCHO-A001',
+      branchId: 'branch-seocho',
+      name: '러닝머신',
+      category: 'EXERCISE_EQUIPMENT',
+      assetType: 'FIXED_ASSET',
+      acquiredAt: '2025-03-10',
+      acquisitionCost: 3200000,
+      usefulLifeYears: 5,
+      status: 'NORMAL',
+      quantity: 1,
+      location: '2층 헬스장',
+    },
+    {
+      id: 'asset-seocho-aed',
+      assetCode: 'SEOCHO-A002',
+      branchId: 'branch-seocho',
+      name: '자동제세동기(AED)',
+      category: 'SAFETY_EQUIPMENT',
+      assetType: 'FIXED_ASSET',
+      acquiredAt: '2025-06-01',
+      acquisitionCost: 1800000,
+      usefulLifeYears: 5,
+      status: 'REPAIRING',
+      quantity: 1,
+      location: '1층 로비',
+    },
+    {
+      id: 'asset-seocho-sanitizer',
+      assetCode: 'SEOCHO-A003',
+      branchId: 'branch-seocho',
+      name: '손소독제',
+      category: 'OTHER',
+      assetType: 'CONSUMABLE',
+      acquiredAt: '2026-08-01',
+      acquisitionCost: 45000,
+      status: 'NORMAL',
+      quantity: 12,
+    },
+  ];
+
+  // 1-10문서 §5 — 전사 매뉴얼(영구 보관) + 서초점 위탁계약서(수동 보존기한, 임박 목록 시연용).
+  readonly documents: MockDocument[] = [
+    {
+      id: 'doc-hq-manual',
+      category: 'MANUAL',
+      title: 'ERP 이용자 매뉴얼 v1',
+      fileUrl: 'https://files.example/spoism/erp-manual-v1.pdf',
+      fileType: 'pdf',
+      fileSize: 2048000,
+      uploadedBy: 'account-haneul',
+      createdAt: '2026-08-20T09:00:00.000Z',
+    },
+    {
+      id: 'doc-seocho-contract',
+      category: 'CONTRACT',
+      branchId: 'branch-seocho',
+      title: '서초점 위탁운영계약서',
+      fileUrl: 'https://files.example/spoism/seocho-contract.pdf',
+      fileType: 'pdf',
+      fileSize: 1024000,
+      uploadedBy: 'account-haneul',
+      retentionUntil: '2026-10-05',
+      createdAt: '2026-01-05T09:00:00.000Z',
+    },
+  ];
 
   readonly posts: MockPost[] = [
     {
@@ -1521,5 +1597,194 @@ export class MockDataService {
     }
     reservation.status = 'COMPLETED';
     return reservation;
+  }
+
+  findAssetById(id: string): MockAsset | undefined {
+    return this.assets.find((a) => a.id === id);
+  }
+
+  // 1-10문서 §4-6 — 취득가액 100만원 초과면 고정자산, 이하면 소모품(세법상 즉시비용 처리 기준).
+  private classifyAssetType(acquisitionCost: number): AssetType {
+    return acquisitionCost > 1_000_000 ? 'FIXED_ASSET' : 'CONSUMABLE';
+  }
+
+  // `{지점코드}-A{순번}` — 폐기된 자산도 순번을 계속 차지하므로(재사용 안 함) 접두사로 시작하는 전체 개수 기준.
+  private generateAssetCode(branchId: string): string {
+    const code = this.findBranchById(branchId)?.code ?? 'BR';
+    const seq = this.assets.filter((a) => a.assetCode.startsWith(`${code}-A`)).length + 1;
+    return `${code}-A${String(seq).padStart(3, '0')}`;
+  }
+
+  // 1-10문서 §5 POST /assets — 권한·지점 강제는 컨트롤러에서 한다.
+  createAsset(input: {
+    branchId: string;
+    name: string;
+    category: AssetCategory;
+    acquiredAt: string;
+    acquisitionCost: number;
+    assetType?: AssetType;
+    usefulLifeYears?: number;
+    quantity?: number;
+    location?: string;
+    note?: string;
+  }): MockAsset {
+    if (!this.findBranchById(input.branchId)) {
+      throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+    }
+    // 자동 판정 결과를 관리자가 수동으로 덮어쓸 수 있다(고가 소모품을 고정자산 취급하는 경우 등).
+    const assetType = input.assetType ?? this.classifyAssetType(input.acquisitionCost);
+    const asset: MockAsset = {
+      id: `asset-${randomUUID()}`,
+      assetCode: this.generateAssetCode(input.branchId),
+      branchId: input.branchId,
+      name: input.name,
+      category: input.category,
+      assetType,
+      acquiredAt: input.acquiredAt,
+      acquisitionCost: input.acquisitionCost,
+      usefulLifeYears: assetType === 'FIXED_ASSET' ? input.usefulLifeYears : undefined,
+      status: 'NORMAL',
+      quantity: assetType === 'FIXED_ASSET' ? 1 : (input.quantity ?? 1),
+      location: input.location,
+      note: input.note,
+    };
+    this.assets.push(asset);
+    return asset;
+  }
+
+  // 상태·위치·수량·메모만 수정 — 상태 전이는 변경 이력 추적을 위해 별도 메서드로 분리(§5).
+  updateAsset(
+    id: string,
+    input: Partial<{ name: string; location: string; quantity: number; note: string; usefulLifeYears: number }>,
+  ): MockAsset {
+    const asset = this.findAssetById(id);
+    if (!asset) {
+      throw new AppException('ASSET_NOT_FOUND', '자산을 찾을 수 없습니다.', 404);
+    }
+    if (input.name !== undefined) asset.name = input.name;
+    if (input.location !== undefined) asset.location = input.location || undefined;
+    if (input.note !== undefined) asset.note = input.note || undefined;
+    if (input.usefulLifeYears !== undefined && asset.assetType === 'FIXED_ASSET') {
+      asset.usefulLifeYears = input.usefulLifeYears;
+    }
+    if (input.quantity !== undefined) {
+      if (asset.assetType === 'FIXED_ASSET' && input.quantity !== 1) {
+        throw new AppException('INVALID_QUANTITY', '고정자산은 개체 단위 관리라 수량이 항상 1입니다.', 400);
+      }
+      asset.quantity = input.quantity;
+    }
+    return asset;
+  }
+
+  // 1-10문서 §4-4 "정상→수리중→폐기대상→폐기됨". 되돌림(수리 완료·폐기 보류)은 실무상 필요해 허용하되
+  // 폐기됨은 종결 상태로 둔다 — 문서가 역방향 전이를 명시하지 않아 이 해석은 구현 시점의 판단이다.
+  private static readonly ASSET_STATUS_TRANSITIONS: Record<AssetStatus, AssetStatus[]> = {
+    NORMAL: ['REPAIRING', 'DISPOSAL_PENDING'],
+    REPAIRING: ['NORMAL', 'DISPOSAL_PENDING'],
+    DISPOSAL_PENDING: ['NORMAL', 'DISPOSED'],
+    DISPOSED: [],
+  };
+
+  updateAssetStatus(id: string, status: AssetStatus): MockAsset {
+    const asset = this.findAssetById(id);
+    if (!asset) {
+      throw new AppException('ASSET_NOT_FOUND', '자산을 찾을 수 없습니다.', 404);
+    }
+    if (!MockDataService.ASSET_STATUS_TRANSITIONS[asset.status].includes(status)) {
+      throw new AppException(
+        'INVALID_STATUS_TRANSITION',
+        `${asset.status} 상태에서 ${status}(으)로 전이할 수 없습니다.`,
+        409,
+      );
+    }
+    asset.status = status;
+    return asset;
+  }
+
+  findDocumentById(id: string): MockDocument | undefined {
+    return this.documents.find((d) => d.id === id && !d.deletedAt);
+  }
+
+  private addYears(date: string, years: number): string {
+    const d = new Date(`${date}T00:00:00`);
+    d.setFullYear(d.getFullYear() + years);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // 1-10문서 §5-6 — HR_RECORD는 근로관계 종료일(없으면 업로드일)+3년, CONTRACT는 관리자 직접 입력
+  // (계약 유형마다 법정 기간이 달라 일괄 자동계산 안 함), MANUAL/OTHER는 영구 보관(null).
+  private computeRetentionUntil(
+    category: DocumentCategory,
+    relatedStaffId: string | undefined,
+    manualRetentionUntil: string | undefined,
+  ): string | undefined {
+    if (category === 'CONTRACT') return manualRetentionUntil;
+    if (category === 'HR_RECORD') {
+      const staff = relatedStaffId ? this.findStaffById(relatedStaffId) : undefined;
+      const base = staff?.resignDate ?? new Date().toISOString().slice(0, 10);
+      return this.addYears(base, 3);
+    }
+    return undefined;
+  }
+
+  // 1-10문서 §5 POST /documents — 권한·지점 강제는 컨트롤러에서 한다.
+  createDocument(
+    uploadedBy: string,
+    input: {
+      category: DocumentCategory;
+      branchId?: string;
+      relatedStaffId?: string;
+      title: string;
+      fileUrl: string;
+      fileType?: string;
+      fileSize?: number;
+      retentionUntil?: string;
+    },
+  ): MockDocument {
+    if (input.branchId && !this.findBranchById(input.branchId)) {
+      throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+    }
+    if (input.category === 'HR_RECORD') {
+      if (!input.relatedStaffId) {
+        throw new AppException('STAFF_REQUIRED', '인사서류는 대상 직원을 지정해야 합니다.', 400);
+      }
+      if (!this.findStaffById(input.relatedStaffId)) {
+        throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
+      }
+    }
+    const document: MockDocument = {
+      id: `doc-${randomUUID()}`,
+      category: input.category,
+      branchId: input.branchId,
+      relatedStaffId: input.category === 'HR_RECORD' ? input.relatedStaffId : undefined,
+      title: input.title,
+      fileUrl: input.fileUrl,
+      fileType: input.fileType,
+      fileSize: input.fileSize,
+      uploadedBy,
+      retentionUntil: this.computeRetentionUntil(input.category, input.relatedStaffId, input.retentionUntil),
+      createdAt: new Date().toISOString(),
+    };
+    this.documents.push(document);
+    return document;
+  }
+
+  // D9 소프트 삭제 — 계약·인사 분쟁 시 감사 목적으로 복구 가능해야 한다.
+  deleteDocument(id: string): void {
+    const document = this.findDocumentById(id);
+    if (!document) {
+      throw new AppException('DOCUMENT_NOT_FOUND', '문서를 찾을 수 없습니다.', 404);
+    }
+    document.deletedAt = new Date().toISOString();
+  }
+
+  // §5-6 — 보존기한이 지난 문서도 자동 삭제하지 않고 경고 대상으로 남긴다(법정 의무는 "최소" 보존기간).
+  listRetentionAlerts(withinDays = 30): MockDocument[] {
+    const limit = new Date();
+    limit.setDate(limit.getDate() + withinDays);
+    const limitStr = limit.toISOString().slice(0, 10);
+    return this.documents
+      .filter((d) => !d.deletedAt && d.retentionUntil !== undefined && d.retentionUntil <= limitStr)
+      .sort((a, b) => a.retentionUntil!.localeCompare(b.retentionUntil!));
   }
 }

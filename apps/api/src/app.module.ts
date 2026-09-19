@@ -15,6 +15,8 @@ import { FacilitiesModule } from './modules/facilities/facilities.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { AssetsModule } from './modules/assets/assets.module';
+import { DocumentsModule } from './modules/documents/documents.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -37,6 +39,8 @@ import { RolesGuard } from './common/guards/roles.guard';
     PermissionsModule,
     ReservationsModule,
     PaymentsModule,
+    AssetsModule,
+    DocumentsModule,
   ],
   controllers: [AppController],
   providers: [

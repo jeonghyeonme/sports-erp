@@ -18,6 +18,10 @@ export type FacilityType = 'GYM' | 'POOL' | 'GOLF' | 'READING_ROOM' | 'ETC';
 export type ReservationStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
 export type PaymentMethod = 'MOCK_CARD' | 'FREE';
 export type PaymentStatus = 'PENDING' | 'APPROVED' | 'FAILED' | 'REFUNDED';
+export type AssetCategory = 'EXERCISE_EQUIPMENT' | 'SAFETY_EQUIPMENT' | 'OFFICE_FURNITURE' | 'OTHER';
+export type AssetType = 'FIXED_ASSET' | 'CONSUMABLE';
+export type AssetStatus = 'NORMAL' | 'REPAIRING' | 'DISPOSAL_PENDING' | 'DISPOSED';
+export type DocumentCategory = 'CONTRACT' | 'HR_RECORD' | 'MANUAL' | 'OTHER';
 
 export interface MockBranch {
   id: string;
@@ -210,6 +214,39 @@ export interface MockPayment {
   mockApprovalNo?: string;
   approvedAt?: string;
   refundedAt?: string;
+}
+
+// 1-10문서 §4-3 Asset — bookValue(감가상각 장부가액)는 연 1회 배치(Phase 2)라 이번 범위에서 제외.
+export interface MockAsset {
+  id: string;
+  assetCode: string; // {지점코드}-A{순번}
+  branchId: string;
+  name: string;
+  category: AssetCategory;
+  assetType: AssetType;
+  acquiredAt: string;
+  acquisitionCost: number;
+  usefulLifeYears?: number; // FIXED_ASSET만 사용
+  status: AssetStatus;
+  quantity: number; // CONSUMABLE은 재고 수량, FIXED_ASSET은 항상 1
+  location?: string;
+  note?: string;
+}
+
+// 1-10문서 §5-3 Document — fileUrl은 문자열 필드일 뿐 실제 파일 업로드 인프라는 아직 없다.
+export interface MockDocument {
+  id: string;
+  category: DocumentCategory;
+  branchId?: string; // 전사 문서면 undefined(=null)
+  relatedStaffId?: string; // HR_RECORD 대상 직원
+  title: string;
+  fileUrl: string;
+  fileType?: string;
+  fileSize?: number;
+  uploadedBy: string; // FK → MockAccount
+  retentionUntil?: string; // undefined = 영구 보관
+  createdAt: string;
+  deletedAt?: string; // 소프트 삭제(D9)
 }
 
 export interface MockPost {

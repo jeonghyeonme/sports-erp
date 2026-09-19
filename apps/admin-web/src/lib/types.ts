@@ -240,3 +240,42 @@ export interface FacilityRow {
   currentCount: number;
   level: number;
 }
+
+export type AssetCategory = 'EXERCISE_EQUIPMENT' | 'SAFETY_EQUIPMENT' | 'OFFICE_FURNITURE' | 'OTHER';
+export type AssetType = 'FIXED_ASSET' | 'CONSUMABLE';
+export type AssetStatus = 'NORMAL' | 'REPAIRING' | 'DISPOSAL_PENDING' | 'DISPOSED';
+export type DocumentCategory = 'CONTRACT' | 'HR_RECORD' | 'MANUAL' | 'OTHER';
+
+export interface AssetRow {
+  id: string;
+  assetCode: string;
+  branchId: string;
+  branchName?: string;
+  name: string;
+  category: AssetCategory;
+  assetType: AssetType;
+  acquiredAt: string;
+  acquisitionCost: number;
+  usefulLifeYears?: number;
+  status: AssetStatus;
+  quantity: number;
+  location?: string;
+  note?: string;
+}
+
+export interface DocumentRow {
+  id: string;
+  category: DocumentCategory;
+  branchId?: string;
+  branchName?: string;
+  relatedStaffId?: string;
+  relatedStaffName?: string;
+  title: string;
+  fileUrl: string;
+  fileType?: string;
+  fileSize?: number;
+  uploadedBy: string;
+  uploadedByName?: string;
+  retentionUntil?: string;
+  createdAt: string;
+}

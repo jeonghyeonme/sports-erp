@@ -34,6 +34,8 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
       { to: '/instructors', label: '강사' },
       { to: '/board', label: '게시판' },
       { to: '/facilities', label: '시설·혼잡도' },
+      { to: '/assets', label: '자산·비품' },
+      { to: '/documents', label: '문서함' },
     ]),
   ],
   BRANCH_ADMIN: [
@@ -51,6 +53,8 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
     group('운영 지원', [
       { to: '/board', label: '게시판' },
       { to: '/facilities', label: '시설·혼잡도' },
+      { to: '/assets', label: '자산·비품' },
+      { to: '/documents', label: '문서함' },
     ]),
   ],
   // 03문서 §7 — SUPER_ADMIN은 현장 근태 운영에 직접 개입하지 않는 원칙이라 근태관리는 STAFF·BRANCH_ADMIN에만 있다.
