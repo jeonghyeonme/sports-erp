@@ -8,22 +8,20 @@ import { MockDocument } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
 import { CreateDocumentDto } from './dto/create-document.dto';
 
-// 1-10문서 §5-5·§5-7 — SUPER_ADMIN 전체, BRANCH_ADMIN은 본인 지점+전사 문서, STAFF는 본인 인사서류만 조회.
+// 1-10문서 §5-5·§5-7 — SUPER_ADMIN 전체, BRANCH_ADMIN은 본인 지점+전사 문서. STAFF 본인 인사서류 조회는 범위 제외.
 @Controller('documents')
 export class DocumentsController {
   constructor(private readonly mockData: MockDataService) {}
 
   @Get()
-  @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
+  @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   list(
     @CurrentUser() user: RequestUser,
     @Query('branchId') branchId?: string,
     @Query('category') category?: string,
   ) {
     let documents = this.mockData.documents.filter((d) => !d.deletedAt);
-    if (user.role === 'STAFF') {
-      documents = documents.filter((d) => d.category === 'HR_RECORD' && d.relatedStaffId === user.staffId);
-    } else if (user.role === 'BRANCH_ADMIN') {
+    if (user.role === 'BRANCH_ADMIN') {
       documents = documents.filter((d) => !d.branchId || d.branchId === user.branchId);
     }
     if (branchId) documents = documents.filter((d) => d.branchId === branchId);
@@ -39,7 +37,7 @@ export class DocumentsController {
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
+  @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   detail(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     const document = this.findDocumentOrThrow(id);
     this.assertCanView(document, user);
@@ -90,15 +88,8 @@ export class DocumentsController {
 
   // 권한 없는 문서는 존재 여부를 숨기지 않고 403(§5-9 체크리스트).
   private assertCanView(document: MockDocument, user: RequestUser): void {
-    if (user.role === 'SUPER_ADMIN') return;
-    if (user.role === 'BRANCH_ADMIN') {
-      if (document.branchId && document.branchId !== user.branchId) {
-        throw new AppException('DOCUMENT_SCOPE_VIOLATION', '다른 지점의 문서는 조회할 수 없습니다.', 403);
-      }
-      return;
-    }
-    if (document.category !== 'HR_RECORD' || document.relatedStaffId !== user.staffId) {
-      throw new AppException('DOCUMENT_SCOPE_VIOLATION', '본인 인사서류만 조회할 수 있습니다.', 403);
+    if (user.role === 'BRANCH_ADMIN' && document.branchId && document.branchId !== user.branchId) {
+      throw new AppException('DOCUMENT_SCOPE_VIOLATION', '다른 지점의 문서는 조회할 수 없습니다.', 403);
     }
   }
 }

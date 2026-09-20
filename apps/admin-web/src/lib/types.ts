@@ -95,7 +95,7 @@ export interface ProgramRow {
 }
 
 export type ReservationStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
-export type PaymentMethod = 'MOCK_CARD' | 'FREE';
+export type PaymentMethod = 'MOCK_CARD';
 export type PaymentStatus = 'PENDING' | 'APPROVED' | 'FAILED' | 'REFUNDED';
 
 export interface ScheduleSlotRow {
@@ -151,7 +151,6 @@ export interface InstructorRow {
   bio?: string;
   phone?: string;
   isActive: boolean;
-  commissionRate?: number;
 }
 
 export interface ProgramStatusSummary {

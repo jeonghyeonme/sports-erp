@@ -233,7 +233,6 @@ export class MockDataService {
       name: '박서연',
       specialty: '요가·필라테스',
       isActive: true,
-      commissionRate: 0.6,
     },
     ...this.generated.instructors,
   ];
@@ -855,7 +854,7 @@ export class MockDataService {
   // 07문서 §5 POST /instructors — BRANCH_ADMIN 전용(컨트롤러에서 강제).
   hireInstructor(
     branchId: string,
-    input: { name: string; specialty?: string; bio?: string; phone?: string; commissionRate?: number },
+    input: { name: string; specialty?: string; bio?: string; phone?: string },
   ): MockInstructor {
     const instructor: MockInstructor = {
       id: `instructor-${randomUUID()}`,
@@ -864,7 +863,6 @@ export class MockDataService {
       specialty: input.specialty,
       bio: input.bio,
       phone: input.phone,
-      commissionRate: input.commissionRate,
       isActive: true,
     };
     this.instructors.push(instructor);
@@ -874,7 +872,7 @@ export class MockDataService {
   // 07문서 §5 PATCH /instructors/:id.
   updateInstructor(
     id: string,
-    input: Partial<Pick<MockInstructor, 'name' | 'specialty' | 'bio' | 'phone' | 'commissionRate' | 'isActive'>>,
+    input: Partial<Pick<MockInstructor, 'name' | 'specialty' | 'bio' | 'phone' | 'isActive'>>,
   ): MockInstructor {
     const instructor = this.findInstructorById(id);
     if (!instructor) {
@@ -884,7 +882,6 @@ export class MockDataService {
     if (input.specialty !== undefined) instructor.specialty = input.specialty;
     if (input.bio !== undefined) instructor.bio = input.bio;
     if (input.phone !== undefined) instructor.phone = input.phone;
-    if (input.commissionRate !== undefined) instructor.commissionRate = input.commissionRate;
     if (input.isActive !== undefined) instructor.isActive = input.isActive;
     return instructor;
   }

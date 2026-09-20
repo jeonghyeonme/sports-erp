@@ -20,10 +20,9 @@ interface InstructorForm {
   specialty: string;
   phone: string;
   bio: string;
-  commissionRate: string;
 }
 
-const EMPTY_FORM: InstructorForm = { name: '', specialty: '', phone: '', bio: '', commissionRate: '' };
+const EMPTY_FORM: InstructorForm = { name: '', specialty: '', phone: '', bio: '' };
 
 function CreateInstructorModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -36,7 +35,6 @@ function CreateInstructorModal({ onClose }: { onClose: () => void }) {
         specialty: dto.specialty || undefined,
         phone: dto.phone || undefined,
         bio: dto.bio || undefined,
-        commissionRate: dto.commissionRate ? Number(dto.commissionRate) : undefined,
       };
       return (await api.post<ApiEnvelope<InstructorRow>>('/instructors', payload)).data.data!;
     },
@@ -73,18 +71,6 @@ function CreateInstructorModal({ onClose }: { onClose: () => void }) {
           <div className="field">
             <label>연락처</label>
             <input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
-          </div>
-          <div className="field">
-            <label>수수료율(0~1, 선택)</label>
-            <input
-              type="number"
-              min={0}
-              max={1}
-              step={0.05}
-              value={form.commissionRate}
-              onChange={(e) => setForm((f) => ({ ...f, commissionRate: e.target.value }))}
-              placeholder="예: 0.6"
-            />
           </div>
         </div>
         <div className="field" style={{ marginTop: 12 }}>
@@ -185,7 +171,6 @@ export function InstructorsPage() {
                   <th>이름</th>
                   <th>전문분야</th>
                   <th>연락처</th>
-                  <th>수수료율</th>
                   <th>상태</th>
                   <th></th>
                 </tr>
@@ -196,7 +181,6 @@ export function InstructorsPage() {
                     <td>{i.name}</td>
                     <td>{i.specialty ?? '-'}</td>
                     <td>{i.phone ?? '-'}</td>
-                    <td>{i.commissionRate != null ? `${Math.round(i.commissionRate * 100)}%` : '-'}</td>
                     <td>
                       <span className={`badge ${i.isActive ? 'ACTIVE' : 'WITHDRAWN'}`}>
                         {i.isActive ? '활성' : '비활성'}

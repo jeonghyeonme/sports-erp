@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class UpdateInstructorDto {
   @IsOptional()
@@ -17,12 +17,6 @@ export class UpdateInstructorDto {
   @IsOptional()
   @IsString()
   phone?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(1)
-  commissionRate?: number;
 
   @IsOptional()
   @IsBoolean()

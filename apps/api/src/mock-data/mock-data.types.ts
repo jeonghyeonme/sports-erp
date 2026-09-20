@@ -16,7 +16,7 @@ export type LeaveType = 'ANNUAL' | 'SICK' | 'FAMILY_EVENT' | 'OTHER';
 export type LeaveRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type FacilityType = 'GYM' | 'POOL' | 'GOLF' | 'READING_ROOM' | 'ETC';
 export type ReservationStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
-export type PaymentMethod = 'MOCK_CARD' | 'FREE';
+export type PaymentMethod = 'MOCK_CARD';
 export type PaymentStatus = 'PENDING' | 'APPROVED' | 'FAILED' | 'REFUNDED';
 export type AssetCategory = 'EXERCISE_EQUIPMENT' | 'SAFETY_EQUIPMENT' | 'OFFICE_FURNITURE' | 'OTHER';
 export type AssetType = 'FIXED_ASSET' | 'CONSUMABLE';
@@ -157,8 +157,6 @@ export interface MockInstructor {
   photoUrl?: string;
   phone?: string;
   isActive: boolean;
-  // 강사 수수료율(0~1) — null/undefined면 정산 대상 아님(본사 직속 등 별도 급여체계). 1-7문서 강사 정산에서 사용.
-  commissionRate?: number;
 }
 
 export interface MockProgram {
