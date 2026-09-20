@@ -19,6 +19,24 @@
       "PowerShell(npm run build*)",
       "PowerShell(npx tsc --noEmit*)",
       "PowerShell(tsc --noEmit*)"
+    ],
+    "ask": [
+      "Edit(/docs/4.presentation/**)",
+      "Write(/docs/4.presentation/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/pre-commit-check.js",
+            "timeout": 180
+          }
+        ]
+      }
     ]
   }
 }

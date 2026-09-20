@@ -2,6 +2,8 @@
 
 스포이즘 ERP — npm workspaces 모노레포. 포트폴리오/졸업작품 프로젝트, 원본 제안요청서(RFP) 기반.
 
+> 공통 작업 원칙(승인 프로토콜·검증·안전·Git 규칙)은 사용자 전역 `~/.claude/CLAUDE.md`에 있다. 이 파일은 그것을 **보완**할 뿐 완화하지 않는다. 아래 "프로젝트 가드레일"은 이 프로젝트 고유의 규칙이다.
+
 ## 사업 구조 (코드/문서 작업 전에 먼저 이해할 것)
 
 ```
@@ -50,14 +52,20 @@ npm run db:up / db:down        # PostgreSQL (Docker)
 npm run prisma:generate / prisma:migrate
 
 # apps/api 안에서
-npm run lint    # eslint --fix
-npm run test    # jest
+npm run lint    # eslint --fix (파일을 직접 수정하므로 실행 후 git diff 확인. 수정 없이 검사만 하려면 `npm exec -- eslint .`)
+npm run test    # jest — ⚠️ 현재 테스트 파일이 없어 검증 수단으로는 비어 있음
 npm run build   # nest build
 
 # apps/admin-web 안에서
-npm run lint
+npm run lint    # eslint .
 npm run build   # tsc -b && vite build
 ```
+
+**검증 현황 (2026-09-20):** ESLint 10(flat config, `eslint.config.*`)이 두 앱에 설치돼 있다. 자동 테스트는 **0개**라서 현재 자동 검증은 **lint + 빌드(타입체크)**뿐이다. 테스트가 없는 영역은 "검증되지 않음"으로 보고할 것.
+
+**lint 규칙 완화 (부채):** admin-web에서 `react-hooks/set-state-in-effect`, `react-refresh/only-export-components`를 기존 코드 4건(CollapsibleBranchSection, MemberDetailPage, PostDetailPage, auth-context) 때문에 `warn`으로 낮춰 뒀다. 해당 코드를 정리하면 error로 복구할 것 — `apps/admin-web/eslint.config.js` 주석 참고.
+
+**커밋 전 검증 hook:** `.claude/hooks/pre-commit-check.js`가 Claude의 `git commit` 직전에 `apps/`·`packages/` 변경이 있으면 양쪽 앱 lint(수정 없이 검사만)·빌드와 jest를 실행하고 실패 시 차단한다(문서만 바뀐 커밋은 생략, 약 30초 소요, lint warning은 통과). GitHub Desktop 등 Claude 밖의 커밋에는 적용되지 않는다.
 
 ## 현재 구현 상태 (착각하기 쉬운 부분)
 
@@ -68,6 +76,30 @@ npm run build   # tsc -b && vite build
 - **일부 설계 항목은 의도적으로 범위 제외됐다(2026-09-20)** — 강사 정산, 혼잡도 QR 체크인·자동계산, 노쇼/결근 자동 배치, 감가상각 등. 각 설계 문서 §8/§9 상단의 "범위 제외" 인용과 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2-4를 볼 것. 설계 문서에 있다고 해서 만들 대상으로 가정하지 말 것.
 - `wip/real-db-auth-phase1` 브랜치는 삭제됐지만, 그 브랜치의 커밋(`eb79377`, 실DB 기반 인증/회원 모듈)은 `main`의 병합 조상 커밋이라 여전히 히스토리에서 도달 가능하다 — 실DB 전환 시 `git show eb79377:apps/api/src/modules/<path>`로 꺼내올 것.
 - `Branch`는 단순 매장이 아니라 **위탁계약 현장**이고(`docs/1.spec/00_공통/1-1_공통설계서.md` §2-1), `Staff`는 지점 소속이 아니라 **본사 소속으로 현장에 파견**되는 구조다(§2-2, `StaffAssignment`). 이 재해석을 모르고 "지점이 직원을 고용한다"는 가정으로 코드를 작성하지 말 것.
+
+## 프로젝트 가드레일
+
+전역 가드레일에 더해, 이 프로젝트에서만 성립하는 규칙이다. 위 "사업 구조"에서 도출된다.
+
+**도메인 불변식 — 코드를 바꿀 때 깨뜨리면 안 되는 것**
+- **지점 데이터 격리**: BRANCH_ADMIN은 자기 지점 데이터만 조회·수정한다. 지점 단위 데이터를 다루는 API를 추가·수정할 때는 다른 지점 ID로 접근했을 때 거부되는지 반드시 확인한다(원본 RFP 핵심 요구사항).
+- **계약 종료 지점 차단**: 계약 상태가 만료·종료인 지점은 신규 활동(예약·등록·파견 등)이 막혀야 한다.
+- **인사 권한 분리**: 채용·재배치는 본사(SUPER_ADMIN)만 한다. BRANCH_ADMIN은 파견된 인력의 일상 관리만 한다.
+- `Branch`는 매장이 아니라 위탁계약 현장이고 `Staff`는 지점 소속이 아니라 본사 소속 파견 인력이다. "지점이 직원을 고용한다"는 전제로 코드·문서를 쓰지 않는다.
+
+**이 프로젝트에서 사용자 승인이 필요한 결정** (전역 가드레일 §2에 추가)
+- Prisma 스키마 필드·엔티티 변경 (`Branch`, `StaffAssignment` 등 공유 엔티티는 1-1문서가 기준)
+- MockDataService에서 실제 DB로의 전환, 인증 방식 변경 (ADR 작성 대상)
+- 의도적으로 범위 제외한 항목(강사 정산, 혼잡도 QR·자동계산, 노쇼 자동 배치, 감가상각 등)을 구현하는 것 — 설계 문서에 있다고 만들지 않는다.
+
+**보고할 때 지킬 것**
+- 검증 수단이 빌드뿐이라는 현실을 그대로 말한다. 테스트를 돌리지 않았거나 테스트가 없는 영역은 "검증되지 않음"으로 보고한다.
+- 기능을 구현·변경하면 관련 설계 문서와 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md`의 상태를 함께 갱신할 것을 제안한다. 문서와 코드가 어긋나면 알린다.
+
+**보호 영역**
+- `docs/4.presentation/`은 발표자료 작업을 명시적으로 요청받았을 때만 수정한다(수정 시 확인 프롬프트가 뜨도록 설정돼 있음).
+- `docs/5.deliverables/`는 자기완결형 제출본이다. 다른 문서를 링크로 얽지 않는다.
+- admin-web 화면 작업 전에는 `docs/3.design/`을 먼저 읽는다.
 
 ## 문서 작업 규칙
 
