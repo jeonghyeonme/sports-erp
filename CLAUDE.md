@@ -65,7 +65,7 @@ npm run build   # tsc -b && vite build
 
 **테스트 작성 규칙:** 통합 테스트는 `test/helpers/app.ts`의 `createApp()`으로 `main.ts`와 같은 전역 설정(prefix·ValidationPipe·필터)의 앱을 띄운다 — `main.ts`의 전역 설정을 바꾸면 이 헬퍼도 같이 바꿀 것. `MockDataService`는 인메모리 상태라 스위트(또는 테스트)마다 새 앱을 띄워야 서로 오염되지 않는다. 가드 → 파이프 → 핸들러 순서라서 **거부 케이스도 유효한 요청 본문**을 보내야 400이 아니라 403이 나온다. 거부(403) 테스트에는 반드시 자기 지점 접근이 성공하는 대조군을 함께 둔다. `tsconfig.build.json`이 `test/`를 빌드에서 제외한다(없으면 `dist/main.js` 경로가 `dist/src/main.js`로 바뀐다).
 
-**lint 규칙 완화 (부채):** admin-web에서 `react-hooks/set-state-in-effect`, `react-refresh/only-export-components`를 기존 코드 4건(CollapsibleBranchSection, MemberDetailPage, PostDetailPage, auth-context) 때문에 `warn`으로 낮춰 뒀다. 해당 코드를 정리하면 error로 복구할 것 — `apps/admin-web/eslint.config.js` 주석 참고.
+**admin-web lint는 규칙 예외가 없다(2026-09-21 부채 정리 완료).** `react-hooks/set-state-in-effect`·`react-refresh/only-export-components`를 포함해 기본 severity 그대로이며 경고 0건이다 — 새 경고를 만들지 말고 규칙을 낮춰서 통과시키지 말 것. 이 규칙들 때문에 지킬 패턴: ① prop·조회 데이터를 effect로 state에 복사하지 않는다(편집 폼은 "편집 시작" 클릭 시점에 채우고, prop 변경에 따른 state 보정은 렌더 중 이전 값 비교로 한다 — `CollapsibleBranchSection`, `MemberDetailPage` 참고). ② 컴포넌트 파일에서 훅·상수를 함께 export하지 않는다 — `useAuth`·`AuthContext`는 `lib/use-auth.ts`, `AuthProvider`는 `lib/auth-context.tsx`에 있다.
 
 **커밋 전 검증 hook:** `.claude/hooks/pre-commit-check.js`가 Claude의 `git commit` 직전에 `apps/`·`packages/` 변경이 있으면 양쪽 앱 lint(수정 없이 검사만)·빌드와 jest를 실행하고 실패 시 차단한다(문서만 바뀐 커밋은 생략, 약 30초 소요, lint warning은 통과). GitHub Desktop 등 Claude 밖의 커밋에는 적용되지 않는다.
 

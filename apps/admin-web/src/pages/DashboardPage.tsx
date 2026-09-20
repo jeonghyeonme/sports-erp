@@ -1,6 +1,6 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '../lib/use-auth';
 import { useApiList } from '../lib/use-api-list';
 import { BranchContractStatus, BranchSummary } from '../lib/types';
 import { AlertTriangleIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, UsersIcon } from '../components/icons';

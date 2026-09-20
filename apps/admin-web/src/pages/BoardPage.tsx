@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '../lib/use-auth';
 import { Modal } from '../components/Modal';
 import { ApiEnvelope, BranchSummary, PostCategory, PostRow } from '../lib/types';
 

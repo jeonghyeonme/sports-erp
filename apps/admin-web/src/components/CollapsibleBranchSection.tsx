@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useState } from 'react';
 
 interface Props {
   branchName: string;
@@ -14,10 +14,14 @@ interface Props {
 export function CollapsibleBranchSection({ branchName, count, countLabel, defaultExpanded = false, children }: Props) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
-  // 검색어로 좁혀져서 부모가 defaultExpanded를 바꾸면(예: 결과 3개 이하) 그에 맞춰 갱신
-  useEffect(() => {
+  // 검색어로 좁혀져서 부모가 defaultExpanded를 바꾸면(예: 결과 3개 이하) 그에 맞춰 갱신.
+  // effect로 복사하면 한 번 더 렌더되므로, 이전 값과 비교해 렌더 중에 보정한다(React 공식 패턴 —
+  // "prop이 바뀔 때 state 조정"). 값이 같으면 아무것도 하지 않는다.
+  const [prevDefaultExpanded, setPrevDefaultExpanded] = useState(defaultExpanded);
+  if (defaultExpanded !== prevDefaultExpanded) {
+    setPrevDefaultExpanded(defaultExpanded);
     setExpanded(defaultExpanded);
-  }, [defaultExpanded]);
+  }
 
   return (
     <div className="staff-block">

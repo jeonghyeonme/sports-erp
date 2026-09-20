@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '../lib/use-auth';
 import { Role } from '../lib/types';
 
 interface NavLinkItem {

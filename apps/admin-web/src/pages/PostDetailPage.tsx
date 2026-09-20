@@ -1,10 +1,10 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { apiErrorMessage } from '../lib/use-api-list';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '../lib/use-auth';
 import { ApiEnvelope, PostCategory, PostRow } from '../lib/types';
 
 interface ApiErrorBody {
@@ -46,10 +46,6 @@ export function PostDetailPage() {
     queryKey: ['posts', id],
     queryFn: async () => (await api.get<ApiEnvelope<PostRow>>(`/posts/${id}`)).data.data!,
   });
-
-  useEffect(() => {
-    if (postQuery.data && !editing) setForm(toEditForm(postQuery.data));
-  }, [postQuery.data, editing]);
 
   const updateMutation = useMutation<PostRow, AxiosError<ApiErrorBody>, EditForm>({
     mutationFn: async (dto) => (await api.patch<ApiEnvelope<PostRow>>(`/posts/${id}`, dto)).data.data!,
@@ -119,7 +115,14 @@ export function PostDetailPage() {
             {(isAuthor || canDelete) && (
               <div className="action-row" style={{ marginTop: 16 }}>
                 {isAuthor && (
-                  <button className="btn-secondary" onClick={() => setEditing(true)}>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => {
+                      // 편집 폼은 "편집을 시작하는 시점"의 최신 게시글로 채운다(effect로 미리 복사하지 않음).
+                      setForm(toEditForm(post));
+                      setEditing(true);
+                    }}
+                  >
                     수정
                   </button>
                 )}

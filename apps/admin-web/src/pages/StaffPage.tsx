@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '../lib/use-auth';
 import { apiErrorMessage } from '../lib/use-api-list';
 import { groupByBranch } from '../lib/group-by-branch';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
@@ -64,11 +64,11 @@ export function StaffPage() {
   const isLoading = isSelfServiceOnly ? meQuery.isLoading : listQuery.isLoading;
   const isError = isSelfServiceOnly ? meQuery.isError : listQuery.isError;
   const error = isSelfServiceOnly ? meQuery.error : listQuery.error;
-  const rows: StaffRow[] = isSelfServiceOnly
-    ? meQuery.data
-      ? [meQuery.data]
-      : []
-    : listQuery.data ?? [];
+  // 렌더마다 새 배열이 만들어지면 아래 groups의 useMemo가 매번 무효화되므로 rows도 메모한다.
+  const rows = useMemo<StaffRow[]>(
+    () => (isSelfServiceOnly ? (meQuery.data ? [meQuery.data] : []) : listQuery.data ?? []),
+    [isSelfServiceOnly, meQuery.data, listQuery.data],
+  );
 
   const groups = useMemo(() => {
     const all = groupByBranch(rows);

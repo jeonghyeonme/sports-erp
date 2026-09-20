@@ -1,21 +1,12 @@
-import { ReactNode, createContext, useContext, useMemo, useState } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import { api, setAccessToken } from './api';
 import { ApiEnvelope, AuthUser } from './types';
+import { AuthContext } from './use-auth';
 
 interface LoginResult {
   accessToken: string;
   user: AuthUser;
 }
-
-interface AuthContextValue {
-  user: AuthUser | null;
-  isLoading: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -53,10 +44,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth는 AuthProvider 내부에서만 사용할 수 있습니다.');
-  return ctx;
 }

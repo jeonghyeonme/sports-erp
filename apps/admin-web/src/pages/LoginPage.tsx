@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '../lib/use-auth';
 
 // prisma/seed.ts의 SHEET04 시나리오 계정 + 지점 격리 시연용 강남점 관리자 계정(mock-data.service.ts 참고).
 const DEMO_ACCOUNTS = [

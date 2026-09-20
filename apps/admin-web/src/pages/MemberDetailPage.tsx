@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
@@ -54,10 +54,6 @@ export function MemberDetailPage() {
     queryFn: async () => (await api.get<ApiEnvelope<MemberRow>>(`/members/${id}`)).data.data!,
   });
   const staffQuery = useApiList<StaffRow>(['staff'], '/staff');
-
-  useEffect(() => {
-    if (memberQuery.data && !editing) setForm(toEditForm(memberQuery.data));
-  }, [memberQuery.data, editing]);
 
   const updateMutation = useMutation<MemberRow, AxiosError<ApiErrorBody>, EditForm>({
     mutationFn: async (dto) => {
@@ -142,7 +138,14 @@ export function MemberDetailPage() {
             )}
 
             <div className="action-row" style={{ marginTop: 14 }}>
-              <button className="btn-secondary" onClick={() => setEditing(true)}>
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  // 편집 폼은 "편집을 시작하는 시점"의 최신 회원 정보로 채운다(effect로 미리 복사하지 않음).
+                  setForm(toEditForm(member));
+                  setEditing(true);
+                }}
+              >
                 정보 수정
               </button>
               {(['ACTIVE', 'DORMANT', 'WITHDRAWN'] as const)

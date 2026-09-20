@@ -6,7 +6,7 @@ import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { groupByBranch } from '../lib/group-by-branch';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { Modal } from '../components/Modal';
-import { useAuth } from '../lib/auth-context';
+import { useAuth } from '../lib/use-auth';
 import { ApiEnvelope, FacilityRow, FacilityType } from '../lib/types';
 
 const AUTO_EXPAND_THRESHOLD = 3;
