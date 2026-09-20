@@ -75,10 +75,12 @@ export class ProgramsController {
     return ok(this.toListItem(updated));
   }
 
-  // 06문서 §5 GET /programs/:id/slots?date= — 로그인한 모든 역할이 잔여좌석 조회 가능.
+  // 06문서 §5 GET /programs/:id/slots?date= — 잔여좌석 조회. 로그인한 모든 역할이 조회할 수 있지만
+  // SUPER_ADMIN 외에는 본인 소속 지점의 프로그램만(1-8문서 §7 기본 정책 "본인 지점만 노출").
   @Get(':id/slots')
-  listSlots(@Param('id') id: string, @Query('date') date?: string) {
-    this.findProgramOrThrow(id);
+  listSlots(@Param('id') id: string, @CurrentUser() user: RequestUser, @Query('date') date?: string) {
+    const program = this.findProgramOrThrow(id);
+    this.assertReadable(program, user);
     const slots = this.mockData.listScheduleSlots(id, date);
     return ok(slots.map((s) => ({ ...s, bookedCount: this.mockData.bookedCount(s.id) })));
   }
@@ -104,6 +106,13 @@ export class ProgramsController {
   private assertOwnBranch(program: MockProgram, user: RequestUser): void {
     if (program.branchId !== user.branchId) {
       throw new AppException('PROGRAM_SCOPE_VIOLATION', '다른 지점의 프로그램은 수정할 수 없습니다.', 403);
+    }
+  }
+
+  private assertReadable(program: MockProgram, user: RequestUser): void {
+    if (user.role === 'SUPER_ADMIN') return;
+    if (program.branchId !== user.branchId) {
+      throw new AppException('PROGRAM_SCOPE_VIOLATION', '다른 지점의 프로그램 회차는 조회할 수 없습니다.', 403);
     }
   }
 
