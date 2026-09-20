@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 같은 브랜치/PR에 새 push가 오면 진행 중인 이전 실행은 취소한다.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: api (lint · build · test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # 깨끗한 환경에는 생성된 Prisma Client가 없어 빌드가 실패한다(@prisma/client에서 Role 등 미export).
+      - name: Prisma generate
+        run: npm run prisma:generate --workspace=apps/api
+
+      # package.json의 lint 스크립트는 --fix라서 CI에서는 쓰지 않는다. 검사만 한다(warning은 통과, error만 실패).
+      - name: Lint
+        run: npm exec --workspace=apps/api -- eslint .
+
+      - name: Build
+        run: npm run build --workspace=apps/api
+
+      # 현재 테스트 파일이 없어 --passWithNoTests 로 통과시킨다. 테스트가 생기면 자동으로 실행된다.
+      - name: Test
+        run: npm test --workspace=apps/api -- --passWithNoTests
+
+  admin-web:
+    name: admin-web (lint · build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm exec --workspace=apps/admin-web -- eslint .
+
+      # tsc -b 로 타입체크 후 vite build
+      - name: Build
+        run: npm run build --workspace=apps/admin-web

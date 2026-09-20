@@ -67,6 +67,10 @@ npm run build   # tsc -b && vite build
 
 **커밋 전 검증 hook:** `.claude/hooks/pre-commit-check.js`가 Claude의 `git commit` 직전에 `apps/`·`packages/` 변경이 있으면 양쪽 앱 lint(수정 없이 검사만)·빌드와 jest를 실행하고 실패 시 차단한다(문서만 바뀐 커밋은 생략, 약 30초 소요, lint warning은 통과). GitHub Desktop 등 Claude 밖의 커밋에는 적용되지 않는다.
 
+**CI:** `.github/workflows/ci.yml`이 `main` push와 모든 PR에서 api(lint·빌드·jest)와 admin-web(lint·빌드)을 Node 버전은 `.nvmrc`(20)로 돌린다. Claude 밖의 커밋도 여기서 잡힌다. 워크플로 작성 후 GitHub에서 실제로 실행된 적은 아직 없다(로컬에서 깨끗한 clone으로 같은 단계를 재현해 검증함). 첫 실행 결과를 확인할 것.
+
+**새로 clone한 환경 주의:** api 빌드 전에 `npm run prisma:generate`가 필요하다. 생성된 Prisma Client가 없으면 `@prisma/client`에서 `Role` 등을 찾지 못해 `nest build`가 실패한다(CI에는 이미 이 단계가 있음).
+
 ## 현재 구현 상태 (착각하기 쉬운 부분)
 
 - **API는 Prisma가 아니라 `MockDataService`(인메모리)로 동작 중이다.** `apps/api/prisma/schema.prisma`는 설계돼 있지만 실제 컨트롤러는 대부분 mock 데이터를 반환한다. "Prisma 스키마에 있으니 동작한다"고 가정하지 말 것 — 실제 동작 여부는 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2를 확인.
