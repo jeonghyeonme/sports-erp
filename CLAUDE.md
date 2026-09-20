@@ -53,7 +53,7 @@ npm run prisma:generate / prisma:migrate
 
 # apps/api 안에서
 npm run lint    # eslint --fix (파일을 직접 수정하므로 실행 후 git diff 확인. 수정 없이 검사만 하려면 `npm exec -- eslint .`)
-npm run test    # jest — ⚠️ 현재 테스트 파일이 없어 검증 수단으로는 비어 있음
+npm run test    # jest — HTTP 통합 테스트(`apps/api/test/`), 실제 AppModule + supertest, DB 불필요
 npm run build   # nest build
 
 # apps/admin-web 안에서
@@ -61,13 +61,15 @@ npm run lint    # eslint .
 npm run build   # tsc -b && vite build
 ```
 
-**검증 현황 (2026-09-20):** ESLint 10(flat config, `eslint.config.*`)이 두 앱에 설치돼 있다. 자동 테스트는 **0개**라서 현재 자동 검증은 **lint + 빌드(타입체크)**뿐이다. 테스트가 없는 영역은 "검증되지 않음"으로 보고할 것.
+**검증 현황 (2026-09-20):** ESLint 10(flat config, `eslint.config.*`)이 두 앱에 설치돼 있다. api 테스트는 **도메인 핵심 규칙 3개 영역**만 다룬다 — 지점 데이터 격리(`branch-isolation`), 계약 종료 지점 차단(`contract-termination`), 인사 권한 분리(`hr-authority`) + 부팅 스모크. 그 밖의 도메인 로직(예약·결제 계산, 근태, 자산 등)과 admin-web은 테스트가 없어 **lint + 빌드(타입체크)**뿐이다. 테스트가 없는 영역은 "검증되지 않음"으로 보고할 것.
+
+**테스트 작성 규칙:** 통합 테스트는 `test/helpers/app.ts`의 `createApp()`으로 `main.ts`와 같은 전역 설정(prefix·ValidationPipe·필터)의 앱을 띄운다 — `main.ts`의 전역 설정을 바꾸면 이 헬퍼도 같이 바꿀 것. `MockDataService`는 인메모리 상태라 스위트(또는 테스트)마다 새 앱을 띄워야 서로 오염되지 않는다. 가드 → 파이프 → 핸들러 순서라서 **거부 케이스도 유효한 요청 본문**을 보내야 400이 아니라 403이 나온다. 거부(403) 테스트에는 반드시 자기 지점 접근이 성공하는 대조군을 함께 둔다. `tsconfig.build.json`이 `test/`를 빌드에서 제외한다(없으면 `dist/main.js` 경로가 `dist/src/main.js`로 바뀐다).
 
 **lint 규칙 완화 (부채):** admin-web에서 `react-hooks/set-state-in-effect`, `react-refresh/only-export-components`를 기존 코드 4건(CollapsibleBranchSection, MemberDetailPage, PostDetailPage, auth-context) 때문에 `warn`으로 낮춰 뒀다. 해당 코드를 정리하면 error로 복구할 것 — `apps/admin-web/eslint.config.js` 주석 참고.
 
 **커밋 전 검증 hook:** `.claude/hooks/pre-commit-check.js`가 Claude의 `git commit` 직전에 `apps/`·`packages/` 변경이 있으면 양쪽 앱 lint(수정 없이 검사만)·빌드와 jest를 실행하고 실패 시 차단한다(문서만 바뀐 커밋은 생략, 약 30초 소요, lint warning은 통과). GitHub Desktop 등 Claude 밖의 커밋에는 적용되지 않는다.
 
-**CI:** `.github/workflows/ci.yml`이 `main` push와 모든 PR에서 api(lint·빌드·jest)와 admin-web(lint·빌드)을 Node 버전은 `.nvmrc`(20)로 돌린다. Claude 밖의 커밋도 여기서 잡힌다. 워크플로 작성 후 GitHub에서 실제로 실행된 적은 아직 없다(로컬에서 깨끗한 clone으로 같은 단계를 재현해 검증함). 첫 실행 결과를 확인할 것.
+**CI:** `.github/workflows/ci.yml`이 `main` push와 모든 PR에서 api(lint·빌드·jest)와 admin-web(lint·빌드)을 Node 버전은 `.nvmrc`(20)로 돌린다. Claude 밖의 커밋도 여기서 잡힌다. 첫 실행(4c019b0)은 두 잡 모두 통과했다.
 
 **새로 clone한 환경 주의:** api 빌드 전에 `npm run prisma:generate`가 필요하다. 생성된 Prisma Client가 없으면 `@prisma/client`에서 `Role` 등을 찾지 못해 `nest build`가 실패한다(CI에는 이미 이 단계가 있음).
 
@@ -86,8 +88,9 @@ npm run build   # tsc -b && vite build
 전역 가드레일에 더해, 이 프로젝트에서만 성립하는 규칙이다. 위 "사업 구조"에서 도출된다.
 
 **도메인 불변식 — 코드를 바꿀 때 깨뜨리면 안 되는 것**
-- **지점 데이터 격리**: BRANCH_ADMIN은 자기 지점 데이터만 조회·수정한다. 지점 단위 데이터를 다루는 API를 추가·수정할 때는 다른 지점 ID로 접근했을 때 거부되는지 반드시 확인한다(원본 RFP 핵심 요구사항).
-- **계약 종료 지점 차단**: 계약 상태가 만료·종료인 지점은 신규 활동(예약·등록·파견 등)이 막혀야 한다.
+- **지점 데이터 격리**: BRANCH_ADMIN은 자기 지점 데이터만 조회·수정한다(원본 RFP 핵심 요구사항). 지점 단위 데이터를 다루는 라우트를 추가·수정할 때는 **`apps/api/test/branch-isolation.spec.ts`의 공격 케이스 표에 그 라우트를 함께 추가**하고 다른 지점 ID로 접근했을 때 403/404가 나오는지 확인한다. 격리는 `BranchScopeGuard`(`branchId` 파라미터·쿼리만 검사)와 컨트롤러별 `assert*` 수작업의 조합이라 `:id` 라우트는 컨트롤러가 직접 검사해야 한다.
+  - **검사의 공통 가드 중앙화는 실DB 전환(MockDataService → PrismaService) 이후에 한다**(2026-09-20 결정, 2-3문서 §3 6번). mock 위에서 만들면 전환 때 다시 써야 하므로 그 전에는 착수하지 않는다. 그때까지는 위 테스트가 누락을 잡는 안전망이다.
+- **계약 종료 지점 차단**: 계약 상태가 **`TERMINATED`**인 지점은 신규 회원 등록·예약 생성·게시글 신규 작성이 409(`BRANCH_TERMINATED`)로 막혀야 하고, 과거 데이터 조회는 유지한다(1-1문서 §2-1). `EXPIRED`·`RENEWAL_DUE`는 차단하지 않는다. TERMINATED 시 파견 직원의 파견 종료·재배치 대상 등록은 설계에 있으나 아직 미구현이다.
 - **인사 권한 분리**: 채용·재배치는 본사(SUPER_ADMIN)만 한다. BRANCH_ADMIN은 파견된 인력의 일상 관리만 한다.
 - `Branch`는 매장이 아니라 위탁계약 현장이고 `Staff`는 지점 소속이 아니라 본사 소속 파견 인력이다. "지점이 직원을 고용한다"는 전제로 코드·문서를 쓰지 않는다.
 
@@ -97,7 +100,8 @@ npm run build   # tsc -b && vite build
 - 의도적으로 범위 제외한 항목(강사 정산, 혼잡도 QR·자동계산, 노쇼 자동 배치, 감가상각 등)을 구현하는 것 — 설계 문서에 있다고 만들지 않는다.
 
 **보고할 때 지킬 것**
-- 검증 수단이 빌드뿐이라는 현실을 그대로 말한다. 테스트를 돌리지 않았거나 테스트가 없는 영역은 "검증되지 않음"으로 보고한다.
+- 검증 수단이 lint·빌드와 위 3개 영역의 테스트뿐이라는 현실을 그대로 말한다. 테스트를 돌리지 않았거나 테스트가 없는 영역은 "검증되지 않음"으로 보고한다.
+- 격리·계약·인사 권한 테스트가 실패하면 기대값을 바꾸지 말고 코드의 규칙 위반으로 보고한다(기대값은 원본 요구사항과 설계 문서에서 나왔다).
 - 기능을 구현·변경하면 관련 설계 문서와 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md`의 상태를 함께 갱신할 것을 제안한다. 문서와 코드가 어긋나면 알린다.
 
 **보호 영역**
