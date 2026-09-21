@@ -42,15 +42,15 @@
       "start": "cover"
     },
     "analysis": {
-      "description": " — 실무를 분석해 설계의 근거로 삼은 기업 분석 자료",
+      "description": "실무를 분석해 설계의 근거로 삼은 기업 분석 자료",
       "start": "d2-doc"
     },
     "plan": {
-      "description": " — 시스템 구조와 개발 단계를 담은 개발 작업계획서",
+      "description": "시스템 구조와 개발 단계를 담은 개발 작업계획서",
       "start": "d3-doc"
     },
     "app": {
-      "description": " — 9개 도메인으로 구현한 ERP 앱",
+      "description": "9개 도메인으로 구현한 ERP 앱",
       "start": "domains"
     },
     "wrap": {
