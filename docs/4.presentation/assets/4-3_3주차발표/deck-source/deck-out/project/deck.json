@@ -1,0 +1,76 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-09-20T23:21:21Z"
+  },
+  "title": "3주차 진행상황 발표",
+  "order": [
+    "cover",
+    "deliverables",
+    "d2-doc",
+    "d2-trace",
+    "d3-doc",
+    "d3-phases",
+    "domains",
+    "dom-auth",
+    "dom-auth-shot",
+    "dom-hr",
+    "dom-hr-shot",
+    "dom-attend",
+    "dom-attend-shot",
+    "dom-board",
+    "dom-board-shot",
+    "dom-member",
+    "dom-member-shot",
+    "dom-reserve",
+    "dom-reserve-shot1",
+    "dom-reserve-shot2",
+    "dom-program",
+    "dom-program-shot",
+    "dom-congest",
+    "dom-congest-shot",
+    "dom-asset",
+    "dom-asset-shot1",
+    "dom-asset-shot2",
+    "next",
+    "closing"
+  ],
+  "sections": {
+    "intro": {
+      "description": "RFP가 요구한 3가지의 현황",
+      "start": "cover"
+    },
+    "analysis": {
+      "description": " — 실무를 분석해 설계의 근거로 삼은 기업 분석 자료",
+      "start": "d2-doc"
+    },
+    "plan": {
+      "description": " — 시스템 구조와 개발 단계를 담은 개발 작업계획서",
+      "start": "d3-doc"
+    },
+    "app": {
+      "description": " — 9개 도메인으로 구현한 ERP 앱",
+      "start": "domains"
+    },
+    "wrap": {
+      "description": "남은 일과 다음 계획",
+      "start": "next"
+    }
+  },
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
+}
