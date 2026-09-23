@@ -92,6 +92,8 @@ export interface MockStaffAssignment {
 export interface MockAttendanceRecord {
   id: string;
   staffId: string;
+  branchId: string; // ADR-ATT-03(domains/근태관리.md) — 기록 시점(체크인 당시/결근 확정 대상일)의 소속 지점
+  // 스냅샷. Staff.branchId(현재 파견 지점)를 그때그때 참조하면 월중 파견 이동 시 과거 기록이 소급 왜곡된다.
   date: string; // YYYY-MM-DD
   checkInAt?: string; // ISO datetime
   checkOutAt?: string;

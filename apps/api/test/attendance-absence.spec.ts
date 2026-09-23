@@ -95,6 +95,7 @@ describe('결근 미리보기·확정 (ADR-ATT-02)', () => {
     mockData(app).attendanceRecords.push({
       id: 'attendance-test-absence-1',
       staffId: STAFF_ID,
+      branchId: BRANCH.seocho,
       date: yesterday,
       status: 'NORMAL',
       checkInAt: `${yesterday}T00:30:00.000Z`,

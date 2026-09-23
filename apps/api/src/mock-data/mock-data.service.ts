@@ -1146,6 +1146,17 @@ export class MockDataService {
   readonly leaveBalances: MockLeaveBalance[] = [];
   readonly workLogs: MockWorkLog[] = [];
 
+  // ADR-ATT-03(domains/근태관리.md) — 특정 과거 날짜에 그 직원이 소속돼 있던 지점을 파견 이력에서
+  // 조회한다. endDate를 배타적(exclusive)으로 다룬다 — 파견 전환 당일은 새 지점 소속으로 본다
+  // (assignStaff가 그날 Staff.branchId를 즉시 갱신하는 것과 같은 "즉시 반영" 원칙, ADR-AUTH-01).
+  // 일치하는 파견 이력이 없으면(데이터 이상) 현재 소속으로 보수적으로 대체한다.
+  private branchIdForStaffOnDate(staffId: string, date: string): string | undefined {
+    const match = this.staffAssignments
+      .filter((a) => a.staffId === staffId && a.startDate <= date && (!a.endDate || date < a.endDate))
+      .sort((a, b) => b.startDate.localeCompare(a.startDate))[0];
+    return match?.branchId ?? this.staff.find((s) => s.id === staffId)?.branchId;
+  }
+
   // 03문서 §6 "자동 지각 판정" — Branch.standardCheckInTime 대비 10분 초과 시 LATE.
   // 체크인 중복 방지(§6): staffId+date로 이미 checkInAt이 있으면 409.
   checkIn(staffId: string): MockAttendanceRecord {
@@ -1161,15 +1172,20 @@ export class MockDataService {
 
     const branch = this.findBranchById(staff.branchId);
     const status: AttendanceStatus = this.isLate(today, branch?.standardCheckInTime) ? 'LATE' : 'NORMAL';
+    // 오늘 체크인이므로 항상 "현재" 소속 지점이 맞다 — 그래도 branchIdForStaffOnDate로 통일해
+    // confirmAbsences와 같은 경로를 타게 한다(호출부가 둘로 갈리면 나중에 또 어긋나기 쉽다).
+    const branchId = this.branchIdForStaffOnDate(staffId, date) ?? staff.branchId;
 
     let record = this.attendanceRecords.find((r) => r.staffId === staffId && r.date === date);
     if (record) {
       record.checkInAt = today.toISOString();
       record.status = status;
+      record.branchId = branchId;
     } else {
       record = {
         id: `attendance-${randomUUID()}`,
         staffId,
+        branchId,
         date,
         checkInAt: today.toISOString(),
         status,
@@ -1203,25 +1219,27 @@ export class MockDataService {
   }
 
   // 03문서 §5 GET /attendance/summary — 지점 근태 요약(상태별 집계). month는 "YYYY-MM".
+  // ADR-ATT-03 — 집계 기준은 "현재 이 지점 소속 직원"이 아니라 "그 기록 자체의 branchId"다.
+  // 월중 파견 이동이 있었다면, 이동 전 기록은 예전 지점 요약에, 이동 후 기록은 새 지점 요약에 각각
+  // 정확히 잡힌다(소급 왜곡 없음). 표에 뜨는 직원 명단도 "현재 이 지점 소속"과 "이 달에 이 지점
+  // 기록이 있는 사람"의 합집합이라, 월중 전출한 직원도 전출 전 기록만큼은 여기 남는다.
   attendanceSummary(branchId: string, month: string) {
+    const records = this.attendanceRecords.filter((r) => r.branchId === branchId && r.date.startsWith(month));
     const staffIds = new Set(this.staff.filter((s) => s.branchId === branchId).map((s) => s.id));
-    const records = this.attendanceRecords.filter(
-      (r) => staffIds.has(r.staffId) && r.date.startsWith(month),
-    );
-    return this.staff
-      .filter((s) => s.branchId === branchId)
-      .map((s) => {
-        const own = records.filter((r) => r.staffId === s.id);
-        return {
-          staffId: s.id,
-          name: s.name,
-          normal: own.filter((r) => r.status === 'NORMAL').length,
-          late: own.filter((r) => r.status === 'LATE').length,
-          absent: own.filter((r) => r.status === 'ABSENT').length,
-          earlyLeave: own.filter((r) => r.status === 'EARLY_LEAVE').length,
-          onLeave: own.filter((r) => r.status === 'ON_LEAVE').length,
-        };
-      });
+    for (const r of records) staffIds.add(r.staffId);
+
+    return Array.from(staffIds).map((staffId) => {
+      const own = records.filter((r) => r.staffId === staffId);
+      return {
+        staffId,
+        name: this.findStaffById(staffId)?.name ?? '(알 수 없음)',
+        normal: own.filter((r) => r.status === 'NORMAL').length,
+        late: own.filter((r) => r.status === 'LATE').length,
+        absent: own.filter((r) => r.status === 'ABSENT').length,
+        earlyLeave: own.filter((r) => r.status === 'EARLY_LEAVE').length,
+        onLeave: own.filter((r) => r.status === 'ON_LEAVE').length,
+      };
+    });
   }
 
   // ADR-ATT-02(domains/근태관리.md) — 오늘이 그 직원의 근무일인지 판정.
@@ -1233,27 +1251,36 @@ export class MockDataService {
   }
 
   // ADR-ATT-02 — "잠정 결근" 미리보기: 스케줄러 없이 조회 시점에 계산만 하고 저장하지 않는다.
-  // 대상: ①재직 중 ②오늘 이전 과거 날짜 ③근무일(파트타임 제외, isWorkDay) ④근태기록 없음(체크인도, 이미
-  // 확정된 결근도 아님) ⑤승인된 휴가 기간이 아님. 관리자가 confirmAbsences를 호출해야만 실제로 저장된다.
+  // 대상: ①재직 중 ②오늘 이전 과거 날짜 ③**그 날짜 기준 이 지점 소속**(ADR-ATT-03, branchIdForStaffOnDate —
+  // 현재 소속이 아니라 그날 당시 소속으로 판정. 월중 파견 이동으로 다른 지점 후보에서 빠지지 않도록,
+  // 후보 직원 명단도 "현재 이 지점" + "이 지점 파견 이력이 있는 사람"의 합집합으로 잡는다) ④근무일
+  // (파트타임 제외, isWorkDay) ⑤근태기록 없음 ⑥승인된 휴가 기간이 아님. confirmAbsences를 호출해야만
+  // 실제로 저장된다.
   previewAbsences(branchId: string, month: string): Array<{ staffId: string; name: string; date: string }> {
-    const staffList = this.staff.filter((s) => s.branchId === branchId && s.status === 'ACTIVE');
+    const candidateIds = new Set<string>(this.staff.filter((s) => s.branchId === branchId).map((s) => s.id));
+    for (const a of this.staffAssignments) {
+      if (a.branchId === branchId) candidateIds.add(a.staffId);
+    }
     const [y, m] = month.split('-').map(Number);
     const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
     const todayStr = todayKst();
     const result: Array<{ staffId: string; name: string; date: string }> = [];
 
-    for (const staff of staffList) {
+    for (const staffId of candidateIds) {
+      const staff = this.staff.find((s) => s.id === staffId);
+      if (!staff || staff.status !== 'ACTIVE') continue;
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${month}-${String(day).padStart(2, '0')}`;
         if (dateStr >= todayStr) continue; // 오늘·미래는 아직 판단하지 않는다
+        if (this.branchIdForStaffOnDate(staffId, dateStr) !== branchId) continue; // 그날은 이 지점 소속이 아니었음
         if (!this.isWorkDay(staff, dateStr)) continue;
-        const hasRecord = this.attendanceRecords.some((r) => r.staffId === staff.id && r.date === dateStr);
+        const hasRecord = this.attendanceRecords.some((r) => r.staffId === staffId && r.date === dateStr);
         if (hasRecord) continue;
         const hasApprovedLeave = this.leaveRequests.some(
-          (r) => r.staffId === staff.id && r.status === 'APPROVED' && r.startDate <= dateStr && dateStr <= r.endDate,
+          (r) => r.staffId === staffId && r.status === 'APPROVED' && r.startDate <= dateStr && dateStr <= r.endDate,
         );
         if (hasApprovedLeave) continue;
-        result.push({ staffId: staff.id, name: staff.name, date: dateStr });
+        result.push({ staffId, name: staff.name, date: dateStr });
       }
     }
     return result;
@@ -1261,11 +1288,14 @@ export class MockDataService {
 
   // ADR-ATT-02 — 결근 확정(BRANCH_ADMIN 명시적 액션, 컨트롤러에서 role 강제). previewAbsences가 이미
   // "근태기록 없음"을 조건으로 걸러 두므로, 확정된 날짜는 다음 호출의 미리보기에서 자연히 빠진다(멱등).
+  // branchId는 호출 시 넘긴 값을 그대로 쓴다 — previewAbsences가 이미 그 날짜 기준 이 지점 소속인
+  // 후보만 돌려주므로(ADR-ATT-03) 다시 조회할 필요가 없다.
   confirmAbsences(branchId: string, month: string, note?: string): MockAttendanceRecord[] {
     const candidates = this.previewAbsences(branchId, month);
     const created: MockAttendanceRecord[] = candidates.map((c) => ({
       id: `attendance-${randomUUID()}`,
       staffId: c.staffId,
+      branchId,
       date: c.date,
       status: 'ABSENT' as AttendanceStatus,
       note: note ?? '결근 확정(관리자 확인)',
