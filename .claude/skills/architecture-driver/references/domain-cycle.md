@@ -43,6 +43,15 @@ Rule of thumb: if two reasonable engineers could look at this requirement and im
 
 You're also allowed to add a Driver the requirements source never mentioned, if domain experience says it matters (e.g. "the payment provider will eventually fail or time out" even if nobody asked for that) — just say explicitly that you added it and why.
 
+**Before finalizing the list, run a short adversarial lens pass over it** — this is the step a real usage of this method skipped the first few times, and it's how a genuine cross-cutting bug (a date-boundary bug hitting five domains, present every single day for nine hours straight) and a real data-attribution defect (records misattributed after a mid-period reassignment) both slipped past "does this look structural?" on first pass. For each candidate Driver *and* each item headed for the "not promoted" table, ask:
+- **Time boundaries** — does this touch "today," a deadline, a recurring schedule, or any date/time math? Boundary and timezone bugs hide here and tend to be systemic (check whether the same pattern appears elsewhere in the codebase, not just in this domain).
+- **Concurrency** — can two of these happen at once, and does the naive implementation assume they can't?
+- **Circumvention / who can lie** — could a user, or a compromised/careless client, produce an input or sequence that the happy path doesn't expect? (Note what's *actually in scope* here — if the spec already excludes a verification mechanism like location-checking, spoofing it isn't a live threat; the real residual risk is usually simpler, like one authenticated actor acting on another's behalf, and it's worth naming explicitly even when there's no fix, so it's a documented accepted risk rather than a silent gap.)
+- **Human error / operational neglect** — if this requires a person to act (approve, confirm, remember), what happens when they don't? Is that failure mode named anywhere?
+- **Input boundaries** — empty, maximum, duplicate, or unusual values on the fields this touches.
+
+A hit on this pass either promotes something into a Driver (with its own alternatives/trade-off, like any other Driver), or gets documented as a plain rule/accepted risk in the "not promoted" table — either is a fine outcome, but skipping the pass entirely is how these get missed until a person using the output has to ask about them.
+
 **Requirements not promoted to a Driver** go in a flat table: id, rule, reasoning, current status (implemented / not implemented / needs a test). This is where most requirements end up, and that's fine — they don't need an alternatives comparison, just a documented rule.
 
 ## 5. Prioritize the Drivers
@@ -63,6 +72,8 @@ For each question: list 2-4 real alternatives (not a strawman and the "right" an
 
 If an alternative violates an invariant from step 1, say so and eliminate it on those grounds rather than on vague taste.
 
+**A decision made earlier in this same cycle, or in a previous cycle, is not sacred.** If new information surfaces — a reviewer's question, an adjacent Driver's implementation revealing a shared flaw, a constraint that turns out not to hold — re-open the specific decision rather than patching around it. Mark the ADR as revised (keep the old alternatives table, add the new information, state the new decision and *why the first one no longer holds*) instead of silently rewriting history. A decision that gets revised after real scrutiny is a sign the method is working, not a failure of the first pass.
+
 ## 9. Roll up what's being given up
 
 One consolidated list, across all Drivers in this domain, of what was traded away. This is the section a reviewer reads to sanity-check the whole cycle in ten seconds.
@@ -71,8 +82,8 @@ One consolidated list, across all Drivers in this domain, of what was traded awa
 
 Compact format, one per Driver:
 ```
-### ADR-<DOMAIN>-<NN>: <short decision title>
-- **Context**: what forced this decision (cite the baseline from step 6)
+### ADR-<DOMAIN>-<NN>: <short decision title> (add "— revised <date>, was: <old decision>" if this replaces an earlier decision in this ADR)
+- **Context**: what forced this decision (cite the baseline from step 6; if revised, cite what new information forced the reopening)
 - **Alternatives considered**: A / B / C (one line each)
 - **Decision**: which one, and the one-line reason (cite the priority/invariant it satisfied)
 - **Consequences**: what got better / what's being given up / what's left to do
