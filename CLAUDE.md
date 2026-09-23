@@ -67,6 +67,8 @@ npm run build   # tsc -b && vite build
 
 **테스트 작성 규칙:** 통합 테스트는 `test/helpers/app.ts`의 `createApp()`으로 `main.ts`와 같은 전역 설정(prefix·ValidationPipe·필터)의 앱을 띄운다 — `main.ts`의 전역 설정을 바꾸면 이 헬퍼도 같이 바꿀 것. `MockDataService`는 인메모리 상태라 스위트(또는 테스트)마다 새 앱을 띄워야 서로 오염되지 않는다. 가드 → 파이프 → 핸들러 순서라서 **거부 케이스도 유효한 요청 본문**을 보내야 400이 아니라 403이 나온다. 거부(403) 테스트에는 반드시 자기 지점 접근이 성공하는 대조군을 함께 둔다. `tsconfig.build.json`이 `test/`를 빌드에서 제외한다(없으면 `dist/main.js` 경로가 `dist/src/main.js`로 바뀐다).
 
+**날짜 계산은 반드시 `apps/api/src/common/date/kst-date.ts`를 쓸 것(2026-09-23).** `new Date().toISOString().slice(0, 10)`로 "오늘 날짜"를 직접 구하지 말 것 — `toISOString()`은 서버 시간대와 무관하게 항상 UTC라, 매일 00:00~08:59 KST 사이 이벤트가 하루 전 날짜로 기록되는 구조적 버그가 5개 도메인 10곳에서 실제로 있었다(`docs/architecture/date-time-handling.md`). "오늘"은 `todayKst()`, 임의 시각의 KST 날짜는 `toKstDateString(date)`, 시:분 비교는 `kstHoursMinutes(date)`를 쓸 것.
+
 **admin-web lint는 규칙 예외가 없다(2026-09-21 부채 정리 완료).** `react-hooks/set-state-in-effect`·`react-refresh/only-export-components`를 포함해 기본 severity 그대로이며 경고 0건이다 — 새 경고를 만들지 말고 규칙을 낮춰서 통과시키지 말 것. 이 규칙들 때문에 지킬 패턴: ① prop·조회 데이터를 effect로 state에 복사하지 않는다(편집 폼은 "편집 시작" 클릭 시점에 채우고, prop 변경에 따른 state 보정은 렌더 중 이전 값 비교로 한다 — `CollapsibleBranchSection`, `MemberDetailPage` 참고). ② 컴포넌트 파일에서 훅·상수를 함께 export하지 않는다 — `useAuth`·`AuthContext`는 `lib/use-auth.ts`, `AuthProvider`는 `lib/auth-context.tsx`에 있다.
 
 **커밋 전 검증 hook:** `.claude/hooks/pre-commit-check.js`가 Claude의 `git commit` 직전에 `apps/`·`packages/` 변경이 있으면 양쪽 앱 lint(수정 없이 검사만)·빌드와 jest를 실행하고 실패 시 차단한다(문서만 바뀐 커밋은 생략, 약 30초 소요, lint warning은 통과). GitHub Desktop 등 Claude 밖의 커밋에는 적용되지 않는다.
@@ -101,7 +103,7 @@ npm run build   # tsc -b && vite build
 - MockDataService에서 실제 DB로의 전환, 인증 방식 변경 (ADR 작성 대상)
 - 의도적으로 범위 제외한 항목(강사 정산, 혼잡도 QR·자동계산, 노쇼 자동 배치, 감가상각 등)을 구현하는 것 — 설계 문서에 있다고 만들지 않는다.
 
-**구현 작업 원칙 (2026-09-22 확립)**
+**구현 작업 원칙 (2026-09-22 확립)** — 2026-09-23 `architecture-driver` 스킬(`.claude/skills/architecture-driver/`)로 일반화되어 역이식됨. 이 프로젝트의 방법론이 원본이다: 스킬은 `architecture-driver-skill @ 7416458`(2026-09-23) 커밋을 프로젝트 종속 없이 복사한 것이며, 앞으로 이 섹션과 `docs/process/03_도메인_사이클_템플릿.md`를 고칠 때는 원본이 이 프로젝트라는 걸 기억할 것 — 스킬 쪽 개선을 역으로 반영하고 싶으면 스킬 저장소의 CHANGELOG.md를 먼저 확인.
 
 바이브 코딩(대화로 AI에게 구현을 맡기는 방식)에서 사용자가 매 순간 diff를 직접 검토하지 않고도 실시간으로 프로젝트 현황·맥락을 파악하고 방향을 잡을 수 있으려면, 코드 변경이 즉흥적으로 일어나면 안 된다. 코드를 구현·수정할 때는:
 1. **구현 전에 아키텍처 근거를 먼저 밝힌다.** 이 변경이 어느 도메인(`docs/domains/<도메인>.md`)의 어느 Driver/ADR에 근거하는지 인용한다. 해당하는 결정이 없으면(새로 발견한 문제 등), 정식 ADR 표 전체는 아니어도 **대안·트레이드오프·결정 이유**를 최소한 문장으로 먼저 남긴 뒤 구현한다 — "일단 짜고 나중에 설명"은 하지 않는다.

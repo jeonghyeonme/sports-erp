@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
+import { addYearsToDateString, kstHoursMinutes, toKstDateString, todayKst } from '../common/date/kst-date';
 import {
   AssetCategory,
   AssetStatus,
@@ -650,7 +651,7 @@ export class MockDataService {
       guardianConsent: input.guardianConsent ?? false,
       memo: input.memo,
       status: 'ACTIVE',
-      joinedAt: new Date().toISOString().slice(0, 10),
+      joinedAt: todayKst(),
     };
     this.members.push(member);
     return { member, warnings };
@@ -935,7 +936,7 @@ export class MockDataService {
       title: input.title,
       content: input.content,
       viewCount: 0,
-      publishedAt: new Date().toISOString().slice(0, 10),
+      publishedAt: todayKst(),
     };
     this.posts.push(post);
     return post;
@@ -1007,7 +1008,7 @@ export class MockDataService {
       throw new AppException('EMAIL_ALREADY_EXISTS', '이미 사용 중인 이메일입니다.', 409);
     }
 
-    const hireDate = input.hireDate ?? new Date().toISOString().slice(0, 10);
+    const hireDate = input.hireDate ?? todayKst();
     const staffId = `staff-${randomUUID()}`;
     const accountId = `account-${randomUUID()}`;
 
@@ -1074,7 +1075,7 @@ export class MockDataService {
       throw new AppException('STAFF_ALREADY_RESIGNED', '이미 퇴사 처리된 직원입니다.', 409);
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayKst();
     staff.status = 'RESIGNED';
     staff.resignDate = today;
 
@@ -1104,7 +1105,7 @@ export class MockDataService {
       throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayKst();
     const activeAssignment = this.staffAssignments.find((a) => a.staffId === id && !a.endDate);
     if (activeAssignment) activeAssignment.endDate = today;
 
@@ -1147,7 +1148,7 @@ export class MockDataService {
       throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
     }
     const today = new Date();
-    const date = today.toISOString().slice(0, 10);
+    const date = todayKst();
     if (this.attendanceRecords.some((r) => r.staffId === staffId && r.date === date && r.checkInAt)) {
       throw new AppException('ALREADY_CHECKED_IN', '오늘 이미 체크인했습니다.', 409);
     }
@@ -1173,7 +1174,7 @@ export class MockDataService {
   }
 
   checkOut(staffId: string): MockAttendanceRecord {
-    const date = new Date().toISOString().slice(0, 10);
+    const date = todayKst();
     const record = this.attendanceRecords.find((r) => r.staffId === staffId && r.date === date);
     if (!record || !record.checkInAt) {
       throw new AppException('NOT_CHECKED_IN', '오늘 체크인 기록이 없습니다.', 400);
@@ -1186,12 +1187,13 @@ export class MockDataService {
   }
 
   // 지점 출근 기준시각(HH:mm) 대비 10분 초과 여부. 지점에 기준시각이 없으면 지각 판정 자체를 하지 않는다.
+  // KST 시:분으로 비교한다(서버 프로세스의 로컬 시간대에 의존하던 setHours()는 date-time-handling.md와
+  // 같은 이유로 제거 — 배포 환경의 시간대 설정과 무관하게 항상 정확해야 한다).
   private isLate(checkInAt: Date, standardCheckInTime?: string): boolean {
     if (!standardCheckInTime) return false;
     const [h, m] = standardCheckInTime.split(':').map(Number);
-    const standard = new Date(checkInAt);
-    standard.setHours(h, m + 10, 0, 0);
-    return checkInAt > standard;
+    const { hours, minutes } = kstHoursMinutes(checkInAt);
+    return hours * 60 + minutes > h * 60 + m + 10;
   }
 
   // 03문서 §5 GET /attendance/summary — 지점 근태 요약(상태별 집계). month는 "YYYY-MM".
@@ -1703,9 +1705,7 @@ export class MockDataService {
   }
 
   private addYears(date: string, years: number): string {
-    const d = new Date(`${date}T00:00:00`);
-    d.setFullYear(d.getFullYear() + years);
-    return d.toISOString().slice(0, 10);
+    return addYearsToDateString(date, years);
   }
 
   // 1-10문서 §5-6 — HR_RECORD는 근로관계 종료일(없으면 업로드일)+3년, CONTRACT는 관리자 직접 입력
@@ -1718,7 +1718,7 @@ export class MockDataService {
     if (category === 'CONTRACT') return manualRetentionUntil;
     if (category === 'HR_RECORD') {
       const staff = relatedStaffId ? this.findStaffById(relatedStaffId) : undefined;
-      const base = staff?.resignDate ?? new Date().toISOString().slice(0, 10);
+      const base = staff?.resignDate ?? todayKst();
       return this.addYears(base, 3);
     }
     return undefined;
@@ -1777,9 +1777,7 @@ export class MockDataService {
 
   // §5-6 — 보존기한이 지난 문서도 자동 삭제하지 않고 경고 대상으로 남긴다(법정 의무는 "최소" 보존기간).
   listRetentionAlerts(withinDays = 30): MockDocument[] {
-    const limit = new Date();
-    limit.setDate(limit.getDate() + withinDays);
-    const limitStr = limit.toISOString().slice(0, 10);
+    const limitStr = toKstDateString(new Date(Date.now() + withinDays * 24 * 60 * 60 * 1000));
     return this.documents
       .filter((d) => !d.deletedAt && d.retentionUntil !== undefined && d.retentionUntil <= limitStr)
       .sort((a, b) => a.retentionUntil!.localeCompare(b.retentionUntil!));
