@@ -995,6 +995,7 @@ export class MockDataService {
       phone?: string;
       position?: string;
       employmentType?: string;
+      offDays?: number[];
       hireDate?: string;
       note?: string;
     },
@@ -1031,6 +1032,7 @@ export class MockDataService {
       phone: input.phone,
       position: input.position,
       employmentType: input.employmentType,
+      offDays: input.employmentType === '파트타임' ? undefined : input.offDays,
       hireDate,
       status: 'ACTIVE',
     };
@@ -1051,7 +1053,7 @@ export class MockDataService {
   // 02문서 §5 PATCH /staff/:id — branchId는 이 메서드로 바꿀 수 없다(파견 발령 API 전용).
   updateStaff(
     id: string,
-    input: Partial<Pick<MockStaff, 'name' | 'phone' | 'position' | 'employmentType'>>,
+    input: Partial<Pick<MockStaff, 'name' | 'phone' | 'position' | 'employmentType' | 'offDays'>>,
   ): MockStaff {
     const staff = this.staff.find((s) => s.id === id);
     if (!staff) {
@@ -1061,6 +1063,10 @@ export class MockDataService {
     if (input.phone !== undefined) staff.phone = input.phone;
     if (input.position !== undefined) staff.position = input.position;
     if (input.employmentType !== undefined) staff.employmentType = input.employmentType;
+    // ATT-T05 — 파트타임은 근태관리 도메인에서 이 필드를 쓰지 않는다(03문서 §3).
+    if (input.offDays !== undefined) {
+      staff.offDays = staff.employmentType === '파트타임' ? undefined : input.offDays;
+    }
     return staff;
   }
 
@@ -1216,6 +1222,56 @@ export class MockDataService {
           onLeave: own.filter((r) => r.status === 'ON_LEAVE').length,
         };
       });
+  }
+
+  // ADR-ATT-02(domains/근태관리.md) — 오늘이 그 직원의 근무일인지 판정.
+  // 파트타임은 근무일이 주 단위로 고정되지 않아 이 판정 자체를 하지 않는다(03문서 §3).
+  private isWorkDay(staff: MockStaff, dateStr: string): boolean {
+    if (staff.employmentType === '파트타임') return false;
+    const dayOfWeek = new Date(`${dateStr}T00:00:00Z`).getUTCDay(); // 0=일~6=토, UTC 고정 파싱이라 호스트 시간대 무관
+    return !(staff.offDays ?? []).includes(dayOfWeek);
+  }
+
+  // ADR-ATT-02 — "잠정 결근" 미리보기: 스케줄러 없이 조회 시점에 계산만 하고 저장하지 않는다.
+  // 대상: ①재직 중 ②오늘 이전 과거 날짜 ③근무일(파트타임 제외, isWorkDay) ④근태기록 없음(체크인도, 이미
+  // 확정된 결근도 아님) ⑤승인된 휴가 기간이 아님. 관리자가 confirmAbsences를 호출해야만 실제로 저장된다.
+  previewAbsences(branchId: string, month: string): Array<{ staffId: string; name: string; date: string }> {
+    const staffList = this.staff.filter((s) => s.branchId === branchId && s.status === 'ACTIVE');
+    const [y, m] = month.split('-').map(Number);
+    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const todayStr = todayKst();
+    const result: Array<{ staffId: string; name: string; date: string }> = [];
+
+    for (const staff of staffList) {
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${month}-${String(day).padStart(2, '0')}`;
+        if (dateStr >= todayStr) continue; // 오늘·미래는 아직 판단하지 않는다
+        if (!this.isWorkDay(staff, dateStr)) continue;
+        const hasRecord = this.attendanceRecords.some((r) => r.staffId === staff.id && r.date === dateStr);
+        if (hasRecord) continue;
+        const hasApprovedLeave = this.leaveRequests.some(
+          (r) => r.staffId === staff.id && r.status === 'APPROVED' && r.startDate <= dateStr && dateStr <= r.endDate,
+        );
+        if (hasApprovedLeave) continue;
+        result.push({ staffId: staff.id, name: staff.name, date: dateStr });
+      }
+    }
+    return result;
+  }
+
+  // ADR-ATT-02 — 결근 확정(BRANCH_ADMIN 명시적 액션, 컨트롤러에서 role 강제). previewAbsences가 이미
+  // "근태기록 없음"을 조건으로 걸러 두므로, 확정된 날짜는 다음 호출의 미리보기에서 자연히 빠진다(멱등).
+  confirmAbsences(branchId: string, month: string, note?: string): MockAttendanceRecord[] {
+    const candidates = this.previewAbsences(branchId, month);
+    const created: MockAttendanceRecord[] = candidates.map((c) => ({
+      id: `attendance-${randomUUID()}`,
+      staffId: c.staffId,
+      date: c.date,
+      status: 'ABSENT' as AttendanceStatus,
+      note: note ?? '결근 확정(관리자 확인)',
+    }));
+    this.attendanceRecords.push(...created);
+    return created;
   }
 
   // 03문서 §3 "입사연차 기준 자동계산" — 근로기준법 원칙의 단순화: 1년 미만은 11일,

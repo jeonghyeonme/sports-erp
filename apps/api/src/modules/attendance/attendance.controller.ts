@@ -7,6 +7,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { ok } from '../../common/http/api-response';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { CreateWorkLogDto } from './dto/create-work-log.dto';
+import { ConfirmAbsencesDto } from './dto/confirm-absences.dto';
 
 // 03문서 §7 — BRANCH_ADMIN도 Staff 레코드를 가지므로(01문서 §3.1) 본인 근태/휴가/업무일지는
 // STAFF와 동일하게 셀프서비스한다. "본인 지점 조회 + 휴가 승인"은 그 위에 얹히는 관리 권한이다.
@@ -46,6 +47,30 @@ export class AttendanceController {
       throw new AppException('BRANCH_REQUIRED', 'branchId가 필요합니다.', 400);
     }
     return ok(this.mockData.attendanceSummary(targetBranchId, month));
+  }
+
+  // ADR-ATT-02(domains/근태관리.md) — 스케줄러 없이 결근을 표현하는 미리보기(저장 안 함).
+  // "이번 달 근태 현황판"에서 확정 전 잠정 결근 수를 보여주는 용도. BRANCH_ADMIN 본인 지점 고정,
+  // SUPER_ADMIN은 summary와 동일하게 조회만 가능(현장 운영 비개입 원칙, 03문서 §7).
+  @Get('attendance/absence-preview')
+  @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
+  absencePreview(@Query('branchId') branchId: string | undefined, @Query('month') month: string, @CurrentUser() user: RequestUser) {
+    const targetBranchId = user.role === 'SUPER_ADMIN' ? branchId : user.branchId;
+    if (!targetBranchId) {
+      throw new AppException('BRANCH_REQUIRED', 'branchId가 필요합니다.', 400);
+    }
+    return ok(this.mockData.previewAbsences(targetBranchId, month));
+  }
+
+  // ADR-ATT-02 — 결근 확정. 되돌리기 어려운 인사 조치라 BRANCH_ADMIN만(SUPER_ADMIN도 불가,
+  // ADR-AUTH-02·03문서 §7 "SUPER_ADMIN은 현장 운영에 직접 개입하지 않는다"와 같은 원칙).
+  @Post('attendance/absence-confirm')
+  @Roles('BRANCH_ADMIN')
+  confirmAbsences(@Body() dto: ConfirmAbsencesDto, @CurrentUser() user: RequestUser) {
+    if (!user.branchId) {
+      throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
+    }
+    return ok(this.mockData.confirmAbsences(user.branchId, dto.month, dto.note));
   }
 
   @Post('leave-requests')

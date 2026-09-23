@@ -70,6 +70,7 @@ export interface MockStaff {
   phone?: string;
   position?: string;
   employmentType?: string;
+  offDays?: number[]; // 정기 휴무 요일(0=일~6=토). employmentType=파트타임은 사용 안 함 — 03문서 §3, ATT-T05
   hireDate: string;
   resignDate?: string;
   status: StaffStatus;
