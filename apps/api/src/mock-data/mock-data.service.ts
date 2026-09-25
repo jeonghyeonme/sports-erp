@@ -1171,6 +1171,15 @@ export class MockDataService {
     const activeAssignment = this.staffAssignments.find((a) => a.staffId === id && !a.endDate);
     if (activeAssignment) activeAssignment.endDate = today;
 
+    // ADR-RES-02 — 재직 중 업로드된 HR_RECORD 문서는 업로드 시점의 임시값(업로드일+3년)으로 보존기한이
+    // 고정돼 있었다. 법정 기산일(근로관계 종료일)이 확정되는 지금 시점에 퇴사일+3년으로 다시 계산한다.
+    const retentionUntil = this.addYears(today, 3);
+    this.documents
+      .filter((d) => d.category === 'HR_RECORD' && d.relatedStaffId === id && !d.deletedAt)
+      .forEach((d) => {
+        d.retentionUntil = retentionUntil;
+      });
+
     return staff;
   }
 
