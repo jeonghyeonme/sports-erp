@@ -30,9 +30,10 @@ interface PostForm {
   content: string;
   category: PostCategory;
   branchId: string;
+  visibleToMember: boolean;
 }
 
-const EMPTY_FORM: PostForm = { title: '', content: '', category: 'NOTICE', branchId: '' };
+const EMPTY_FORM: PostForm = { title: '', content: '', category: 'NOTICE', branchId: '', visibleToMember: false };
 
 function CreatePostModal({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
@@ -48,6 +49,7 @@ function CreatePostModal({ onClose }: { onClose: () => void }) {
         content: dto.content,
         category: dto.category,
         branchId: isSuperAdmin ? dto.branchId || undefined : undefined,
+        visibleToMember: isSuperAdmin ? dto.visibleToMember : undefined,
       };
       return (await api.post<ApiEnvelope<PostRow>>('/posts', payload)).data.data!;
     },
@@ -96,6 +98,19 @@ function CreatePostModal({ onClose }: { onClose: () => void }) {
                 </option>
               ))}
             </select>
+          </div>
+        )}
+        {isSuperAdmin && (
+          <div className="field" style={{ marginTop: 12 }}>
+            <label>
+              <input
+                type="checkbox"
+                checked={form.visibleToMember}
+                onChange={(e) => setForm((f) => ({ ...f, visibleToMember: e.target.checked }))}
+                style={{ marginRight: 6 }}
+              />
+              회원에게도 공개(기본: 직원 전용)
+            </label>
           </div>
         )}
         <div className="field" style={{ marginTop: 12 }}>

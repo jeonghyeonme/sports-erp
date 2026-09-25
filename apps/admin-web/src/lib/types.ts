@@ -173,6 +173,7 @@ export interface PostRow {
   content: string;
   viewCount: number;
   publishedAt: string;
+  visibleToMember: boolean;
 }
 
 export type AttendanceStatus = 'NORMAL' | 'LATE' | 'EARLY_LEAVE' | 'ABSENT' | 'ON_LEAVE';

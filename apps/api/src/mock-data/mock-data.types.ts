@@ -261,6 +261,9 @@ export interface MockPost {
   viewCount: number;
   publishedAt: string;
   deletedAt?: string; // 소프트 삭제(04문서 §6)
+  // ADR-BRD-01 — HQ_TO_BRANCH 공지를 회원에게도 보여줄지. 기본 false(안전 측 우선).
+  // BRANCH_TO_MEMBER는 scope 자체로 이미 회원에게 노출되므로 이 필드와 무관하게 항상 true로 저장한다.
+  visibleToMember: boolean;
 }
 
 export interface MockFacility {

@@ -18,9 +18,7 @@ export class PostsController {
   list(@CurrentUser() user: RequestUser, @Query('scope') scope?: string) {
     let posts = this.mockData.posts.filter((p) => !p.deletedAt);
     if (scope) posts = posts.filter((p) => p.scope === scope);
-    if (user.role !== 'SUPER_ADMIN') {
-      posts = posts.filter((p) => !p.branchId || p.branchId === user.branchId);
-    }
+    posts = posts.filter((p) => this.isVisibleTo(p, user));
     return ok(posts.map((p) => this.toListItem(p)));
   }
 
@@ -69,10 +67,18 @@ export class PostsController {
 
   private findVisibleOrThrow(id: string, user: RequestUser): MockPost {
     const post = this.mockData.findPostById(id);
-    if (!post || (user.role !== 'SUPER_ADMIN' && post.branchId && post.branchId !== user.branchId)) {
+    if (!post || !this.isVisibleTo(post, user)) {
       throw new AppException('POST_NOT_FOUND', '게시글을 찾을 수 없습니다.', 404);
     }
     return post;
+  }
+
+  // ADR-BRD-01 — MEMBER는 본인 지점 BRANCH_TO_MEMBER 게시글 + visibleToMember=true인 HQ 공지만 볼 수 있다.
+  private isVisibleTo(post: MockPost, user: RequestUser): boolean {
+    if (user.role === 'SUPER_ADMIN') return true;
+    if (post.branchId && post.branchId !== user.branchId) return false;
+    if (user.role === 'MEMBER' && post.scope === 'HQ_TO_BRANCH' && !post.visibleToMember) return false;
+    return true;
   }
 
   private assertAuthor(post: MockPost, user: RequestUser): void {

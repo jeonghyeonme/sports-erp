@@ -417,6 +417,7 @@ export class MockDataService {
       content: '전 지점 팀장급 직원 대상 ERP 사용법 매뉴얼을 게시판에 업로드했습니다.',
       viewCount: 0,
       publishedAt: '2026-08-20',
+      visibleToMember: false,
     },
     {
       id: 'post-seocho-event',
@@ -428,6 +429,7 @@ export class MockDataService {
       content: '9월 한 달간 아침 요가 신규 회원 20% 할인 이벤트를 진행합니다.',
       viewCount: 0,
       publishedAt: '2026-08-28',
+      visibleToMember: true,
     },
   ];
 
@@ -900,7 +902,13 @@ export class MockDataService {
   // BRANCH_ADMIN은 BRANCH_TO_MEMBER만 작성 가능하고 scope·branchId는 서버가 본인 지점으로 강제한다.
   createPost(
     author: { accountId: string; role: Role; branchId?: string },
-    input: { title: string; content: string; category: MockPost['category']; branchId?: string },
+    input: {
+      title: string;
+      content: string;
+      category: MockPost['category'];
+      branchId?: string;
+      visibleToMember?: boolean;
+    },
   ): MockPost {
     let scope: PostScope;
     let branchId: string | undefined;
@@ -937,6 +945,9 @@ export class MockDataService {
       content: input.content,
       viewCount: 0,
       publishedAt: todayKst(),
+      // ADR-BRD-01 — BRANCH_TO_MEMBER는 scope로 이미 회원에게 노출되므로 항상 true.
+      // HQ_TO_BRANCH는 작성자(SUPER_ADMIN)가 명시하지 않으면 기본 false(안전 측 우선).
+      visibleToMember: scope === 'BRANCH_TO_MEMBER' ? true : (input.visibleToMember ?? false),
     };
     this.posts.push(post);
     return post;
