@@ -1969,6 +1969,15 @@ export class MockDataService {
         throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
       }
     }
+    // ADR-RES-03 — CONTRACT는 자동계산이 없어(§5-6) 미입력을 허용하면 조용히 "영구 보관" 취급되어
+    // retention-alerts에 영원히 안 뜬다. STAFF_REQUIRED와 동일한 패턴으로 서버에서 필수화한다.
+    if (input.category === 'CONTRACT' && !input.retentionUntil) {
+      throw new AppException(
+        'RETENTION_UNTIL_REQUIRED',
+        '계약서 문서는 보존기한을 직접 입력해야 합니다.',
+        400,
+      );
+    }
     const document: MockDocument = {
       id: `doc-${randomUUID()}`,
       category: input.category,

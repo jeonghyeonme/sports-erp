@@ -21,7 +21,7 @@ const CATEGORY_LABEL: Record<DocumentCategory, string> = {
 
 // 1-10문서 §5-6 — 카테고리별 보존기한 정책 안내(입력 시 미리보기).
 const RETENTION_HINT: Record<DocumentCategory, string> = {
-  CONTRACT: '계약 유형마다 법정 기간이 달라 직접 입력합니다.',
+  CONTRACT: '계약 유형마다 법정 기간이 달라 직접 입력해야 합니다(필수).',
   HR_RECORD: '근로관계 종료일(없으면 업로드일)로부터 3년 — 자동 계산됩니다.',
   MANUAL: '법정 보존 의무가 없어 영구 보관됩니다.',
   OTHER: '법정 보존 의무가 없어 영구 보관됩니다.',
@@ -85,6 +85,8 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
   function submit(e: FormEvent) {
     e.preventDefault();
     if (!form.title.trim() || !form.fileUrl.trim()) return;
+    // ADR-RES-03 — 계약서는 보존기한을 비워서 조용히 영구보관 처리되지 않도록 여기서 바로 막는다(백엔드도 동일 검증).
+    if (form.category === 'CONTRACT' && !form.retentionUntil) return;
     uploadMutation.mutate(form);
   }
 
@@ -154,11 +156,12 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
         )}
         {form.category === 'CONTRACT' && (
           <div className="field" style={{ marginTop: 12 }}>
-            <label>보존기한 (선택)</label>
+            <label>보존기한 *</label>
             <input
               type="date"
               value={form.retentionUntil}
               onChange={(e) => setForm((f) => ({ ...f, retentionUntil: e.target.value }))}
+              required
             />
           </div>
         )}

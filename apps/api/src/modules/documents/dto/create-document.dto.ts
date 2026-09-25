@@ -35,7 +35,8 @@ export class CreateDocumentDto {
   @Min(0)
   fileSize?: number;
 
-  // category=CONTRACT일 때만 사용(직접 입력). 다른 카테고리는 서버가 자동 계산하거나 영구 보관.
+  // category=CONTRACT일 때 필수(직접 입력, 미입력 시 서비스 계층이 400으로 거부 — ADR-RES-03).
+  // 다른 카테고리는 서버가 자동 계산하거나 영구 보관이라 이 필드를 무시한다.
   @IsOptional()
   @IsDateString()
   retentionUntil?: string;
