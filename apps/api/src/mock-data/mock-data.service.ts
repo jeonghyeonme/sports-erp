@@ -774,6 +774,17 @@ export class MockDataService {
     return { price: input.price, capacity: input.capacity };
   }
 
+  // ADR-PRG-01 — PAID_SESSION은 정원이 예약 가능 좌석 수 그 자체라 추측해서 기본값을 넣으면 안 된다(§8 질문1 결정).
+  private assertCapacityForPricingType(pricingType: MockProgram['pricingType'], capacity?: number): void {
+    if (pricingType === 'PAID_SESSION' && (capacity === undefined || capacity < 1)) {
+      throw new AppException(
+        'PROGRAM_CAPACITY_REQUIRED',
+        'PAID_SESSION 프로그램은 정원(capacity)을 1명 이상 지정해야 합니다.',
+        400,
+      );
+    }
+  }
+
   // 07문서 §5 POST /programs — BRANCH_ADMIN 전용(컨트롤러에서 강제).
   createProgram(
     branchId: string,
@@ -797,6 +808,7 @@ export class MockDataService {
     if (input.facilityId) {
       this.assertFacilityInBranch(input.facilityId, branchId);
     }
+    this.assertCapacityForPricingType(input.pricingType, input.capacity);
     const { price, capacity } = this.normalizeProgramPricing(input);
     const program: MockProgram = {
       id: `program-${randomUUID()}`,
@@ -842,24 +854,25 @@ export class MockDataService {
     if (!program) {
       throw new AppException('PROGRAM_NOT_FOUND', '프로그램을 찾을 수 없습니다.', 404);
     }
-    if (input.instructorId !== undefined) {
-      if (input.instructorId) this.assertInstructorInBranch(input.instructorId, program.branchId);
-      program.instructorId = input.instructorId || undefined;
-    }
+    // 검증을 전부 먼저 끝내고 나서 아래에서 한 번에 반영한다 — 중간에 검증이 실패하면
+    // 그 앞에서 이미 반영된 다른 필드만 저장되는 반쪽짜리 수정이 생기면 안 되기 때문이다.
+    if (input.instructorId) this.assertInstructorInBranch(input.instructorId, program.branchId);
+    if (input.facilityId) this.assertFacilityInBranch(input.facilityId, program.branchId);
+    const pricingType = input.pricingType ?? program.pricingType;
+    const capacity = input.capacity ?? program.capacity;
+    // ADR-PRG-01 — PAID_SESSION은 정원이 원인 시점(생성/수정)에 바로 막혀야 회차 생성 때 뒤늦게 실패하지 않는다.
+    this.assertCapacityForPricingType(pricingType, capacity);
+
+    if (input.instructorId !== undefined) program.instructorId = input.instructorId || undefined;
     if (input.name !== undefined) program.name = input.name;
     if (input.category !== undefined) program.category = input.category;
     if (input.ageGroup !== undefined) program.ageGroup = input.ageGroup;
     if (input.description !== undefined) program.description = input.description;
-    if (input.facilityId !== undefined) {
-      if (input.facilityId) this.assertFacilityInBranch(input.facilityId, program.branchId);
-      program.facilityId = input.facilityId || undefined;
-    }
+    if (input.facilityId !== undefined) program.facilityId = input.facilityId || undefined;
     if (input.startDate !== undefined) program.startDate = input.startDate;
     if (input.endDate !== undefined) program.endDate = input.endDate || undefined;
 
-    const pricingType = input.pricingType ?? program.pricingType;
     const price = input.price ?? program.price;
-    const capacity = input.capacity ?? program.capacity;
     const normalized = this.normalizeProgramPricing({ pricingType, price, capacity });
     program.pricingType = pricingType;
     program.price = normalized.price;

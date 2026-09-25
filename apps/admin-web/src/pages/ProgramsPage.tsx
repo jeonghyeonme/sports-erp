@@ -124,6 +124,8 @@ function ProgramFormModal({
   function submit(e: FormEvent) {
     e.preventDefault();
     if (!form.name.trim() || !form.category.trim() || !form.startDate) return;
+    // ADR-PRG-01 — 회차 생성 시점이 아니라 여기서 바로 막아 원인-증상 거리를 줄인다(백엔드도 동일 검증).
+    if (form.pricingType === 'PAID_SESSION' && !form.capacity) return;
     saveMutation.mutate(form);
   }
 
@@ -181,12 +183,17 @@ function ProgramFormModal({
             />
           </div>
           <div className="field">
-            <label>정원{isFree && ' (자유이용은 시설 정원으로 관리)'}</label>
+            <label>
+              정원
+              {isFree && ' (자유이용은 시설 정원으로 관리)'}
+              {form.pricingType === 'PAID_SESSION' && ' *'}
+            </label>
             <input
               type="number"
-              min={0}
+              min={1}
               value={isFree ? '' : form.capacity}
               disabled={isFree}
+              required={form.pricingType === 'PAID_SESSION'}
               placeholder={isFree ? '-' : undefined}
               onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
             />

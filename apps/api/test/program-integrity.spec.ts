@@ -60,4 +60,64 @@ describe('프로그램 무결성 — facilityId 지점 일치', () => {
       expect(res.body.error.code).toBe('FACILITY_BRANCH_MISMATCH');
     });
   });
+
+  describe('ADR-PRG-01: PAID_SESSION capacity 필수', () => {
+    const paidSession = { ...baseProgram, pricingType: 'PAID_SESSION', price: 30000 };
+
+    it('capacity 없이 PAID_SESSION 프로그램을 등록하면 400 PROGRAM_CAPACITY_REQUIRED', async () => {
+      const res = await api(seochoAdmin).post('/programs', paidSession);
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('PROGRAM_CAPACITY_REQUIRED');
+    });
+
+    it('capacity=0으로 PAID_SESSION 프로그램을 등록해도 거부된다', async () => {
+      const res = await api(seochoAdmin).post('/programs', { ...paidSession, capacity: 0 });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('PROGRAM_CAPACITY_REQUIRED');
+    });
+
+    it('대조군: capacity를 지정하면 PAID_SESSION 프로그램 등록이 성공한다', async () => {
+      const res = await api(seochoAdmin).post('/programs', { ...paidSession, capacity: 10 });
+      expect(res.status).toBe(201);
+      expect(res.body.data.capacity).toBe(10);
+    });
+
+    it('대조군: FREE_ACCESS는 capacity 없이도 등록된다(정규화로 undefined)', async () => {
+      const res = await api(seochoAdmin).post('/programs', baseProgram);
+      expect(res.status).toBe(201);
+      expect(res.body.data.capacity).toBeUndefined();
+    });
+
+    it('FREE_ACCESS로 만든 프로그램을 PAID_SESSION으로 수정할 때도 capacity가 없으면 거부된다', async () => {
+      const created = await api(seochoAdmin).post('/programs', baseProgram);
+      const res = await api(seochoAdmin).patch(`/programs/${created.body.data.id}`, { pricingType: 'PAID_SESSION' });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('PROGRAM_CAPACITY_REQUIRED');
+    });
+
+    it('같은 수정 요청에 capacity를 함께 보내면 성공한다', async () => {
+      const created = await api(seochoAdmin).post('/programs', baseProgram);
+      const res = await api(seochoAdmin).patch(`/programs/${created.body.data.id}`, {
+        pricingType: 'PAID_SESSION',
+        capacity: 15,
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.data.capacity).toBe(15);
+    });
+
+    it('검증 실패 시 다른 필드도 함께 반영되지 않는다(부분 수정 방지)', async () => {
+      const created = await api(seochoAdmin).post('/programs', baseProgram);
+      const res = await api(seochoAdmin).patch(`/programs/${created.body.data.id}`, {
+        name: '이름이 바뀌면 안 됨',
+        pricingType: 'PAID_SESSION',
+      });
+      expect(res.status).toBe(400);
+      const afterList = await request(app.getHttpServer())
+        .get(`/api/v1/programs?branchId=branch-seocho`)
+        .set('Authorization', seochoAdmin);
+      const unchanged = afterList.body.data.find((p: { id: string }) => p.id === created.body.data.id);
+      expect(unchanged.name).toBe(baseProgram.name);
+      expect(unchanged.pricingType).toBe('FREE_ACCESS');
+    });
+  });
 });
