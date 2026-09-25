@@ -749,6 +749,18 @@ export class MockDataService {
     }
   }
 
+  // ADR-PRG-03 — assertInstructorInBranch와 동일 패턴. facilityId도 다른 지점 시설을 가리키면 안 된다.
+  private assertFacilityInBranch(facilityId: string, branchId: string): void {
+    const facility = this.findFacilityById(facilityId);
+    if (!facility || facility.branchId !== branchId) {
+      throw new AppException(
+        'FACILITY_BRANCH_MISMATCH',
+        '시설은 프로그램과 같은 지점 소속이어야 합니다.',
+        400,
+      );
+    }
+  }
+
   // 07문서 §6 — pricingType=FREE_ACCESS는 예약 개념이 없어 price·capacity가 무의미하므로 서버에서도 강제로 비운다
   // (클라이언트가 값을 보내도 무시 — 방어적 검증).
   private normalizeProgramPricing(input: {
@@ -781,6 +793,9 @@ export class MockDataService {
   ): MockProgram {
     if (input.instructorId) {
       this.assertInstructorInBranch(input.instructorId, branchId);
+    }
+    if (input.facilityId) {
+      this.assertFacilityInBranch(input.facilityId, branchId);
     }
     const { price, capacity } = this.normalizeProgramPricing(input);
     const program: MockProgram = {
@@ -835,7 +850,10 @@ export class MockDataService {
     if (input.category !== undefined) program.category = input.category;
     if (input.ageGroup !== undefined) program.ageGroup = input.ageGroup;
     if (input.description !== undefined) program.description = input.description;
-    if (input.facilityId !== undefined) program.facilityId = input.facilityId || undefined;
+    if (input.facilityId !== undefined) {
+      if (input.facilityId) this.assertFacilityInBranch(input.facilityId, program.branchId);
+      program.facilityId = input.facilityId || undefined;
+    }
     if (input.startDate !== undefined) program.startDate = input.startDate;
     if (input.endDate !== undefined) program.endDate = input.endDate || undefined;
 
