@@ -76,5 +76,28 @@ describe('시설 생애주기 — 신선도 추적·운영중단 표시', () => 
       const after = await api(admin).get('/facilities?branchId=branch-seocho');
       expect(after.body.data.map((f: { id: string }) => f.id)).toContain('facility-seocho-gym');
     });
+
+    // 재활성화 화면(admin-web)이 목록을 채우는 경로 — 이월 항목으로 남겨뒀다가 이번에 추가.
+    it('?isActive=false로 조회하면 비활성 시설만, 기본 조회에서는 반대로 빠진다', async () => {
+      await api(admin).patch('/facilities/facility-seocho-gym', { isActive: false });
+
+      const inactiveList = await api(admin).get('/facilities?branchId=branch-seocho&isActive=false');
+      expect(inactiveList.status).toBe(200);
+      expect(inactiveList.body.data.map((f: { id: string }) => f.id)).toEqual(['facility-seocho-gym']);
+
+      const activeList = await api(admin).get('/facilities?branchId=branch-seocho');
+      expect(activeList.body.data.map((f: { id: string }) => f.id)).not.toContain('facility-seocho-gym');
+    });
+
+    it('비활성 목록에서 재활성화(PATCH isActive=true)하면 다시 활성 목록에만 나타난다', async () => {
+      await api(admin).patch('/facilities/facility-seocho-gym', { isActive: false });
+      const res = await api(admin).patch('/facilities/facility-seocho-gym', { isActive: true });
+      expect(res.status).toBe(200);
+
+      const inactiveList = await api(admin).get('/facilities?branchId=branch-seocho&isActive=false');
+      expect(inactiveList.body.data.map((f: { id: string }) => f.id)).not.toContain('facility-seocho-gym');
+      const activeList = await api(admin).get('/facilities?branchId=branch-seocho');
+      expect(activeList.body.data.map((f: { id: string }) => f.id)).toContain('facility-seocho-gym');
+    });
   });
 });

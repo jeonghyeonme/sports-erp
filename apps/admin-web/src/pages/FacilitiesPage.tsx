@@ -184,10 +184,10 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
     },
   });
 
-  // ADR-FAC-02 — 물리 삭제 대신 isActive=false로 비활성화(소프트 삭제 원칙). 목록에서 즉시 사라진다.
-  const deactivateMutation = useMutation<FacilityRow, AxiosError<ApiErrorBody>, void>({
-    mutationFn: async () =>
-      (await api.patch<ApiEnvelope<FacilityRow>>(`/facilities/${facility.id}`, { isActive: false })).data.data!,
+  // ADR-FAC-02 — 물리 삭제 대신 isActive 토글로 운영 중단/재개(소프트 삭제 원칙). PATCH 하나로 양방향 처리.
+  const toggleActiveMutation = useMutation<FacilityRow, AxiosError<ApiErrorBody>, boolean>({
+    mutationFn: async (isActive) =>
+      (await api.patch<ApiEnvelope<FacilityRow>>(`/facilities/${facility.id}`, { isActive })).data.data!,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['facilities'] });
     },
@@ -200,19 +200,20 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
   }
 
   function deactivate() {
-    if (
-      window.confirm(
-        `'${facility.name}'을(를) 운영 중단 처리하시겠습니까? 목록에서 제외되며, 이 화면에서는 다시 활성화할 방법이 없습니다.`,
-      )
-    ) {
-      deactivateMutation.mutate();
+    if (window.confirm(`'${facility.name}'을(를) 운영 중단 처리하시겠습니까? "운영 중단" 탭에서 다시 활성화할 수 있습니다.`)) {
+      toggleActiveMutation.mutate(false);
     }
+  }
+
+  function reactivate() {
+    toggleActiveMutation.mutate(true);
   }
 
   return (
     <div className="card">
       <h3>
-        {facility.name} <span className="badge PREPARING">{TYPE_LABEL[facility.type]}</span>
+        {facility.name} <span className="badge PREPARING">{TYPE_LABEL[facility.type]}</span>{' '}
+        {!facility.isActive && <span className="badge PAUSED">운영 중단</span>}
       </h3>
       <div className="stat-row">
         <span>현재 인원</span>
@@ -234,7 +235,7 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
         <span style={{ fontSize: 12, color: '#6b7280' }}>{formatFreshness(facility.lastUpdatedAt)}</span>
       </div>
 
-      {canManage && (
+      {canManage && facility.isActive && (
         <>
           <form className="action-row" style={{ marginTop: 12 }} onSubmit={submitCorrection}>
             <input
@@ -251,13 +252,18 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
             <button type="button" className="btn-secondary" onClick={() => setEditing(true)}>
               정보 수정
             </button>
-            <button type="button" className="btn-secondary" onClick={deactivate} disabled={deactivateMutation.isPending}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={deactivate}
+              disabled={toggleActiveMutation.isPending}
+            >
               운영 중단
             </button>
           </form>
-          {deactivateMutation.isError && (
+          {toggleActiveMutation.isError && (
             <div className="forbidden-note" style={{ marginTop: 8 }}>
-              {apiErrorMessage(deactivateMutation.error)}
+              {apiErrorMessage(toggleActiveMutation.error)}
             </div>
           )}
           {correctMutation.isError && (
@@ -271,6 +277,29 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
         </>
       )}
 
+      {canManage && !facility.isActive && (
+        <>
+          <div className="action-row" style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              className="btn-secondary primary"
+              onClick={reactivate}
+              disabled={toggleActiveMutation.isPending}
+            >
+              재활성화
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => setEditing(true)}>
+              정보 수정
+            </button>
+          </div>
+          {toggleActiveMutation.isError && (
+            <div className="forbidden-note" style={{ marginTop: 8 }}>
+              {apiErrorMessage(toggleActiveMutation.error)}
+            </div>
+          )}
+        </>
+      )}
+
       {editing && <EditFacilityModal facility={facility} onClose={() => setEditing(false)} />}
     </div>
   );
@@ -278,10 +307,16 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
 
 export function FacilitiesPage() {
   const { user } = useAuth();
-  const { data, isLoading, isError, error } = useApiList<FacilityRow>(['facilities'], '/facilities');
+  const canCreate = user?.role === 'BRANCH_ADMIN';
+  // ADR-FAC-02 — 운영중단(isActive=false) 시설은 기본 목록에 안 나오므로, 되돌릴 수 있는 사람(BRANCH_ADMIN)만
+  // 탭으로 전환해 볼 수 있게 한다. 목록 자체는 항상 activeTab 기준 하나만 보여준다(뒤섞지 않음).
+  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const { data, isLoading, isError, error } = useApiList<FacilityRow>(
+    ['facilities', activeTab],
+    activeTab === 'ACTIVE' ? '/facilities' : '/facilities?isActive=false',
+  );
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
-  const canCreate = user?.role === 'BRANCH_ADMIN';
 
   const groups = useMemo(() => {
     const all = groupByBranch(data ?? []);
@@ -301,12 +336,29 @@ export function FacilitiesPage() {
             값이 그대로 노출됩니다. 지점별로 묶어서 보여줍니다(98개 지점 규모 대응 — 지점명으로 검색해 좁혀보세요).
           </p>
         </div>
-        {canCreate && (
+        {canCreate && activeTab === 'ACTIVE' && (
           <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
             + 시설 등록
           </button>
         )}
       </div>
+
+      {canCreate && (
+        <div className="wf-tab-row" style={{ display: 'flex', gap: 4, margin: '14px 0' }}>
+          <button
+            className={activeTab === 'ACTIVE' ? 'filter-chip active' : 'filter-chip'}
+            onClick={() => setActiveTab('ACTIVE')}
+          >
+            운영 중
+          </button>
+          <button
+            className={activeTab === 'INACTIVE' ? 'filter-chip active' : 'filter-chip'}
+            onClick={() => setActiveTab('INACTIVE')}
+          >
+            운영 중단
+          </button>
+        </div>
+      )}
 
       {isError && <div className="forbidden-note">{apiErrorMessage(error)}</div>}
       {isLoading && <div className="loading-state">불러오는 중...</div>}
@@ -323,7 +375,9 @@ export function FacilitiesPage() {
       )}
 
       {!isLoading && !isError && (data?.length ?? 0) === 0 && (
-        <div className="empty-state">표시할 시설이 없습니다.</div>
+        <div className="empty-state">
+          {activeTab === 'ACTIVE' ? '표시할 시설이 없습니다.' : '운영 중단된 시설이 없습니다.'}
+        </div>
       )}
       {!isLoading && !isError && (data?.length ?? 0) > 0 && groups.length === 0 && (
         <div className="empty-state">검색 결과가 없습니다.</div>

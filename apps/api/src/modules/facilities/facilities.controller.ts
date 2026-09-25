@@ -18,9 +18,11 @@ export class FacilitiesController {
   constructor(private readonly mockData: MockDataService) {}
 
   // ADR-FAC-02 — 운영 중단(isActive=false)된 시설은 기본 목록에서 제외한다(소프트 삭제 원칙).
+  // ?isActive=false를 명시하면 반대로 비활성 시설만 돌려준다 — 재활성화 화면(admin-web)이 이걸로 목록을 채운다.
   @Get()
-  list(@Query('branchId') branchId?: string) {
-    let facilities = this.mockData.facilities.filter((f) => f.isActive);
+  list(@Query('branchId') branchId?: string, @Query('isActive') isActiveQuery?: string) {
+    const wantActive = isActiveQuery !== 'false';
+    let facilities = this.mockData.facilities.filter((f) => f.isActive === wantActive);
     if (branchId) facilities = facilities.filter((f) => f.branchId === branchId);
     return ok(facilities.map((f) => this.toListItem(f)));
   }
