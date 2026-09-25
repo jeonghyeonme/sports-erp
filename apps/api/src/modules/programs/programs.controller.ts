@@ -52,6 +52,8 @@ export class ProgramsController {
   }
 
   // 07문서 §5 상태 전이(§3-2 표의 허용 전이만 통과, 위반 시 409) — BRANCH_ADMIN 본인 지점만(§7).
+  // ADR-PRG-02 — 응답에 이 프로그램의 오늘 이후 유효 예약 건수·목록을 포함해, 알림 인프라 없이도
+  // 관리자가 "몇 명에게 영향이 가는지"를 전이 즉시 알 수 있게 한다.
   @Patch(':id/status')
   @Roles('BRANCH_ADMIN')
   updateStatus(
@@ -62,17 +64,20 @@ export class ProgramsController {
     const program = this.findProgramOrThrow(id);
     this.assertOwnBranch(program, user);
     const updated = this.mockData.updateProgramStatus(id, dto.status);
-    return ok(this.toListItem(updated));
+    const affectedReservations = this.mockData.futureActiveReservationsForProgram(id);
+    return ok({ ...this.toListItem(updated), affectedReservations });
   }
 
   // 07문서 §5 "삭제(소프트)" — 물리 삭제 대신 ENDED로 전이한다(mock-data.service.ts endProgram 참고).
+  // ADR-PRG-02 — ENDED도 종결 전이라 PAUSED 못지않게 영향이 크므로 같은 정보를 포함한다.
   @Delete(':id')
   @Roles('BRANCH_ADMIN')
   remove(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     const program = this.findProgramOrThrow(id);
     this.assertOwnBranch(program, user);
     const updated = this.mockData.endProgram(id);
-    return ok(this.toListItem(updated));
+    const affectedReservations = this.mockData.futureActiveReservationsForProgram(id);
+    return ok({ ...this.toListItem(updated), affectedReservations });
   }
 
   // 06문서 §5 GET /programs/:id/slots?date= — 잔여좌석 조회. 로그인한 모든 역할이 조회할 수 있지만

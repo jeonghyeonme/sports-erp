@@ -94,6 +94,19 @@ export interface ProgramRow {
   instructorName?: string;
 }
 
+// ADR-PRG-02 — PATCH /programs/:id/status 응답에만 포함되는 필드(목록 조회에는 없음).
+export interface AffectedReservations {
+  count: number;
+  items: Array<{
+    reservationId: string;
+    memberId: string;
+    memberName?: string;
+    scheduleSlotId: string;
+    date: string;
+    startTime: string;
+  }>;
+}
+
 export type ReservationStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
 export type PaymentMethod = 'MOCK_CARD';
 export type PaymentStatus = 'PENDING' | 'APPROVED' | 'FAILED' | 'REFUNDED';

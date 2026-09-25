@@ -738,6 +738,38 @@ export class MockDataService {
     return program;
   }
 
+  // ADR-PRG-02 — 상태 전이 응답에 포함할 "오늘 이후 회차의 유효(REQUESTED/CONFIRMED) 예약" 목록.
+  // bookedCount와 같은 유효 예약 정의를 재사용한다(06문서 §3) — 취소·노쇼·완료 건은 관리자가 조치할 대상이 아니므로 제외.
+  futureActiveReservationsForProgram(programId: string): {
+    count: number;
+    items: Array<{
+      reservationId: string;
+      memberId: string;
+      memberName?: string;
+      scheduleSlotId: string;
+      date: string;
+      startTime: string;
+    }>;
+  } {
+    const today = todayKst();
+    const futureSlots = this.scheduleSlots.filter((s) => s.programId === programId && s.date >= today);
+    const slotById = new Map(futureSlots.map((s) => [s.id, s]));
+    const items = this.reservations
+      .filter((r) => slotById.has(r.scheduleSlotId) && (r.status === 'REQUESTED' || r.status === 'CONFIRMED'))
+      .map((r) => {
+        const slot = slotById.get(r.scheduleSlotId)!;
+        return {
+          reservationId: r.id,
+          memberId: r.memberId,
+          memberName: this.findMemberById(r.memberId)?.name,
+          scheduleSlotId: slot.id,
+          date: slot.date,
+          startTime: slot.startTime,
+        };
+      });
+    return { count: items.length, items };
+  }
+
   private assertInstructorInBranch(instructorId: string, branchId: string): void {
     const instructor = this.instructors.find((i) => i.id === instructorId);
     if (!instructor || instructor.branchId !== branchId) {

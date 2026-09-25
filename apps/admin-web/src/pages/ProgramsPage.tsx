@@ -7,7 +7,16 @@ import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { groupByBranch } from '../lib/group-by-branch';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { Modal } from '../components/Modal';
-import { AgeGroup, ApiEnvelope, FacilityRow, InstructorRow, PricingType, ProgramRow, ProgramStatus } from '../lib/types';
+import {
+  AffectedReservations,
+  AgeGroup,
+  ApiEnvelope,
+  FacilityRow,
+  InstructorRow,
+  PricingType,
+  ProgramRow,
+  ProgramStatus,
+} from '../lib/types';
 
 const AUTO_EXPAND_THRESHOLD = 3;
 
@@ -275,6 +284,18 @@ function ProgramFormModal({
   );
 }
 
+// ADR-PRG-02 — 값만 내려주고 화면에서 안 보이면 ADR-BRD-01·ADR-FAC-01과 같은 문제가 재발하므로,
+// PAUSED/ENDED 전이(상태 변경·삭제) 양쪽에서 이 알림을 공유한다.
+function alertAffectedReservations(updated: ProgramRow & { affectedReservations?: AffectedReservations }): void {
+  const affected = updated.affectedReservations;
+  if (!affected || affected.count === 0) return;
+  const names = affected.items.map((i) => `${i.memberName ?? '이름 미상'}(${i.date})`).join(', ');
+  window.alert(
+    `'${updated.name}' 프로그램에 앞으로 예정된 예약이 ${affected.count}건 있습니다: ${names}\n` +
+      '자동 알림은 발송되지 않으니 직접 안내해주세요.',
+  );
+}
+
 export function ProgramsPage() {
   const { user } = useAuth();
   const { data, isLoading, isError, error } = useApiList<ProgramRow>(['programs'], '/programs');
@@ -283,15 +304,39 @@ export function ProgramsPage() {
   const queryClient = useQueryClient();
   const canManage = user?.role === 'BRANCH_ADMIN';
 
-  const statusMutation = useMutation<ProgramRow, AxiosError<ApiErrorBody>, { id: string; status: ProgramStatus }>({
+  // ADR-PRG-02 — 응답에 딸려오는 affectedReservations를 화면에서 즉시 보여줘야 "관리자가 즉시 인지"라는
+  // 결정 취지가 실제로 성립한다(값만 내려주고 화면에서 안 보이면 ADR-BRD-01·ADR-FAC-01과 같은 문제가 재발).
+  const statusMutation = useMutation<
+    ProgramRow & { affectedReservations?: AffectedReservations },
+    AxiosError<ApiErrorBody>,
+    { id: string; status: ProgramStatus }
+  >({
     mutationFn: async ({ id, status }) =>
-      (await api.patch<ApiEnvelope<ProgramRow>>(`/programs/${id}/status`, { status })).data.data!,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['programs'] }),
+      (
+        await api.patch<ApiEnvelope<ProgramRow & { affectedReservations?: AffectedReservations }>>(
+          `/programs/${id}/status`,
+          { status },
+        )
+      ).data.data!,
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['programs'] });
+      alertAffectedReservations(updated);
+    },
   });
 
-  const endMutation = useMutation<ProgramRow, AxiosError<ApiErrorBody>, string>({
-    mutationFn: async (id) => (await api.delete<ApiEnvelope<ProgramRow>>(`/programs/${id}`)).data.data!,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['programs'] }),
+  // ADR-PRG-02 — ENDED(소프트 삭제)도 PAUSED와 같은 종류의 전이라 같은 안내가 필요하다.
+  const endMutation = useMutation<
+    ProgramRow & { affectedReservations?: AffectedReservations },
+    AxiosError<ApiErrorBody>,
+    string
+  >({
+    mutationFn: async (id) =>
+      (await api.delete<ApiEnvelope<ProgramRow & { affectedReservations?: AffectedReservations }>>(`/programs/${id}`))
+        .data.data!,
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['programs'] });
+      alertAffectedReservations(updated);
+    },
   });
 
   const groups = useMemo(() => {

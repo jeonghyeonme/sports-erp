@@ -1,16 +1,19 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ACCOUNTS, createApp, login } from './helpers/app';
+import { ACCOUNTS, createApp, login, mockData } from './helpers/app';
 
 /**
- * 강사프로그램게시 도메인 — ADR-PRG-03(facilityId 지점 일치 검증).
+ * 강사프로그램게시 도메인 — ADR-PRG-01(capacity 필수)·ADR-PRG-02(상태전이 확정예약 가시화)·
+ * ADR-PRG-03(facilityId 지점 일치 검증).
  * MockDataService가 인메모리 상태를 가지므로 테스트마다 새 앱을 띄운다.
  */
 describe('프로그램 무결성 — facilityId 지점 일치', () => {
   let app: INestApplication;
   let seochoAdmin: string;
+  let seochoMember: string;
 
   const api = (auth: string) => ({
+    get: (p: string) => request(app.getHttpServer()).get(`/api/v1${p}`).set('Authorization', auth),
     post: (p: string, b?: object) => request(app.getHttpServer()).post(`/api/v1${p}`).set('Authorization', auth).send(b),
     patch: (p: string, b?: object) => request(app.getHttpServer()).patch(`/api/v1${p}`).set('Authorization', auth).send(b),
   });
@@ -27,6 +30,7 @@ describe('프로그램 무결성 — facilityId 지점 일치', () => {
   beforeEach(async () => {
     app = await createApp();
     seochoAdmin = await login(app, ACCOUNTS.seochoAdmin);
+    seochoMember = await login(app, ACCOUNTS.seochoMember);
   });
   afterEach(async () => {
     await app.close();
@@ -118,6 +122,68 @@ describe('프로그램 무결성 — facilityId 지점 일치', () => {
       const unchanged = afterList.body.data.find((p: { id: string }) => p.id === created.body.data.id);
       expect(unchanged.name).toBe(baseProgram.name);
       expect(unchanged.pricingType).toBe('FREE_ACCESS');
+    });
+  });
+
+  describe('ADR-PRG-02: 상태 전이 응답에 확정 예약 정보 포함', () => {
+    const paidSession = { ...baseProgram, pricingType: 'PAID_SESSION', price: 10000, capacity: 5 };
+
+    async function createRunningProgramWithFutureSlot() {
+      const created = await api(seochoAdmin).post('/programs', paidSession);
+      const programId = created.body.data.id;
+      await api(seochoAdmin).patch(`/programs/${programId}/status`, { status: 'RUNNING' });
+      const slot = await api(seochoAdmin).post(`/programs/${programId}/slots`, {
+        date: '2099-01-01',
+        startTime: '10:00',
+        endTime: '11:00',
+      });
+      return { programId, slotId: slot.body.data.id };
+    }
+
+    it('예약이 없으면 count=0', async () => {
+      const { programId } = await createRunningProgramWithFutureSlot();
+      const res = await api(seochoAdmin).patch(`/programs/${programId}/status`, { status: 'PAUSED' });
+      expect(res.status).toBe(200);
+      expect(res.body.data.affectedReservations).toEqual({ count: 0, items: [] });
+    });
+
+    it('미래 회차에 유효 예약이 있으면 상태 전이 응답에 그 건수·목록이 포함된다', async () => {
+      const { programId, slotId } = await createRunningProgramWithFutureSlot();
+      const reserveRes = await api(seochoMember).post('/reservations', { scheduleSlotId: slotId });
+      expect(reserveRes.status).toBe(201);
+
+      const res = await api(seochoAdmin).patch(`/programs/${programId}/status`, { status: 'PAUSED' });
+      expect(res.status).toBe(200);
+      expect(res.body.data.affectedReservations.count).toBe(1);
+      expect(res.body.data.affectedReservations.items[0]).toMatchObject({
+        scheduleSlotId: slotId,
+        date: '2099-01-01',
+      });
+      expect(res.body.data.affectedReservations.items[0].memberName).toBeTruthy();
+    });
+
+    it('지난 회차(오늘 이전)의 예약은 세지 않는다', async () => {
+      const { programId, slotId } = await createRunningProgramWithFutureSlot();
+      await api(seochoMember).post('/reservations', { scheduleSlotId: slotId });
+      // 시드 데이터를 직접 과거 날짜로 돌려서 "미래 회차만 센다"는 경계를 확인한다.
+      mockData(app).scheduleSlots.find((s) => s.id === slotId)!.date = '2020-01-01';
+
+      const res = await api(seochoAdmin).patch(`/programs/${programId}/status`, { status: 'PAUSED' });
+      expect(res.status).toBe(200);
+      expect(res.body.data.affectedReservations).toEqual({ count: 0, items: [] });
+    });
+
+    it('취소된 예약은 세지 않는다', async () => {
+      const { programId, slotId } = await createRunningProgramWithFutureSlot();
+      const reserveRes = await api(seochoMember).post('/reservations', { scheduleSlotId: slotId });
+      await request(app.getHttpServer())
+        .patch(`/api/v1/reservations/${reserveRes.body.data.id}/cancel`)
+        .set('Authorization', seochoMember)
+        .send({});
+
+      const res = await api(seochoAdmin).patch(`/programs/${programId}/status`, { status: 'PAUSED' });
+      expect(res.status).toBe(200);
+      expect(res.body.data.affectedReservations).toEqual({ count: 0, items: [] });
     });
   });
 });
