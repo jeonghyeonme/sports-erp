@@ -65,14 +65,51 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
       expect(res.status).toBe(409);
       expect(res.body.error.code).toBe('BRANCH_TERMINATED');
     });
+    it('자산 신규 등록 (ADR-RES-01)', async () => {
+      const res = await api(admin).post('/assets', {
+        name: '신규 자산',
+        category: 'OTHER',
+        acquiredAt: '2026-09-25',
+        acquisitionCost: 50000,
+      });
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('BRANCH_TERMINATED');
+    });
+    it('문서 신규 업로드 (ADR-RES-01)', async () => {
+      const res = await api(admin).post('/documents', {
+        category: 'MANUAL',
+        title: '신규 문서',
+        fileUrl: 'https://files.example/x.pdf',
+      });
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('BRANCH_TERMINATED');
+    });
     it('차단된 요청은 데이터를 남기지 않는다', async () => {
       const m = mockData(app);
-      const counts = () => [m.members.length, m.reservations.length, m.posts.length, m.facilities.length];
+      const counts = () => [
+        m.members.length,
+        m.reservations.length,
+        m.posts.length,
+        m.facilities.length,
+        m.assets.length,
+        m.documents.length,
+      ];
       const before = counts();
       await api(admin).post('/members', { name: '신규회원' });
       await api(member).post('/reservations', { scheduleSlotId: slotId });
       await api(admin).post('/posts', { title: 't', content: 'c', category: 'NOTICE' });
       await api(admin).post('/facilities', { name: '신규 시설', type: 'GYM', capacity: 10 });
+      await api(admin).post('/assets', {
+        name: '신규 자산',
+        category: 'OTHER',
+        acquiredAt: '2026-09-25',
+        acquisitionCost: 50000,
+      });
+      await api(admin).post('/documents', {
+        category: 'MANUAL',
+        title: '신규 문서',
+        fileUrl: 'https://files.example/x.pdf',
+      });
       expect(counts()).toEqual(before);
     });
   });
@@ -103,6 +140,31 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
         .send({ name: '서초점 헬스장(개편)' });
       expect(res.status).toBe(200);
     });
+    it('자산 목록 조회 (ADR-RES-01)', async () => {
+      const res = await api(admin).get('/assets?branchId=branch-seocho');
+      expect(res.status).toBe(200);
+      expect(res.body.data.length).toBeGreaterThan(0);
+    });
+    it('문서 목록 조회 (ADR-RES-01)', async () => {
+      const res = await api(admin).get('/documents?branchId=branch-seocho');
+      expect(res.status).toBe(200);
+    });
+    it('기존 자산 정정(수정)은 "신규 활동"이 아니라 차단하지 않는다 (ADR-RES-01)', async () => {
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/assets/asset-seocho-treadmill')
+        .set('Authorization', admin)
+        .send({ note: '점검 완료' });
+      expect(res.status).toBe(200);
+    });
+    it('branchId=null 전사 문서 업로드는 특정 지점 계약상태와 무관해 차단되지 않는다 (ADR-RES-01)', async () => {
+      const superAdmin = await login(app, ACCOUNTS.superAdmin);
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/documents')
+        .set('Authorization', superAdmin)
+        .send({ category: 'MANUAL', title: '전사 매뉴얼', fileUrl: 'https://files.example/manual.pdf' });
+      expect(res.status).toBe(201);
+      expect(res.body.data.branchId).toBeUndefined();
+    });
     it('기존 예약 이력 조회', async () => {
       setSeochoStatus('ACTIVE'); // 예약은 활성 상태에서 만들고
       expect((await api(member).post('/reservations', { scheduleSlotId: slotId })).status).toBe(201);
@@ -131,6 +193,23 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
     });
     it('혼잡도 수동 보정 (ADR-FAC-03)', async () => {
       const res = await api(admin).post('/facilities/facility-seocho-gym/congestion/manual', { currentCount: 5 });
+      expect(res.status).toBe(201);
+    });
+    it('자산 신규 등록 (ADR-RES-01)', async () => {
+      const res = await api(admin).post('/assets', {
+        name: '신규 자산',
+        category: 'OTHER',
+        acquiredAt: '2026-09-25',
+        acquisitionCost: 50000,
+      });
+      expect(res.status).toBe(201);
+    });
+    it('문서 신규 업로드 (ADR-RES-01)', async () => {
+      const res = await api(admin).post('/documents', {
+        category: 'MANUAL',
+        title: '신규 문서',
+        fileUrl: 'https://files.example/x.pdf',
+      });
       expect(res.status).toBe(201);
     });
   });

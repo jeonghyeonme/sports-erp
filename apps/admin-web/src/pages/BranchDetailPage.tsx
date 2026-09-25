@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import {
   ApiEnvelope,
+  AssetRow,
   BranchSummary,
   FacilityRow,
   MemberRow,
@@ -77,6 +78,7 @@ export function BranchDetailPage() {
     enabled: !!branchId,
   });
   const facilitiesQuery = useApiList<FacilityRow>(['facilities', branchId], `/facilities?branchId=${branchId}`);
+  const assetsQuery = useApiList<AssetRow>(['assets', branchId], `/assets?branchId=${branchId}`);
 
   const branch = branchesQuery.data?.find((b) => b.id === branchId);
   const branchName = branch?.name ?? branchId;
@@ -85,6 +87,8 @@ export function BranchDetailPage() {
   const programs = programsQuery.data ?? [];
   const facilities = facilitiesQuery.data ?? [];
   const unassignedMembers = members.filter((m) => !m.assignedStaffId);
+  // ADR-RES-01 — 계약종료 지점의 잔여 자산은 자동 처리하지 않고 경고만 노출한다(1-10문서 §4-6).
+  const unprocessedAssetCount = (assetsQuery.data ?? []).filter((a) => a.status !== 'DISPOSED').length;
 
   return (
     <>
@@ -122,6 +126,12 @@ export function BranchDetailPage() {
               <span>잔여</span>
               <strong>{contractRemainingLabel(branch.contractEndAt)}</strong>
             </div>
+          </div>
+        )}
+        {branch?.contractStatus === 'TERMINATED' && unprocessedAssetCount > 0 && (
+          <div className="forbidden-note" style={{ marginTop: 8 }}>
+            미처리 자산 {unprocessedAssetCount}건 — 위탁계약이 종료됐지만 아직 폐기 처리되지 않은 자산이
+            남아 있습니다. 다른 지점으로 이관하거나 폐기 처리해주세요(자동 처리되지 않습니다).
           </div>
         )}
         <p className="page-desc">

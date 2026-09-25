@@ -1804,6 +1804,8 @@ export class MockDataService {
   }
 
   // 1-10문서 §5 POST /assets — 권한·지점 강제는 컨트롤러에서 한다.
+  // ADR-RES-01 — 계약종료(TERMINATED) 지점의 신규 자산 등록 차단. 자산은 SUPER_ADMIN도 직접 만들 수 있어
+  // 역할 분기 없이 대상 branchId만으로 판정한다(BRANCH_ADMIN 한정인 createFacility 등과 다른 점).
   createAsset(input: {
     branchId: string;
     name: string;
@@ -1816,8 +1818,16 @@ export class MockDataService {
     location?: string;
     note?: string;
   }): MockAsset {
-    if (!this.findBranchById(input.branchId)) {
+    const branch = this.findBranchById(input.branchId);
+    if (!branch) {
       throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+    }
+    if (branch.contractStatus === 'TERMINATED') {
+      throw new AppException(
+        'BRANCH_TERMINATED',
+        '위탁계약이 종료된 지점에는 새 자산을 등록할 수 없습니다.',
+        409,
+      );
     }
     // 자동 판정 결과를 관리자가 수동으로 덮어쓸 수 있다(고가 소모품을 고정자산 취급하는 경우 등).
     const assetType = input.assetType ?? this.classifyAssetType(input.acquisitionCost);
@@ -1914,6 +1924,8 @@ export class MockDataService {
   }
 
   // 1-10문서 §5 POST /documents — 권한·지점 강제는 컨트롤러에서 한다.
+  // ADR-RES-01 — 계약종료(TERMINATED) 지점의 신규 문서 업로드 차단. branchId=null(전사 문서)은
+  // 특정 지점 계약 상태와 무관하므로 대상 아님.
   createDocument(
     uploadedBy: string,
     input: {
@@ -1927,8 +1939,18 @@ export class MockDataService {
       retentionUntil?: string;
     },
   ): MockDocument {
-    if (input.branchId && !this.findBranchById(input.branchId)) {
-      throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+    if (input.branchId) {
+      const branch = this.findBranchById(input.branchId);
+      if (!branch) {
+        throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+      }
+      if (branch.contractStatus === 'TERMINATED') {
+        throw new AppException(
+          'BRANCH_TERMINATED',
+          '위탁계약이 종료된 지점에는 새 문서를 등록할 수 없습니다.',
+          409,
+        );
+      }
     }
     if (input.category === 'HR_RECORD') {
       if (!input.relatedStaffId) {
