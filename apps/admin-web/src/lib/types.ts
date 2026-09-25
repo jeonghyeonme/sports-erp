@@ -240,6 +240,7 @@ export interface FacilityRow {
   currentCount: number;
   level: number;
   lastUpdatedAt: string;
+  isActive: boolean;
 }
 
 export type AssetCategory = 'EXERCISE_EQUIPMENT' | 'SAFETY_EQUIPMENT' | 'OFFICE_FURNITURE' | 'OTHER';

@@ -184,10 +184,29 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
     },
   });
 
+  // ADR-FAC-02 — 물리 삭제 대신 isActive=false로 비활성화(소프트 삭제 원칙). 목록에서 즉시 사라진다.
+  const deactivateMutation = useMutation<FacilityRow, AxiosError<ApiErrorBody>, void>({
+    mutationFn: async () =>
+      (await api.patch<ApiEnvelope<FacilityRow>>(`/facilities/${facility.id}`, { isActive: false })).data.data!,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['facilities'] });
+    },
+  });
+
   function submitCorrection(e: FormEvent) {
     e.preventDefault();
     if (manualCount === '') return;
     correctMutation.mutate(Number(manualCount));
+  }
+
+  function deactivate() {
+    if (
+      window.confirm(
+        `'${facility.name}'을(를) 운영 중단 처리하시겠습니까? 목록에서 제외되며, 이 화면에서는 다시 활성화할 방법이 없습니다.`,
+      )
+    ) {
+      deactivateMutation.mutate();
+    }
   }
 
   return (
@@ -232,7 +251,15 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
             <button type="button" className="btn-secondary" onClick={() => setEditing(true)}>
               정보 수정
             </button>
+            <button type="button" className="btn-secondary" onClick={deactivate} disabled={deactivateMutation.isPending}>
+              운영 중단
+            </button>
           </form>
+          {deactivateMutation.isError && (
+            <div className="forbidden-note" style={{ marginTop: 8 }}>
+              {apiErrorMessage(deactivateMutation.error)}
+            </div>
+          )}
           {correctMutation.isError && (
             <div className="forbidden-note" style={{ marginTop: 8 }}>
               {apiErrorMessage(correctMutation.error)}

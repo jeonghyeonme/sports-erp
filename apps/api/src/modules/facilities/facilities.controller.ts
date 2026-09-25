@@ -17,11 +17,11 @@ import { ManualCongestionDto } from './dto/manual-congestion.dto';
 export class FacilitiesController {
   constructor(private readonly mockData: MockDataService) {}
 
+  // ADR-FAC-02 — 운영 중단(isActive=false)된 시설은 기본 목록에서 제외한다(소프트 삭제 원칙).
   @Get()
   list(@Query('branchId') branchId?: string) {
-    const facilities = branchId
-      ? this.mockData.facilities.filter((f) => f.branchId === branchId)
-      : this.mockData.facilities;
+    let facilities = this.mockData.facilities.filter((f) => f.isActive);
+    if (branchId) facilities = facilities.filter((f) => f.branchId === branchId);
     return ok(facilities.map((f) => this.toListItem(f)));
   }
 

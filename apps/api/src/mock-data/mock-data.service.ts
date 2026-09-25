@@ -443,6 +443,7 @@ export class MockDataService {
       currentCount: 18,
       level: 2,
       lastUpdatedAt: '2026-09-01T09:00:00.000Z',
+      isActive: true,
     },
     {
       id: 'facility-seocho-pool',
@@ -453,6 +454,7 @@ export class MockDataService {
       currentCount: 26,
       level: 5,
       lastUpdatedAt: '2026-09-01T09:00:00.000Z',
+      isActive: true,
     },
     {
       id: 'facility-gangnam-gym',
@@ -463,6 +465,7 @@ export class MockDataService {
       currentCount: 12,
       level: 2,
       lastUpdatedAt: '2026-09-01T09:00:00.000Z',
+      isActive: true,
     },
     ...this.generated.facilities,
   ];
@@ -1471,15 +1474,17 @@ export class MockDataService {
       currentCount: 0,
       level: 1,
       lastUpdatedAt: new Date().toISOString(),
+      isActive: true,
     };
     this.facilities.push(facility);
     return facility;
   }
 
   // 08문서 §6 PATCH /facilities/:id — 정원이 바뀌면 현재 인원 대비 혼잡도 단계를 즉시 재계산한다.
+  // ADR-FAC-02 — isActive 토글도 이 엔드포인트로 처리한다(비활성화·재활성화 둘 다).
   updateFacility(
     id: string,
-    input: Partial<{ name: string; type: FacilityType; capacity: number }>,
+    input: Partial<{ name: string; type: FacilityType; capacity: number; isActive: boolean }>,
   ): MockFacility {
     const facility = this.findFacilityById(id);
     if (!facility) {
@@ -1494,6 +1499,7 @@ export class MockDataService {
       facility.capacity = input.capacity;
       facility.level = this.computeCongestionLevel(facility.currentCount, facility.capacity);
     }
+    if (input.isActive !== undefined) facility.isActive = input.isActive;
     return facility;
   }
 

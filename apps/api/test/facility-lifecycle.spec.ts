@@ -51,4 +51,30 @@ describe('시설 생애주기 — 신선도 추적·운영중단 표시', () => 
       expect(res.body.data.lastUpdatedAt).toBe(before.lastUpdatedAt);
     });
   });
+
+  describe('ADR-FAC-02: isActive', () => {
+    it('신규 등록한 시설은 isActive=true다', async () => {
+      const res = await api(admin).post('/facilities', { name: '테스트 시설', type: 'GYM', capacity: 20 });
+      expect(res.body.data.isActive).toBe(true);
+    });
+
+    it('비활성화(PATCH isActive=false)하면 기본 목록에서 빠진다', async () => {
+      const before = await api(admin).get('/facilities?branchId=branch-seocho');
+      expect(before.body.data.map((f: { id: string }) => f.id)).toContain('facility-seocho-gym');
+
+      const patchRes = await api(admin).patch('/facilities/facility-seocho-gym', { isActive: false });
+      expect(patchRes.status).toBe(200);
+      expect(patchRes.body.data.isActive).toBe(false);
+
+      const after = await api(admin).get('/facilities?branchId=branch-seocho');
+      expect(after.body.data.map((f: { id: string }) => f.id)).not.toContain('facility-seocho-gym');
+    });
+
+    it('비활성화 후 isActive=true로 되돌리면 목록에 다시 나타난다', async () => {
+      await api(admin).patch('/facilities/facility-seocho-gym', { isActive: false });
+      await api(admin).patch('/facilities/facility-seocho-gym', { isActive: true });
+      const after = await api(admin).get('/facilities?branchId=branch-seocho');
+      expect(after.body.data.map((f: { id: string }) => f.id)).toContain('facility-seocho-gym');
+    });
+  });
 });

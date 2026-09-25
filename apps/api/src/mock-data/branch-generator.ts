@@ -210,6 +210,7 @@ export function generateLightBranches(): GeneratedDataset {
       currentCount: Math.min(currentCount, capacity),
       level: Math.min(5, 1 + (i % 5)),
       lastUpdatedAt: now.toISOString(),
+      isActive: true,
     });
   }
 
