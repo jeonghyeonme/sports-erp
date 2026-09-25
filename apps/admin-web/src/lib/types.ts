@@ -22,6 +22,8 @@ export interface ApiEnvelope<T> {
   success: boolean;
   data?: T;
   error?: { code: string; message: string };
+  // ADR-BRD-02 — 페이지네이션 등 부가 정보(현재는 GET /posts만 사용).
+  meta?: { page?: number; pageSize?: number; total?: number };
 }
 
 export interface BranchSummary {

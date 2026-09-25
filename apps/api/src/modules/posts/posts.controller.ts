@@ -14,12 +14,26 @@ import { UpdatePostDto } from './dto/update-post.dto';
 export class PostsController {
   constructor(private readonly mockData: MockDataService) {}
 
+  // ADR-BRD-02 — 게시글이 누적돼도 응답 크기가 무한히 커지지 않도록 page/limit로 잘라 돌려준다.
+  // 기본 limit=20, meta.total/meta.page/meta.pageSize를 함께 내려 클라이언트가 다음 페이지 유무를 계산할 수 있게 한다.
   @Get()
-  list(@CurrentUser() user: RequestUser, @Query('scope') scope?: string) {
+  list(
+    @CurrentUser() user: RequestUser,
+    @Query('scope') scope?: string,
+    @Query('page') pageQuery?: string,
+    @Query('limit') limitQuery?: string,
+  ) {
     let posts = this.mockData.posts.filter((p) => !p.deletedAt);
     if (scope) posts = posts.filter((p) => p.scope === scope);
     posts = posts.filter((p) => this.isVisibleTo(p, user));
-    return ok(posts.map((p) => this.toListItem(p)));
+
+    const total = posts.length;
+    const page = Math.max(1, Math.trunc(Number(pageQuery)) || 1);
+    const pageSize = Math.max(1, Math.trunc(Number(limitQuery)) || 20);
+    const start = (page - 1) * pageSize;
+    const pageItems = posts.slice(start, start + pageSize);
+
+    return ok(pageItems.map((p) => this.toListItem(p)), { page, pageSize, total });
   }
 
   @Get(':id')

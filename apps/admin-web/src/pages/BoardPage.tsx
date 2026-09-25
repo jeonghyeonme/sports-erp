@@ -1,12 +1,14 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
 import { Modal } from '../components/Modal';
 import { ApiEnvelope, BranchSummary, PostCategory, PostRow } from '../lib/types';
+
+const PAGE_SIZE = 20;
 
 const SCOPE_LABEL: Record<PostRow['scope'], string> = {
   HQ_TO_BRANCH: '본사 공지',
@@ -146,15 +148,33 @@ export function BoardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [scopeFilter, setScopeFilter] = useState<'ALL' | PostRow['scope']>('ALL');
+  const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
-  const { data, isLoading, isError, error } = useApiList<PostRow>(['posts'], '/posts');
+
+  // ADR-BRD-02 — 필터가 바뀌면 이전 필터 기준 페이지 번호가 의미 없어지므로 1로 되돌린다.
+  // useEffect로 하면 한 번 더 렌더되므로, CollapsibleBranchSection과 같은 패턴으로 렌더 중에 보정한다.
+  const [prevScopeFilter, setPrevScopeFilter] = useState(scopeFilter);
+  if (scopeFilter !== prevScopeFilter) {
+    setPrevScopeFilter(scopeFilter);
+    setPage(1);
+  }
+
+  const { data, isLoading, isError, error } = useQuery<
+    { posts: PostRow[]; total: number },
+    AxiosError<ApiErrorBody>
+  >({
+    queryKey: ['posts', scopeFilter, page],
+    queryFn: async () => {
+      const scopeParam = scopeFilter === 'ALL' ? '' : `&scope=${scopeFilter}`;
+      const res = await api.get<ApiEnvelope<PostRow[]>>(`/posts?page=${page}&limit=${PAGE_SIZE}${scopeParam}`);
+      return { posts: res.data.data ?? [], total: res.data.meta?.total ?? 0 };
+    },
+  });
 
   const canWrite = user?.role === 'SUPER_ADMIN' || user?.role === 'BRANCH_ADMIN';
-
-  const posts = useMemo(() => {
-    const all = data ?? [];
-    return scopeFilter === 'ALL' ? all : all.filter((p) => p.scope === scopeFilter);
-  }, [data, scopeFilter]);
+  const posts = data?.posts ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -220,6 +240,20 @@ export function BoardPage() {
             </div>
           </div>
         ))}
+
+      {!isLoading && !isError && total > 0 && (
+        <div className="action-row" style={{ justifyContent: 'center', gap: 12, marginTop: 8 }}>
+          <button className="btn-secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            이전
+          </button>
+          <span style={{ fontSize: 13, color: '#6b7280' }}>
+            {page} / {totalPages}페이지 (전체 {total}건)
+          </span>
+          <button className="btn-secondary" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+            다음
+          </button>
+        </div>
+      )}
 
       {showCreate && <CreatePostModal onClose={() => setShowCreate(false)} />}
     </>
