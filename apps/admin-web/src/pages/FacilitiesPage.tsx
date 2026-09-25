@@ -19,6 +19,16 @@ const TYPE_LABEL: Record<FacilityType, string> = {
   ETC: '기타',
 };
 
+// ADR-FAC-01 — RFP F08b("30분 이내 반영") 요건을 화면에서 눈으로 확인할 수 있게 신선도를 표시한다.
+function formatFreshness(lastUpdatedAt: string): string {
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(lastUpdatedAt).getTime()) / 60000));
+  if (minutes < 1) return '방금 갱신';
+  if (minutes < 60) return `${minutes}분 전 갱신`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전 갱신`;
+  return `${Math.floor(hours / 24)}일 전 갱신`;
+}
+
 interface ApiErrorBody {
   code?: string;
   message?: string;
@@ -200,6 +210,9 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
       <div className="stat-row" style={{ marginTop: 8 }}>
         <span>혼잡도 단계</span>
         <strong>{facility.level} / 5</strong>
+      </div>
+      <div className="stat-row" style={{ marginTop: 4 }}>
+        <span style={{ fontSize: 12, color: '#6b7280' }}>{formatFreshness(facility.lastUpdatedAt)}</span>
       </div>
 
       {canManage && (

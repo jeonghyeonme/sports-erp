@@ -274,4 +274,6 @@ export interface MockFacility {
   capacity: number;
   currentCount: number;
   level: number; // 1~5, currentCount/capacity 비율로 계산(08문서 §4). MANUAL 보정 시에도 즉시 재계산.
+  // ADR-FAC-01 — currentCount/level이 마지막으로 갱신된 시각(수동 보정 시점). RFP F08b(30분 이내 반영) 검증용.
+  lastUpdatedAt: string;
 }

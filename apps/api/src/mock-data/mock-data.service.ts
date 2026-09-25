@@ -442,6 +442,7 @@ export class MockDataService {
       capacity: 60,
       currentCount: 18,
       level: 2,
+      lastUpdatedAt: '2026-09-01T09:00:00.000Z',
     },
     {
       id: 'facility-seocho-pool',
@@ -451,6 +452,7 @@ export class MockDataService {
       capacity: 30,
       currentCount: 26,
       level: 5,
+      lastUpdatedAt: '2026-09-01T09:00:00.000Z',
     },
     {
       id: 'facility-gangnam-gym',
@@ -460,6 +462,7 @@ export class MockDataService {
       capacity: 50,
       currentCount: 12,
       level: 2,
+      lastUpdatedAt: '2026-09-01T09:00:00.000Z',
     },
     ...this.generated.facilities,
   ];
@@ -1467,6 +1470,7 @@ export class MockDataService {
       capacity: input.capacity,
       currentCount: 0,
       level: 1,
+      lastUpdatedAt: new Date().toISOString(),
     };
     this.facilities.push(facility);
     return facility;
@@ -1514,6 +1518,7 @@ export class MockDataService {
     }
     facility.currentCount = currentCount;
     facility.level = this.computeCongestionLevel(currentCount, facility.capacity);
+    facility.lastUpdatedAt = new Date().toISOString();
     return facility;
   }
 
