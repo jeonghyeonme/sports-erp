@@ -1446,7 +1446,16 @@ export class MockDataService {
   }
 
   // 08문서 §6 POST /facilities — BRANCH_ADMIN 전용(컨트롤러에서 강제). capacity 1 이상 필수(§7 나눗셈 오류 방지).
+  // ADR-FAC-03 — 계약종료(TERMINATED) 지점의 신규 시설 등록 차단. 기존 시설 정정(updateFacility)은 대상 아님.
   createFacility(branchId: string, input: { name: string; type: FacilityType; capacity: number }): MockFacility {
+    const branch = this.findBranchById(branchId);
+    if (branch?.contractStatus === 'TERMINATED') {
+      throw new AppException(
+        'BRANCH_TERMINATED',
+        '위탁계약이 종료된 지점에는 새 시설을 등록할 수 없습니다.',
+        409,
+      );
+    }
     if (input.capacity < 1) {
       throw new AppException('INVALID_CAPACITY', '정원은 1명 이상이어야 합니다.', 400);
     }
@@ -1486,10 +1495,19 @@ export class MockDataService {
 
   // 08문서 §6 POST /facilities/:id/congestion/manual, §4 "수동 보정"(source=MANUAL) — Phase 1 범위라
   // 별도 CongestionSnapshot 이력 테이블 없이 MockFacility.currentCount/level을 직접 덮어쓴다.
+  // ADR-FAC-03 — 계약종료(TERMINATED) 지점의 신규 혼잡도 보정 차단(등록과 동일하게 "신규 활동"으로 취급).
   setManualCongestion(id: string, currentCount: number): MockFacility {
     const facility = this.findFacilityById(id);
     if (!facility) {
       throw new AppException('FACILITY_NOT_FOUND', '시설을 찾을 수 없습니다.', 404);
+    }
+    const branch = this.findBranchById(facility.branchId);
+    if (branch?.contractStatus === 'TERMINATED') {
+      throw new AppException(
+        'BRANCH_TERMINATED',
+        '위탁계약이 종료된 지점의 혼잡도는 보정할 수 없습니다.',
+        409,
+      );
     }
     if (currentCount < 0) {
       throw new AppException('INVALID_CURRENT_COUNT', '현재 인원은 0명 이상이어야 합니다.', 400);

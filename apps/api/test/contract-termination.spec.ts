@@ -55,13 +55,24 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
       expect(res.status).toBe(409);
       expect(res.body.error.code).toBe('BRANCH_TERMINATED');
     });
+    it('시설 신규 등록 (ADR-FAC-03)', async () => {
+      const res = await api(admin).post('/facilities', { name: '신규 시설', type: 'GYM', capacity: 10 });
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('BRANCH_TERMINATED');
+    });
+    it('혼잡도 수동 보정 (ADR-FAC-03)', async () => {
+      const res = await api(admin).post('/facilities/facility-seocho-gym/congestion/manual', { currentCount: 5 });
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('BRANCH_TERMINATED');
+    });
     it('차단된 요청은 데이터를 남기지 않는다', async () => {
       const m = mockData(app);
-      const counts = () => [m.members.length, m.reservations.length, m.posts.length];
+      const counts = () => [m.members.length, m.reservations.length, m.posts.length, m.facilities.length];
       const before = counts();
       await api(admin).post('/members', { name: '신규회원' });
       await api(member).post('/reservations', { scheduleSlotId: slotId });
       await api(admin).post('/posts', { title: 't', content: 'c', category: 'NOTICE' });
+      await api(admin).post('/facilities', { name: '신규 시설', type: 'GYM', capacity: 10 });
       expect(counts()).toEqual(before);
     });
   });
@@ -79,6 +90,18 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
       const res = await api(admin).get('/posts');
       expect(res.status).toBe(200);
       expect(res.body.data.length).toBeGreaterThan(0);
+    });
+    it('시설 목록 조회 (ADR-FAC-03)', async () => {
+      const res = await api(admin).get('/facilities?branchId=branch-seocho');
+      expect(res.status).toBe(200);
+      expect(res.body.data.length).toBeGreaterThan(0);
+    });
+    it('기존 시설 정정(수정)은 "신규 활동"이 아니라 차단하지 않는다 (ADR-FAC-03)', async () => {
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/facilities/facility-seocho-gym')
+        .set('Authorization', admin)
+        .send({ name: '서초점 헬스장(개편)' });
+      expect(res.status).toBe(200);
     });
     it('기존 예약 이력 조회', async () => {
       setSeochoStatus('ACTIVE'); // 예약은 활성 상태에서 만들고
@@ -101,6 +124,14 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
     });
     it('게시글 신규 작성', async () => {
       expect((await api(admin).post('/posts', { title: 't', content: 'c', category: 'NOTICE' })).status).toBe(201);
+    });
+    it('시설 신규 등록 (ADR-FAC-03)', async () => {
+      const res = await api(admin).post('/facilities', { name: '신규 시설', type: 'GYM', capacity: 10 });
+      expect(res.status).toBe(201);
+    });
+    it('혼잡도 수동 보정 (ADR-FAC-03)', async () => {
+      const res = await api(admin).post('/facilities/facility-seocho-gym/congestion/manual', { currentCount: 5 });
+      expect(res.status).toBe(201);
     });
   });
 
