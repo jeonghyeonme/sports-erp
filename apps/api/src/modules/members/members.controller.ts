@@ -10,6 +10,10 @@ import { ok } from '../../common/http/api-response';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdateMemberStatusDto } from './dto/update-member-status.dto';
+import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
+import { CreatePTSessionDto } from './dto/create-pt-session.dto';
+import { UsePTSessionDto } from './dto/use-pt-session.dto';
+import { MockCourseEnrollment, MockPTSession } from '../../mock-data/mock-data.types';
 
 // 05문서 §7 — STAFF는 회원 관리 API 접근 불가(403). MEMBER는 본인 레코드만 GET/PATCH 가능.
 @Controller('members')
@@ -40,13 +44,13 @@ export class MembersController {
     return ok(members.map((m) => this.toListItem(m)));
   }
 
+  // ADR-MEM-03 — 상세 진입 시 무거운 조인 대신 요약 카운트만 포함, 탭 클릭 시 아래 개별 API로 지연 로드.
   @Get(':id')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'MEMBER')
   detail(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     const member = this.findMemberOrThrow(id);
     this.assertReadable(member, user);
-    // 수강내역/예약·결제내역/PT잔여세션 요약은 해당 mock 엔티티가 아직 없어 후속 작업으로 남겨둔다(05문서 §3 참고).
-    return ok(this.toListItem(member));
+    return ok({ ...this.toListItem(member), ...this.mockData.memberSummary(id) });
   }
 
   @Post()
@@ -84,6 +88,70 @@ export class MembersController {
     this.assertWritable(member, user);
     const updated = this.mockData.updateMemberStatus(id, dto.status);
     return ok(this.toListItem(updated));
+  }
+
+  // ADR-MEM-03 — 수강내역 탭. 예약(Reservation)과 별개로 "이 회원이 이 프로그램을 듣고 있다"는 등록 사실.
+  @Get(':id/enrollments')
+  @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'MEMBER')
+  listEnrollments(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    const member = this.findMemberOrThrow(id);
+    this.assertReadable(member, user);
+    return ok(this.mockData.findEnrollmentsByMember(id).map((e) => this.toEnrollmentItem(e)));
+  }
+
+  @Post(':id/enrollments')
+  @Roles('BRANCH_ADMIN')
+  createEnrollment(@Param('id') id: string, @Body() dto: CreateEnrollmentDto, @CurrentUser() user: RequestUser) {
+    const member = this.findMemberOrThrow(id);
+    this.assertWritable(member, user);
+    return ok(this.toEnrollmentItem(this.mockData.createEnrollment(id, dto)));
+  }
+
+  // ADR-MEM-03 — PT 잔여세션 탭. PT_PACKAGE 결제 연동은 범위 제외라 관리자가 구매를 직접 등록한다.
+  @Get(':id/pt-sessions')
+  @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'MEMBER')
+  listPTSessions(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    const member = this.findMemberOrThrow(id);
+    this.assertReadable(member, user);
+    return ok(
+      this.mockData.findPTSessionsByMember(id).map((s) => ({
+        ...this.toPTSessionItem(s),
+        logs: this.mockData.findPTSessionLogs(s.id),
+      })),
+    );
+  }
+
+  @Post(':id/pt-sessions')
+  @Roles('BRANCH_ADMIN')
+  createPTSession(@Param('id') id: string, @Body() dto: CreatePTSessionDto, @CurrentUser() user: RequestUser) {
+    const member = this.findMemberOrThrow(id);
+    this.assertWritable(member, user);
+    return ok(this.toPTSessionItem(this.mockData.createPTSession(id, dto)));
+  }
+
+  @Post(':id/pt-sessions/:sessionId/use')
+  @Roles('BRANCH_ADMIN')
+  usePTSession(
+    @Param('id') id: string,
+    @Param('sessionId') sessionId: string,
+    @Body() dto: UsePTSessionDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    const member = this.findMemberOrThrow(id);
+    this.assertWritable(member, user);
+    const session = this.mockData.findPTSessionById(sessionId);
+    if (!session || session.memberId !== id) {
+      throw new AppException('PT_SESSION_NOT_FOUND', 'PT 세션을 찾을 수 없습니다.', 404);
+    }
+    return ok(this.toPTSessionItem(this.mockData.usePTSession(sessionId, dto.note)));
+  }
+
+  private toEnrollmentItem(enrollment: MockCourseEnrollment) {
+    return { ...enrollment, programName: this.mockData.findProgramById(enrollment.programId)?.name };
+  }
+
+  private toPTSessionItem(session: MockPTSession & { remainingSessions: number }) {
+    return { ...session, programName: this.mockData.findProgramById(session.programId)?.name };
   }
 
   private findMemberOrThrow(id: string): MockMember {

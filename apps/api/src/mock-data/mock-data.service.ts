@@ -15,6 +15,7 @@ import {
   MockDocument,
   MockAttendanceRecord,
   MockBranch,
+  MockCourseEnrollment,
   MockFacility,
   MockInstructor,
   MockLeaveBalance,
@@ -23,6 +24,8 @@ import {
   MockPayment,
   MockPost,
   MockProgram,
+  MockPTSession,
+  MockPTSessionLog,
   MockRefreshToken,
   MockReservation,
   MockScheduleSlot,
@@ -336,6 +339,34 @@ export class MockDataService {
 
   readonly reservations: MockReservation[] = [];
   readonly payments: MockPayment[] = [];
+
+  // ADR-MEM-03 — 서초점 회원 이수진의 데모 수강내역·PT 세션.
+  readonly courseEnrollments: MockCourseEnrollment[] = [
+    {
+      id: 'enrollment-sujin-yoga',
+      memberId: 'member-sujin',
+      programId: 'program-seocho-yoga',
+      enrolledAt: '2026-08-01',
+      status: 'ACTIVE',
+    },
+  ];
+
+  readonly ptSessions: MockPTSession[] = [
+    {
+      id: 'pt-session-sujin',
+      memberId: 'member-sujin',
+      programId: 'program-seocho-pt',
+      totalSessions: 10,
+      usedSessions: 3,
+      purchasedAt: '2026-08-01',
+    },
+  ];
+
+  readonly ptSessionLogs: MockPTSessionLog[] = [
+    { id: 'pt-log-1', ptSessionId: 'pt-session-sujin', usedAt: '2026-08-05T10:00:00.000Z' },
+    { id: 'pt-log-2', ptSessionId: 'pt-session-sujin', usedAt: '2026-08-12T10:00:00.000Z' },
+    { id: 'pt-log-3', ptSessionId: 'pt-session-sujin', usedAt: '2026-08-19T10:00:00.000Z' },
+  ];
 
   // 1-10문서 §4 — 서초점 데모 자산. 러닝머신은 100만원 초과라 FIXED_ASSET, 소독제는 CONSUMABLE.
   readonly assets: MockAsset[] = [
@@ -718,6 +749,130 @@ export class MockDataService {
 
   findProgramById(id: string): MockProgram | undefined {
     return this.programs.find((p) => p.id === id);
+  }
+
+  // ADR-MEM-03 — assertStaffInBranch·assertInstructorInBranch·assertFacilityInBranch와 동일 패턴.
+  private assertProgramInBranch(programId: string, branchId: string): MockProgram {
+    const program = this.findProgramById(programId);
+    if (!program || program.branchId !== branchId) {
+      throw new AppException(
+        'PROGRAM_BRANCH_MISMATCH',
+        '프로그램은 회원과 같은 지점 소속이어야 합니다.',
+        400,
+      );
+    }
+    return program;
+  }
+
+  // ADR-MEM-03 — 다른 도메인(회원·게시글·예약·시설·자산·문서)과 동일한 계약종료 지점 신규활동 차단.
+  private assertBranchNotTerminatedForMember(memberId: string): MockMember {
+    const member = this.findMemberById(memberId);
+    if (!member) {
+      throw new AppException('MEMBER_NOT_FOUND', '회원을 찾을 수 없습니다.', 404);
+    }
+    const branch = this.findBranchById(member.branchId);
+    if (branch?.contractStatus === 'TERMINATED') {
+      throw new AppException(
+        'BRANCH_TERMINATED',
+        '위탁계약이 종료된 지점에는 신규 수강·PT 세션을 등록할 수 없습니다.',
+        409,
+      );
+    }
+    return member;
+  }
+
+  findEnrollmentsByMember(memberId: string): MockCourseEnrollment[] {
+    return this.courseEnrollments.filter((e) => e.memberId === memberId);
+  }
+
+  // ADR-MEM-03 — 05문서 §5 POST /members/:id/enrollments. 권한·지점 강제는 컨트롤러에서 한다.
+  createEnrollment(
+    memberId: string,
+    input: { programId: string; enrolledAt: string; expiresAt?: string },
+  ): MockCourseEnrollment {
+    const member = this.assertBranchNotTerminatedForMember(memberId);
+    this.assertProgramInBranch(input.programId, member.branchId);
+    const enrollment: MockCourseEnrollment = {
+      id: `enrollment-${randomUUID()}`,
+      memberId,
+      programId: input.programId,
+      enrolledAt: input.enrolledAt,
+      expiresAt: input.expiresAt,
+      status: 'ACTIVE',
+    };
+    this.courseEnrollments.push(enrollment);
+    return enrollment;
+  }
+
+  findPTSessionsByMember(memberId: string): Array<MockPTSession & { remainingSessions: number }> {
+    return this.ptSessions
+      .filter((s) => s.memberId === memberId)
+      .map((s) => ({ ...s, remainingSessions: s.totalSessions - s.usedSessions }));
+  }
+
+  findPTSessionById(id: string): MockPTSession | undefined {
+    return this.ptSessions.find((s) => s.id === id);
+  }
+
+  findPTSessionLogs(ptSessionId: string): MockPTSessionLog[] {
+    return this.ptSessionLogs.filter((l) => l.ptSessionId === ptSessionId);
+  }
+
+  // ADR-MEM-03 — 05문서 §5 POST /members/:id/pt-sessions. PT_PACKAGE 결제 연동은 범위 제외라
+  // 관리자가 구매 사실을 직접 등록한다(06문서 §3 MockPayment 주석과 동일한 범위 제외 판단).
+  createPTSession(
+    memberId: string,
+    input: { programId: string; totalSessions: number; purchasedAt: string },
+  ): MockPTSession & { remainingSessions: number } {
+    const member = this.assertBranchNotTerminatedForMember(memberId);
+    this.assertProgramInBranch(input.programId, member.branchId);
+    const session: MockPTSession = {
+      id: `pt-session-${randomUUID()}`,
+      memberId,
+      programId: input.programId,
+      totalSessions: input.totalSessions,
+      usedSessions: 0,
+      purchasedAt: input.purchasedAt,
+    };
+    this.ptSessions.push(session);
+    return { ...session, remainingSessions: session.totalSessions };
+  }
+
+  // ADR-MEM-03 — 05문서 §5 POST /members/:id/pt-sessions/:sessionId/use. 잔여세션 사용(차감)은
+  // 계약종료 차단 대상이 아니다(이미 구매한 세션을 소진하는 것은 신규 활동이 아니라 기존 계약의 이행).
+  usePTSession(id: string, note?: string): MockPTSession & { remainingSessions: number } {
+    const session = this.findPTSessionById(id);
+    if (!session) {
+      throw new AppException('PT_SESSION_NOT_FOUND', 'PT 세션을 찾을 수 없습니다.', 404);
+    }
+    if (session.usedSessions >= session.totalSessions) {
+      throw new AppException('PT_SESSION_EXHAUSTED', '남은 세션이 없습니다.', 409);
+    }
+    session.usedSessions += 1;
+    this.ptSessionLogs.push({
+      id: `pt-log-${randomUUID()}`,
+      ptSessionId: id,
+      usedAt: new Date().toISOString(),
+      note,
+    });
+    return { ...session, remainingSessions: session.totalSessions - session.usedSessions };
+  }
+
+  // ADR-MEM-03 — GET /members/:id 응답에 포함할 요약 필드. "수강중 N건"은 status=ACTIVE만 센다
+  // (완료·취소된 수강은 회원 상세 진입 즉시 보여줄 정보가 아니라 탭에서 조회).
+  memberSummary(memberId: string): { enrollmentCount: number; ptRemainingTotal: number; lastPaymentAt?: string } {
+    const enrollmentCount = this.courseEnrollments.filter(
+      (e) => e.memberId === memberId && e.status === 'ACTIVE',
+    ).length;
+    const ptRemainingTotal = this.ptSessions
+      .filter((s) => s.memberId === memberId)
+      .reduce((sum, s) => sum + (s.totalSessions - s.usedSessions), 0);
+    const approvedDates = this.payments
+      .filter((p) => p.memberId === memberId && p.approvedAt)
+      .map((p) => p.approvedAt!)
+      .sort();
+    const lastPaymentAt = approvedDates[approvedDates.length - 1];
+    return { enrollmentCount, ptRemainingTotal, lastPaymentAt };
   }
 
   // 07문서 §5 PATCH /programs/:id/status, §3-2 전이표. 표에 없는 전이(자기 자신 포함)는 409.

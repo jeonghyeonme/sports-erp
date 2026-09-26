@@ -148,6 +148,37 @@ export interface MockMember {
   memo?: string; // 관리자 메모(특이사항). 05문서 §3
 }
 
+// ADR-MEM-03 — 수강내역. 예약(Reservation)과 별개로 "이 회원이 이 프로그램을 듣고 있다"는 사실 자체를
+// 관리자가 직접 기록한다(예약은 회차 단위, 수강은 프로그램 단위의 등록 상태).
+export type CourseEnrollmentStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+export interface MockCourseEnrollment {
+  id: string;
+  memberId: string;
+  programId: string;
+  enrolledAt: string;
+  expiresAt?: string;
+  status: CourseEnrollmentStatus;
+}
+
+// ADR-MEM-03 — PT 패키지 구매 단위. PT_PACKAGE 결제 연동은 범위 제외(06문서 §3 MockPayment 주석)라
+// 관리자가 구매 사실을 직접 등록하고, 세션 사용은 별도 액션(usePTSession)으로 차감한다.
+// remainingSessions는 저장하지 않고 조회 시 totalSessions - usedSessions로 계산한다.
+export interface MockPTSession {
+  id: string;
+  memberId: string;
+  programId: string;
+  totalSessions: number;
+  usedSessions: number;
+  purchasedAt: string;
+}
+
+export interface MockPTSessionLog {
+  id: string;
+  ptSessionId: string;
+  usedAt: string;
+  note?: string;
+}
+
 // 07문서 §3 Instructor — 2026-09-18까지는 Program.instructorName 문자열 비정규화로 대체돼 있었으나
 // (당시엔 "존재하지 않는 엔티티를 가리키는 매달린 FK를 만들지 않기 위한 의도적 단순화"), 이제 엔티티가
 // 생겼으므로 Program은 이 엔티티를 instructorId(FK)로 가리킨다.

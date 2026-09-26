@@ -54,6 +54,40 @@ export interface MemberRow {
   memo?: string;
   status: 'ACTIVE' | 'DORMANT' | 'WITHDRAWN';
   joinedAt: string;
+  // ADR-MEM-03 — GET /members/:id 응답에만 포함되는 요약 필드(목록 조회에는 없음).
+  enrollmentCount?: number;
+  ptRemainingTotal?: number;
+  lastPaymentAt?: string;
+}
+
+export type CourseEnrollmentStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+export interface CourseEnrollmentRow {
+  id: string;
+  memberId: string;
+  programId: string;
+  programName?: string;
+  enrolledAt: string;
+  expiresAt?: string;
+  status: CourseEnrollmentStatus;
+}
+
+export interface PTSessionLogRow {
+  id: string;
+  ptSessionId: string;
+  usedAt: string;
+  note?: string;
+}
+
+export interface PTSessionRow {
+  id: string;
+  memberId: string;
+  programId: string;
+  programName?: string;
+  totalSessions: number;
+  usedSessions: number;
+  remainingSessions: number;
+  purchasedAt: string;
+  logs: PTSessionLogRow[];
 }
 
 export interface PermissionStaffRow {
