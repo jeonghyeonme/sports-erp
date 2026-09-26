@@ -1,6 +1,8 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { RequestUser } from '../interfaces/request-user.interface';
 import { AppException } from '../exceptions/app.exception';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 /**
  * 01문서 §3.3의 BranchScopeGuard.
@@ -12,7 +14,17 @@ import { AppException } from '../exceptions/app.exception';
  */
 @Injectable()
 export class BranchScopeGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
   canActivate(context: ExecutionContext): boolean {
+    // ADR-MEM-01 — @Public() 라우트(/members/link)는 인증 자체가 없어 user가 없다.
+    // JwtAuthGuard와 동일한 방식으로 여기서도 건너뛰어야 "무조건 403"이 되지 않는다.
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+
     const request = context.switchToHttp().getRequest();
     const user: RequestUser | undefined = request.user;
     if (!user) return false;

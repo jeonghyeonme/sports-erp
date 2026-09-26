@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
 import { MockDataService } from '../../mock-data/mock-data.service';
+import { MockAccount } from '../../mock-data/mock-data.types';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { AppException } from '../../common/exceptions/app.exception';
 import { AccessTokenPayload, RefreshTokenPayload } from './types/jwt-payload.interface';
@@ -37,6 +38,12 @@ export class AuthService {
       throw new AppException('ACCOUNT_INACTIVE', '비활성화된 계정입니다. 관리자에게 문의하세요.', 401);
     }
 
+    return this.issueSession(account);
+  }
+
+  // ADR-MEM-01 — /members/link가 연동 직후 바로 로그인시킬 때도 이 발급 로직을 그대로 재사용한다
+  // (토큰 서명 방식이 로그인과 달라지면 안 되므로 별도 구현을 만들지 않음).
+  issueSession(account: MockAccount): { accessToken: string; refreshToken: string; user: RequestUser } {
     const user = this.mockData.toRequestUser(account);
     const accessToken = this.signAccessToken(account.id);
     const refreshToken = this.issueRefreshToken(account.id);

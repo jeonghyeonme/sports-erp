@@ -1,5 +1,7 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
@@ -13,13 +15,34 @@ import { UpdateMemberStatusDto } from './dto/update-member-status.dto';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { CreatePTSessionDto } from './dto/create-pt-session.dto';
 import { UsePTSessionDto } from './dto/use-pt-session.dto';
+import { LinkMemberDto } from './dto/link-member.dto';
 import { MockCourseEnrollment, MockPTSession } from '../../mock-data/mock-data.types';
+import { AuthService } from '../auth/auth.service';
 
 // 05문서 §7 — STAFF는 회원 관리 API 접근 불가(403). MEMBER는 본인 레코드만 GET/PATCH 가능.
 @Controller('members')
 @UseGuards(BranchScopeGuard)
 export class MembersController {
-  constructor(private readonly mockData: MockDataService) {}
+  constructor(
+    private readonly mockData: MockDataService,
+    private readonly authService: AuthService,
+  ) {}
+
+  // ADR-MEM-01 — 오프라인 등록 회원이 회원번호+전화번호로 본인을 증명하고 앱 계정을 새로 연동한다.
+  // 인증이 없는 공개 라우트라 컨트롤러 어디보다도 먼저 둔다(다른 :id 라우트와 매칭 순서가 안 겹치도록).
+  @Public()
+  @HttpCode(HttpStatus.CREATED)
+  @Post('link')
+  async link(@Body() dto: LinkMemberDto) {
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const account = this.mockData.linkMemberAccount({
+      memberNo: dto.memberNo,
+      phone: dto.phone,
+      email: dto.email,
+      passwordHash,
+    });
+    return ok(this.authService.issueSession(account));
+  }
 
   @Get()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')

@@ -747,6 +747,78 @@ export class MockDataService {
     return member;
   }
 
+  // ADR-MEM-01 — 회원번호+전화번호 브루트포스 방어용 시간당 5회 실패 제한.
+  // memberNo(공격 대상) 기준으로 추적한다 — 회원번호는 이미 알고 있다고 가정하고(순차값이라 추측 가능),
+  // 전화번호를 맞히려는 시도를 늦추는 게 목적이라 대상 회원번호별로 창을 둔다.
+  private readonly linkFailuresByMemberNo = new Map<string, number[]>();
+  private static readonly LINK_MAX_ATTEMPTS_PER_HOUR = 5;
+  private static readonly LINK_WINDOW_MS = 60 * 60 * 1000;
+
+  private isLinkRateLimited(memberNo: string): boolean {
+    const attempts = this.linkFailuresByMemberNo.get(memberNo) ?? [];
+    const windowStart = Date.now() - MockDataService.LINK_WINDOW_MS;
+    const recent = attempts.filter((t) => t > windowStart);
+    this.linkFailuresByMemberNo.set(memberNo, recent);
+    return recent.length >= MockDataService.LINK_MAX_ATTEMPTS_PER_HOUR;
+  }
+
+  private recordLinkFailure(memberNo: string): void {
+    const attempts = this.linkFailuresByMemberNo.get(memberNo) ?? [];
+    attempts.push(Date.now());
+    this.linkFailuresByMemberNo.set(memberNo, attempts);
+  }
+
+  // ADR-MEM-01 — 오프라인 등록 회원이 회원번호+전화번호로 본인을 증명하고 앱 계정을 새로 만들어 연동한다.
+  // 비밀번호 해시는 컨트롤러(AuthService와 같은 bcrypt 규칙)에서 만들어 넘겨받는다 — 이 서비스는
+  // 대체로 동기 메서드라 bcrypt.hash(비동기)를 여기서 직접 하지 않는다(changePassword와 동일한 분리).
+  linkMemberAccount(input: {
+    memberNo: string;
+    phone: string;
+    email: string;
+    passwordHash: string;
+  }): MockAccount {
+    if (this.isLinkRateLimited(input.memberNo)) {
+      throw new AppException(
+        'LINK_ATTEMPTS_EXCEEDED',
+        '연동 시도 횟수를 초과했습니다. 1시간 후 다시 시도하세요.',
+        429,
+      );
+    }
+
+    // 회원번호 불일치·전화번호 불일치·이미 탈퇴한 회원을 전부 같은 메시지로 묶는다 —
+    // "회원번호는 맞는데 전화번호가 틀렸다" 같은 부분 정보를 공격자에게 주지 않기 위함(§8 질문1).
+    const member = this.members.find(
+      (m) => m.memberNo === input.memberNo && m.phone === input.phone && m.status !== 'WITHDRAWN',
+    );
+    if (!member) {
+      this.recordLinkFailure(input.memberNo);
+      throw new AppException(
+        'MEMBER_LINK_MISMATCH',
+        '회원번호 또는 전화번호가 일치하지 않습니다.',
+        400,
+      );
+    }
+    if (member.accountId) {
+      throw new AppException('MEMBER_ALREADY_LINKED', '이미 앱 계정과 연동된 회원입니다.', 409);
+    }
+    if (this.findAccountByEmail(input.email)) {
+      throw new AppException('EMAIL_ALREADY_EXISTS', '이미 사용 중인 이메일입니다.', 409);
+    }
+
+    const account: MockAccount = {
+      id: `account-${randomUUID()}`,
+      email: input.email,
+      passwordHash: input.passwordHash,
+      role: 'MEMBER',
+      name: member.name,
+      branchId: member.branchId,
+      memberId: member.id,
+    };
+    this.accounts.push(account);
+    member.accountId = account.id;
+    return account;
+  }
+
   findProgramById(id: string): MockProgram | undefined {
     return this.programs.find((p) => p.id === id);
   }

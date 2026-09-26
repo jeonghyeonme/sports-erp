@@ -15,5 +15,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
+  // ADR-MEM-01 — /members/link가 연동 직후 바로 로그인시키려고 AuthService.issueSession()을 재사용한다.
+  exports: [AuthService],
 })
 export class AuthModule {}
