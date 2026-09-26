@@ -768,6 +768,14 @@ export class MockDataService {
     this.linkFailuresByMemberNo.set(memberNo, attempts);
   }
 
+  // ADR-MEM-02 — 탈퇴 회원 이메일은 부분 unique(활성 계정끼리만 유일)다. MockDataService는 배열이라
+  // 실제 부분 unique 인덱스가 없어 "isActive가 아닌 계정은 유일성 검사에서 제외"로 앱 레벨에서 흉내낸다.
+  // findAccountByEmail()은 활성 여부와 무관하게 첫 매치를 돌려주므로(로그인 등에서 그대로 필요),
+  // 이메일 재사용 가능 여부 판단에는 이 메서드를 따로 쓴다.
+  private isEmailTakenByActiveAccount(email: string): boolean {
+    return this.accounts.some((a) => a.email === email && a.isActive !== false);
+  }
+
   // ADR-MEM-01 — 오프라인 등록 회원이 회원번호+전화번호로 본인을 증명하고 앱 계정을 새로 만들어 연동한다.
   // 비밀번호 해시는 컨트롤러(AuthService와 같은 bcrypt 규칙)에서 만들어 넘겨받는다 — 이 서비스는
   // 대체로 동기 메서드라 bcrypt.hash(비동기)를 여기서 직접 하지 않는다(changePassword와 동일한 분리).
@@ -801,7 +809,7 @@ export class MockDataService {
     if (member.accountId) {
       throw new AppException('MEMBER_ALREADY_LINKED', '이미 앱 계정과 연동된 회원입니다.', 409);
     }
-    if (this.findAccountByEmail(input.email)) {
+    if (this.isEmailTakenByActiveAccount(input.email)) {
       throw new AppException('EMAIL_ALREADY_EXISTS', '이미 사용 중인 이메일입니다.', 409);
     }
 
@@ -817,6 +825,45 @@ export class MockDataService {
     this.accounts.push(account);
     member.accountId = account.id;
     return account;
+  }
+
+  // ADR-MEM-02 — 앱 회원가입. Account+Member를 동시에 만든다. 이메일 중복은 createMember(계약종료·
+  // 미성년 동의) 검증보다 먼저 확인한다 — 여기서 실패하면 Member 배열에 아무것도 남기지 않아야
+  // 하기 때문(트랜잭션이 없는 인메모리 배열이라 "먼저 실패할 수 있는 걸 먼저 검사"로 롤백을 대신한다).
+  registerMember(input: {
+    branchId: string;
+    name: string;
+    email: string;
+    passwordHash: string;
+    phone?: string;
+    birthDate?: string;
+    gender?: string;
+    guardianConsent?: boolean;
+  }): { member: MockMember; account: MockAccount; warnings: string[] } {
+    if (this.isEmailTakenByActiveAccount(input.email)) {
+      throw new AppException('EMAIL_ALREADY_EXISTS', '이미 사용 중인 이메일입니다.', 409);
+    }
+
+    const { member, warnings } = this.createMember(input.branchId, {
+      name: input.name,
+      phone: input.phone,
+      birthDate: input.birthDate,
+      gender: input.gender,
+      guardianConsent: input.guardianConsent,
+    });
+
+    const account: MockAccount = {
+      id: `account-${randomUUID()}`,
+      email: input.email,
+      passwordHash: input.passwordHash,
+      role: 'MEMBER',
+      name: input.name,
+      branchId: input.branchId,
+      memberId: member.id,
+    };
+    this.accounts.push(account);
+    member.accountId = account.id;
+    return { member, account, warnings };
   }
 
   findProgramById(id: string): MockProgram | undefined {

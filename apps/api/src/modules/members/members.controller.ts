@@ -16,6 +16,7 @@ import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { CreatePTSessionDto } from './dto/create-pt-session.dto';
 import { UsePTSessionDto } from './dto/use-pt-session.dto';
 import { LinkMemberDto } from './dto/link-member.dto';
+import { RegisterMemberDto } from './dto/register-member.dto';
 import { MockCourseEnrollment, MockPTSession } from '../../mock-data/mock-data.types';
 import { AuthService } from '../auth/auth.service';
 
@@ -42,6 +43,28 @@ export class MembersController {
       passwordHash,
     });
     return ok(this.authService.issueSession(account));
+  }
+
+  // ADR-MEM-02 — 앱 회원가입. Account+Member를 동시에 만들고 바로 로그인시킨다(§9 사용자 스토리).
+  @Public()
+  @HttpCode(HttpStatus.CREATED)
+  @Post('register')
+  async register(@Body() dto: RegisterMemberDto) {
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const { member, account, warnings } = this.mockData.registerMember({
+      branchId: dto.branchId,
+      name: dto.name,
+      email: dto.email,
+      passwordHash,
+      phone: dto.phone,
+      birthDate: dto.birthDate,
+      gender: dto.gender,
+      guardianConsent: dto.guardianConsent,
+    });
+    return ok(
+      { ...this.authService.issueSession(account), member: this.toListItem(member) },
+      warnings.length ? { warnings } : undefined,
+    );
   }
 
   @Get()
