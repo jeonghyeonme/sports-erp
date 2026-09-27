@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sports-erp-api-gateway",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-27",
+  // 커스텀 도메인 없이 <name>.<계정 서브도메인>.workers.dev 로 바로 배포된다(D24 참고).
+  "vars": {
+    "API_ORIGIN": "https://sports-erp-api.onrender.com"
+  },
+  // Workers Rate Limiting(2025-09-19 GA). simple: 지정한 period(초) 동안 limit회 초과 시 거부.
+  "unsafe": {
+    "bindings": [
+      {
+        "name": "LOGIN_RATE_LIMITER",
+        "type": "ratelimit",
+        "namespace_id": "1001",
+        "simple": { "limit": 10, "period": 60 }
+      }
+    ]
+  }
+}
