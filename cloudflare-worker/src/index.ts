@@ -1,9 +1,14 @@
 // D24 1.5단계 — Cloudflare Worker를 api 앞단 엣지 프록시로 세운다.
 // 목적: Render 무료 티어의 스로틀링된 CPU에 요청이 닿기 *전에*, bcrypt가 걸리는
 // 경로(로그인/회원가입/연동)만 골라 엣지에서 rate limit을 건다.
-// 나머지 경로는 그대로 통과시켜 Render api(origin)로 프록시한다.
+// 나머지 /api/* 경로는 그대로 통과시켜 Render api(origin)로 프록시한다.
 // 근거: docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md D24,
 //       docs/process/06_진행_로그.md §31~32.
+//
+// D25 — admin-web(UI)은 wrangler.jsonc의 assets.run_worker_first가 "/api/*"로
+// 한정돼 있어 이 스크립트를 거치지 않고 정적 자산 계층에서 바로 서빙된다.
+// 그래서 이 파일은 여전히 /api/* 요청만 다루면 된다 — UI 폴백(env.ASSETS.fetch)을
+// 따로 구현할 필요가 없다(Cloudflare 라우팅 계층이 이미 처리).
 
 export interface Env {
   // Render api 원본 주소. wrangler.jsonc의 vars에서 주입.

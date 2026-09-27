@@ -1,18 +1,27 @@
-# api 게이트웨이 (Cloudflare Worker)
+# api 게이트웨이 + admin-web 정적 자산 (Cloudflare Worker)
 
-D24(`docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md`) 1.5단계 — 도메인 없이 `*.workers.dev`로 Render api 앞에 엣지 프록시를 세워, 로그인·회원가입·연동 경로만 Cloudflare Rate Limiting으로 막는다. 나머지 경로는 그대로 Render로 흘려보낸다.
+D24(`docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md`) 1.5단계 — 도메인 없이 `*.workers.dev`로 Render api 앞에 엣지 프록시를 세워, 로그인·회원가입·연동 경로만 Cloudflare Rate Limiting으로 막는다. 나머지 `/api/*` 경로는 그대로 Render로 흘려보낸다.
+
+**D25(2026-09-27)로 admin-web(UI)도 이 Worker의 정적 자산으로 흡수됐다** — Render의 `sports-erp-web` Static Site는 더 이상 쓰지 않는다. `wrangler.jsonc`의 `assets.run_worker_first`가 `/api/*`로만 한정돼 있어서, UI 요청은 `src/index.ts`를 거치지 않고 Cloudflare가 바로 정적 자산으로 서빙하고, `not_found_handling: single-page-application`이 새로고침 시 `index.html` 폴백을 보장한다. 결과적으로 UI와 API가 같은 오리진이 되어 CORS 자체가 성립하지 않는다.
 
 ## 배포 전 확인
 
 - **이 세션(Claude)은 실행할 수 없다** — 조직 egress 정책이 `api.cloudflare.com`/`workers.dev`를 막고 있다(`loadtest/README.md`와 같은 제약). 로컬 등 제약 없는 환경에서 실행할 것.
 - Cloudflare 계정이 필요하다(무료로 충분 — 커스텀 도메인 불필요).
+- **먼저 admin-web을 빌드해야 한다** — `wrangler.jsonc`의 `assets.directory`가 `../apps/admin-web/dist`를 가리킨다. 빌드 결과물이 없으면 `wrangler deploy`가 빈 자산으로 배포되거나 실패한다.
 
 ## 배포
 
 ```bash
+# 1) 리포 루트에서 admin-web 빌드 (VITE_API_BASE_URL을 지정하지 않으면 상대경로 /api/v1로
+#    폴백하므로, 같은 오리진(이 Worker)에서 서빙될 때만 그대로 두면 된다)
+npm install
+npm run build --workspace=apps/admin-web
+
+# 2) Worker 배포
 cd cloudflare-worker
 npm install
-npx wrangler login       # 브라우저가 열리고 Cloudflare 로그인 요청
+npx wrangler login       # 처음 한 번만 — 브라우저가 열리고 Cloudflare 로그인 요청
 npx wrangler deploy
 ```
 
@@ -24,7 +33,9 @@ Deployed sports-erp-api-gateway triggers (X.XX sec)
   https://sports-erp-api-gateway.<계정서브도메인>.workers.dev
 ```
 
-**이 URL을 그대로 복사해서 붙여주세요** — admin-web의 `VITE_API_BASE_URL`을 이 주소로 바꿔서 재배포하겠습니다(Render에서 제가 바로 처리 가능).
+이미 배포됐던 것과 같은 URL(`https://sports-erp-api-gateway.01-beauty-minimal.workers.dev`)이 그대로 유지된다(Worker 이름을 바꾸지 않았음). **이 URL을 열어서 admin-web 화면이 뜨는지, 로그인이 되는지, 아무 화면에서나 새로고침해도 404가 안 나는지 확인해서 알려주세요.**
+
+admin-web을 코드 변경 후 다시 배포하려면 위 두 단계(빌드 → `wrangler deploy`)를 반복해야 한다 — Render처럼 git push만으로 자동 재배포되지 않는다(Cloudflare Workers Builds로 git 연동하면 되지만 아직 설정 안 함, 필요해지면 별도로 검토).
 
 ## 동작 확인(선택)
 

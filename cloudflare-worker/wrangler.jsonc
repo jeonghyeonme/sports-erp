@@ -7,6 +7,17 @@
   "vars": {
     "API_ORIGIN": "https://sports-erp-api.onrender.com"
   },
+  // D25 — admin-web(Render Static Site)을 이 Worker의 정적 자산으로 흡수한다.
+  // run_worker_first를 /api/*로만 한정해서, UI 요청(/,/members 등)은 index.ts를 아예
+  // 거치지 않고 바로 정적 자산 계층에서 처리된다 — UI와 API가 같은 오리진이 되어
+  // CORS가 아예 성립하지 않게 된다. not_found_handling=SPA로 새로고침 404도 해결
+  // (Render의 _redirects는 동작이 미검증 상태였음, D23 참고).
+  "assets": {
+    "directory": "../apps/admin-web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
   // Workers Rate Limiting(2025-09-19 GA). simple: 지정한 period(초) 동안 limit회 초과 시 거부.
   "unsafe": {
     "bindings": [
