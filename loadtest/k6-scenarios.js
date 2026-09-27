@@ -85,9 +85,19 @@ export function loginScenario() {
     { headers: { 'Content-Type': 'application/json' } },
   );
   loginDuration.add(res.timings.duration);
+  // 부하가 심하면 TCP 연결 자체가 끊겨 body가 비거나 null로 온다 — 그 상태에서
+  // r.json()을 부르면 체크가 실패(false)하는 게 아니라 예외를 던져 VU가 죽는다.
+  // 2026-09-27 첫 실측(Render 무료 티어)에서 실제로 겪은 문제라 가드를 추가했다.
   const ok = check(res, {
     '로그인 200': (r) => r.status === 200,
-    '토큰 발급됨': (r) => !!r.json('data.accessToken'),
+    '토큰 발급됨': (r) => {
+      if (!r.body) return false;
+      try {
+        return !!r.json('data.accessToken');
+      } catch {
+        return false;
+      }
+    },
   });
   if (!ok) loginErrors.add(1);
   sleep(1);
