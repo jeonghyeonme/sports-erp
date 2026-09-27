@@ -1,9 +1,12 @@
 import axios from 'axios';
 
-// 로컬 개발은 .env의 VITE_API_BASE_URL(http://localhost:3000/api/v1)이 우선 적용된다.
-// 프로덕션 빌드는 값을 비워 상대경로 폴백을 쓴다 — admin-web이 Cloudflare Worker의
-// 정적 자산으로 서빙되고 /api/*는 같은 Worker가 처리하므로(D25) UI와 API가 동일
-// 오리진이라 상대경로만으로 충분하고, 이러면 CORS가 아예 성립하지 않는다.
+// 로컬 개발(vite dev)은 .env.development의 VITE_API_BASE_URL이 적용된다.
+// 프로덕션 빌드(vite build)는 값이 없어 상대경로 폴백을 쓴다 — admin-web이 Cloudflare
+// Worker의 정적 자산으로 서빙되고 /api/*는 같은 Worker가 처리하므로(D25) UI와 API가
+// 동일 오리진이라 상대경로만으로 충분하고, 이러면 CORS가 아예 성립하지 않는다.
+// 주의: 파일명이 반드시 .env.development(모드 한정)여야 한다 — 그냥 .env는 Vite가
+// dev/build/preview 전 모드에서 똑같이 읽어서, 프로덕션 빌드에도 로컬 URL이 그대로
+// 박혀버린다(D25 배포 후 실제로 겪은 버그 — 진행 로그 §36 참고).
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
 });
