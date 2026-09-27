@@ -4,12 +4,17 @@ services:
     runtime: node
     plan: free
     region: singapore
-    buildCommand: npm install && npm run build --workspace=apps/api
+    branch: main-5x9td9
+    # NPM_CONFIG_PRODUCTION=false가 없으면 npm install이 devDependencies(@nestjs/cli)를
+    # 건너뛰어 `nest: not found`로 빌드가 실패한다(2026-09-27 실제로 겪은 문제).
+    buildCommand: npm install && npm run prisma:generate --workspace=apps/api && npm run build --workspace=apps/api
     startCommand: npm run start:prod --workspace=apps/api
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_VERSION
         value: 20
+      - key: NPM_CONFIG_PRODUCTION
+        value: false
       - key: JWT_ACCESS_SECRET
         sync: false
       - key: JWT_ACCESS_EXPIRES_IN
@@ -18,5 +23,16 @@ services:
         sync: false
       - key: JWT_REFRESH_EXPIRES_IN
         value: 14d
-      - key: DATABASE_URL
-        sync: false
+      # apps/api는 아직 MockDataService로 동작 — DATABASE_URL을 읽지 않는다(docs/process/06_진행_로그.md §29).
+      # 실DB 전환 전까지는 설정할 필요 없음.
+
+  - type: web
+    name: sports-erp-web
+    runtime: static
+    branch: main-5x9td9
+    buildCommand: npm install && npm run build --workspace=apps/admin-web
+    staticPublishPath: apps/admin-web/dist
+    envVars:
+      # sports-erp-api 서비스가 먼저 만들어져 URL이 확정된 뒤에 이 값을 채워야 한다(Vite는 빌드 타임에 굳힘).
+      - key: VITE_API_BASE_URL
+        value: https://sports-erp-api.onrender.com/api/v1
