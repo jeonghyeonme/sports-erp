@@ -61,8 +61,8 @@ const table = (size, colsPct, headers, rows) =>
   `<table style="font-size:${size}px; color:${INK}; font-family:${BODY}"><tr>${headers.map((h, i) => `<th style="width:${colsPct[i]}%; text-align:left; color:${SOFT}">${h}</th>`).join('')}</tr>${rows.map((r) => `<tr style="background:${SURFACE}">${r.join('')}</tr>`).join('')}</table>`;
 
 const ph = (id, name, w, status, kind) => {
-  const bg = kind === 'done' ? GREEN_SOFT : kind === 'part' ? AMBER_SOFT : GRAY_SOFT;
-  const c = kind === 'done' ? GREEN : kind === 'part' ? AMBER : GRAY;
+  const bg = kind === 'done' ? GREEN_SOFT : kind === 'part' ? AMBER_SOFT : kind === 'plan' ? NAVY_SOFT : GRAY_SOFT;
+  const c = kind === 'done' ? GREEN : kind === 'part' ? AMBER : kind === 'plan' ? NAVY : GRAY;
   return `<div style="flex:${w}; display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:22px 14px; background:${bg}; border:1px solid ${c}; border-radius:14px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${c}">${id}</p><p style="font-size:28px; font-weight:700; line-height:1.3; color:${INK}">${name}</p><div style="flex:1"></div><p style="font-family:${MONO}; font-size:24px; font-weight:600; color:${c}; background:${SURFACE}; border-radius:999px; padding:2px 12px">${status}</p></div>`;
 };
 
@@ -175,8 +175,8 @@ section('edge-fix', { notes: '1단계 즉시 대응(D24 1단계, 완료). Rate l
     flowBox('Cloudflare Worker', '엣지에서 과도한 요청을 먼저 차단', 'navy') + bigArrow +
     flowBox('Render api', 'CPU에 닿기도 전에 걸러진 뒤라 안전', 'green') +
     `</div>`) +
-  `<div style="display:flex">${pill('완료 — D24 1단계', GREEN_SOFT, GREEN)}</div>` +
-  foot('앱 레벨 rate limit보다 나은 이유 — 요청이 Render CPU를 조금이라도 쓰기 전에 걸러진다'));
+  `<div style="display:flex; gap:16px">${pill('배포 완료 — D24 1단계', GREEN_SOFT, GREEN)}${pill('근본 해결은 아님', AMBER_SOFT, AMBER)}</div>` +
+  foot('악의적/과도한 요청은 막지만, 정상적인 동시 접속 폭주(예: 퇴근 후 동시 로그인)는 여전히 그대로 느립니다'));
 
 // ── 11 오리진 통합 ────────────────────────────────────────────────────────
 section('origin-fix', { notes: 'D24 배포 직후 로그인 실패·새로고침 404가 났다. 원인은 admin-web(Render)과 api 게이트웨이(Cloudflare Worker)가 서로 다른 주소(오리진)가 된 것. 각 버그를 따로 땜질하는 대신, admin-web을 아예 같은 Worker의 정적 자산으로 통합해 오리진 분리 자체를 없앴다(D25). 이 과정에서 실제로 겪은 두 개별 버그(_redirects 무한루프, .env 프로덕션 오염)는 Q&A로만 다룬다.' },
@@ -203,17 +203,17 @@ section('migration', { notes: 'D26. 왜 인증 모듈부터인가 — 모든 요
   head('Part C · 근본 해결 방향', '가장 위험한 경로부터 옮기기 시작했습니다') +
   fill(card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">D26 · MockDataService → PostgreSQL(Prisma) 전환 1단계</p><p style="font-size:32px; font-weight:600; line-height:1.5; color:${INK}">인증 모듈(로그인·토큰갱신·비밀번호변경)부터 실제 Postgres 위에서 검증했습니다 — 모든 요청이 거쳐가는 가장 위험한 경로이기 때문입니다.</p>`) +
     `<div style="height:20px"></div>` +
-    sbullets(['실제 Postgres 위에서 로그인·토큰갱신·비밀번호변경을 직접 확인', '아직 mock인 도메인이 깨지지 않도록 안전한 전환 경로로 설계', '남은 도메인은 16개 중 15개 — 같은 도메인 사이클 방식으로 하나씩'])) +
+    sbullets(['실제 Postgres 위에서 로그인·토큰갱신·비밀번호변경을 직접 확인', '아직 mock인 도메인이 깨지지 않도록 안전한 전환 경로로 설계', '남은 도메인은 16개 중 15개 — 같은 도메인 사이클 방식으로 하나씩', '이관이 끝나면 API를 Lambda 호출 구조로 옮길 계획 — DB(Supabase)는 그대로 유지'])) +
   foot('2026-09-28 · docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md D26'));
 
 // ── 14 로드맵 ─────────────────────────────────────────────────────────────
-section('roadmap', { notes: '3단계 로드맵. 1단계(엣지 rate limit) 완료, 2단계(전 도메인 무상태화) 진행 중 — 인증만 끝남, 3단계(수평 확장/유료 플랜)는 성장 시점. 무료 킵얼라이브(Cloudflare Cron)는 합의는 됐지만 아직 착수 전이라고 분명히 말한다 — "결정했다"와 "다 했다"를 구분.' },
-  head('Part C · 근본 해결 방향', '앞으로 3단계로 쌓습니다') +
+section('roadmap', { notes: '3단계 로드맵, 이번 주 재확정(2026-09-28). 1단계(엣지 rate limit)는 완료했지만 근본 해결이 아니라는 걸 앞 슬라이드에서 이미 밝혔다. 2단계(전 도메인 Prisma 이관)는 진행 중 — 인증만 끝남. 3단계는 "성장 시점에 재검토"라는 막연한 말 대신, DB는 기존 결정(Supabase)을 유지하고 API를 Lambda 호출 구조로 옮기는 구체적 계획을 세워뒀다고 말한다. 다만 아직 계획 단계이지 착수는 아니다 — "결정했다"와 "다 했다"를 구분. 안전장치: 이 계획대로 안 풀리면 DB 인프라 자체도 재검토 대상이라는 걸 숨기지 않는다 — 무료 킵얼라이브(Cloudflare Cron)도 같은 맥락의 보조 수단으로 질문 나오면 언급.' },
+  head('Part C · 근본 해결 방향', '이렇게 진행하기로 했습니다') +
   `<div style="display:flex; flex-direction:column; gap:36px; flex:1; justify-content:center">` +
-  `<div style="display:flex; gap:12px; height:230px">${ph('1단계', '엣지 rate limit', 1, '완료', 'done')}${ph('2단계', '전 도메인 무상태화\n(Prisma 전환)', 1.6, '진행 중 · 인증만 완료', 'part')}${ph('3단계', '수평 확장 · 유료 플랜', 1, '성장 시점', 'gray')}</div>` +
-  card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">곁가지 — 당장의 체감 개선</p><p style="font-size:30px; font-weight:600; line-height:1.4; color:${INK}">무료 킵얼라이브(Cloudflare Cron으로 Render·Supabase 깨워두기)를 방향으로 합의했지만, <b style="color:${AMBER}">아직 착수 전</b>입니다.</p>`) +
+  `<div style="display:flex; gap:12px; height:230px">${ph('1단계', '엣지 rate limit', 1, '완료 · 근본 해결 아님', 'done')}${ph('2단계', '전 도메인 Prisma 이관\n(무상태화)', 1.3, '진행 중 · 인증만 완료', 'part')}${ph('3단계', 'Lambda로 API 이전\n(DB는 Supabase 유지)', 1.3, '구현 계획 수립', 'plan')}</div>` +
+  card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">이 계획대로 안 풀리면</p><p style="font-size:30px; font-weight:600; line-height:1.4; color:${INK}">Lambda + Supabase 조합을 진행해보고 기대만큼 안 되면, <b style="color:${AMBER}">DB 인프라도 함께 재검토</b>합니다.</p>`) +
   `</div>` +
-  foot('D24의 단계적 로드맵 + 2026-09-28 방향 합의'));
+  foot('D24의 단계적 로드맵 + 2026-09-28 방향 재확정 — DB(Supabase)는 그대로, API 호스팅만 단계적으로 이전'));
 
 // ── 15 라이브 데모 ────────────────────────────────────────────────────────
 section('demo', { pad: '128px 176px', gap: 24, notes: '오늘 라이브로 보여드리는 건 로그인 하나입니다. 실제 배포 주소에서 데모 계정 카드를 직접 클릭해 로그인이 실제로 동작한다는 걸 보여준다. 계정: 김민수(서초점 지점 관리자). 기대치 관리 — 나머지는 이미 슬라이드로 다뤘다.' },
