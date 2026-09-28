@@ -55,7 +55,10 @@ npm run prisma:generate / prisma:migrate
 
 # apps/api 안에서
 npm run lint    # eslint --fix (파일을 직접 수정하므로 실행 후 git diff 확인. 수정 없이 검사만 하려면 `npm exec -- eslint .`)
-npm run test    # jest — HTTP 통합 테스트(`apps/api/test/`), 실제 AppModule + supertest, DB 불필요
+npm run test    # jest — HTTP 통합 테스트(`apps/api/test/`), 실제 AppModule + supertest.
+                # D26(2026-09-28)부터 인증 모듈이 PrismaService로 이관돼 로컬 Postgres(DATABASE_URL)가 필요하다.
+                # `npm run db:up` → `npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma`
+                # → `npm run prisma:seed --workspace=apps/api` 순으로 준비할 것(CI도 동일 순서, `.github/workflows/ci.yml` 참고).
 npm run build   # nest build
 
 # apps/admin-web 안에서
@@ -63,9 +66,11 @@ npm run lint    # eslint .
 npm run build   # tsc -b && vite build
 ```
 
-**검증 현황 (2026-09-20):** ESLint 10(flat config, `eslint.config.*`)이 두 앱에 설치돼 있다. api 테스트는 **도메인 핵심 규칙 3개 영역**만 다룬다 — 지점 데이터 격리(`branch-isolation`), 계약 종료 지점 차단(`contract-termination`), 인사 권한 분리(`hr-authority`) + 부팅 스모크. 그 밖의 도메인 로직(예약·결제 계산, 근태, 자산 등)과 admin-web은 테스트가 없어 **lint + 빌드(타입체크)**뿐이다. 테스트가 없는 영역은 "검증되지 않음"으로 보고할 것.
+**검증 현황 (2026-09-20, DB 의존성은 2026-09-28 D26 갱신):** ESLint 10(flat config, `eslint.config.*`)이 두 앱에 설치돼 있다. api 테스트는 **도메인 핵심 규칙 3개 영역**만 다룬다 — 지점 데이터 격리(`branch-isolation`), 계약 종료 지점 차단(`contract-termination`), 인사 권한 분리(`hr-authority`) + 부팅 스모크. 그 밖의 도메인 로직(예약·결제 계산, 근태, 자산 등)과 admin-web은 테스트가 없어 **lint + 빌드(타입체크)**뿐이다. 테스트가 없는 영역은 "검증되지 않음"으로 보고할 것. `auth-lifecycle.spec.ts` 2건·`staff-assignment.spec.ts` 1건은 D26 이후 의도적으로 `it.skip`(staff·permissions 도메인이 아직 Prisma로 안 옮겨져 퇴사·Role전환이 인증 상태에 즉시 반영되지 않음 — 각 테스트 위 주석 참고, 해당 도메인 이관 시 재활성화 대상).
 
 **테스트 작성 규칙:** 통합 테스트는 `test/helpers/app.ts`의 `createApp()`으로 `main.ts`와 같은 전역 설정(prefix·ValidationPipe·필터)의 앱을 띄운다 — `main.ts`의 전역 설정을 바꾸면 이 헬퍼도 같이 바꿀 것. `MockDataService`는 인메모리 상태라 스위트(또는 테스트)마다 새 앱을 띄워야 서로 오염되지 않는다. 가드 → 파이프 → 핸들러 순서라서 **거부 케이스도 유효한 요청 본문**을 보내야 400이 아니라 403이 나온다. 거부(403) 테스트에는 반드시 자기 지점 접근이 성공하는 대조군을 함께 둔다. `tsconfig.build.json`이 `test/`를 빌드에서 제외한다(없으면 `dist/main.js` 경로가 `dist/src/main.js`로 바뀐다).
+
+**Prisma로 이관된 도메인의 데모 계정은 mock과 id를 맞출 것(2026-09-28):** `apps/api/prisma/seed.ts`의 정하늘/김민수/박서연/이수진처럼, `mock-data.service.ts`에도 같은 이메일로 존재하는 "과도기 공유 계정"은 `Account`/`Staff`/`Member`의 `id`를 mock 쪽 값(`account-haneul`, `staff-seoyeon` 등)과 반드시 동일하게 시드할 것 — 안 맞추면 Prisma로 로그인한 요청의 `req.user.staffId`/`memberId`가 아직 이관 안 된 mock 컨트롤러에서 `NOT_FOUND`로 깨진다(D26에서 실제로 겪음, `docs/process/06_진행_로그.md` 참고). 다만 이 두 저장소는 서로 다른 도메인의 쓰기를 반영하지 않는다 — 예를 들어 mock 쪽 퇴사·Role전환은 Prisma Account에 반영되지 않으므로, 그 계정으로 로그인이 여전히 되는 등 두 저장소가 일시적으로 어긋날 수 있다(위 skip 테스트 참고). 그 도메인이 Prisma로 이관되기 전까지는 감수해야 하는 과도기 한계다.
 
 **날짜 계산은 반드시 `apps/api/src/common/date/kst-date.ts`를 쓸 것(2026-09-23).** `new Date().toISOString().slice(0, 10)`로 "오늘 날짜"를 직접 구하지 말 것 — `toISOString()`은 서버 시간대와 무관하게 항상 UTC라, 매일 00:00~08:59 KST 사이 이벤트가 하루 전 날짜로 기록되는 구조적 버그가 5개 도메인 10곳에서 실제로 있었다(`docs/architecture/date-time-handling.md`). "오늘"은 `todayKst()`, 임의 시각의 KST 날짜는 `toKstDateString(date)`, 시:분 비교는 `kstHoursMinutes(date)`를 쓸 것.
 
@@ -79,7 +84,7 @@ npm run build   # tsc -b && vite build
 
 ## 현재 구현 상태 (착각하기 쉬운 부분)
 
-- **API는 Prisma가 아니라 `MockDataService`(인메모리)로 동작 중이다.** `apps/api/prisma/schema.prisma`는 설계돼 있지만 실제 컨트롤러는 대부분 mock 데이터를 반환한다. "Prisma 스키마에 있으니 동작한다"고 가정하지 말 것 — 실제 동작 여부는 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2를 확인.
+- **API는 대부분 Prisma가 아니라 `MockDataService`(인메모리)로 동작한다 — 단, 인증(로그인/토큰갱신/로그아웃/비밀번호변경)은 2026-09-28 D26으로 `PrismaService`(Supabase Postgres)로 이관됐다.** `AuthService`/`JwtStrategy`는 이메일·accountId를 Prisma에서 먼저 찾고 없으면 mock으로 폴백하는 과도기 이중 경로다(`apps/api/src/modules/auth/auth.service.ts` 상단 주석 참고). 그 밖의 17개 컨트롤러는 여전히 mock 데이터를 반환한다. "Prisma 스키마에 있으니 동작한다"고 가정하지 말 것 — 실제 동작 여부는 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2를 확인.
 - Write API는 권한관리(로그인/토큰갱신/로그아웃/비밀번호변경/Role전환)·인사정보관리(채용/파견/퇴사)·회원관리(등록/수정/상태전환)·근태관리(체크인/휴가/업무일지)·강사프로그램게시(강사 CRUD·프로그램 등록/수정/종료/상태전이·회차 등록)·게시판(작성/수정/삭제)·혼잡도관리(시설 등록/수정·수동 보정)·예약및결제(예약 생성/취소/체크인·모의결제)·자원문서관리(자산 CRUD·문서 CRUD)에 있다. 전 도메인이 최소 Phase 1 수준의 Write API를 갖췄다 — 정확한 도메인별 현황은 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2-2를 확인.
 - **admin-web 프론트엔드가 API를 못 따라간 경우가 있다.** 예: 인사정보관리(1-3)는 채용/파견/퇴사 API가 다 있는데 `StaffPage.tsx`가 조회 전용이라 화면에서는 할 수 없다(2-3문서 §2-2). "API가 있으니 화면도 있다"고 가정하지 말 것. (강사프로그램게시의 지점 현황판은 2026-09-18에 `BranchDetailPage.tsx`가 연결해 해소됨 — 아래 줄 참고.)
 - 모든 도메인에 코드가 있다. 1-4(근태관리)·1-5(게시판)·1-7(예약및결제, Phase 1+2 핵심만)·1-8(강사프로그램게시)·1-9(혼잡도관리, Phase 1만)는 2026-09-18에, 1-10(자원문서관리, Phase 1만 — 재물조사·감가상각·파일 업로드 없음)은 2026-09-19에 API+화면 모두 구현 완료.

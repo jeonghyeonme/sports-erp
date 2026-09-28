@@ -26,6 +26,7 @@ model Account {
   email            String    @unique
   passwordHash     String
   role             Role
+  name             String // SUPER_ADMIN은 Staff/Member 프로필이 없어 이름을 여기 직접 둔다 — Staff/Member 보유 계정도 조회 편의상 함께 저장(항상 그쪽 name과 동기화)
   isActive         Boolean   @default(true)
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
@@ -73,13 +74,16 @@ model Branch {
   createdAt                 DateTime             @default(now())
   updatedAt                 DateTime             @updatedAt
 
-  staff            Staff[]
-  staffAssignments StaffAssignment[]
-  members          Member[]
-  facilities       Facility[]
-  instructors      Instructor[]
-  programs         Program[]
-  posts            Post[]
+  staff             Staff[]
+  staffAssignments  StaffAssignment[]
+  attendanceRecords AttendanceRecord[]
+  members           Member[]
+  facilities        Facility[]
+  instructors       Instructor[]
+  programs          Program[]
+  posts             Post[]
+  assets            Asset[]
+  documents         Document[]
 
   @@index([isActive])
   @@index([contractStatus])
@@ -114,6 +118,7 @@ model Staff {
   hireDate       DateTime
   resignDate     DateTime?
   status         StaffStatus @default(ACTIVE)
+  offDays        Int[]       @default([]) // 주간 정기 휴무 요일(0=일~6=토) — 근태 isWorkDay 판정에 사용
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
@@ -189,6 +194,7 @@ enum AttendanceStatus {
 model AttendanceRecord {
   id         String           @id @default(uuid())
   staffId    String
+  branchId   String // 체크인 시점 지점 스냅샷 — 파견 재배치 중에도 과거 기록의 지점이 바뀌지 않도록 고정(ADR-ATT-03)
   date       DateTime         @db.Date
   checkInAt  DateTime?
   checkOutAt DateTime?
@@ -196,10 +202,12 @@ model AttendanceRecord {
   note       String?
   createdAt  DateTime         @default(now())
 
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id])
 
   @@unique([staffId, date])
   @@index([staffId, date])
+  @@index([branchId])
 }
 
 enum LeaveType {
@@ -338,6 +346,7 @@ model Member {
   gender          String?
   joinedAt        DateTime     @default(now())
   status          MemberStatus @default(ACTIVE)
+  guardianConsent Boolean      @default(false) // 미성년 회원 법정대리인 동의 (05문서 §3·§6)
   memo            String?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -359,7 +368,8 @@ model Member {
 
 enum EnrollmentStatus {
   ACTIVE
-  EXPIRED
+  COMPLETED
+  CANCELLED
 }
 
 model CourseEnrollment {
@@ -545,6 +555,8 @@ model Payment {
   reservationId  String        @unique
   memberId       String
   amount         Int
+  supplyAmount   Int // 공급가액 = round(amount / 1.1)
+  vat            Int // 부가세 = amount - supplyAmount
   method         PaymentMethod
   status         PaymentStatus @default(PENDING)
   mockApprovalNo String?
@@ -569,12 +581,17 @@ enum FacilityType {
 }
 
 model Facility {
-  id       String       @id @default(uuid())
-  branchId String
-  name     String
-  type     FacilityType
-  capacity Int
-  isActive Boolean      @default(true)
+  id            String       @id @default(uuid())
+  branchId      String
+  name          String
+  type          FacilityType
+  capacity      Int
+  isActive      Boolean      @default(true)
+  // 혼잡도 현재값 — CongestionSnapshot(이력 테이블)은 스키마엔 있지만 Phase 1 범위 밖이라
+  // 아직 안 쓴다. 지금은 mock과 동일하게 Facility에 직접 현재값을 얹는다.
+  currentCount  Int          @default(0)
+  level         Int          @default(1) // 1~5
+  lastUpdatedAt DateTime?
 
   branch              Branch               @relation(fields: [branchId], references: [id])
   programs            Program[]
@@ -614,6 +631,73 @@ model FacilityCheckIn {
   member   Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@index([facilityId, checkOutAt])
+}
+
+// ── 1-10. 자원문서관리(Phase 1만 — 재물조사·감가상각·파일 업로드 없음) ──────
+
+enum AssetCategory {
+  EXERCISE_EQUIPMENT
+  SAFETY_EQUIPMENT
+  OFFICE_FURNITURE
+  OTHER
+}
+
+enum AssetType {
+  FIXED_ASSET
+  CONSUMABLE
+}
+
+enum AssetStatus {
+  NORMAL
+  REPAIRING
+  DISPOSAL_PENDING
+  DISPOSED
+}
+
+model Asset {
+  id              String        @id @default(uuid())
+  assetCode       String        @unique // {지점코드}-A{순번}
+  branchId        String
+  name            String
+  category        AssetCategory
+  assetType       AssetType
+  acquiredAt      DateTime
+  acquisitionCost Int
+  usefulLifeYears Int? // FIXED_ASSET만 사용
+  status          AssetStatus
+  quantity        Int // CONSUMABLE은 재고 수량, FIXED_ASSET은 항상 1
+  location        String?
+  note            String?
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+}
+
+enum DocumentCategory {
+  CONTRACT
+  HR_RECORD
+  MANUAL
+  OTHER
+}
+
+model Document {
+  id             String           @id @default(uuid())
+  category       DocumentCategory
+  branchId       String? // 전사 문서면 null
+  relatedStaffId String? // HR_RECORD 대상 직원
+  title          String
+  fileUrl        String // 실제 파일 업로드 인프라는 아직 없음 — 문자열 필드일 뿐
+  fileType       String?
+  fileSize       Int?
+  uploadedBy     String // FK → Account
+  retentionUntil DateTime? // null = 영구 보관
+  createdAt      DateTime         @default(now())
+  deletedAt      DateTime? // 소프트 삭제(D9)
+
+  branch Branch? @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
 }
 
 // ── 공통: 변경 이력 ─────────────────────────────────────

@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { MockDataModule } from './mock-data/mock-data.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { MembersModule } from './modules/members/members.module';
@@ -23,9 +24,11 @@ import { RolesGuard } from './common/guards/roles.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    // Phase 1 스캐폴딩 단계: PrismaModule 대신 MockDataModule을 사용합니다.
-    // 로컬에 Docker/PostgreSQL이 없어도 `npm run dev`로 바로 구조를 확인할 수 있게 하기 위함이며,
-    // 실제 DB 연동 시 PrismaModule을 다시 imports에 넣고 각 컨트롤러가 PrismaService를 쓰도록 바꿉니다.
+    // D26(2026-09-28) 1단계 — MockDataService→PrismaService 전환 착수. 인증 모듈부터
+    // PrismaService로 이관했고(가장 트래픽이 높고 위험도 큰 경로라 첫 검증 대상으로 택함),
+    // 나머지 16개 도메인은 아직 MockDataModule을 쓴다 — 둘 다 @Global()이라 공존 가능.
+    // 도메인별 이관이 끝나는 대로 MockDataModule을 하나씩 걷어낼 것.
+    PrismaModule,
     MockDataModule,
     AuthModule,
     BranchesModule,

@@ -23,7 +23,10 @@ async function main() {
       name: '서초점',
       code: 'SEOCHO',
       address: '서울시 서초구',
+      region: '서울',
       standardCheckInTime: '09:00',
+      contractPartner: '서초 OO아파트 입주자대표회의',
+      contractStartAt: new Date('2024-03-01'),
     },
   });
 
@@ -35,20 +38,31 @@ async function main() {
       name: '강남점',
       code: 'GANGNAM',
       address: '서울시 강남구',
+      region: '서울',
       standardCheckInTime: '09:00',
+      contractPartner: '강남 OO오피스텔 관리사무소',
+      contractStartAt: new Date('2023-10-01'),
     },
   });
 
   // ── 계정 · 인물 ────────────────────────────────────
+
+  // D26(2026-09-28) — 이 4명은 MockDataService에도 똑같은 이메일로 존재하는 "과도기 공유 계정"이다
+  // (auth.service.ts의 Prisma-우선/mock-폴백 로그인 참고). id를 mock-data.service.ts의 값과 동일하게
+  // 맞춰야 req.user.staffId/memberId가 아직 이관 안 된 mock 도메인 컨트롤러에서도 그대로 유효하다 —
+  // 안 맞추면 Prisma로 로그인한 요청이 mock 쪽 STAFF_NOT_FOUND로 깨진다(처음엔 무작위 uuid로 만들었다가
+  // test/branch-isolation.spec.ts 등에서 이 문제를 실제로 겪고 나서 고쳤다).
 
   // 정하늘 — 본사 운영팀장 (SUPER_ADMIN)
   const hqAccount = await prisma.account.upsert({
     where: { email: 'jeong.haneul@spoism.example' },
     update: {},
     create: {
+      id: 'account-haneul',
       email: 'jeong.haneul@spoism.example',
       passwordHash,
       role: Role.SUPER_ADMIN,
+      name: '정하늘',
     },
   });
 
@@ -57,15 +71,18 @@ async function main() {
     where: { email: 'kim.minsu@spoism.example' },
     update: {},
     create: {
+      id: 'account-minsu',
       email: 'kim.minsu@spoism.example',
       passwordHash,
       role: Role.BRANCH_ADMIN,
+      name: '김민수',
     },
   });
   const minsuStaff = await prisma.staff.upsert({
     where: { accountId: minsuAccount.id },
     update: {},
     create: {
+      id: 'staff-minsu',
       accountId: minsuAccount.id,
       branchId: seocho.id,
       staffCode: 'SEOCHO-001',
@@ -81,15 +98,18 @@ async function main() {
     where: { email: 'park.seoyeon@spoism.example' },
     update: {},
     create: {
+      id: 'account-seoyeon',
       email: 'park.seoyeon@spoism.example',
       passwordHash,
       role: Role.STAFF,
+      name: '박서연',
     },
   });
   const seoyeonStaff = await prisma.staff.upsert({
     where: { accountId: seoyeonAccount.id },
     update: {},
     create: {
+      id: 'staff-seoyeon',
       accountId: seoyeonAccount.id,
       branchId: seocho.id,
       staffCode: 'SEOCHO-002',
@@ -115,17 +135,21 @@ async function main() {
     where: { email: 'lee.sujin@example.com' },
     update: {},
     create: {
+      id: 'account-sujin',
       email: 'lee.sujin@example.com',
       passwordHash,
       role: Role.MEMBER,
+      name: '이수진',
     },
   });
   const sujinMember = await prisma.member.upsert({
     where: { accountId: sujinAccount.id },
     update: {},
     create: {
+      id: 'member-sujin',
       accountId: sujinAccount.id,
       branchId: seocho.id,
+      assignedStaffId: seoyeonStaff.id,
       memberNo: 'SEOCHO2026-001',
       name: '이수진',
       phone: '010-1234-5678',
@@ -248,6 +272,8 @@ async function main() {
       reservationId: reservation.id,
       memberId: sujinMember.id,
       amount: 30000,
+      supplyAmount: 27273, // Math.round(30000 / 1.1)
+      vat: 2727,
       method: PaymentMethod.MOCK_CARD,
       status: PaymentStatus.APPROVED,
       mockApprovalNo: 'MOCK-APPROVAL-000001',

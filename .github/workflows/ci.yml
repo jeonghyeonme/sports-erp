@@ -18,6 +18,25 @@ jobs:
     name: api (lint · build · test)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # D26(2026-09-28) — auth 모듈이 PrismaService로 이관되면서 앱 부팅(테스트 포함) 자체가
+    # DATABASE_URL 연결을 요구하게 됐다. docker-compose.yml의 로컬 개발용 Postgres와 같은
+    # 이미지·자격증명을 그대로 재사용한 CI 전용 컨테이너 — 실제 Supabase와는 무관하다.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sports_erp
+          POSTGRES_PASSWORD: change-me-in-local-env
+          POSTGRES_DB: sports_erp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://sports_erp:change-me-in-local-env@localhost:5432/sports_erp?schema=public
     steps:
       - uses: actions/checkout@v4
 
@@ -33,6 +52,14 @@ jobs:
       - name: Prisma generate
         run: npm run prisma:generate --workspace=apps/api
 
+      # 위 postgres 서비스는 스키마가 비어 있는 빈 컨테이너다 — 추적된 migrations/를 그대로 적용한다.
+      - name: Prisma migrate deploy
+        run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+
+      # auth-lifecycle 등 일부 스펙이 고정된 데모 계정(정하늘·김민수·박서연·이수진)의 존재를 전제한다.
+      - name: Prisma seed
+        run: npm run prisma:seed --workspace=apps/api
+
       # package.json의 lint 스크립트는 --fix라서 CI에서는 쓰지 않는다. 검사만 한다(warning은 통과, error만 실패).
       - name: Lint
         run: npm exec --workspace=apps/api -- eslint .
@@ -40,9 +67,8 @@ jobs:
       - name: Build
         run: npm run build --workspace=apps/api
 
-      # 현재 테스트 파일이 없어 --passWithNoTests 로 통과시킨다. 테스트가 생기면 자동으로 실행된다.
       - name: Test
-        run: npm test --workspace=apps/api -- --passWithNoTests
+        run: npm test --workspace=apps/api
 
   admin-web:
     name: admin-web (lint · build)
