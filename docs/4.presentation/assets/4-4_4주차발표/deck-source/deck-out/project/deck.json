@@ -1,0 +1,63 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-09-28T00:00:00Z"
+  },
+  "title": "4주차 진행상황 발표",
+  "order": [
+    "cover",
+    "summary",
+    "cycle-method",
+    "cycle-bugs",
+    "cycle-momentum",
+    "deploy",
+    "loadtest-setup",
+    "loadtest-numbers",
+    "bottleneck",
+    "edge-fix",
+    "origin-fix",
+    "root-cause",
+    "migration",
+    "roadmap",
+    "demo",
+    "closing"
+  ],
+  "sections": {
+    "intro": {
+      "description": "이번 주 한 줄 요약",
+      "start": "cover"
+    },
+    "cycle": {
+      "description": "Part A — 도메인 사이클이 실제로 작동했다",
+      "start": "cycle-method"
+    },
+    "deploy": {
+      "description": "Part B — 배포하자마자 진짜 병목을 만났다",
+      "start": "deploy"
+    },
+    "fix": {
+      "description": "Part C — 근본 원인을 없애는 방향",
+      "start": "root-cause"
+    },
+    "wrap": {
+      "description": "라이브 데모와 마무리",
+      "start": "demo"
+    }
+  },
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
+}

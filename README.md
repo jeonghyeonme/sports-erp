@@ -124,6 +124,7 @@ docs/
 | 4-1 | [발표자료 핸드오프](docs/4.presentation/4-1_발표자료_핸드오프.md) | 진행상황 발표 준비용 핸드오프 요약 — `docs/4.presentation/` 디렉터리에 별도 보관, 발표자료 작성 시에만 갱신 |
 | 4-2 | [2주차 발표 슬라이드 구성](docs/4.presentation/4-2_2주차발표_슬라이드구성.md) | 2주차 발표 슬라이드 구성안 — [배포된 발표자료 보기](https://claude.ai/code/artifact/cea04fa5-eabc-4b78-a55b-838a5da1a402) |
 | 4-3 | [3주차 발표 슬라이드 구성](docs/4.presentation/4-3_3주차발표_슬라이드구성.md) | 3주차 발표 슬라이드 구성안(덱 제작 완료본, 29장) — 산출물 3종(기업 분석 자료·개발 작업계획서·ERP 앱)과 도메인 9개별 구조·구현 화면. 덱 생성 소스는 `docs/4.presentation/assets/4-3_3주차발표/deck-source/` |
+| 4-4 | [4주차 발표 슬라이드 구성](docs/4.presentation/4-4_4주차발표_슬라이드구성.md) | 4주차 발표 슬라이드 구성안(16장) — 도메인 사이클로 실버그 5건 발견, 실배포 후 k6 부하테스트로 병목 실측(Little's Law 자기강화 루프), 구조적 해결(엣지 rate limit·오리진 통합·MockDataService→Prisma 전환 착수)까지의 서사 — [배포된 발표자료 보기](https://claude.ai/artifact/HGeWH6auvL1k9TjjCo31Hk)(비공개) |
 
 ### 5.deliverables — 원본 RFP 산출물 제출본
 
