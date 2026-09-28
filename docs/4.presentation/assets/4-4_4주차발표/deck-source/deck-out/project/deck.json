@@ -31,24 +31,20 @@
       "description": "이번 주 한 줄 요약",
       "start": "cover"
     },
-    "cycle": {
-      "description": "Part A — 기능 스코프로 방법론을 적용해 ADR을 뽑고 구현·배포했다",
+    "partA": {
+      "description": "Part A — 방법론을 기능 스코프에 적용해 ADR을 뽑고, 구현·배포까지 마쳤다",
       "start": "cycle-method"
     },
-    "deploy": {
-      "description": "Part B — 배포하자마자 트래픽·인프라 문제를 실측했다",
+    "partB": {
+      "description": "Part B — 배포 도중 만난 트래픽·인프라 문제 (D24 부하테스트 → D26 무상태화 로드맵)",
       "start": "deploy"
     },
-    "fix": {
-      "description": "Part B — 근본 원인(인메모리 상태)과 무상태화 로드맵",
-      "start": "root-cause"
-    },
-    "domains": {
-      "description": "Part C — 배포에서 배운 관점을 도메인 전체에 적용한 트래픽·인프라 엣지케이스",
+    "partC": {
+      "description": "Part C — 그 관점을 도메인 전체에 적용한 트래픽·인프라 후보 이슈",
       "start": "cycle-momentum"
     },
     "wrap": {
-      "description": "마무리 — 여기서부터 라이브 로그인 데모로 이어감",
+      "description": "마무리 — 라이브 로그인 데모 이후",
       "start": "closing"
     }
   },

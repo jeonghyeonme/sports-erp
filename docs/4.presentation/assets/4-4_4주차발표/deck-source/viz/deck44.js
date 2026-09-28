@@ -101,13 +101,14 @@ const scard = (name, desc, status, kind) => {
   const c = kind === 'green' ? GREEN : kind === 'navy' ? NAVY : AMBER;
   return card(`<h3 style="font-family:${DISPLAY}; font-size:40px; font-weight:700; line-height:1.2; color:${INK}">${name}</h3><p style="font-size:28px; line-height:1.5; color:${SOFT}">${desc}</p><div style="flex:1"></div><div style="display:flex">${pill(status, bg, c)}</div>`, 'flex:1');
 };
-section('summary', { notes: '이번 주는 화면 기준 진행이 더뎌 보일 수 있다. 하지만 이번 주가 답한 질문은 "느낌"이 아니라 "숫자"였다 — 실제로 배포하고, 실제로 부하를 걸어보고, 그 결과가 가리키는 구조적 원인까지 고치기 시작했다는 걸 이 발표에서 보여준다.' },
-  head('오늘 발표, 한 줄 요약', '띄워보고, 재보고, 고쳤습니다') +
-  fill(`<div style="display:flex; align-items:stretch; gap:20px">` +
+section('summary', { notes: '이번 주는 화면 기준 진행이 더뎌 보일 수 있다. 하지만 이번 주가 답한 질문은 "느낌"이 아니라 "숫자"였다 — 실제로 배포하고, 실제로 부하를 걸어보고, 그 결과가 가리키는 구조적 원인까지 고치기 시작했고, 그 경험에서 얻은 관점을 도메인 전체에 다시 적용해봤다는 걸 이 발표에서 보여준다. 카드 5개가 오늘 순서(Part A~C) 그대로다 — 목차 역할을 겸한다.' },
+  head('오늘 발표, 한 줄 요약', '띄워보고, 재보고, 고치고, 다시 봤습니다') +
+  fill(`<div style="display:flex; align-items:stretch; gap:16px">` +
     scard('도메인 사이클', '9개 도메인을 방법론대로 다시 훑어 실제 버그 5건을 찾아 고쳤습니다.', '완료', 'green') +
     scard('실제 배포', 'admin-web·api·DB를 처음으로 인터넷에 띄웠습니다.', '완료', 'green') +
     scard('병목 실측', '부하테스트로 "동시 로그인에 15초"라는 숫자를 확인했습니다.', '실측 완료', 'navy') +
     scard('구조적 해결', '근본 원인(인메모리 상태)을 없애는 전환에 착수했습니다.', '진행 중', 'amber') +
+    scard('트래픽·인프라 재검토', '배포에서 배운 관점을 도메인 6개에 다시 적용해 후보 이슈 6건을 찾았습니다.', '검토 중', 'amber') +
     `</div>`) +
   `<p style="font-size:32px; font-weight:600; color:${INK}">화면은 조용했지만, 방향은 숫자로 정했습니다</p>`);
 
@@ -127,7 +128,7 @@ const evidenceCard = (t) => `<div style="display:flex; flex-direction:column; ga
 const stack = (l, t, size = 30) => `<div style="display:flex; flex-direction:column; gap:8px">${label(l)}<p style="font-size:${size}px; font-weight:600; line-height:1.42; color:${INK}">${t}</p></div>`;
 function trafficIssueSlide(id, idx, total, name, sev, evidence, problem, why, directions, footText, notes) {
   section(id, { notes },
-    head(`도메인 사이클 ${idx}/${total} · 트래픽·인프라 관점`, name) +
+    head(`Part C · 도메인 사이클 ${idx}/${total} · 트래픽·인프라 관점`, name) +
     `<div style="display:flex; gap:14px">${sevPill(sev)}${pill('해결방안 검토 중', AMBER_SOFT, AMBER)}</div>` +
     fill(`<div style="display:flex; flex-direction:column; gap:18px">` +
       evidenceCard(evidence) +
@@ -153,7 +154,7 @@ const flowBox = (t, d, k) => {
   return `<div style="flex:1; display:flex; flex-direction:column; gap:10px; background:${bg}; border:1px solid ${c}; border-radius:14px; padding:32px; box-shadow:${SHADOW}"><h3 style="font-family:${DISPLAY}; font-size:36px; font-weight:700; color:${INK}">${t}</h3><p style="font-size:26px; line-height:1.4; color:${SOFT}">${d}</p></div>`;
 };
 const bigArrow = `<div style="display:flex; align-items:center"><p style="font-size:56px; font-weight:700; color:${NAVY}">→</p></div>`;
-decisionSlide('deploy', 'D23 · 결정 1', '가볍게 Render 하나로 시작했습니다',
+decisionSlide('deploy', 'Part A · D23 결정 1', '가볍게 Render 하나로 시작했습니다',
   '정적 페이지(admin-web)와 API를 유지비 없이 빠르게 인터넷에 띄워야 했다',
   [
     ['Cloudflare Pages (원안)', 'MCP 커넥터에 생성 툴 없음', false],
@@ -167,7 +168,7 @@ decisionSlide('deploy', 'D23 · 결정 1', '가볍게 Render 하나로 시작했
 
 // ── 5 왜 부하테스트를 했나 ────────────────────────────────────────────────
 section('loadtest-setup', { notes: '"느릴 것 같다"는 추측 대신 k6로 실측했다. 시나리오는 두 가지 — 로그인 0~40명 램핑(bcrypt가 CPU 바운드라 먼저 무너질 지점), 조회 0~100명 램핑(인메모리라 원래 빠름). 위탁계약이 이미 98개라는 사실을 근거로 "몇 명 안 되는데 문제 생기겠어?"라는 반박을 미리 막는다.' },
-  head('D24 · 원인 파악', '왜 부하테스트를 했나') +
+  head('Part B · D24 원인 파악', '왜 부하테스트를 했나') +
   fill(card(`<p style="font-size:34px; font-weight:600; line-height:1.5; color:${INK}">"무료 인프라니까 느릴 수도 있다"는 <b style="color:${AMBER}">추측</b>으로 남겨두지 않고, k6로 <b style="color:${NAVY}">실측</b>했습니다.</p>`) +
     `<div style="height:24px"></div>` +
     `<div style="display:flex; gap:20px">` +
@@ -183,7 +184,7 @@ const chip = (t, k) => {
   return `<p style="font-family:${MONO}; font-size:26px; font-weight:700; color:${c}; background:${bg}; border:1px solid ${c}; border-radius:999px; padding:10px 26px">${t}</p>`;
 };
 section('loadtest-numbers', { notes: '핵심 숫자(시간을 더 쓴다). 로컬 65ms vs Render 무료 티어 로그인 p95 15.16초 — 233배. 40명 램핑 중 응답시간이 완만히 늘지 않고 급격히 무너진 패턴(7.4s→15.16s→17.11s)을 3개 칩으로 보여준다. "코드 문제가 아니라 무료 티어 공유 CPU 스로틀링"이 핵심 메시지. 질문 대비: 이 세션에서는 egress 정책상 재현 불가, 수치는 사용자가 외부에서 실행한 실측값이고 design-constants.md에 계산 근거가 있다. 로그인만 테스트한 게 아니라는 것도 이번에 명시 — browse_ramp(0~100명, 조회 API)도 같은 날 같이 실측했고 마찬가지로 무너졌다(중앙값 307ms·p95 1.18초·최대 33초, 에러는 0건). 조회 로직 자체(MockDataService 인메모리 스캔)는 원래 계산량이 거의 없어 빨라야 정상인데 느려졌다는 게 핵심 단서 — "로그인 API가 무겁다"가 아니라 "공유 컨테이너 하나에서 도는 모든 요청이 같이 밀린다"는 근거다. 다음 슬라이드(자기강화 루프)가 왜 로그인에 한정된 문제가 아닌지는 여기서 미리 깔아둔다.' },
-  head('D24 · 원인 파악', '동시 로그인 40명에 15초가 걸렸습니다') +
+  head('Part B · D24 원인 파악', '동시 로그인 40명에 15초가 걸렸습니다') +
   fill(`<div style="display:flex; flex-direction:column; gap:20px">` +
     `<div style="display:flex; gap:20px">${bignum('65ms', '정상 처리\n(로컬)', 'green')}${bignum('15.16초', 'Render 무료 티어\n로그인 p95', 'amber')}</div>` +
     card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">40명 램핑 중 무너진 패턴</p><div style="display:flex; align-items:center; gap:20px">${chip('7.4초', 'gray')}<p style="font-size:32px; color:${SOFT}">→</p>${chip('15.16초', 'amber')}<p style="font-size:32px; color:${SOFT}">→</p>${chip('17.11초', 'red')}<p style="font-size:28px; color:${SOFT}; margin-left:12px">완만히 늘지 않고 급격히 무너졌다</p></div>`) +
@@ -193,7 +194,7 @@ section('loadtest-numbers', { notes: '핵심 숫자(시간을 더 쓴다). 로�
 
 // ── 7 왜 이렇게 되는가 ────────────────────────────────────────────────────
 section('bottleneck', { notes: "Little's Law로 설명되는 자기강화 루프. 먼저 CPU 스로틀링이 뭔지부터 짧게 정의(청중이 모를 수 있는 용어) — 클라우드 무료/공유 플랜은 프로세스가 쓸 수 있는 CPU 시간에 한도를 두고, 그 한도를 넘으면 강제로 처리 속도를 늦춘다. Render 무료 웹 서비스가 정확히 이 방식이다. 그 다음 자기강화 루프: 지연이 발생하면 동시 진행 건수(L=λW)가 늘고, 늘어난 요청이 CPU 경합을 심화시키고, 그게 다시 처리시간을 늘려 루프가 증폭된다. 정상 처리(65ms) 시 동시 진행 로그인은 0.12건이라 평소엔 전혀 문제가 안 되지만, 15.16초로 늘어나는 순간 같은 공식이 28.5건으로 밀어올린다. 3년 후(98→130개 지점) 추정으로는 장애 상황 동시 진행이 38.4건까지 간다." },
-  head('D24 · 원인 파악', '왜 이렇게 되는가 — 자기강화 루프') +
+  head('Part B · D24 원인 파악', '왜 이렇게 되는가 — 자기강화 루프') +
   `<p style="font-size:28px; font-weight:600; line-height:1.4; color:${SOFT}"><b style="color:${INK}">CPU 스로틀링이란?</b> — 클라우드가 프로세스에 허용한 CPU 한도를 넘으면, 강제로 처리 속도를 늦추는 것입니다</p>` +
   (function () {
     lib.setSlide({ left: 495, top: 300, scale: 0.93 });
@@ -204,7 +205,7 @@ section('bottleneck', { notes: "Little's Law로 설명되는 자기강화 루프
   foot("design-constants.md ⑦~⑨ · Little's Law 역산 — 3년 후 추정 시 장애 상황 동시 진행 로그인 ≈38.4건"));
 
 // ── 8 결정 2 — D24 엣지 rate limit ───────────────────────────────────────
-decisionSlide('edge-fix', 'D24 · 결정 2', '몰랐던 인프라를 찾아 막았습니다',
+decisionSlide('edge-fix', 'Part B · D24 결정 2', '몰랐던 인프라를 찾아 막았습니다',
   '부하테스트로 확인된 CPU 스로틀링 — 느린 CPU에 요청이 아예 닿지 못하게 걸러야 했다',
   [
     ['앱 레벨 rate limit', '이미 CPU를 쓴 뒤에 거부됨', false],
@@ -219,7 +220,7 @@ decisionSlide('edge-fix', 'D24 · 결정 2', '몰랐던 인프라를 찾아 막�
 // ── 9 근본 원인 ──────────────────────────────────────────────────────────
 const srv = (t, list, c) => `<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:${SURFACE}; border:2px solid ${c}; border-radius:14px; padding:28px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${c}">${t}</p>${list.map((x) => `<p style="font-size:28px; color:${INK}">· ${x}</p>`).join('')}</div>`;
 section('root-cause', { notes: "D26 배경. 서버 한 대를 아무리 키워도 언젠가 한계다. 여러 대로 늘리면(수평 확장) 되는데, 지금 데이터가 서버 메모리 안에만 있어서(MockDataService) 여러 대를 띄우면 각자 다른 데이터를 들고 있게 된다 — 이걸 그림으로 보여준다(서버 2대가 같은 회원 목록을 다르게 보여줌). 결론: 진짜 해결은 rate limit이 아니라 데이터를 서버 밖(DB)으로 꺼내는 것." },
-  head('D26 · 배경', '진짜 원인은 서버 안에 있었습니다') +
+  head('Part B · D26 배경', '진짜 원인은 서버 안에 있었습니다') +
   fill(`<div style="display:flex; flex-direction:column; gap:28px">` +
     `<p style="font-size:32px; font-weight:600; color:${INK}">서버를 여러 대로 늘리면(수평 확장) 트래픽을 나눌 수 있는데 — 지금은 안 됩니다</p>` +
     `<div style="display:flex; gap:24px">${srv('서버 인스턴스 A', ['방금 등록한 회원 O', '메모리에만 존재'], AMBER)}${srv('서버 인스턴스 B', ['방금 등록한 회원 X', '서로 다른 메모리'], RED)}</div>` +
@@ -228,7 +229,7 @@ section('root-cause', { notes: "D26 배경. 서버 한 대를 아무리 키워�
 
 // ── 10 결정 3 — D26 → Lambda 계획 ─────────────────────────────────────────
 const limitCard = (n, t) => `<div style="flex:1; display:flex; flex-direction:column; gap:8px; background:${AMBER_SOFT}; border:1px solid ${AMBER}; border-radius:12px; padding:20px 24px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${AMBER}">${n}</p><p style="font-size:24px; line-height:1.35; color:${INK}">${t}</p></div>`;
-decisionSlide('migration', 'D26 → 계획 · 결정 3', '무상태화 먼저, 인프라 이전은 그다음',
+decisionSlide('migration', 'Part B · D26 → 계획 결정 3', '무상태화 먼저, 인프라 이전은 그다음',
   'Lambda의 다중 인스턴스 모델이 지금의 인메모리 mock과 근본적으로 안 맞는다 — 무상태화가 전제조건',
   [
     ['지금 바로 전체를 Lambda로', 'mock 15개 도메인 동시성 위험', false],
@@ -243,7 +244,7 @@ decisionSlide('migration', 'D26 → 계획 · 결정 3', '무상태화 먼저, �
 
 // ── 11 로드맵 ─────────────────────────────────────────────────────────────
 section('roadmap', { notes: '3단계 로드맵, 이번 주 재확정(2026-09-28). 지금까지 본 결정 1~3을 한 장으로 정리하는 슬라이드. 1단계(엣지 rate limit)는 완료했지만 근본 해결이 아니라는 걸 앞서 밝혔다. 2단계(전 도메인 Prisma 이관)는 진행 중 — 인증만 끝남. 3단계는 DB는 기존 결정(Supabase)을 유지하고 API를 Lambda 호출 구조로 옮기는 구체적 계획을 세워뒀다고 말한다. 다만 아직 계획 단계이지 착수는 아니다 — "결정했다"와 "다 했다"를 구분. 안전장치: 이 계획대로 안 풀리면 DB 인프라 자체도 재검토 대상이라는 걸 숨기지 않는다 — 무료 킵얼라이브(Cloudflare Cron)도 같은 맥락의 보조 수단으로 질문 나오면 언급. 이 슬라이드 다음은 라이브 데모가 아니라 Part C(도메인별 트래픽·인프라 엣지케이스)로 이어진다 — 방금 실측한 CPU 경합·자기강화 루프가 로그인 하나만의 문제가 아닐 수 있다는 관점을 나머지 도메인에도 적용해본 결과를 보여준다. 라이브 로그인 데모는 Part C 마지막 슬라이드(도메인 사이클 6/6, 회원관리) 다음으로 옮겼다.' },
-  head('지금까지의 결정, 한눈에', '이렇게 진행하기로 했습니다') +
+  head('Part B · 지금까지의 결정, 한눈에', '이렇게 진행하기로 했습니다') +
   `<div style="display:flex; flex-direction:column; gap:36px; flex:1; justify-content:center">` +
   `<div style="display:flex; gap:12px; height:230px">${ph('1단계', '엣지 rate limit', 1, '완료 · 근본 해결 아님', 'done')}${ph('2단계', '전 도메인 Prisma 이관\n(무상태화)', 1.3, '진행 중 · 인증만 완료', 'part')}${ph('3단계', 'Lambda로 API 이전\n(DB는 Supabase 유지)', 1.3, '구현 계획 수립', 'plan')}</div>` +
   card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">이 계획대로 안 풀리면</p><p style="font-size:30px; font-weight:600; line-height:1.4; color:${INK}">Lambda + Supabase 조합을 진행해보고 기대만큼 안 되면, <b style="color:${AMBER}">DB 인프라도 함께 재검토</b>합니다.</p>`) +
@@ -333,11 +334,10 @@ const deck = {
   order,
   sections: {
     intro: { description: '이번 주 한 줄 요약', start: 'cover' },
-    cycle: { description: 'Part A — 기능 스코프로 방법론을 적용해 ADR을 뽑고 구현·배포했다', start: 'cycle-method' },
-    deploy: { description: 'Part B — 배포하자마자 트래픽·인프라 문제를 실측했다', start: 'deploy' },
-    fix: { description: 'Part B — 근본 원인(인메모리 상태)과 무상태화 로드맵', start: 'root-cause' },
-    domains: { description: 'Part C — 배포에서 배운 관점을 도메인 전체에 적용한 트래픽·인프라 엣지케이스', start: 'cycle-momentum' },
-    wrap: { description: '마무리 — 여기서부터 라이브 로그인 데모로 이어감', start: 'closing' },
+    partA: { description: 'Part A — 방법론을 기능 스코프에 적용해 ADR을 뽑고, 구현·배포까지 마쳤다', start: 'cycle-method' },
+    partB: { description: 'Part B — 배포 도중 만난 트래픽·인프라 문제 (D24 부하테스트 → D26 무상태화 로드맵)', start: 'deploy' },
+    partC: { description: 'Part C — 그 관점을 도메인 전체에 적용한 트래픽·인프라 후보 이슈', start: 'cycle-momentum' },
+    wrap: { description: '마무리 — 라이브 로그인 데모 이후', start: 'closing' },
   },
   faces: {
     'gothic-a1': { family: 'Gothic A1', href: 'https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;900&display=swap' },
