@@ -23,6 +23,7 @@
     "dom-board",
     "dom-asset",
     "dom-member",
+    "next-directions",
     "closing"
   ],
   "sections": {
@@ -39,7 +40,7 @@
       "start": "deploy"
     },
     "partC": {
-      "description": "Part C — 그 관점을 도메인 전체에 적용한 트래픽·인프라 후보 이슈",
+      "description": "Part C — 그 관점을 도메인 전체에 적용한 트래픽·인프라 후보 이슈, 그리고 다음 단계",
       "start": "cycle-momentum"
     },
     "wrap": {

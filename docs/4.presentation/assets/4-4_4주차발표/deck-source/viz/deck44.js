@@ -293,9 +293,27 @@ trafficIssueSlide('dom-member', 6, 6, '회원관리', '높음',
   '회원 수가 design-constants 추정으로 7만 명대까지 자랄 수 있고, 동시 가입이 몰리면(회원 앱 출시 직후) 로그인과 같은 클래스의 문제가 등록 경로에서 재현될 수 있습니다',
   ['목록에 페이지네이션 추가', '회원번호를 시퀀스로 교체', '이메일 유니크를 DB 레벨로'],
   '이번 주 기능 ADR(MEM-01·02·03, 전부 신규 기능)은 별도로 완료 — 근거: architecture/traffic-infra-review.md',
-  '도메인 사이클 6/6. 회원 수 추정(design-constants: 지점당 550명×130개 지점)을 근거로 제시 — 감이 아니라 이미 계산된 숫자. 이 슬라이드 다음 별도 안내 슬라이드 없이 바로 실제 배포 주소에서 라이브 로그인 데모로 넘어간다(김민수 계정) — "오늘 라이브로 보여드릴 건 로그인 하나"라고 말로 짚고 화면을 전환한다.');
+  '도메인 사이클 6/6. 회원 수 추정(design-constants: 지점당 550명×130개 지점)을 근거로 제시 — 감이 아니라 이미 계산된 숫자.');
 
-// ── 18 마무리 ─────────────────────────────────────────────────────────────
+// ── 18 다음 단계 — 실DB 전환 계속 + 새 관점(동시성·데이터 정합성) ──────────────
+section('next-directions', { notes: '다음 단계 슬라이드(신규, 2026-09-28). 발표자가 "추후 계획도 추가하자, 강조점은 방향성 기준 — 우선 실DB 전환, 다음으로 Part C처럼 다양한 관점의 ADR을 더 뽑고 싶다"고 요청했다. 관점 후보로 동시성·데이터 정합성을 골랐다(발표자 확인) — 예약 도메인(createReservation)에 이미 근거가 있다: mock 코드 자체가 "지금은 Node 단일 스레드가 암묵적 락 역할을 한다"고 주석으로 인정하고, 실DB 전환 시엔 문서가 명시한 SELECT...FOR UPDATE 락을 실제로 적용해야 한다고 스스로 경고해뒀다(mock-data.service.ts:1940-1945). 다른 도메인(예: 회원 등록의 이메일·번호 중복 확인)도 비슷한 클래스의 문제가 있을 수 있지만 아직 이 관점으로 재검토 안 했다 — Part C와 마찬가지로 아직 "발견 단계"일 뿐 대안 비교·결정 전이라는 걸 슬라이드에서도 "다음 재검토 예정" pill로 명확히 한다. 이 슬라이드 다음 별도 안내 없이 바로 실제 배포 주소에서 라이브 로그인 데모로 넘어간다(김민수 계정) — "오늘 라이브로 보여드릴 건 로그인 하나"라고 말로 짚고 화면을 전환한다.' },
+  head('다음 단계', '실DB 전환은 계속, 관점은 넓힙니다') +
+  fill(`<div style="display:flex; flex-direction:column; gap:24px">` +
+    card(
+      `<div style="display:flex; align-items:center; gap:16px">${pill('진행 중', NAVY_SOFT, NAVY)}<p style="font-family:${DISPLAY}; font-size:36px; font-weight:800; color:${INK}">① 실DB(Prisma) 전환 — 계속 진행</p></div>` +
+      `<p style="font-size:28px; line-height:1.5; color:${INK}">인증 모듈은 이미 실제 Postgres 위에서 검증을 마쳤습니다. 나머지 15개 도메인도 순서대로 이어갑니다 — Part C에서 찾은 트래픽·인프라 후보 이슈 6건도 각 도메인이 전환되는 시점에 함께 검토해 정식 ADR로 남깁니다.</p>`,
+      `border:2px solid ${NAVY}`
+    ) +
+    card(
+      `<div style="display:flex; align-items:center; gap:16px">${pill('다음 재검토 예정', AMBER_SOFT, AMBER)}<p style="font-family:${DISPLAY}; font-size:36px; font-weight:800; color:${INK}">② 새 관점 — 동시성·데이터 정합성</p></div>` +
+      `<p style="font-size:28px; line-height:1.5; color:${INK}">Part C가 "트래픽·인프라" 렌즈로 도메인을 다시 봤다면, 다음은 "동시성·데이터 정합성" 렌즈입니다. 예약 도메인에서 이미 근거를 찾았습니다 — mock 코드 스스로 지금은 Node 단일 스레드가 락 역할을 대신하고 있다고 인정하고, 실DB·다중 인스턴스로 가면 이 가정이 깨진다고 경고해뒀습니다. 다른 도메인도 같은 관점으로 다시 훑어 후보를 찾습니다.</p>` +
+      evidenceCard('mock-data.service.ts:1940-1945(createReservation) — "MockDataService는 단일 Node 프로세스에서 동기적으로 실행되는 인메모리 배열이라... 실DB 전환 시에는 문서가 명시한 ScheduleSlot 행 락을 그대로 적용해야 한다"'),
+      `border:2px solid ${AMBER}`
+    ) +
+    `</div>`) +
+  foot('2026-09-28 · 근거: mock-data.service.ts:1940-1945 · docs/process/06_진행_로그.md §39'));
+
+// ── 19 마무리 ─────────────────────────────────────────────────────────────
 section('closing', { pad: '128px 176px', gap: 24, notes: '질문과 토론. Q&A 대비는 구성안 §5 참고: B/C 진행 상태 과장 금지, 이중 경로 설계, skip 테스트 이유, k6 재현 불가, 성장 시나리오 관점, Lambda 미착수, CI Postgres 추가 이유.' },
   dots(400, 780, 700, 460) + `<div style="flex:1"></div><h1 style="font-family:${DISPLAY}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:${INK}">감사합니다</h1><p style="font-size:44px; color:${SOFT}">질문 환영합니다.</p><div style="flex:1"></div>`);
 
@@ -322,7 +340,7 @@ const deck = {
     intro: { description: '이번 주 한 줄 요약', start: 'cover' },
     partA: { description: 'Part A — 방법론을 기능 스코프에 적용해 ADR을 뽑고, 구현·배포까지 마쳤다', start: 'cycle-method' },
     partB: { description: 'Part B — 배포 도중 만난 트래픽·인프라 문제 (D24 부하테스트 → D26 무상태화 로드맵)', start: 'deploy' },
-    partC: { description: 'Part C — 그 관점을 도메인 전체에 적용한 트래픽·인프라 후보 이슈', start: 'cycle-momentum' },
+    partC: { description: 'Part C — 그 관점을 도메인 전체에 적용한 트래픽·인프라 후보 이슈, 그리고 다음 단계', start: 'cycle-momentum' },
     wrap: { description: '마무리 — 라이브 로그인 데모 이후', start: 'closing' },
   },
   faces: {
