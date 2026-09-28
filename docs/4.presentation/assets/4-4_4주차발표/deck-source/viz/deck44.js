@@ -109,87 +109,79 @@ section('summary', { notes: '이번 주는 화면 기준 진행이 더뎌 보일
   `<p style="font-size:32px; font-weight:600; color:${INK}">화면은 조용했지만, 방향은 숫자로 정했습니다</p>`);
 
 // ── 3 방법론 (Part A) ───────────────────────────────────────────────────
-section('cycle-method', { notes: 'Part A 시작(3분). architecture-driver 방법론: 왜 바꾸는지(Driver)를 먼저 밝히고, 대안과 트레이드오프를 비교해 결정을 ADR로 남긴 뒤 구현하고, 실제로 검증하고, 왜 맞는 선택이었는지 기록한다. 기록이 다음 사이클의 Driver로 이어진다. 이 방법론은 이 프로젝트(근태관리 도메인 사이클)에서 먼저 확립됐고, 범용 스킬로 역이식돼 CLAUDE.md에 원칙으로 박혀 있다.' },
+section('cycle-method', { notes: 'Part A 시작. architecture-driver 방법론: 왜 바꾸는지(Driver)를 먼저 밝히고, 대안과 트레이드오프를 비교해 결정을 ADR로 남긴 뒤 구현하고, 실제로 검증하고, 왜 맞는 선택이었는지 기록한다. 기록이 다음 사이클의 Driver로 이어진다. 이 방법론은 이 프로젝트(근태관리 도메인 사이클)에서 먼저 확립됐고, 범용 스킬로 역이식돼 CLAUDE.md에 원칙으로 박혀 있다. 다음 6장(도메인별 트래픽·인프라 후보 이슈)은 이 순환의 **1단계(Driver 발견)까지만** 보여준다는 것도 짚어야 한다 — 대안 비교·결정은 아직이라 "검토 중"이라고 상태를 명확히 붙였다는 것도 강조.' },
   head('Part A · 도메인 사이클', '9개 도메인을 방법론대로 다시 훑었습니다') +
   diagramCard(F.methodCycle));
 
-// ── 4~9 도메인별 ADR 체크리스트 (6장, 도메인 하나씩) ─────────────────────
-const adrItem = (adrId, desc) => `<div style="display:flex; align-items:flex-start; gap:16px">${check}<div style="display:flex; flex-direction:column; gap:4px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${GREEN}">${adrId}</p><p style="font-size:29px; line-height:1.4; color:${INK}">${desc}</p></div></div>`;
-const exclChip = (t) => `<p style="font-family:${MONO}; font-size:24px; font-weight:600; color:${GRAY}; background:${GRAY_SOFT}; border:1px solid ${LINE_STRONG}; border-radius:999px; padding:8px 22px">${t}</p>`;
-function domainCycleSlide(id, idx, total, name, adrs, exclLabel, excluded, footText, notes) {
+// ── 4~9 도메인별 트래픽·인프라 후보 이슈 (6장, 도메인 하나씩, 2026-09-28 재구성) ──
+// 발표자 요청: Part A가 "기능 구현" 렌즈(RFP 요구 대비 불변식 누락)에 치우쳐 있어
+// 같은 주 Part B/C의 "인프라" 렌즈(CPU 스로틀링·부하테스트·Lambda 계획)와 안 맞는다는 지적.
+// 코드를 다시 읽어 도메인마다 트래픽/인프라 관점 후보 이슈를 찾았다(근거: architecture/traffic-infra-review.md).
+// 이번 주 기능 ADR(체크리스트)은 각 슬라이드 각주로 최소화하고, 본문은 "문제 발견 + 해결방안 검토 중"으로 채운다.
+const sevPill = (sev) => pill(`심각도 ${sev}`, sev === '낮음' ? GRAY_SOFT : AMBER_SOFT, sev === '낮음' ? GRAY : AMBER);
+const evidenceCard = (t) => `<div style="display:flex; flex-direction:column; gap:8px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:14px; padding:26px 32px; box-shadow:${SHADOW}">${label('근거(코드)')}<p style="font-family:${MONO}; font-size:24px; line-height:1.4; color:${SOFT}">${t}</p></div>`;
+const stack = (l, t, size = 30) => `<div style="display:flex; flex-direction:column; gap:8px">${label(l)}<p style="font-size:${size}px; font-weight:600; line-height:1.42; color:${INK}">${t}</p></div>`;
+function trafficIssueSlide(id, idx, total, name, sev, evidence, problem, why, directions, footText, notes) {
   section(id, { notes },
-    head(`도메인 사이클 ${idx}/${total} · 이번 주 재검토`, name) +
-    fill(`<div style="display:flex; flex-direction:column; gap:30px">` +
-      `<div style="display:flex; flex-direction:column; gap:22px">${adrs.map((a) => adrItem(a[0], a[1])).join('')}</div>` +
-      `<div style="display:flex; flex-direction:column; gap:12px">${label(exclLabel)}<div style="display:flex; gap:12px; flex-wrap:wrap">${excluded.map(exclChip).join('')}</div></div>` +
+    head(`도메인 사이클 ${idx}/${total} · 트래픽·인프라 관점`, name) +
+    `<div style="display:flex; gap:14px">${sevPill(sev)}${pill('해결방안 검토 중', AMBER_SOFT, AMBER)}</div>` +
+    fill(`<div style="display:flex; flex-direction:column; gap:18px">` +
+      evidenceCard(evidence) +
+      stack('무엇이 문제인가', problem) +
+      (why ? stack('왜 지금 중요한가', why, 28) : '') +
+      `<div style="display:flex; flex-direction:column; gap:10px">${label('검토 방향 (미결정)')}<div style="display:flex; gap:12px; flex-wrap:wrap">${directions.map(exclChip).join('')}</div></div>` +
       `</div>`) +
     foot(footText));
 }
+const exclChip = (t) => `<p style="font-family:${MONO}; font-size:24px; font-weight:600; color:${GRAY}; background:${GRAY_SOFT}; border:1px solid ${LINE_STRONG}; border-radius:999px; padding:8px 22px">${t}</p>`;
 
-domainCycleSlide('dom-attendance', 1, 6, '근태관리',
-  [
-    ['버그', 'KST 날짜 경계 버그 — UTC 자정 처리라 00~08시 이벤트가 하루 전 날짜로 기록됐다'],
-    ['ADR-ATT-02', '결근 확정 로직 구현 — 직원별 정기 휴무 요일(offDays)을 반영해 판정'],
-    ['ADR-ATT-03', '근태 기록에 지점 귀속 스냅샷 추가 — 파견 재배치 중에도 체크인 시점 지점이 정확히 남음'],
-  ],
-  '아직 손 안 댐 — 2026-09-20 범위 제외 확정',
-  ['자동 결근 배치(스케줄러 필요)'],
-  '공통 근거: apps/api/src/common/date/kst-date.ts, docs/domains/근태관리.md',
-  '도메인 사이클 1/6. KST 버그는 이 사이클에서 스킬을 처음 적용하며 발견한 실제 버그 — "새로 찾은 문제 없이 방법론만 돌렸다"가 아니라는 증거로 먼저 언급.');
+trafficIssueSlide('dom-attendance', 1, 6, '근태관리', '높음',
+  'mock-data.service.ts:1622-1650(previewAbsences), :1656-1657(confirmAbsences)',
+  '결근 미리보기가 직원×이번 달 날짜 수의 이중 루프 안에서 전체 근태·휴가 기록을 매번 다시 스캔합니다(O(직원×일수×누적기록)). 결근 확정 API가 이 계산을 쓰기 경로 안에서 동기로 재실행하는 게 더 나쁩니다',
+  null,
+  ['월별 집계 사전 계산', '스캔 범위를 해당 월로 제한'],
+  '이번 주 기능 ADR(ATT-02·03)은 별도로 완료 — 근거: architecture/traffic-infra-review.md',
+  '도메인 사이클 1/6. 2026-09-28 관점 전환 — 기능 버그(KST 날짜 경계, ATT-02·03)는 이번 주에 이미 고쳤다는 걸 짧게만 언급하고, 본문은 트래픽/인프라 후보 이슈에 집중. 지점이 늘고 기록이 쌓일수록 계속 나빠지는 구조라는 게 핵심.');
 
-domainCycleSlide('dom-congestion', 2, 6, '혼잡도관리',
-  [
-    ['ADR-FAC-01', '혼잡도 값에 신선도(lastUpdatedAt) 추가 — 언제 마지막으로 보정됐는지 표시'],
-    ['ADR-FAC-02', 'Facility.isActive 추가 — 비활성 시설을 조회·재활성화하는 화면까지 구현'],
-    ['ADR-FAC-03', '계약종료 지점에서 시설 신규등록·혼잡도 보정이 안 막혀 있던 결함 — 차단 규칙 적용'],
-  ],
-  '아직 손 안 댐 — 2026-09-20 범위 제외 확정',
-  ['QR 체크인/아웃', '5분 자동계산', '미체크아웃 마감'],
-  '근거: docs/domains/혼잡도관리.md, ADR-FAC-03은 이 사이클이 찾은 불변식 위반 버그',
-  '도메인 사이클 2/6. FAC-03이 4번 슬라이드(cycle-method 다음)에서 예고한 "이 방법론이 실제 버그를 찾았다"의 첫 사례.');
+trafficIssueSlide('dom-congestion', 2, 6, '혼잡도관리', '높음',
+  'facilities.controller.ts:25-28(GET /facilities), mock-data.service.ts:1855-1875(setManualCongestion)',
+  '목록 조회에 캐싱·ETag가 전혀 없고, 항목마다 지점을 다시 조회합니다(N+1)',
+  '회원 앱 출시 후 가장 자주 폴링될 후보 — 이번 주 로그인에서 실측한 자기강화 루프(D24)가 다른 엔드포인트에서 재현될 위험이 가장 큰 도메인',
+  ['짧은 TTL 캐시(5~10초)', '지점 조회 N+1 제거'],
+  '이번 주 기능 ADR(FAC-01·02·03)은 별도로 완료 — 근거: architecture/traffic-infra-review.md',
+  '도메인 사이클 2/6. 6개 중 가장 우선순위 높게 보는 이유를 강조 — D24(로그인 CPU 스로틀링)와 같은 패턴이 아직 안 걸린 엔드포인트에서 재현될 수 있다는 것.');
 
-domainCycleSlide('dom-program', 3, 6, '강사·프로그램',
-  [
-    ['ADR-PRG-01', '유료 회차(PAID_SESSION) 등록에 정원(capacity) 필수 검증이 빠져 있던 결함 — 검증 추가'],
-    ['ADR-PRG-02', '프로그램 상태 전이 응답에 확정 예약 정보를 포함하도록 개선'],
-    ['ADR-PRG-03', '프로그램에 다른 지점의 시설을 연결할 수 있던 결함 — 지점 일치 검증 추가'],
-  ],
-  '아직 손 안 댐 — 2026-09-20 범위 제외 확정',
-  ['시설 충돌 검사', '휴강 예약자 알림', '상태 자동 전이 배치'],
-  '근거: docs/domains/강사프로그램게시.md',
-  '도메인 사이클 3/6.');
+trafficIssueSlide('dom-program', 3, 6, '강사·프로그램', '높음',
+  'mock-data.service.ts:1887-1892(bookedCount, 코드 주석: "no cache, computed every time")',
+  '회차 예약 인원을 조회할 때마다 플랫폼 전체 예약 이력을 스캔합니다. 목록·상태전이 API도 지점·강사·회원을 각각 N+1 조회합니다',
+  '코드 주석이 이미 이 비용을 인지하고 있었다는 뜻 — 인기 프로그램 오픈 시 조회가 몰리면 먼저 무너질 후보',
+  ['프로그램별 예약 카운트를 집계 필드로 유지', '회차 단위로 스캔 범위 좁히기'],
+  '이번 주 기능 ADR(PRG-01·02·03)은 별도로 완료 — 근거: architecture/traffic-infra-review.md',
+  '도메인 사이클 3/6. "no cache, computed every time" 주석을 직접 인용 — 우리가 새로 지어낸 우려가 아니라 코드 작성자 본인이 이미 알고 있던 부채라는 근거.');
 
-domainCycleSlide('dom-board', 4, 6, '게시판',
-  [
-    ['ADR-BRD-01', '특정 지점 대상 본사 공지가 그 지점 회원에게도 노출되던 정보노출 결함 — 열람 범위 수정'],
-    ['ADR-BRD-02', '게시글 목록에 페이지네이션 추가'],
-  ],
-  '아직 손 안 댐 — 2026-09-20 범위 제외 확정',
-  ['읽음 확인', '상단 고정'],
-  '근거: docs/domains/게시판.md, ADR-BRD-01은 이 사이클이 찾은 정보노출 버그',
-  '도메인 사이클 4/6. BRD-01도 실제 결함 — "지점 데이터 격리"뿐 아니라 "공지 대상 범위"도 같은 패턴으로 빠질 수 있다는 걸 보여준다.');
+trafficIssueSlide('dom-board', 4, 6, '게시판', '중간',
+  'posts.controller.ts:26-36, :77-78',
+  '페이지네이션(BRD-02) 이전에 전체 게시글 배열을 필터링하고, 반환 항목마다 작성자·지점을 N+1 조회합니다. 게시글이 삭제되지 않고 계속 쌓이는 구조라 이 필터링 비용은 계속 늘어납니다',
+  null,
+  ['필터 조건에 인덱스/쿼리 설계', 'N+1 제거'],
+  '이번 주 기능 ADR(BRD-01·02)은 별도로 완료 — 근거: architecture/traffic-infra-review.md',
+  '도메인 사이클 4/6.');
 
-domainCycleSlide('dom-asset', 5, 6, '자원문서관리',
-  [
-    ['ADR-RES-01', '계약종료 지점에서도 자산 등록·문서 업로드가 가능했던 결함 — 계약종료 지점 차단 규칙 적용'],
-    ['ADR-RES-02', '퇴사 처리 시 HR_RECORD 문서 보존기한을 재계산하도록 구현'],
-    ['ADR-RES-03', 'CONTRACT 문서 보존기한을 서버에서 필수값으로 강제'],
-  ],
-  '아직 손 안 댐 — 2026-09-20 범위 제외 확정',
-  ['감가상각 배치', '재물조사'],
-  '근거: docs/domains/자원문서관리.md, ADR-RES-01은 이 사이클이 찾은 불변식 위반 버그',
-  '도메인 사이클 5/6. RES-01까지 합치면 이번 주 "계약종료 지점 차단" 패턴으로 찾은 버그가 FAC-03·RES-01 2건.');
+trafficIssueSlide('dom-asset', 5, 6, '자원문서관리', '낮음',
+  'mock-data.service.ts:2282-2286(retention-alerts)',
+  '보존기한 임박 알림이 전체 문서를 매번 스캔·정렬합니다. 폐기된 자산은 배열에서 영원히 안 빠져 무한 누적됩니다',
+  '관리자 전용 화면이라 호출 빈도 자체가 낮음 — 6개 중 우선순위는 가장 낮게 봅니다',
+  ['보존기한을 쓰기 시점에 미리 계산', '폐기 자산 아카이빙'],
+  '이번 주 기능 ADR(RES-01·02·03)은 별도로 완료 — 근거: architecture/traffic-infra-review.md',
+  '도메인 사이클 5/6.');
 
-domainCycleSlide('dom-member', 6, 6, '회원관리',
-  [
-    ['ADR-MEM-01', '오프라인 등록 회원과 앱 계정을 연결(POST /members/link) — 신규 기능'],
-    ['ADR-MEM-02', '앱에서 자체 회원가입(POST /members/register) — 신규 기능'],
-    ['ADR-MEM-03', '회원 상세 요약 + 탭별 지연 로드(수강내역·PT 잔여세션) 구현'],
-  ],
-  '이번 주는 새 결함 없음 — 버그 수정이 아니라 신규 기능 추가',
-  ['(회원 앱 착수를 위한 선행 작업)'],
-  '근거: docs/domains/회원관리.md · 남은 일(인사정보관리의 TERMINATED 파견 처리)은 Q&A 대비로만 다룸',
-  '도메인 사이클 6/6. 유일하게 버그가 아니라 신규 기능 3개를 얻은 도메인 — 다음 단계(회원 앱)의 선행 작업이라는 걸 강조. 이번 주 새 결함이 없었다고 "이 도메인은 완벽하다"로 과장하지 말 것 — 인사정보관리 쪽에 남은 파견 종료 처리가 회원관리와 맞닿아 있다.');
+trafficIssueSlide('dom-member', 6, 6, '회원관리', '높음',
+  'members.controller.ts:72-91, mock-data.service.ts:618-620(generateMemberNo), :775-777(이메일 중복 확인)',
+  '회원 목록 조회는 게시판과 달리 페이지네이션이 아예 없습니다(전체 스캔+N+1). 회원 등록은 매번 전체 회원·계정 배열을 스캔해 번호·이메일 중복을 확인합니다',
+  '회원 수가 design-constants 추정으로 7만 명대까지 자랄 수 있고, 동시 가입이 몰리면(회원 앱 출시 직후) 로그인과 같은 클래스의 문제가 등록 경로에서 재현될 수 있습니다',
+  ['목록에 페이지네이션 추가', '회원번호를 시퀀스로 교체', '이메일 유니크를 DB 레벨로'],
+  '이번 주 기능 ADR(MEM-01·02·03, 전부 신규 기능)은 별도로 완료 — 근거: architecture/traffic-infra-review.md',
+  '도메인 사이클 6/6. 회원 수 추정(design-constants: 지점당 550명×130개 지점)을 근거로 제시 — 감이 아니라 이미 계산된 숫자.');
 
 // ── 6 이번 주 사이클 숫자 ─────────────────────────────────────────────────
 const bignum = (n, l, kind) => {
@@ -197,10 +189,10 @@ const bignum = (n, l, kind) => {
   const bg = kind === 'green' ? GREEN_SOFT : kind === 'navy' ? NAVY_SOFT : AMBER_SOFT;
   return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:12px; background:${bg}; border:1px solid ${c}; border-radius:14px; padding:44px 20px"><p style="font-family:${MONO}; font-size:76px; font-weight:700; color:${c}">${n}</p><p style="font-size:28px; font-weight:600; color:${INK}; text-align:center">${l}</p></div>`;
 };
-section('cycle-momentum', { notes: '숫자는 이번 발표 준비 시점에 git log로 직접 세었다(범위: 3fa3a65~638b8bd). 회원관리 사이클은 버그 수정을 넘어 신규 기능 2개(오프라인↔앱 연동, 앱 자체 회원가입)를 얻었다 — 이건 다음 단계인 회원 앱(React Native) 착수를 위한 선행 작업이라는 점을 강조. "9개 도메인 전체 사이클 완료"는 이번 주가 아니라 3주에 걸쳐 누적된 것이고, 이번 주는 그중 6개 도메인을 다시 훑은 구간이라는 걸 명확히 한다.' },
+section('cycle-momentum', { notes: '숫자는 이번 발표 준비 시점에 git log로 직접 세었다(범위: 3fa3a65~638b8bd). 기능 ADR 16건은 이미 완료된 작업(4~9번 슬라이드 각주). 이 슬라이드의 진짜 메시지는 마지막 카드 — 같은 6개 도메인을 트래픽/인프라 관점으로 다시 보니 후보 이슈 6건(전부 검토 중)이 나왔다는 것. "9개 도메인 전체 사이클 완료"는 이번 주가 아니라 3주에 걸쳐 누적된 것이고, 이번 주는 그중 6개 도메인을 다시 훑은 구간이라는 걸 명확히 한다.' },
   head('Part A · 도메인 사이클', '숫자로 보는 이번 주') +
-  fill(`<div style="display:flex; gap:20px">${bignum('6', '도메인 재검토\n(근태·혼잡도·프로그램·게시판·자원문서관리·회원관리)', 'navy')}${bignum('16', 'ADR로 남긴 결정', 'green')}${bignum('27', '커밋', 'amber')}</div>`) +
-  card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">덤으로 얻은 것</p><p style="font-size:32px; font-weight:600; line-height:1.4; color:${INK}">회원관리 사이클에서 신규 기능 2개를 얻었습니다 — 오프라인↔앱 연동, 앱 자체 회원가입. 다음 단계(회원 앱 착수)의 선행 작업입니다.</p>`) +
+  fill(`<div style="display:flex; gap:16px">${bignum('6', '도메인 재검토', 'navy')}${bignum('16', '기능 ADR(완료)', 'green')}${bignum('6', '트래픽·인프라\n후보 이슈(검토 중)', 'amber')}</div>`) +
+  card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">관점을 하나 더 얹었습니다</p><p style="font-size:32px; font-weight:600; line-height:1.4; color:${INK}">앞의 6장(4~9번)에서 같은 6개 도메인을 "RFP 요구 대비 뭐가 빠졌나"가 아니라 "트래픽·인프라·아키텍처 흐름 관점에서 뭐가 문제가 될 수 있나"로 다시 봤습니다 — 그 결과가 후보 이슈 6건입니다.</p>`) +
   foot('git log 3fa3a65..638b8bd 기준, 2026-09-28 재실측'));
 
 // ── 6 결정 1 — D23 배포 ──────────────────────────────────────────────────
