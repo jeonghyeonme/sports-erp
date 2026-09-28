@@ -178,17 +178,11 @@ section('loadtest-setup', { notes: '"느릴 것 같다"는 추측 대신 k6로 �
   foot('이미 위탁계약이 98개다 — "몇 명 안 되는데" 라는 가정은 검증이 필요했다'));
 
 // ── 6 실측 결과 ───────────────────────────────────────────────────────────
-const chip = (t, k) => {
-  const bg = k === 'red' ? RED_SOFT : k === 'amber' ? AMBER_SOFT : GRAY_SOFT;
-  const c = k === 'red' ? RED : k === 'amber' ? AMBER : GRAY;
-  return `<p style="font-family:${MONO}; font-size:26px; font-weight:700; color:${c}; background:${bg}; border:1px solid ${c}; border-radius:999px; padding:10px 26px">${t}</p>`;
-};
-section('loadtest-numbers', { notes: '핵심 숫자(시간을 더 쓴다). 로컬 65ms vs Render 무료 티어 로그인 p95 15.16초 — 233배. 40명 램핑 중 응답시간이 완만히 늘지 않고 급격히 무너진 패턴(7.4s→15.16s→17.11s)을 3개 칩으로 보여준다. "코드 문제가 아니라 무료 티어 공유 CPU 스로틀링"이 핵심 메시지. 질문 대비: 이 세션에서는 egress 정책상 재현 불가, 수치는 사용자가 외부에서 실행한 실측값이고 design-constants.md에 계산 근거가 있다. 로그인만 테스트한 게 아니라는 것도 이번에 명시 — browse_ramp(0~100명, 조회 API)도 같은 날 같이 실측했고 마찬가지로 무너졌다(중앙값 307ms·p95 1.18초·최대 33초, 에러는 0건). 조회 로직 자체(MockDataService 인메모리 스캔)는 원래 계산량이 거의 없어 빨라야 정상인데 느려졌다는 게 핵심 단서 — "로그인 API가 무겁다"가 아니라 "공유 컨테이너 하나에서 도는 모든 요청이 같이 밀린다"는 근거다. 다음 슬라이드(자기강화 루프)가 왜 로그인에 한정된 문제가 아닌지는 여기서 미리 깔아둔다.' },
+section('loadtest-numbers', { notes: '핵심 숫자 3개를 큰 카드로만 보여준다(2026-09-28 재구성 — 원래 있던 "40명 램핑 중 무너진 패턴" 칩 3개와 "로그인만이 아닙니다" 카드는 발표자가 "나중에 갖다 붙인 것처럼 어색하다"고 지적해 걷어내고, 실측값 3개(정상 처리·로그인 p95·조회 API p95)만 큰 숫자 카드로 나란히 배치했다). 로컬 65ms vs Render 무료 티어 로그인 p95 15.16초 — 233배. 조회 API(browse_ramp, 0~100명)도 p95 1.18초로 같이 무너졌다는 게 핵심 — 원래 계산량이 거의 없는 인메모리 조회까지 느려졌다는 것 자체가 "로그인 API가 무겁다"가 아니라 "공유 컨테이너 하나에서 도는 모든 요청이 같이 밀린다"는 증거다. 40명 램핑 중 완만히 늘지 않고 급격히 무너진 패턴(7.4s→15.16s→17.11s)과 조회 API의 중앙값(307ms)·최대(33초)·에러 0건은 슬라이드에서는 뺐지만 질문 나오면 답한다 — 세 값 다 design-constants.md와 2026-09-27 k6 실측(login_ramp + browse_ramp) 원본에 남아 있다. 질문 대비: 이 세션에서는 egress 정책상 재현 불가, 수치는 사용자가 외부에서 실행한 실측값. 다음 슬라이드(자기강화 루프)가 왜 로그인에 한정된 문제가 아닌지는 여기서 미리 깔아둔다.' },
   head('Part B · D24 원인 파악', '동시 로그인 40명에 15초가 걸렸습니다') +
-  fill(`<div style="display:flex; flex-direction:column; gap:20px">` +
-    `<div style="display:flex; gap:20px">${bignum('65ms', '정상 처리\n(로컬)', 'green')}${bignum('15.16초', 'Render 무료 티어\n로그인 p95', 'amber')}</div>` +
-    card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">40명 램핑 중 무너진 패턴</p><div style="display:flex; align-items:center; gap:20px">${chip('7.4초', 'gray')}<p style="font-size:32px; color:${SOFT}">→</p>${chip('15.16초', 'amber')}<p style="font-size:32px; color:${SOFT}">→</p>${chip('17.11초', 'red')}<p style="font-size:28px; color:${SOFT}; margin-left:12px">완만히 늘지 않고 급격히 무너졌다</p></div>`) +
-    card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">로그인만이 아닙니다 — 조회 API(browse_ramp, 0~100명)도 같이 무너졌습니다</p><p style="font-size:28px; line-height:1.4; color:${INK}">중앙값 <b>307ms</b> · p95 <b>1.18초</b> · 최대 <b>33초</b> — 원래 빨라야 할 인메모리 조회까지 느려졌다는 게, 원인이 "공유 컨테이너 CPU 경합"이라는 증거입니다</p>`) +
+  fill(`<div style="display:flex; flex-direction:column; gap:28px">` +
+    `<div style="display:flex; gap:20px">${bignum('65ms', '정상 처리\n(로컬)', 'green')}${bignum('15.16초', '로그인 p95\n(Render 무료 티어)', 'amber')}${bignum('1.18초', '조회 API p95\n(Render 무료 티어)', 'navy')}</div>` +
+    `<p style="font-size:28px; line-height:1.4; color:${SOFT}">로그인만이 아닙니다 — 원래 빨라야 할 인메모리 조회(browse_ramp)까지 느려졌다는 게, 원인이 <b style="color:${INK}">"공유 컨테이너 CPU 경합"</b>이라는 증거입니다</p>` +
     `</div>`) +
   foot('2026-09-27 k6 실측(login_ramp + browse_ramp) · 코드 문제가 아니라 Render 무료 티어 공유 CPU 스로틀링'));
 
