@@ -211,32 +211,24 @@ decisionSlide('edge-fix', 'Part B · D24 결정 2', '몰랐던 인프라를 찾�
   'D24 · 2026-09-27 배포 완료 — Workers Rate Limiting 바인딩(2025-09-19 GA)도 Zone(도메인) 없이 Worker 단독으로 동작한다<br>참고 — Cloudflare Pages(정적 파일 호스팅 전용)와 Worker(엣지에서 코드를 실행하는 서버리스 컴퓨트)는 원래 다른 제품입니다. 지금은 Worker가 "Static Assets" 기능으로 정적 파일까지 서빙할 수 있어, 이 Worker 하나가 admin-web 정적 자산 서빙 + 이 rate limit 로직을 함께 맡습니다',
   '결정 2(D24). "커스텀 도메인이 있어야 Cloudflare 방어선을 쓸 수 있다"고 처음엔 잘못 판단했다가, workers.dev 서브도메인만으로 Worker와 Rate Limiting 바인딩 둘 다 된다는 걸 같은 날 재확인했다 — 몰랐던 인프라를 찾아낸 순간. 보안 대책(rate limit)과 용량 대책(수평 확장)을 뒤섞지 않고 분리한 게 이 결정의 핵심이라는 것도 강조. Cloudflare Pages vs Worker 이해관계(질문 대비, 각주에도 요약 반영): 원래 admin-web은 Pages(정적 호스팅 전용 제품)에 올릴 계획이었으나(D23 원안) MCP 커넥터에 Pages 생성 툴이 없어 무산됐고, 이번에 rate limit 때문에 세운 Worker(코드 실행 컴퓨트 제품)가 나중에 "Static Assets" 기능으로 admin-web까지 흡수해(D25, 슬라이드엔 안 넣음) 결과적으로 Pages를 한 번도 쓸 필요가 없어졌다 — 이 Worker를 세우면서 admin-web(당시 Render)과 오리진이 갈라져 로그인 실패·새로고침 404가 잠깐 났었는데, 그 흡수 과정에서 함께 해결됐다.');
 
-// ── 9 근본 원인 ──────────────────────────────────────────────────────────
-const srv = (t, list, c) => `<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:${SURFACE}; border:2px solid ${c}; border-radius:14px; padding:28px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${c}">${t}</p>${list.map((x) => `<p style="font-size:28px; color:${INK}">· ${x}</p>`).join('')}</div>`;
-section('root-cause', { notes: "D26 배경. 서버 한 대를 아무리 키워도 언젠가 한계다. 여러 대로 늘리면(수평 확장) 되는데, 지금 데이터가 서버 메모리 안에만 있어서(MockDataService) 여러 대를 띄우면 각자 다른 데이터를 들고 있게 된다 — 이걸 그림으로 보여준다(서버 2대가 같은 회원 목록을 다르게 보여줌). 결론: 진짜 해결은 rate limit이 아니라 데이터를 서버 밖(DB)으로 꺼내는 것." },
-  head('Part B · D26 배경', '진짜 원인은 서버 안에 있었습니다') +
-  fill(`<div style="display:flex; flex-direction:column; gap:28px">` +
-    `<p style="font-size:32px; font-weight:600; color:${INK}">서버를 여러 대로 늘리면(수평 확장) 트래픽을 나눌 수 있는데 — 지금은 안 됩니다</p>` +
-    `<div style="display:flex; gap:24px">${srv('서버 인스턴스 A', ['방금 등록한 회원 O', '메모리에만 존재'], AMBER)}${srv('서버 인스턴스 B', ['방금 등록한 회원 X', '서로 다른 메모리'], RED)}</div>` +
-    `</div>`) +
-  foot('MockDataService = 인스턴스별 인메모리 상태 · 데이터가 서버 밖(DB)에 있어야 여러 대를 띄울 수 있다'));
-
-// ── 10 결정 3 — D26 → Lambda 계획 ─────────────────────────────────────────
-const limitCard = (n, t) => `<div style="flex:1; display:flex; flex-direction:column; gap:8px; background:${AMBER_SOFT}; border:1px solid ${AMBER}; border-radius:12px; padding:20px 24px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${AMBER}">${n}</p><p style="font-size:24px; line-height:1.35; color:${INK}">${t}</p></div>`;
-decisionSlide('migration', 'Part B · D26 → 계획 결정 3', '무상태화 먼저, 인프라 이전은 그다음',
-  'Lambda의 다중 인스턴스 모델이 지금의 인메모리 mock과 근본적으로 안 맞는다 — 무상태화가 전제조건',
+// ── 9 결정 3 — D26 → Lambda 계획 (2026-09-28 축약: 근본원인 설명 슬라이드를 통합) ──
+// 발표자 지적: "근본 원인"(구 root-cause) + "결정 3"(migration) 두 장이 사실
+// "Lambda 테스트를 하려면 먼저 실DB로 바꿔야 한다"는 한 가지 결론을 늘어놓은
+// 것이었다 — 근본원인 슬라이드(서버 인스턴스 그림)를 없애고 그 논리를 원인 한
+// 줄로 접어 결정 슬라이드에 합쳤다. 기각한 대안도 3개→2개, "남은 한계" 카드도
+// 걷어내 foot 한 줄로 축약했다.
+decisionSlide('migration', 'Part B · D26 결정 3', '실DB로 먼저 바꾸고, Lambda로 테스트합니다',
+  '지금 API는 서버 메모리에만 데이터를 두는 상태(MockDataService)라 여러 대로 못 띄웁니다 — Lambda로 옮기려면 데이터부터 서버 밖(DB)으로 꺼내야 합니다',
   [
-    ['지금 바로 전체를 Lambda로', 'mock 15개 도메인 동시성 위험', false],
-    ['Oracle Cloud 무료 VM 전환', '확장성 서사 자체는 안 생김', false],
-    ['Render 유료 업그레이드', '무료 원칙 위배, 확장성도 그대로', false],
+    ['지금 바로 전체를 Lambda로', '아직 실DB 아닌 도메인들 동시성이 깨짐', false],
+    ['인프라만 먼저 바꾸기(Oracle VM 등)', '확장성 문제는 그대로 남음', false],
   ],
-  'Prisma 전체 이관 후 Lambda',
-  '이번 주 인증부터 실제 Postgres로 착수 — 완료되면 모든 API가 독립 실행환경을 받아, browse_ramp에서도 확인된 공유 CPU 경합이 일반적으로 해소된다. DB(Supabase)는 유지',
-  '2026-09-28 · docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md D26 — 인증 모듈부터 실제 Postgres 위에서 검증 완료',
-  '결정 3(D26 + 이후 계획, 2026-09-28). 왜 인증 모듈부터인가 — 모든 요청이 거쳐가는 가장 위험한 경로. 처음엔 순수 Prisma로 바꿨다가 116개 테스트가 깨져서 "Prisma 우선, 없으면 mock 폴백" 이중 경로로 재설계했다(시간 되면 언급). 실제 Postgres 위에서 로그인·토큰갱신·비밀번호변경을 수동 curl로 확인했다는 걸 강조 — "될 것 같다"가 아니라 "실행해서 확인했다". Lambda를 지금(도메인 이관 전) 먼저 올리는 안, Oracle VM으로 스로틀링만 먼저 없애는 안도 검토했지만, mock 도메인의 동시성 리스크와 확장성 서사 상실을 이유로 기각했다는 것도 질문 나오면 설명. 슬라이드 하단 "남은 한계" 2개는 Lambda로 옮겨도 완전히 끝나는 게 아니라는 걸 숨기지 않으려고 추가함(2026-09-28) — ① DB 용량: Lambda가 늘어나도 Postgres 처리량엔 물리적 한계가 있고 커넥션 풀링만으론 부족해지면 읽기 복제본·캐싱까지 필요할 수 있는데 아직 설계 안 됨. ② 비용: Lambda Always Free는 월 100만 요청까지고 그 이상은 과금 — 모바일 앱 출시 후 실제 요청량이 이 안에 들어오는지는 아직 모른다(실사용자가 없어서). "다 해결된다"가 아니라 정직하게.',
-  `<div style="display:flex; flex-direction:column; gap:8px">${label('남은 한계 — Lambda로 옮겨도 끝은 아님')}<div style="display:flex; gap:14px">${limitCard('① DB 용량', 'Postgres 처리량엔 물리적 한계 — 요청이 더 커지면 읽기 복제본·캐싱까지 필요할 수 있음(미설계)')}${limitCard('② 비용', 'Lambda Always Free는 월 100만 요청까지 — 그 이상은 과금, 모바일 앱 출시 후 실제 요청량은 아직 모름')}</div></div>`);
+  '실DB(Prisma) 전환 후 Lambda 테스트',
+  '이번 주 인증부터 실제 Postgres로 전환 완료 — 나머지 도메인도 이어서 옮기고, 끝나는 대로 바로 Lambda로 테스트해봅니다',
+  '2026-09-28 · D26 — 인증은 실제 Postgres 위에서 이미 검증 완료 · DB(Supabase)는 그대로 · DB 용량·비용 한계는 실제로 돌려보며 확인',
+  '결정 3(D26 + 이후 계획, 2026-09-28. 2026-09-28 근본원인 슬라이드 통합·축약). 원래 "근본 원인"(서버 인스턴스 A/B가 서로 다른 회원 목록을 보여주는 그림)과 "결정 3"(원인→기각한 대안 3개→채택→남은 한계 2개) 두 장이었는데, 발표자가 "API 테스트하려면 실DB화해야 한다는 소리를 있어보이게 늘어뜨린 것"이라고 지적해 한 장으로 합쳤다. 핵심만 남긴다 — 왜 인증 모듈부터인가(모든 요청이 거쳐가는 가장 위험한 경로), "Prisma 우선·mock 폴백" 이중 경로로 설계한 이유(15개 도메인이 아직 mock이라 순수 전환 시 테스트 116개가 깨짐), 실제 Postgres 위에서 로그인·토큰갱신·비밀번호변경을 수동 curl로 확인했다는 것("될 것 같다"가 아니라 "실행해서 확인했다")은 질문 나오면 설명. DB 용량·비용 한계(Lambda Always Free 월 100만 요청 등)는 슬라이드에서 뺐지만 질문 대비로 기억해둔다 — "다 해결된다"고 과장하지 않는다.');
 
-// ── 11 로드맵 ─────────────────────────────────────────────────────────────
+// ── 10 로드맵 ─────────────────────────────────────────────────────────────
 section('roadmap', { notes: '3단계 로드맵, 이번 주 재확정(2026-09-28). 지금까지 본 결정 1~3을 한 장으로 정리하는 슬라이드. 1단계(엣지 rate limit)는 완료했지만 근본 해결이 아니라는 걸 앞서 밝혔다. 2단계(전 도메인 Prisma 이관)는 진행 중 — 인증만 끝남. 3단계는 DB는 기존 결정(Supabase)을 유지하고 API를 Lambda 호출 구조로 옮기는 구체적 계획을 세워뒀다고 말한다. 다만 아직 계획 단계이지 착수는 아니다 — "결정했다"와 "다 했다"를 구분. 안전장치: 이 계획대로 안 풀리면 DB 인프라 자체도 재검토 대상이라는 걸 숨기지 않는다 — 무료 킵얼라이브(Cloudflare Cron)도 같은 맥락의 보조 수단으로 질문 나오면 언급. 이 슬라이드 다음은 라이브 데모가 아니라 Part C(도메인별 트래픽·인프라 엣지케이스)로 이어진다 — 방금 실측한 CPU 경합·자기강화 루프가 로그인 하나만의 문제가 아닐 수 있다는 관점을 나머지 도메인에도 적용해본 결과를 보여준다. 라이브 로그인 데모는 Part C 마지막 슬라이드(도메인 사이클 6/6, 회원관리) 다음으로 옮겼다.' },
   head('Part B · 지금까지의 결정, 한눈에', '이렇게 진행하기로 했습니다') +
   `<div style="display:flex; flex-direction:column; gap:36px; flex:1; justify-content:center">` +
@@ -245,7 +237,7 @@ section('roadmap', { notes: '3단계 로드맵, 이번 주 재확정(2026-09-28)
   `</div>` +
   foot('D24의 단계적 로드맵 + 2026-09-28 방향 재확정 — DB(Supabase)는 그대로, API 호스팅만 단계적으로 이전'));
 
-// ── 12 Part B→C 전환 — 도메인 재검토 숫자 ────────────────────────────────────
+// ── 11 Part B→C 전환 — 도메인 재검토 숫자 ────────────────────────────────────
 // 2026-09-28 순서 재구성으로 이 자리(로드맵 다음)로 옮겨왔다 — "배포하다 만난 인프라 문제(Part B)의
 // 관점을, 다시 도메인 하나하나에 적용해봤다"는 실제 인과관계를 슬라이드 순서로도 보여주기 위함.
 section('cycle-momentum', { notes: '숫자는 이번 발표 준비 시점에 git log로 직접 세었다(범위: 3fa3a65~638b8bd). 기능 ADR 16건은 Part A(cycle-method)의 방법론으로 뽑아 이미 완료한 작업이고, 그 결과를 D23에서 실제로 배포했다. 이 슬라이드의 진짜 메시지는 마지막 카드 — 방금 Part B(D24 부하테스트·자기강화 루프)에서 확인한 CPU 경합이 로그인 하나만의 문제가 아닐 수 있다는 걸 깨닫고, 같은 6개 도메인을 다시 보니 어디서 비슷한 패턴이 재현될 수 있는지 찾아봤다는 것. 이어지는 6장이 그 결과(후보 이슈 6건, 전부 검토 중)다. "9개 도메인 전체 사이클 완료"는 이번 주가 아니라 3주에 걸쳐 누적된 것이고, 이번 주는 그중 6개 도메인을 다시 훑은 구간이라는 걸 명확히 한다.' },
@@ -254,7 +246,7 @@ section('cycle-momentum', { notes: '숫자는 이번 발표 준비 시점에 git
   card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">관점을 하나 더 얹었습니다</p><p style="font-size:32px; font-weight:600; line-height:1.4; color:${INK}">방금 본 CPU 스로틀링·자기강화 루프(D24)가 로그인 API 하나만의 문제는 아닐 수 있습니다. 그래서 같은 6개 도메인을 "RFP 요구 대비 뭐가 빠졌나"가 아니라 "트래픽·인프라·아키텍처 흐름 관점에서 뭐가 문제가 될 수 있나"로 다시 봤습니다 — 이어지는 6장이 그 결과입니다.</p>`) +
   foot('git log 3fa3a65..638b8bd 기준, 2026-09-28 재실측'));
 
-// ── 13~18 도메인별 트래픽·인프라 후보 이슈 (Part C, 6장) ──────────────────────
+// ── 12~17 도메인별 트래픽·인프라 후보 이슈 (Part C, 6장) ──────────────────────
 trafficIssueSlide('dom-attendance', 1, 6, '근태관리', '높음',
   'mock-data.service.ts:1622-1650(previewAbsences), :1656-1657(confirmAbsences)',
   '결근 여부를 확인할 때마다 그동안 쌓인 근태·휴가 기록 전체를 처음부터 다시 훑습니다. 기록이 쌓일수록 확인 시간도 같이 늘어나고, 결근을 확정할 때도 이 계산을 다시 돌립니다',
@@ -303,7 +295,7 @@ trafficIssueSlide('dom-member', 6, 6, '회원관리', '높음',
   '이번 주 기능 ADR(MEM-01·02·03, 전부 신규 기능)은 별도로 완료 — 근거: architecture/traffic-infra-review.md',
   '도메인 사이클 6/6. 회원 수 추정(design-constants: 지점당 550명×130개 지점)을 근거로 제시 — 감이 아니라 이미 계산된 숫자. 이 슬라이드 다음 별도 안내 슬라이드 없이 바로 실제 배포 주소에서 라이브 로그인 데모로 넘어간다(김민수 계정) — "오늘 라이브로 보여드릴 건 로그인 하나"라고 말로 짚고 화면을 전환한다.');
 
-// ── 19 마무리 ─────────────────────────────────────────────────────────────
+// ── 18 마무리 ─────────────────────────────────────────────────────────────
 section('closing', { pad: '128px 176px', gap: 24, notes: '질문과 토론. Q&A 대비는 구성안 §5 참고: B/C 진행 상태 과장 금지, 이중 경로 설계, skip 테스트 이유, k6 재현 불가, 성장 시나리오 관점, Lambda 미착수, CI Postgres 추가 이유.' },
   dots(400, 780, 700, 460) + `<div style="flex:1"></div><h1 style="font-family:${DISPLAY}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:${INK}">감사합니다</h1><p style="font-size:44px; color:${SOFT}">질문 환영합니다.</p><div style="flex:1"></div>`);
 
