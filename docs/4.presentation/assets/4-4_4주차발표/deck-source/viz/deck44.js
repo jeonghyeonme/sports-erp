@@ -183,9 +183,15 @@ section('loadtest-numbers', { notes: '핵심 숫자(시간을 더 쓴다). 로�
   foot('2026-09-27 k6 실측 · 코드 문제가 아니라 Render 무료 티어 공유 CPU 스로틀링'));
 
 // ── 9 왜 이렇게 되는가 ────────────────────────────────────────────────────
-section('bottleneck', { notes: "Little's Law로 설명되는 자기강화 루프. 지연이 발생하면 동시 진행 건수(L=λW)가 늘고, 늘어난 요청이 CPU 경합을 심화시키고, 그게 다시 처리시간을 늘려 루프가 증폭된다. 정상 처리(65ms) 시 동시 진행 로그인은 0.12건이라 평소엔 전혀 문제가 안 되지만, 15.16초로 늘어나는 순간 같은 공식이 28.5건으로 밀어올린다. 3년 후(98→130개 지점) 추정으로는 장애 상황 동시 진행이 38.4건까지 간다." },
+section('bottleneck', { notes: "Little's Law로 설명되는 자기강화 루프. 먼저 CPU 스로틀링이 뭔지부터 짧게 정의(청중이 모를 수 있는 용어) — 클라우드 무료/공유 플랜은 프로세스가 쓸 수 있는 CPU 시간에 한도를 두고, 그 한도를 넘으면 강제로 처리 속도를 늦춘다. Render 무료 웹 서비스가 정확히 이 방식이다. 그 다음 자기강화 루프: 지연이 발생하면 동시 진행 건수(L=λW)가 늘고, 늘어난 요청이 CPU 경합을 심화시키고, 그게 다시 처리시간을 늘려 루프가 증폭된다. 정상 처리(65ms) 시 동시 진행 로그인은 0.12건이라 평소엔 전혀 문제가 안 되지만, 15.16초로 늘어나는 순간 같은 공식이 28.5건으로 밀어올린다. 3년 후(98→130개 지점) 추정으로는 장애 상황 동시 진행이 38.4건까지 간다." },
   head('D24 · 원인 파악', '왜 이렇게 되는가 — 자기강화 루프') +
-  diagramCard(F.bottleneckLoop) +
+  `<p style="font-size:28px; font-weight:600; line-height:1.4; color:${SOFT}"><b style="color:${INK}">CPU 스로틀링이란?</b> — 클라우드가 프로세스에 허용한 CPU 한도를 넘으면, 강제로 처리 속도를 늦추는 것입니다</p>` +
+  (function () {
+    lib.setSlide({ left: 495, top: 300, scale: 0.93 });
+    const frag = F.bottleneckLoop();
+    const box = `<div style="position:absolute; left:96px; top:260px; width:1728px; height:732px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:14px; box-shadow:${SHADOW}"></div>`;
+    return box + frag;
+  })() +
   foot("design-constants.md ⑦~⑨ · Little's Law 역산 — 3년 후 추정 시 장애 상황 동시 진행 로그인 ≈38.4건"));
 
 // ── 10 결정 2 — D24 엣지 rate limit ───────────────────────────────────────
@@ -198,8 +204,8 @@ decisionSlide('edge-fix', 'D24 · 결정 2', '몰랐던 인프라를 찾아 막�
     ['Cloudflare Worker 엣지 rate limit', '커스텀 도메인 없이도 workers.dev로 바로 가능하다는 걸 새로 발견', true],
   ],
   '엣지에서 걸러야 Render CPU에 아예 안 닿는다 — 단, 근본 해결책은 아니다(정상적인 동시 접속 폭주는 여전히 그대로 느림)',
-  'D24 · 2026-09-27 배포 완료 — Workers Rate Limiting 바인딩(2025-09-19 GA)도 Zone(도메인) 없이 Worker 단독으로 동작한다',
-  '결정 2(D24). "커스텀 도메인이 있어야 Cloudflare 방어선을 쓸 수 있다"고 처음엔 잘못 판단했다가, workers.dev 서브도메인만으로 Worker와 Rate Limiting 바인딩 둘 다 된다는 걸 같은 날 재확인했다 — 몰랐던 인프라를 찾아낸 순간. 보안 대책(rate limit)과 용량 대책(수평 확장)을 뒤섞지 않고 분리한 게 이 결정의 핵심이라는 것도 강조. 질문 대비(D25, 슬라이드엔 안 넣음) — 이 Worker를 세우면서 admin-web(Render)과 오리진이 갈라져 로그인 실패·새로고침 404가 잠깐 났었는데, admin-web을 같은 Worker의 정적 자산으로 흡수해 해결했다.');
+  'D24 · 2026-09-27 배포 완료 — Workers Rate Limiting 바인딩(2025-09-19 GA)도 Zone(도메인) 없이 Worker 단독으로 동작한다<br>참고 — Cloudflare Pages(정적 파일 호스팅 전용)와 Worker(엣지에서 코드를 실행하는 서버리스 컴퓨트)는 원래 다른 제품입니다. 지금은 Worker가 "Static Assets" 기능으로 정적 파일까지 서빙할 수 있어, 이 Worker 하나가 admin-web 정적 자산 서빙 + 이 rate limit 로직을 함께 맡습니다',
+  '결정 2(D24). "커스텀 도메인이 있어야 Cloudflare 방어선을 쓸 수 있다"고 처음엔 잘못 판단했다가, workers.dev 서브도메인만으로 Worker와 Rate Limiting 바인딩 둘 다 된다는 걸 같은 날 재확인했다 — 몰랐던 인프라를 찾아낸 순간. 보안 대책(rate limit)과 용량 대책(수평 확장)을 뒤섞지 않고 분리한 게 이 결정의 핵심이라는 것도 강조. Cloudflare Pages vs Worker 이해관계(질문 대비, 각주에도 요약 반영): 원래 admin-web은 Pages(정적 호스팅 전용 제품)에 올릴 계획이었으나(D23 원안) MCP 커넥터에 Pages 생성 툴이 없어 무산됐고, 이번에 rate limit 때문에 세운 Worker(코드 실행 컴퓨트 제품)가 나중에 "Static Assets" 기능으로 admin-web까지 흡수해(D25, 슬라이드엔 안 넣음) 결과적으로 Pages를 한 번도 쓸 필요가 없어졌다 — 이 Worker를 세우면서 admin-web(당시 Render)과 오리진이 갈라져 로그인 실패·새로고침 404가 잠깐 났었는데, 그 흡수 과정에서 함께 해결됐다.');
 
 // ── 11 근본 원인 ──────────────────────────────────────────────────────────
 const srv = (t, list, c) => `<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:${SURFACE}; border:2px solid ${c}; border-radius:14px; padding:28px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${c}">${t}</p>${list.map((x) => `<p style="font-size:28px; color:${INK}">· ${x}</p>`).join('')}</div>`;
@@ -225,7 +231,7 @@ decisionSlide('migration', 'D26 → 계획 · 결정 3', '무상태화 먼저, �
   '결정 3(D26 + 이후 계획, 2026-09-28). 왜 인증 모듈부터인가 — 모든 요청이 거쳐가는 가장 위험한 경로. 처음엔 순수 Prisma로 바꿨다가 116개 테스트가 깨져서 "Prisma 우선, 없으면 mock 폴백" 이중 경로로 재설계했다(시간 되면 언급). 실제 Postgres 위에서 로그인·토큰갱신·비밀번호변경을 수동 curl로 확인했다는 걸 강조 — "될 것 같다"가 아니라 "실행해서 확인했다". Lambda를 지금(도메인 이관 전) 먼저 올리는 안, Oracle VM으로 스로틀링만 먼저 없애는 안도 검토했지만, mock 도메인의 동시성 리스크와 확장성 서사 상실을 이유로 기각했다는 것도 질문 나오면 설명.');
 
 // ── 13 로드맵 ─────────────────────────────────────────────────────────────
-section('roadmap', { notes: '3단계 로드맵, 이번 주 재확정(2026-09-28). 지금까지 본 결정 1~3을 한 장으로 정리하는 슬라이드. 1단계(엣지 rate limit)는 완료했지만 근본 해결이 아니라는 걸 앞서 밝혔다. 2단계(전 도메인 Prisma 이관)는 진행 중 — 인증만 끝남. 3단계는 DB는 기존 결정(Supabase)을 유지하고 API를 Lambda 호출 구조로 옮기는 구체적 계획을 세워뒀다고 말한다. 다만 아직 계획 단계이지 착수는 아니다 — "결정했다"와 "다 했다"를 구분. 안전장치: 이 계획대로 안 풀리면 DB 인프라 자체도 재검토 대상이라는 걸 숨기지 않는다 — 무료 킵얼라이브(Cloudflare Cron)도 같은 맥락의 보조 수단으로 질문 나오면 언급.' },
+section('roadmap', { notes: '3단계 로드맵, 이번 주 재확정(2026-09-28). 지금까지 본 결정 1~3을 한 장으로 정리하는 슬라이드. 1단계(엣지 rate limit)는 완료했지만 근본 해결이 아니라는 걸 앞서 밝혔다. 2단계(전 도메인 Prisma 이관)는 진행 중 — 인증만 끝남. 3단계는 DB는 기존 결정(Supabase)을 유지하고 API를 Lambda 호출 구조로 옮기는 구체적 계획을 세워뒀다고 말한다. 다만 아직 계획 단계이지 착수는 아니다 — "결정했다"와 "다 했다"를 구분. 안전장치: 이 계획대로 안 풀리면 DB 인프라 자체도 재검토 대상이라는 걸 숨기지 않는다 — 무료 킵얼라이브(Cloudflare Cron)도 같은 맥락의 보조 수단으로 질문 나오면 언급. 이 슬라이드 다음 별도 안내 슬라이드 없이 바로 실제 배포 주소에서 라이브 로그인 데모로 넘어간다(김민수 계정) — "오늘 라이브로 보여드릴 건 로그인 하나"라고 말로 짚고 화면을 전환한다.' },
   head('지금까지의 결정, 한눈에', '이렇게 진행하기로 했습니다') +
   `<div style="display:flex; flex-direction:column; gap:36px; flex:1; justify-content:center">` +
   `<div style="display:flex; gap:12px; height:230px">${ph('1단계', '엣지 rate limit', 1, '완료 · 근본 해결 아님', 'done')}${ph('2단계', '전 도메인 Prisma 이관\n(무상태화)', 1.3, '진행 중 · 인증만 완료', 'part')}${ph('3단계', 'Lambda로 API 이전\n(DB는 Supabase 유지)', 1.3, '구현 계획 수립', 'plan')}</div>` +
@@ -233,14 +239,11 @@ section('roadmap', { notes: '3단계 로드맵, 이번 주 재확정(2026-09-28)
   `</div>` +
   foot('D24의 단계적 로드맵 + 2026-09-28 방향 재확정 — DB(Supabase)는 그대로, API 호스팅만 단계적으로 이전'));
 
-// ── 15 라이브 데모 ────────────────────────────────────────────────────────
-section('demo', { pad: '128px 176px', gap: 24, notes: '오늘 라이브로 보여드리는 건 로그인 하나입니다. 실제 배포 주소에서 데모 계정 카드를 직접 클릭해 로그인이 실제로 동작한다는 걸 보여준다. 계정: 김민수(서초점 지점 관리자). 기대치 관리 — 나머지는 이미 슬라이드로 다뤘다.' },
-  `<div style="flex:1"></div>` +
-  head('라이브 데모', '지금 실제로 로그인해 보겠습니다') +
-  fill(card(`<p style="font-size:34px; font-weight:600; line-height:1.5; color:${INK}">오늘 보여드릴 라이브는 <b style="color:${NAVY}">이것 하나</b>입니다.</p><p style="font-size:28px; line-height:1.5; color:${SOFT}">실제 배포 주소(Cloudflare Worker)에서 지점 관리자 계정으로 로그인해, 이번 주에 실측·수정한 배포 경로가 실제로 동작하는 걸 확인합니다.</p>`)) +
-  `<div style="flex:1"></div>`);
+// (구 15 "라이브 데모" 슬라이드는 발표자가 아티팩트 편집기에서 직접 삭제함, 2026-09-28 —
+// 덱 안에 안내 슬라이드를 두지 않고 로드맵 다음 곧장 라이브 로그인으로 넘어가는 편이 낫다고 판단한 것으로 보임.
+// 이 생성기도 그 편집을 그대로 반영해 슬라이드를 만들지 않는다.)
 
-// ── 16 마무리 ─────────────────────────────────────────────────────────────
+// ── 15 마무리 ─────────────────────────────────────────────────────────────
 section('closing', { pad: '128px 176px', gap: 24, notes: '질문과 토론. Q&A 대비는 구성안 §5 참고: B/C 진행 상태 과장 금지, 이중 경로 설계, skip 테스트 이유, k6 재현 불가, 성장 시나리오 관점, Lambda 미착수, CI Postgres 추가 이유.' },
   dots(400, 780, 700, 460) + `<div style="flex:1"></div><h1 style="font-family:${DISPLAY}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:${INK}">감사합니다</h1><p style="font-size:44px; color:${SOFT}">질문 환영합니다.</p><div style="flex:1"></div>`);
 
@@ -268,7 +271,7 @@ const deck = {
     cycle: { description: 'Part A — 도메인 사이클이 실제로 작동했다', start: 'cycle-method' },
     deploy: { description: 'Part B — 배포하자마자 진짜 병목을 만났다', start: 'deploy' },
     fix: { description: 'Part C — 근본 원인을 없애는 방향', start: 'root-cause' },
-    wrap: { description: '라이브 데모와 마무리', start: 'demo' },
+    wrap: { description: '마무리 — 여기서부터 라이브 로그인 데모로 이어감', start: 'roadmap' },
   },
   faces: {
     'gothic-a1': { family: 'Gothic A1', href: 'https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;900&display=swap' },

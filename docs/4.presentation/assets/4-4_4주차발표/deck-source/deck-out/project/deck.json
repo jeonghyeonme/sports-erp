@@ -19,7 +19,6 @@
     "root-cause",
     "migration",
     "roadmap",
-    "demo",
     "closing"
   ],
   "sections": {
@@ -40,8 +39,8 @@
       "start": "root-cause"
     },
     "wrap": {
-      "description": "라이브 데모와 마무리",
-      "start": "demo"
+      "description": "마무리 — 여기서부터 라이브 로그인 데모로 이어감",
+      "start": "roadmap"
     }
   },
   "faces": {
