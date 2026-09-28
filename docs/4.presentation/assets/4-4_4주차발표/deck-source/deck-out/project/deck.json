@@ -9,13 +9,6 @@
     "cover",
     "summary",
     "cycle-method",
-    "dom-attendance",
-    "dom-congestion",
-    "dom-program",
-    "dom-board",
-    "dom-asset",
-    "dom-member",
-    "cycle-momentum",
     "deploy",
     "loadtest-setup",
     "loadtest-numbers",
@@ -24,6 +17,13 @@
     "root-cause",
     "migration",
     "roadmap",
+    "cycle-momentum",
+    "dom-attendance",
+    "dom-congestion",
+    "dom-program",
+    "dom-board",
+    "dom-asset",
+    "dom-member",
     "closing"
   ],
   "sections": {
@@ -32,20 +32,24 @@
       "start": "cover"
     },
     "cycle": {
-      "description": "Part A — 도메인 사이클이 실제로 작동했다",
+      "description": "Part A — 기능 스코프로 방법론을 적용해 ADR을 뽑고 구현·배포했다",
       "start": "cycle-method"
     },
     "deploy": {
-      "description": "Part B — 배포하자마자 진짜 병목을 만났다",
+      "description": "Part B — 배포하자마자 트래픽·인프라 문제를 실측했다",
       "start": "deploy"
     },
     "fix": {
-      "description": "Part C — 근본 원인을 없애는 방향",
+      "description": "Part B — 근본 원인(인메모리 상태)과 무상태화 로드맵",
       "start": "root-cause"
+    },
+    "domains": {
+      "description": "Part C — 배포에서 배운 관점을 도메인 전체에 적용한 트래픽·인프라 엣지케이스",
+      "start": "cycle-momentum"
     },
     "wrap": {
       "description": "마무리 — 여기서부터 라이브 로그인 데모로 이어감",
-      "start": "roadmap"
+      "start": "closing"
     }
   },
   "faces": {
