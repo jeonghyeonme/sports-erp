@@ -60,6 +60,24 @@ const tableCard = (inner) => `<div style="background:${SURFACE}; border:1px soli
 const table = (size, colsPct, headers, rows) =>
   `<table style="font-size:${size}px; color:${INK}; font-family:${BODY}"><tr>${headers.map((h, i) => `<th style="width:${colsPct[i]}%; text-align:left; color:${SOFT}">${h}</th>`).join('')}</tr>${rows.map((r) => `<tr style="background:${SURFACE}">${r.join('')}</tr>`).join('')}</table>`;
 
+const optChip = (name, note, chosen) => {
+  const bg = chosen ? GREEN_SOFT : GRAY_SOFT;
+  const c = chosen ? GREEN : GRAY;
+  return `<div style="flex:1; display:flex; flex-direction:column; gap:10px; background:${bg}; border:1px solid ${c}; border-radius:12px; padding:24px 22px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${c}">${chosen ? '채택' : '기각'}</p><p style="font-size:27px; font-weight:700; line-height:1.3; color:${INK}">${name}</p><p style="font-size:24px; line-height:1.35; color:${SOFT}">${note}</p></div>`;
+};
+const causeLine = (t) => `<div style="display:flex; flex-direction:column; gap:10px"><p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">원인</p><p style="font-size:32px; font-weight:600; line-height:1.4; color:${INK}">${t}</p></div>`;
+const adoptedCard = (t) => `<div style="display:flex; flex-direction:column; gap:12px; background:${GREEN_SOFT}; border:1px solid ${GREEN}; border-radius:14px; padding:32px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; letter-spacing:2px; color:${GREEN}">채택 이유</p><p style="font-size:30px; font-weight:600; line-height:1.4; color:${INK}">${t}</p></div>`;
+function decisionSlide(id, adrLabel, ttl, cause, opts, adopted, footText, notes) {
+  section(id, { notes },
+    head(adrLabel, ttl) +
+    fill(`<div style="display:flex; flex-direction:column; gap:26px">` +
+      causeLine(cause) +
+      `<div style="display:flex; gap:18px">${opts.map((o) => optChip(o[0], o[1], o[2])).join('')}</div>` +
+      adoptedCard(adopted) +
+      `</div>`) +
+    foot(footText));
+}
+
 const ph = (id, name, w, status, kind) => {
   const bg = kind === 'done' ? GREEN_SOFT : kind === 'part' ? AMBER_SOFT : kind === 'plan' ? NAVY_SOFT : GRAY_SOFT;
   const c = kind === 'done' ? GREEN : kind === 'part' ? AMBER : kind === 'plan' ? NAVY : GRAY;
@@ -122,25 +140,28 @@ section('cycle-momentum', { notes: '숫자는 이번 발표 준비 시점에 git
   card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">덤으로 얻은 것</p><p style="font-size:32px; font-weight:600; line-height:1.4; color:${INK}">회원관리 사이클에서 신규 기능 2개를 얻었습니다 — 오프라인↔앱 연동, 앱 자체 회원가입. 다음 단계(회원 앱 착수)의 선행 작업입니다.</p>`) +
   foot('git log 3fa3a65..638b8bd 기준, 2026-09-28 재실측'));
 
-// ── 6 실제 배포 (Part B) ─────────────────────────────────────────────────
+// ── 6 결정 1 — D23 배포 ──────────────────────────────────────────────────
 const flowBox = (t, d, k) => {
   const bg = k === 'navy' ? NAVY_SOFT : k === 'green' ? GREEN_SOFT : SURFACE;
   const c = k === 'navy' ? NAVY : k === 'green' ? GREEN : LINE_STRONG;
   return `<div style="flex:1; display:flex; flex-direction:column; gap:10px; background:${bg}; border:1px solid ${c}; border-radius:14px; padding:32px; box-shadow:${SHADOW}"><h3 style="font-family:${DISPLAY}; font-size:36px; font-weight:700; color:${INK}">${t}</h3><p style="font-size:26px; line-height:1.4; color:${SOFT}">${d}</p></div>`;
 };
 const bigArrow = `<div style="display:flex; align-items:center"><p style="font-size:56px; font-weight:700; color:${NAVY}">→</p></div>`;
-section('deploy', { notes: 'Part B 시작(6분, 이번 발표의 핵심). 지금까지는 로컬에서만 동작을 확인했는데, 처음으로 인터넷에 띄웠다(D23). admin-web+api 게이트웨이는 Cloudflare Worker 하나에, api 서버는 Render, DB는 Supabase — 전부 무료 티어. 이 배포가 있었기 때문에 다음 슬라이드의 부하테스트가 가능했다. 질문 대비 — Worker와 Pages는 다른 제품이다. 원래 admin-web은 Pages에 올릴 계획이었는데(D23 원안), 이 세션이 쓰는 Cloudflare MCP 커넥터에 Pages를 만드는 툴이 아예 없다는 걸 배포 단계에서 발견했고, D24에서 rate limit용 Worker를 따로 세웠다가 admin-web(Render)과 오리진이 갈라지는 문제가 생겨(D25) 아예 admin-web을 이 Worker의 정적 자산(Static Assets 기능)으로 흡수했다 — 그래서 지금은 Pages를 한 번도 쓴 적이 없다.' },
-  head('Part B · 배포와 병목', '처음으로 인터넷에 띄웠습니다') +
-  fill(`<div style="display:flex; align-items:stretch; gap:20px">` +
-    flowBox('admin-web + api 게이트웨이', 'Cloudflare Worker\n(정적 자산 + 엣지 rate limit)', 'navy') + bigArrow +
-    flowBox('api 서버', 'Render\n(NestJS, 무료 웹 서비스)', 'plain') + bigArrow +
-    flowBox('DB', 'Supabase\n(PostgreSQL, 스키마 배포 완료)', 'green') +
-    `</div>`) +
-  foot('D23 · 세 서비스 모두 GitHub 연동, push마다 자동 재배포 · 전부 무료 티어<br>Cloudflare Worker ≠ Pages — Static Assets 기능으로 Worker 하나가 정적 파일 서빙과 API 게이트웨이를 겸합니다'));
+decisionSlide('deploy', 'D23 · 결정 1', '가볍게 Render 하나로 시작했습니다',
+  '정적 페이지(admin-web)와 API를 유지비 없이 빠르게 인터넷에 띄워야 했다',
+  [
+    ['Cloudflare Pages (원안)', 'Cloudflare MCP 커넥터에 Pages를 만드는 툴이 없어 배포 자체가 불가능했다', false],
+    ['Vercel 등 서버리스', 'NestJS는 상시구동 모델이라 서버리스 어댑터가 필요해 가장 가볍다는 기준에 안 맞았다', false],
+    ['Railway', '가입 시 1회성 크레딧만 주고 이후 과금 — 무료 유지 조건에서 탈락', false],
+    ['Render', '무료 + GitHub 자동배포 + npm workspaces 빌드 그대로 재사용 가능', true],
+  ],
+  'admin-web·api 둘 다 Render 하나로 통합 — 카드 등록 없이 무료, push마다 자동 재배포. DB는 Supabase로 별도 결정(스키마만 배포, 앱 연결은 아직)',
+  'D23 · 세 서비스 모두 GitHub 연동 자동배포, 전부 무료 티어 — 이 배포가 있었기에 다음 부하테스트가 가능했다',
+  '결정 1(D23). 원래 admin-web은 Cloudflare Pages 계획이었는데, MCP 커넥터에 Pages 생성 툴이 없어 Render로 조정했다 — "이론적으로 나은 것"이 아니라 "지금 가진 도구로 실제로 무엇을 만들 수 있는가"로 판단한 사례. DB(Supabase)는 이 시점엔 스키마만 배포했고 앱 연결은 D26에서 시작했다. 질문 대비 — Cloudflare Worker와 Pages는 다른 제품이다(뒤 슬라이드에서 Worker가 나오면 설명): Worker는 나중에 D24에서 rate limit 때문에 따로 세운 것이고, 지금은 admin-web도 그 Worker의 정적 자산(Static Assets)으로 흡수돼 있어 Pages는 결국 한 번도 쓴 적이 없다.');
 
 // ── 7 왜 부하테스트를 했나 ────────────────────────────────────────────────
 section('loadtest-setup', { notes: '"느릴 것 같다"는 추측 대신 k6로 실측했다. 시나리오는 두 가지 — 로그인 0~40명 램핑(bcrypt가 CPU 바운드라 먼저 무너질 지점), 조회 0~100명 램핑(인메모리라 원래 빠름). 위탁계약이 이미 98개라는 사실을 근거로 "몇 명 안 되는데 문제 생기겠어?"라는 반박을 미리 막는다.' },
-  head('Part B · 배포와 병목', '왜 부하테스트를 했나') +
+  head('D24 · 원인 파악', '왜 부하테스트를 했나') +
   fill(card(`<p style="font-size:34px; font-weight:600; line-height:1.5; color:${INK}">"무료 인프라니까 느릴 수도 있다"는 <b style="color:${AMBER}">추측</b>으로 남겨두지 않고, k6로 <b style="color:${NAVY}">실측</b>했습니다.</p>`) +
     `<div style="height:24px"></div>` +
     `<div style="display:flex; gap:20px">` +
@@ -156,59 +177,56 @@ const chip = (t, k) => {
   return `<p style="font-family:${MONO}; font-size:26px; font-weight:700; color:${c}; background:${bg}; border:1px solid ${c}; border-radius:999px; padding:10px 26px">${t}</p>`;
 };
 section('loadtest-numbers', { notes: '핵심 숫자(시간을 더 쓴다). 로컬 65ms vs Render 무료 티어 로그인 p95 15.16초 — 233배. 40명 램핑 중 응답시간이 완만히 늘지 않고 급격히 무너진 패턴(7.4s→15.16s→17.11s)을 3개 칩으로 보여준다. "코드 문제가 아니라 무료 티어 공유 CPU 스로틀링"이 핵심 메시지. 질문 대비: 이 세션에서는 egress 정책상 재현 불가, 수치는 사용자가 외부에서 실행한 실측값이고 design-constants.md에 계산 근거가 있다.' },
-  head('Part B · 배포와 병목', '동시 로그인 40명에 15초가 걸렸습니다') +
+  head('D24 · 원인 파악', '동시 로그인 40명에 15초가 걸렸습니다') +
   fill(`<div style="display:flex; gap:20px">${bignum('65ms', '정상 처리\n(로컬)', 'green')}${bignum('15.16초', 'Render 무료 티어\n로그인 p95', 'amber')}</div>`) +
   card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">40명 램핑 중 무너진 패턴</p><div style="display:flex; align-items:center; gap:20px">${chip('7.4초', 'gray')}<p style="font-size:32px; color:${SOFT}">→</p>${chip('15.16초', 'amber')}<p style="font-size:32px; color:${SOFT}">→</p>${chip('17.11초', 'red')}<p style="font-size:28px; color:${SOFT}; margin-left:12px">완만히 늘지 않고 급격히 무너졌다</p></div>`) +
   foot('2026-09-27 k6 실측 · 코드 문제가 아니라 Render 무료 티어 공유 CPU 스로틀링'));
 
 // ── 9 왜 이렇게 되는가 ────────────────────────────────────────────────────
 section('bottleneck', { notes: "Little's Law로 설명되는 자기강화 루프. 지연이 발생하면 동시 진행 건수(L=λW)가 늘고, 늘어난 요청이 CPU 경합을 심화시키고, 그게 다시 처리시간을 늘려 루프가 증폭된다. 정상 처리(65ms) 시 동시 진행 로그인은 0.12건이라 평소엔 전혀 문제가 안 되지만, 15.16초로 늘어나는 순간 같은 공식이 28.5건으로 밀어올린다. 3년 후(98→130개 지점) 추정으로는 장애 상황 동시 진행이 38.4건까지 간다." },
-  head('Part B · 배포와 병목', '왜 이렇게 되는가 — 자기강화 루프') +
+  head('D24 · 원인 파악', '왜 이렇게 되는가 — 자기강화 루프') +
   diagramCard(F.bottleneckLoop) +
   foot("design-constants.md ⑦~⑨ · Little's Law 역산 — 3년 후 추정 시 장애 상황 동시 진행 로그인 ≈38.4건"));
 
-// ── 10 즉시 대응 ─────────────────────────────────────────────────────────
-section('edge-fix', { notes: '1단계 즉시 대응(D24 1단계, 완료). Rate limit을 앱 코드 안이 아니라 Cloudflare Worker(엣지)에 세워서, Render 컨테이너 CPU에 닿기도 전에 과도한 요청을 걸러낸다. 보안 대책(rate limit)과 용량 대책(수평 확장)을 뒤섞지 않고 분리한 게 핵심 — rate limit은 악의적 요청은 막지만 "퇴근 후 동시 정상 로그인"은 못 막는다는 것도 노트로 남긴다.' },
-  head('Part B · 배포와 병목', '1단계 즉시 대응 — 엣지에서 막는다') +
-  fill(`<div style="display:flex; align-items:stretch; gap:20px">` +
-    flowBox('브라우저', '로그인 요청', 'plain') + bigArrow +
-    flowBox('Cloudflare Worker', '엣지에서 과도한 요청을 먼저 차단', 'navy') + bigArrow +
-    flowBox('Render api', 'CPU에 닿기도 전에 걸러진 뒤라 안전', 'green') +
-    `</div>`) +
-  `<div style="display:flex; gap:16px">${pill('배포 완료 — D24 1단계', GREEN_SOFT, GREEN)}${pill('근본 해결은 아님', AMBER_SOFT, AMBER)}</div>` +
-  foot('악의적/과도한 요청은 막지만, 정상적인 동시 접속 폭주(예: 퇴근 후 동시 로그인)는 여전히 그대로 느립니다'));
+// ── 10 결정 2 — D24 엣지 rate limit ───────────────────────────────────────
+decisionSlide('edge-fix', 'D24 · 결정 2', '몰랐던 인프라를 찾아 막았습니다',
+  '부하테스트로 확인된 CPU 스로틀링 — 느린 CPU에 요청이 아예 닿지 못하게 걸러야 했다',
+  [
+    ['앱 레벨 rate limit', 'NestJS 안에서 막으면 이미 CPU를 쓴 뒤에 거부돼 효과가 약함', false],
+    ['bcrypt cost 하향', '보안 여유를 대가로 임계점만 뒤로 미루는 임시방편', false],
+    ['Render 유료 플랜', '비용 발생, 근본 해결도 아니라서 나중 단계로 미룸', false],
+    ['Cloudflare Worker 엣지 rate limit', '커스텀 도메인 없이도 workers.dev로 바로 가능하다는 걸 새로 발견', true],
+  ],
+  '엣지에서 걸러야 Render CPU에 아예 안 닿는다 — 단, 근본 해결책은 아니다(정상적인 동시 접속 폭주는 여전히 그대로 느림)',
+  'D24 · 2026-09-27 배포 완료 — Workers Rate Limiting 바인딩(2025-09-19 GA)도 Zone(도메인) 없이 Worker 단독으로 동작한다',
+  '결정 2(D24). "커스텀 도메인이 있어야 Cloudflare 방어선을 쓸 수 있다"고 처음엔 잘못 판단했다가, workers.dev 서브도메인만으로 Worker와 Rate Limiting 바인딩 둘 다 된다는 걸 같은 날 재확인했다 — 몰랐던 인프라를 찾아낸 순간. 보안 대책(rate limit)과 용량 대책(수평 확장)을 뒤섞지 않고 분리한 게 이 결정의 핵심이라는 것도 강조. 질문 대비(D25, 슬라이드엔 안 넣음) — 이 Worker를 세우면서 admin-web(Render)과 오리진이 갈라져 로그인 실패·새로고침 404가 잠깐 났었는데, admin-web을 같은 Worker의 정적 자산으로 흡수해 해결했다.');
 
-// ── 11 오리진 통합 ────────────────────────────────────────────────────────
-section('origin-fix', { notes: 'D24 배포 직후 로그인 실패·새로고침 404가 났다. 원인은 admin-web(Render)과 api 게이트웨이(Cloudflare Worker)가 서로 다른 주소(오리진)가 된 것. 각 버그를 따로 땜질하는 대신, admin-web을 아예 같은 Worker의 정적 자산으로 통합해 오리진 분리 자체를 없앴다(D25). 이 과정에서 실제로 겪은 두 개별 버그(_redirects 무한루프, .env 프로덕션 오염)는 Q&A로만 다룬다.' },
-  head('Part B · 배포와 병목', '버그를 고치지 않고, 버그가 날 구조를 없앴습니다') +
-  fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
-    `<div style="flex:1; display:flex; flex-direction:column; gap:16px; background:${RED_SOFT}; border:1px solid ${RED}; border-radius:14px; padding:32px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${RED}">이전 — 오리진이 갈라짐</p><p style="font-size:28px; line-height:1.5; color:${INK}">admin-web(Render)과 api 게이트웨이(Worker)가 서로 다른 주소가 되며 로그인 실패·새로고침 404 발생</p></div>` +
-    bigArrow +
-    `<div style="flex:1; display:flex; flex-direction:column; gap:16px; background:${GREEN_SOFT}; border:1px solid ${GREEN}; border-radius:14px; padding:32px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${GREEN}">이후 — 오리진을 통합</p><p style="font-size:28px; line-height:1.5; color:${INK}">admin-web을 같은 Worker의 정적 자산으로 흡수 — CORS라는 변수 자체가 사라짐</p></div>` +
-    `</div>`) +
-  foot('D25 · 2026-09-28 사용자 확인 — 로그인·새로고침 둘 다 해소'));
-
-// ── 12 근본 원인 (Part C) ─────────────────────────────────────────────────
+// ── 11 근본 원인 ──────────────────────────────────────────────────────────
 const srv = (t, list, c) => `<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:${SURFACE}; border:2px solid ${c}; border-radius:14px; padding:28px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${c}">${t}</p>${list.map((x) => `<p style="font-size:28px; color:${INK}">· ${x}</p>`).join('')}</div>`;
-section('root-cause', { notes: "Part C 시작(3분). 서버 한 대를 아무리 키워도 언젠가 한계다. 여러 대로 늘리면(수평 확장) 되는데, 지금 데이터가 서버 메모리 안에만 있어서(MockDataService) 여러 대를 띄우면 각자 다른 데이터를 들고 있게 된다 — 이걸 그림으로 보여준다(서버 2대가 같은 회원 목록을 다르게 보여줌). 결론: 진짜 해결은 rate limit이 아니라 데이터를 서버 밖(DB)으로 꺼내는 것." },
-  head('Part C · 근본 해결 방향', '진짜 원인은 서버 안에 있었습니다') +
+section('root-cause', { notes: "D26 배경. 서버 한 대를 아무리 키워도 언젠가 한계다. 여러 대로 늘리면(수평 확장) 되는데, 지금 데이터가 서버 메모리 안에만 있어서(MockDataService) 여러 대를 띄우면 각자 다른 데이터를 들고 있게 된다 — 이걸 그림으로 보여준다(서버 2대가 같은 회원 목록을 다르게 보여줌). 결론: 진짜 해결은 rate limit이 아니라 데이터를 서버 밖(DB)으로 꺼내는 것." },
+  head('D26 · 배경', '진짜 원인은 서버 안에 있었습니다') +
   fill(`<div style="display:flex; flex-direction:column; gap:28px">` +
     `<p style="font-size:32px; font-weight:600; color:${INK}">서버를 여러 대로 늘리면(수평 확장) 트래픽을 나눌 수 있는데 — 지금은 안 됩니다</p>` +
     `<div style="display:flex; gap:24px">${srv('서버 인스턴스 A', ['방금 등록한 회원 O', '메모리에만 존재'], AMBER)}${srv('서버 인스턴스 B', ['방금 등록한 회원 X', '서로 다른 메모리'], RED)}</div>` +
     `</div>`) +
   foot('MockDataService = 인스턴스별 인메모리 상태 · 데이터가 서버 밖(DB)에 있어야 여러 대를 띄울 수 있다'));
 
-// ── 13 착수 ───────────────────────────────────────────────────────────────
-section('migration', { notes: 'D26. 왜 인증 모듈부터인가 — 모든 요청이 거쳐가는 가장 위험한 경로. 처음엔 순수 Prisma로 바꿨다가 116개 테스트가 깨져서, "Prisma에서 먼저 찾고 없으면 mock으로 폴백"하는 이중 경로로 설계를 바꿨다는 것도 짧게 언급 가능(시간 되면). 실제 Postgres 위에서 로그인·토큰갱신·비밀번호변경을 수동 curl로 확인했다는 걸 강조 — "될 것 같다"가 아니라 "실행해서 확인했다".' },
-  head('Part C · 근본 해결 방향', '가장 위험한 경로부터 옮기기 시작했습니다') +
-  fill(card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">D26 · MockDataService → PostgreSQL(Prisma) 전환 1단계</p><p style="font-size:32px; font-weight:600; line-height:1.5; color:${INK}">인증 모듈(로그인·토큰갱신·비밀번호변경)부터 실제 Postgres 위에서 검증했습니다 — 모든 요청이 거쳐가는 가장 위험한 경로이기 때문입니다.</p>`) +
-    `<div style="height:20px"></div>` +
-    sbullets(['실제 Postgres 위에서 로그인·토큰갱신·비밀번호변경을 직접 확인', '아직 mock인 도메인이 깨지지 않도록 안전한 전환 경로로 설계', '남은 도메인은 16개 중 15개 — 같은 도메인 사이클 방식으로 하나씩', '이관이 끝나면 API를 Lambda 호출 구조로 옮길 계획 — DB(Supabase)는 그대로 유지'])) +
-  foot('2026-09-28 · docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md D26'));
+// ── 12 결정 3 — D26 → Lambda 계획 ─────────────────────────────────────────
+decisionSlide('migration', 'D26 → 계획 · 결정 3', '무상태화 먼저, 인프라 이전은 그다음',
+  'Lambda의 다중 인스턴스 모델이 지금의 인메모리 mock과 근본적으로 안 맞는다 — 무상태화가 전제조건',
+  [
+    ['지금 바로 전체를 Lambda로', 'mock인 15개 도메인의 동시성 정합성 버그가 데모 중 재현될 위험', false],
+    ['Oracle Cloud 무료 VM으로 전환', '스로틀링은 없어지지만 수평 확장 서사 자체는 안 생김', false],
+    ['Render 유료 업그레이드', '무료 유지 원칙(D23)을 깨는 비용 발생, 확장성도 그대로', false],
+    ['Prisma 전체 이관 후 Lambda', '안전하지만 느림 — 이번 주 인증 모듈부터 실제 Postgres로 착수', true],
+  ],
+  '전 도메인 Prisma 이관을 완료한 뒤 API를 Lambda 호출 구조로 이전한다. DB(Supabase)는 그대로 유지 — 안 풀리면 DB 인프라도 재검토한다',
+  '2026-09-28 · docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md D26 — 인증 모듈부터 실제 Postgres 위에서 검증 완료',
+  '결정 3(D26 + 이후 계획, 2026-09-28). 왜 인증 모듈부터인가 — 모든 요청이 거쳐가는 가장 위험한 경로. 처음엔 순수 Prisma로 바꿨다가 116개 테스트가 깨져서 "Prisma 우선, 없으면 mock 폴백" 이중 경로로 재설계했다(시간 되면 언급). 실제 Postgres 위에서 로그인·토큰갱신·비밀번호변경을 수동 curl로 확인했다는 걸 강조 — "될 것 같다"가 아니라 "실행해서 확인했다". Lambda를 지금(도메인 이관 전) 먼저 올리는 안, Oracle VM으로 스로틀링만 먼저 없애는 안도 검토했지만, mock 도메인의 동시성 리스크와 확장성 서사 상실을 이유로 기각했다는 것도 질문 나오면 설명.');
 
-// ── 14 로드맵 ─────────────────────────────────────────────────────────────
-section('roadmap', { notes: '3단계 로드맵, 이번 주 재확정(2026-09-28). 1단계(엣지 rate limit)는 완료했지만 근본 해결이 아니라는 걸 앞 슬라이드에서 이미 밝혔다. 2단계(전 도메인 Prisma 이관)는 진행 중 — 인증만 끝남. 3단계는 "성장 시점에 재검토"라는 막연한 말 대신, DB는 기존 결정(Supabase)을 유지하고 API를 Lambda 호출 구조로 옮기는 구체적 계획을 세워뒀다고 말한다. 다만 아직 계획 단계이지 착수는 아니다 — "결정했다"와 "다 했다"를 구분. 안전장치: 이 계획대로 안 풀리면 DB 인프라 자체도 재검토 대상이라는 걸 숨기지 않는다 — 무료 킵얼라이브(Cloudflare Cron)도 같은 맥락의 보조 수단으로 질문 나오면 언급.' },
-  head('Part C · 근본 해결 방향', '이렇게 진행하기로 했습니다') +
+// ── 13 로드맵 ─────────────────────────────────────────────────────────────
+section('roadmap', { notes: '3단계 로드맵, 이번 주 재확정(2026-09-28). 지금까지 본 결정 1~3을 한 장으로 정리하는 슬라이드. 1단계(엣지 rate limit)는 완료했지만 근본 해결이 아니라는 걸 앞서 밝혔다. 2단계(전 도메인 Prisma 이관)는 진행 중 — 인증만 끝남. 3단계는 DB는 기존 결정(Supabase)을 유지하고 API를 Lambda 호출 구조로 옮기는 구체적 계획을 세워뒀다고 말한다. 다만 아직 계획 단계이지 착수는 아니다 — "결정했다"와 "다 했다"를 구분. 안전장치: 이 계획대로 안 풀리면 DB 인프라 자체도 재검토 대상이라는 걸 숨기지 않는다 — 무료 킵얼라이브(Cloudflare Cron)도 같은 맥락의 보조 수단으로 질문 나오면 언급.' },
+  head('지금까지의 결정, 한눈에', '이렇게 진행하기로 했습니다') +
   `<div style="display:flex; flex-direction:column; gap:36px; flex:1; justify-content:center">` +
   `<div style="display:flex; gap:12px; height:230px">${ph('1단계', '엣지 rate limit', 1, '완료 · 근본 해결 아님', 'done')}${ph('2단계', '전 도메인 Prisma 이관\n(무상태화)', 1.3, '진행 중 · 인증만 완료', 'part')}${ph('3단계', 'Lambda로 API 이전\n(DB는 Supabase 유지)', 1.3, '구현 계획 수립', 'plan')}</div>` +
   card(`<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${NAVY}">이 계획대로 안 풀리면</p><p style="font-size:30px; font-weight:600; line-height:1.4; color:${INK}">Lambda + Supabase 조합을 진행해보고 기대만큼 안 되면, <b style="color:${AMBER}">DB 인프라도 함께 재검토</b>합니다.</p>`) +
