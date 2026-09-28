@@ -10,6 +10,7 @@
     "summary",
     "cycle-method",
     "cycle-bugs",
+    "cycle-coverage",
     "cycle-momentum",
     "deploy",
     "loadtest-setup",
