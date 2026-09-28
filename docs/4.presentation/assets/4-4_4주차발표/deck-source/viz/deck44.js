@@ -129,14 +129,14 @@ const flowBox = (t, d, k) => {
   return `<div style="flex:1; display:flex; flex-direction:column; gap:10px; background:${bg}; border:1px solid ${c}; border-radius:14px; padding:32px; box-shadow:${SHADOW}"><h3 style="font-family:${DISPLAY}; font-size:36px; font-weight:700; color:${INK}">${t}</h3><p style="font-size:26px; line-height:1.4; color:${SOFT}">${d}</p></div>`;
 };
 const bigArrow = `<div style="display:flex; align-items:center"><p style="font-size:56px; font-weight:700; color:${NAVY}">→</p></div>`;
-section('deploy', { notes: 'Part B 시작(6분, 이번 발표의 핵심). 지금까지는 로컬에서만 동작을 확인했는데, 처음으로 인터넷에 띄웠다(D23). admin-web+api 게이트웨이는 Cloudflare Worker 하나에, api 서버는 Render, DB는 Supabase — 전부 무료 티어. 이 배포가 있었기 때문에 다음 슬라이드의 부하테스트가 가능했다.' },
+section('deploy', { notes: 'Part B 시작(6분, 이번 발표의 핵심). 지금까지는 로컬에서만 동작을 확인했는데, 처음으로 인터넷에 띄웠다(D23). admin-web+api 게이트웨이는 Cloudflare Worker 하나에, api 서버는 Render, DB는 Supabase — 전부 무료 티어. 이 배포가 있었기 때문에 다음 슬라이드의 부하테스트가 가능했다. 질문 대비 — Worker와 Pages는 다른 제품이다. 원래 admin-web은 Pages에 올릴 계획이었는데(D23 원안), 이 세션이 쓰는 Cloudflare MCP 커넥터에 Pages를 만드는 툴이 아예 없다는 걸 배포 단계에서 발견했고, D24에서 rate limit용 Worker를 따로 세웠다가 admin-web(Render)과 오리진이 갈라지는 문제가 생겨(D25) 아예 admin-web을 이 Worker의 정적 자산(Static Assets 기능)으로 흡수했다 — 그래서 지금은 Pages를 한 번도 쓴 적이 없다.' },
   head('Part B · 배포와 병목', '처음으로 인터넷에 띄웠습니다') +
   fill(`<div style="display:flex; align-items:stretch; gap:20px">` +
     flowBox('admin-web + api 게이트웨이', 'Cloudflare Worker\n(정적 자산 + 엣지 rate limit)', 'navy') + bigArrow +
     flowBox('api 서버', 'Render\n(NestJS, 무료 웹 서비스)', 'plain') + bigArrow +
     flowBox('DB', 'Supabase\n(PostgreSQL, 스키마 배포 완료)', 'green') +
     `</div>`) +
-  foot('D23 · 세 서비스 모두 GitHub 연동, push마다 자동 재배포 · 전부 무료 티어'));
+  foot('D23 · 세 서비스 모두 GitHub 연동, push마다 자동 재배포 · 전부 무료 티어<br>Cloudflare Worker ≠ Pages — Static Assets 기능으로 Worker 하나가 정적 파일 서빙과 API 게이트웨이를 겸합니다'));
 
 // ── 7 왜 부하테스트를 했나 ────────────────────────────────────────────────
 section('loadtest-setup', { notes: '"느릴 것 같다"는 추측 대신 k6로 실측했다. 시나리오는 두 가지 — 로그인 0~40명 램핑(bcrypt가 CPU 바운드라 먼저 무너질 지점), 조회 0~100명 램핑(인메모리라 원래 빠름). 위탁계약이 이미 98개라는 사실을 근거로 "몇 명 안 되는데 문제 생기겠어?"라는 반박을 미리 막는다.' },
