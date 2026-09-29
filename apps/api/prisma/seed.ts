@@ -11,6 +11,7 @@ import { staffSeed } from '../src/mock-data/staff-fixtures';
 import { catalogSeed } from '../src/mock-data/catalog-fixtures';
 import { memberSeed } from '../src/mock-data/member-fixtures';
 import { documentSeed } from '../src/mock-data/document-fixtures';
+import { assetSeed } from '../src/mock-data/asset-fixtures';
 
 const prisma = new PrismaClient();
 
@@ -102,9 +103,20 @@ async function main() {
     const cur = memberSeq.get(key);
     memberSeq.set(key, { branchId: mb.branchId, prefix: m[1], lastValue: Math.max(cur?.lastValue ?? 0, Number(m[2])) });
   }
+  // 자산은 "{코드}-A" prefix별 최대 순번(D35) — 시드 번호와 첫 채번이 충돌하지 않게(data-integrity §5).
+  const assets = assetSeed();
+  const assetSeq = new Map<string, { branchId: string; prefix: string; lastValue: number }>();
+  for (const a of assets) {
+    const m = /^(.+-A)(\d+)$/.exec(a.assetCode);
+    if (!m) throw new Error(`시드 자산번호 형식 오류: ${a.assetCode}`);
+    const key = `${a.branchId}|${m[1]}`;
+    const cur = assetSeq.get(key);
+    assetSeq.set(key, { branchId: a.branchId, prefix: m[1], lastValue: Math.max(cur?.lastValue ?? 0, Number(m[2])) });
+  }
   for (const seq of [
     ...[...staffSeq.values()].map((v) => ({ ...v, kind: CodeSequenceKind.STAFF })),
     ...[...memberSeq.values()].map((v) => ({ ...v, kind: CodeSequenceKind.MEMBER })),
+    ...[...assetSeq.values()].map((v) => ({ ...v, kind: CodeSequenceKind.ASSET })),
   ]) {
     await prisma.codeSequence.upsert({
       where: { branchId_kind_prefix: { branchId: seq.branchId, kind: seq.kind, prefix: seq.prefix } },
@@ -238,6 +250,25 @@ async function main() {
       createdAt: new Date(d.createdAt),
     };
     await prisma.document.upsert({ where: { id: d.id }, update: data, create: { id: d.id, ...data } });
+  }
+
+  // ── 자산 — D35: 원천은 DB(asset-fixtures.ts). update에도 같은 값을 넣어 다시 돌리면 원천과 맞춰진다 ─────
+  for (const a of assets) {
+    const data = {
+      assetCode: a.assetCode,
+      branchId: a.branchId,
+      name: a.name,
+      category: a.category,
+      assetType: a.assetType,
+      acquiredAt: new Date(`${a.acquiredAt}T00:00:00Z`),
+      acquisitionCost: a.acquisitionCost,
+      usefulLifeYears: a.usefulLifeYears ?? null,
+      status: a.status,
+      quantity: a.quantity,
+      location: a.location ?? null,
+      note: a.note ?? null,
+    };
+    await prisma.asset.upsert({ where: { id: a.id }, update: data, create: { id: a.id, ...data } });
   }
 
   // ── 게시판 ────────────────────────────────────────

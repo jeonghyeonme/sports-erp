@@ -2,45 +2,37 @@ import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-import { MockDataService } from '../../mock-data/mock-data.service';
-import { BranchService } from '../branches/branch.service';
 import { AppException } from '../../common/exceptions/app.exception';
-import { MockAsset } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { UpdateAssetStatusDto } from './dto/update-asset-status.dto';
+import { AssetService, AssetView } from './asset.service';
 
 // 1-10문서 §4-5·§4-7 — SUPER_ADMIN은 전체, BRANCH_ADMIN은 본인 지점만. MEMBER·STAFF는 접근 불가.
+// D35 — 원천은 DB(AssetService).
 @Controller('assets')
 @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
 export class AssetsController {
-  constructor(
-    private readonly mockData: MockDataService,
-    private readonly branchService: BranchService,
-  ) {}
+  constructor(private readonly assets: AssetService) {}
 
   @Get()
-  list(
+  async list(
     @CurrentUser() user: RequestUser,
     @Query('branchId') branchId?: string,
     @Query('category') category?: string,
     @Query('status') status?: string,
     @Query('assetType') assetType?: string,
   ) {
-    let assets = this.mockData.assets;
+    let targetBranchId = branchId;
     if (user.role === 'BRANCH_ADMIN') {
       if (branchId && branchId !== user.branchId) {
         throw new AppException('BRANCH_SCOPE_VIOLATION', '다른 지점의 데이터에는 접근할 수 없습니다.', 403);
       }
-      assets = assets.filter((a) => a.branchId === user.branchId);
-    } else if (branchId) {
-      assets = assets.filter((a) => a.branchId === branchId);
+      if (!user.branchId) return ok([]);
+      targetBranchId = user.branchId;
     }
-    if (category) assets = assets.filter((a) => a.category === category);
-    if (status) assets = assets.filter((a) => a.status === status);
-    if (assetType) assets = assets.filter((a) => a.assetType === assetType);
-    return ok(assets.map((a) => this.toListItem(a)));
+    return ok(await this.assets.list({ branchId: targetBranchId, category, status, assetType }));
   }
 
   @Post()
@@ -49,34 +41,22 @@ export class AssetsController {
     if (!branchId) {
       throw new AppException('BRANCH_REQUIRED', '자산을 등록할 지점을 지정해야 합니다.', 400);
     }
-    return ok(this.toListItem(this.mockData.createAsset({ ...dto, branchId }, await this.branchService.loadGate())));
+    return ok(await this.assets.create({ ...dto, branchId }));
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateAssetDto, @CurrentUser() user: RequestUser) {
-    this.assertCanManage(this.findAssetOrThrow(id), user);
-    return ok(this.toListItem(this.mockData.updateAsset(id, dto)));
+  async update(@Param('id') id: string, @Body() dto: UpdateAssetDto, @CurrentUser() user: RequestUser) {
+    this.assertCanManage(await this.assets.findById(id), user);
+    return ok(await this.assets.update(id, dto));
   }
 
   @Patch(':id/status')
-  updateStatus(@Param('id') id: string, @Body() dto: UpdateAssetStatusDto, @CurrentUser() user: RequestUser) {
-    this.assertCanManage(this.findAssetOrThrow(id), user);
-    return ok(this.toListItem(this.mockData.updateAssetStatus(id, dto.status)));
+  async updateStatus(@Param('id') id: string, @Body() dto: UpdateAssetStatusDto, @CurrentUser() user: RequestUser) {
+    this.assertCanManage(await this.assets.findById(id), user);
+    return ok(await this.assets.updateStatus(id, dto.status));
   }
 
-  private toListItem(asset: MockAsset) {
-    return { ...asset, branchName: this.mockData.findBranchById(asset.branchId)?.name };
-  }
-
-  private findAssetOrThrow(id: string): MockAsset {
-    const asset = this.mockData.findAssetById(id);
-    if (!asset) {
-      throw new AppException('ASSET_NOT_FOUND', '자산을 찾을 수 없습니다.', 404);
-    }
-    return asset;
-  }
-
-  private assertCanManage(asset: MockAsset, user: RequestUser): void {
+  private assertCanManage(asset: AssetView, user: RequestUser): void {
     if (user.role === 'BRANCH_ADMIN' && asset.branchId !== user.branchId) {
       throw new AppException('ASSET_SCOPE_VIOLATION', '다른 지점의 자산은 관리할 수 없습니다.', 403);
     }

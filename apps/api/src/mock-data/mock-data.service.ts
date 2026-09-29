@@ -2,11 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { todayKst } from '../common/date/kst-date';
 import {
-  AssetCategory,
-  AssetStatus,
-  AssetType,
   MockAccount,
-  MockAsset,
   MockBranch,
   MockPost,
   PostScope,
@@ -42,50 +38,6 @@ export class MockDataService {
   // D32 — 회원 계정도 DB로 옮겨져 mock이 원천인 계정은 없다. 게시판이 작성자 이름을 읽는 용도로만 남는다.
   // 다른 미러는 독자가 DB로 옮겨지며 없앴다 — 카탈로그(D32), 파견 이력(D33, 근태), 직원(D34, 문서).
   readonly accounts: MockAccount[] = [];
-
-  // 1-10문서 §4 — 서초점 데모 자산. 러닝머신은 100만원 초과라 FIXED_ASSET, 소독제는 CONSUMABLE.
-  readonly assets: MockAsset[] = [
-    {
-      id: 'asset-seocho-treadmill',
-      assetCode: 'SEOCHO-A001',
-      branchId: 'branch-seocho',
-      name: '러닝머신',
-      category: 'EXERCISE_EQUIPMENT',
-      assetType: 'FIXED_ASSET',
-      acquiredAt: '2025-03-10',
-      acquisitionCost: 3200000,
-      usefulLifeYears: 5,
-      status: 'NORMAL',
-      quantity: 1,
-      location: '2층 헬스장',
-    },
-    {
-      id: 'asset-seocho-aed',
-      assetCode: 'SEOCHO-A002',
-      branchId: 'branch-seocho',
-      name: '자동제세동기(AED)',
-      category: 'SAFETY_EQUIPMENT',
-      assetType: 'FIXED_ASSET',
-      acquiredAt: '2025-06-01',
-      acquisitionCost: 1800000,
-      usefulLifeYears: 5,
-      status: 'REPAIRING',
-      quantity: 1,
-      location: '1층 로비',
-    },
-    {
-      id: 'asset-seocho-sanitizer',
-      assetCode: 'SEOCHO-A003',
-      branchId: 'branch-seocho',
-      name: '손소독제',
-      category: 'OTHER',
-      assetType: 'CONSUMABLE',
-      acquiredAt: '2026-08-01',
-      acquisitionCost: 45000,
-      status: 'NORMAL',
-      quantity: 12,
-    },
-  ];
 
   readonly posts: MockPost[] = [
     {
@@ -227,119 +179,6 @@ export class MockDataService {
     const i = this.accounts.findIndex((a) => a.id === account.id);
     if (i >= 0) this.accounts[i] = account;
     else this.accounts.push(account);
-  }
-
-
-  findAssetById(id: string): MockAsset | undefined {
-    return this.assets.find((a) => a.id === id);
-  }
-
-  // 1-10문서 §4-6 — 취득가액 100만원 초과면 고정자산, 이하면 소모품(세법상 즉시비용 처리 기준).
-  private classifyAssetType(acquisitionCost: number): AssetType {
-    return acquisitionCost > 1_000_000 ? 'FIXED_ASSET' : 'CONSUMABLE';
-  }
-
-  // `{지점코드}-A{순번}` — 폐기된 자산도 순번을 계속 차지하므로(재사용 안 함) 접두사로 시작하는 전체 개수 기준.
-  private generateAssetCode(branchId: string): string {
-    const code = this.findBranchById(branchId)?.code ?? 'BR';
-    const seq = this.assets.filter((a) => a.assetCode.startsWith(`${code}-A`)).length + 1;
-    return `${code}-A${String(seq).padStart(3, '0')}`;
-  }
-
-  // 1-10문서 §5 POST /assets — 권한·지점 강제는 컨트롤러에서 한다.
-  // ADR-RES-01 — 계약종료(TERMINATED) 지점의 신규 자산 등록 차단. 자산은 SUPER_ADMIN도 직접 만들 수 있어
-  // 역할 분기 없이 대상 branchId만으로 판정한다(BRANCH_ADMIN 한정인 createFacility 등과 다른 점).
-  createAsset(input: {
-    branchId: string;
-    name: string;
-    category: AssetCategory;
-    acquiredAt: string;
-    acquisitionCost: number;
-    assetType?: AssetType;
-    usefulLifeYears?: number;
-    quantity?: number;
-    location?: string;
-    note?: string;
-  }, gate: BranchGate): MockAsset {
-    const branch = this.findBranchById(input.branchId);
-    if (!branch) {
-      throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
-    }
-    if (gate.isTerminated(input.branchId)) {
-      throw new AppException(
-        'BRANCH_TERMINATED',
-        '위탁계약이 종료된 지점에는 새 자산을 등록할 수 없습니다.',
-        409,
-      );
-    }
-    // 자동 판정 결과를 관리자가 수동으로 덮어쓸 수 있다(고가 소모품을 고정자산 취급하는 경우 등).
-    const assetType = input.assetType ?? this.classifyAssetType(input.acquisitionCost);
-    const asset: MockAsset = {
-      id: `asset-${randomUUID()}`,
-      assetCode: this.generateAssetCode(input.branchId),
-      branchId: input.branchId,
-      name: input.name,
-      category: input.category,
-      assetType,
-      acquiredAt: input.acquiredAt,
-      acquisitionCost: input.acquisitionCost,
-      usefulLifeYears: assetType === 'FIXED_ASSET' ? input.usefulLifeYears : undefined,
-      status: 'NORMAL',
-      quantity: assetType === 'FIXED_ASSET' ? 1 : (input.quantity ?? 1),
-      location: input.location,
-      note: input.note,
-    };
-    this.assets.push(asset);
-    return asset;
-  }
-
-  // 상태·위치·수량·메모만 수정 — 상태 전이는 변경 이력 추적을 위해 별도 메서드로 분리(§5).
-  updateAsset(
-    id: string,
-    input: Partial<{ name: string; location: string; quantity: number; note: string; usefulLifeYears: number }>,
-  ): MockAsset {
-    const asset = this.findAssetById(id);
-    if (!asset) {
-      throw new AppException('ASSET_NOT_FOUND', '자산을 찾을 수 없습니다.', 404);
-    }
-    if (input.name !== undefined) asset.name = input.name;
-    if (input.location !== undefined) asset.location = input.location || undefined;
-    if (input.note !== undefined) asset.note = input.note || undefined;
-    if (input.usefulLifeYears !== undefined && asset.assetType === 'FIXED_ASSET') {
-      asset.usefulLifeYears = input.usefulLifeYears;
-    }
-    if (input.quantity !== undefined) {
-      if (asset.assetType === 'FIXED_ASSET' && input.quantity !== 1) {
-        throw new AppException('INVALID_QUANTITY', '고정자산은 개체 단위 관리라 수량이 항상 1입니다.', 400);
-      }
-      asset.quantity = input.quantity;
-    }
-    return asset;
-  }
-
-  // 1-10문서 §4-4 "정상→수리중→폐기대상→폐기됨". 되돌림(수리 완료·폐기 보류)은 실무상 필요해 허용하되
-  // 폐기됨은 종결 상태로 둔다 — 문서가 역방향 전이를 명시하지 않아 이 해석은 구현 시점의 판단이다.
-  private static readonly ASSET_STATUS_TRANSITIONS: Record<AssetStatus, AssetStatus[]> = {
-    NORMAL: ['REPAIRING', 'DISPOSAL_PENDING'],
-    REPAIRING: ['NORMAL', 'DISPOSAL_PENDING'],
-    DISPOSAL_PENDING: ['NORMAL', 'DISPOSED'],
-    DISPOSED: [],
-  };
-
-  updateAssetStatus(id: string, status: AssetStatus): MockAsset {
-    const asset = this.findAssetById(id);
-    if (!asset) {
-      throw new AppException('ASSET_NOT_FOUND', '자산을 찾을 수 없습니다.', 404);
-    }
-    if (!MockDataService.ASSET_STATUS_TRANSITIONS[asset.status].includes(status)) {
-      throw new AppException(
-        'INVALID_STATUS_TRANSITION',
-        `${asset.status} 상태에서 ${status}(으)로 전이할 수 없습니다.`,
-        409,
-      );
-    }
-    asset.status = status;
-    return asset;
   }
 
 }
