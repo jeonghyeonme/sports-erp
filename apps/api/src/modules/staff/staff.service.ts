@@ -6,6 +6,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode } from '../../prisma/integrity';
+import { InstructorService } from '../instructors/instructor.service';
 import * as bcrypt from 'bcrypt';
 
 type StaffRow = Staff & { branch: { name: string } };
@@ -25,6 +26,7 @@ export class StaffService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mockData: MockDataService,
+    private readonly instructorService: InstructorService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -186,6 +188,7 @@ export class StaffService implements OnModuleInit {
    * 파견 발령 — 옛 파견 종료 → 새 파견 → 담당 회원 해제 → 강사 연결 해제 → Staff.branchId 갱신을 이 순서로
    * 한 트랜잭션에(ADR-STF-01·STF-04). 순서가 바뀌면 D28 트리거(staff_branch_move)가 거부한다.
    * 회원의 원천은 아직 mock이라, 커밋 뒤 mock 회원 담당도 해제하고 그 목록을 돌려준다(D30 결정 3).
+   * 강사는 D31부터 DB가 원천이라 커밋 뒤 미러만 다시 맞춘다.
    */
   async assign(
     id: string,
@@ -194,7 +197,7 @@ export class StaffService implements OnModuleInit {
     note?: string,
   ): Promise<StaffView & { unassignedMembers: Array<{ id: string; name: string }> }> {
     const today = dateOf(todayKst());
-    await this.prisma.$transaction(async (tx) => {
+    const releasedInstructorIds = await this.prisma.$transaction(async (tx) => {
       const staff = await tx.staff.findUnique({ where: { id } });
       if (!staff) throw staffNotFound();
       if (staff.status === 'RESIGNED') {
@@ -211,12 +214,19 @@ export class StaffService implements OnModuleInit {
         where: { assignedStaffId: id, branchId: { not: newBranchId } },
         data: { assignedStaffId: null },
       });
-      await tx.instructor.updateMany({
+      const released = await tx.instructor.findMany({
         where: { staffId: id, branchId: { not: newBranchId } },
+        select: { id: true },
+      });
+      await tx.instructor.updateMany({
+        where: { id: { in: released.map((r) => r.id) } },
         data: { staffId: null, isActive: false },
       });
       await tx.staff.update({ where: { id }, data: { branchId: newBranchId } });
+      return released.map((r) => r.id);
     });
+    // D31 — 강사 원천도 DB가 됐으므로 연결을 푼 강사 행을 미러에 반영한다(ADR-STF-04의 mock 강사 숙제).
+    await this.instructorService.refreshMirror(releasedInstructorIds);
     const unassignedMembers = this.mockData.unassignMembersOfStaff(id, newBranchId);
     return { ...(await this.afterWrite(id)), unassignedMembers };
   }

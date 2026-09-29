@@ -192,6 +192,7 @@ export interface MockPTSessionLog {
 export interface MockInstructor {
   id: string;
   branchId: string;
+  staffId?: string; // 겸임 직원(DB Instructor.staffId). D31부터 미러에 실린다 — 파견 시 ADR-STF-04가 연결을 푼다.
   name: string;
   specialty?: string; // 전문분야(요가/필라테스/수영/골프 등)
   bio?: string;

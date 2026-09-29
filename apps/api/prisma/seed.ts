@@ -9,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { todayKst } from '../src/common/date/kst-date';
 import { allBranchRecords } from '../src/mock-data/branch-fixtures';
 import { staffSeed } from '../src/mock-data/staff-fixtures';
+import { catalogSeed } from '../src/mock-data/catalog-fixtures';
 
 const prisma = new PrismaClient();
 
@@ -78,17 +79,6 @@ async function main() {
   const minsuAccount = { id: 'account-minsu' };
   const seoyeonStaff = { id: 'staff-seoyeon' };
 
-  const seoyeonInstructor = await prisma.instructor.upsert({
-    where: { staffId: seoyeonStaff.id },
-    update: {},
-    create: {
-      branchId: seocho.id,
-      staffId: seoyeonStaff.id,
-      name: '박서연',
-      specialty: '요가 · 필라테스',
-      bio: '5년차 요가 강사, 하타/빈야사 전문',
-    },
-  });
 
   // 이수진 — 서초점 회원(회원 도메인은 아직 mock이 원천 — D29 순서상 4단계)
   const sujinAccount = await prisma.account.upsert({
@@ -141,95 +131,67 @@ async function main() {
     });
   }
 
-  // ── 시설 ──────────────────────────────────────────
-  const gym = await prisma.facility.upsert({
-    where: { id: 'facility-seocho-gym' },
-    update: {},
-    create: { id: 'facility-seocho-gym', branchId: seocho.id, name: '서초점 헬스장', type: FacilityType.GYM, capacity: 60 },
-  });
-  await prisma.facility.upsert({
-    where: { id: 'facility-seocho-pool' },
-    update: {},
-    create: { id: 'facility-seocho-pool', branchId: seocho.id, name: '서초점 수영장', type: FacilityType.POOL, capacity: 30 },
-  });
-
-  // ── 프로그램 (pricingType 세 갈래를 모두 시연) ─────────
-
-  // PAID_SESSION — 요가 그룹 클래스 (유료 회차 예약)
-  const yogaProgram = await prisma.program.upsert({
-    where: { id: 'program-seocho-yoga' },
-    update: {},
-    create: {
-      id: 'program-seocho-yoga',
-      branchId: seocho.id,
-      facilityId: gym.id,
-      instructorId: seoyeonInstructor.id,
-      name: '아침 요가',
-      category: '요가',
-      ageGroup: AgeGroup.ADULT,
-      price: 30000,
-      pricingType: PricingType.PAID_SESSION,
-      capacity: 15,
-      status: ProgramStatus.RUNNING,
-      startDate: new Date('2026-01-05'),
-    },
-  });
-
-  // PT_PACKAGE — 개인 PT (세션 차감형)
-  const ptProgram = await prisma.program.upsert({
-    where: { id: 'program-seocho-pt' },
-    update: {},
-    create: {
-      id: 'program-seocho-pt',
-      branchId: seocho.id,
-      facilityId: gym.id,
-      instructorId: seoyeonInstructor.id,
-      name: '퍼스널 트레이닝',
-      category: 'PT',
-      ageGroup: AgeGroup.ADULT,
-      price: 60000, // 1회당 단가(참고용, 결제는 세션 패키지 구매 시 별도 처리)
-      pricingType: PricingType.PT_PACKAGE,
-      status: ProgramStatus.RUNNING,
-      startDate: new Date('2026-01-05'),
-    },
-  });
-
-  // FREE_ACCESS — 헬스장 자유이용 (예약 없이 이용)
-  await prisma.program.upsert({
-    where: { id: 'program-seocho-freegym' },
-    update: {},
-    create: {
-      id: 'program-seocho-freegym',
-      branchId: seocho.id,
-      facilityId: gym.id,
-      name: '헬스장 자유이용',
-      category: '헬스',
-      ageGroup: AgeGroup.ALL,
-      pricingType: PricingType.FREE_ACCESS,
-      status: ProgramStatus.RUNNING,
-      startDate: new Date('2025-01-01'),
-    },
-  });
-
-  // 준비중 상태 예시 — 다음 달 개강 예정인 신규 프로그램(지점별 "진행중/준비중" 구분을 보여주기 위한 데이터)
-  await prisma.program.upsert({
-    where: { id: 'program-seocho-pilates' },
-    update: {},
-    create: {
-      id: 'program-seocho-pilates',
-      branchId: seocho.id,
-      facilityId: gym.id,
-      instructorId: seoyeonInstructor.id,
-      name: '필라테스 (10월 개강 예정)',
-      category: '필라테스',
-      ageGroup: AgeGroup.ADULT,
-      price: 35000,
-      pricingType: PricingType.PAID_SESSION,
-      capacity: 12,
-      status: ProgramStatus.PREPARING,
-      startDate: new Date('2026-10-01'),
-    },
-  });
+  // ── 시설·강사·프로그램·회차 — D31: 원천은 DB, mock은 앱이 뜰 때 여기서 미러를 채운다 ─────────
+  // 히어로 id·값은 예전 mock 그대로다(catalog-fixtures.ts). update에도 같은 값을 넣어 시드를 다시 돌리면
+  // 원천과 다시 맞춰지게 한다. 참조 순서: 시설·강사 → 프로그램(D28 지점 일치 트리거) → 회차.
+  const catalog = catalogSeed();
+  for (const f of catalog.facilities) {
+    const data = {
+      branchId: f.branchId,
+      name: f.name,
+      type: f.type as FacilityType,
+      capacity: f.capacity,
+      currentCount: f.currentCount,
+      level: f.level,
+      lastUpdatedAt: new Date(f.lastUpdatedAt),
+      isActive: f.isActive,
+    };
+    await prisma.facility.upsert({ where: { id: f.id }, update: data, create: { id: f.id, ...data } });
+  }
+  for (const ins of catalog.instructors) {
+    const data = {
+      branchId: ins.branchId,
+      staffId: ins.staffId ?? null,
+      name: ins.name,
+      specialty: ins.specialty ?? null,
+      bio: ins.bio ?? null,
+      photoUrl: ins.photoUrl ?? null,
+      phone: ins.phone ?? null,
+      isActive: ins.isActive,
+    };
+    await prisma.instructor.upsert({ where: { id: ins.id }, update: data, create: { id: ins.id, ...data } });
+  }
+  for (const p of catalog.programs) {
+    const data = {
+      branchId: p.branchId,
+      facilityId: p.facilityId ?? null,
+      instructorId: p.instructorId ?? null,
+      name: p.name,
+      category: p.category,
+      ageGroup: p.ageGroup as AgeGroup,
+      description: p.description ?? null,
+      pricingType: p.pricingType as PricingType,
+      price: p.price,
+      capacity: p.capacity ?? null,
+      status: p.status as ProgramStatus,
+      startDate: dateOf(p.startDate),
+      endDate: p.endDate ? dateOf(p.endDate) : null,
+    };
+    await prisma.program.upsert({ where: { id: p.id }, update: data, create: { id: p.id, ...data } });
+  }
+  for (const sl of catalog.slots) {
+    const data = {
+      programId: sl.programId,
+      date: dateOf(sl.date),
+      startTime: sl.startTime,
+      endTime: sl.endTime,
+      capacity: sl.capacity,
+    };
+    await prisma.scheduleSlot.upsert({ where: { id: sl.id }, update: data, create: { id: sl.id, ...data } });
+  }
+  const gym = { id: 'facility-seocho-gym' };
+  const yogaProgram = { id: 'program-seocho-yoga' };
+  const ptProgram = { id: 'program-seocho-pt' };
 
   // ── 예약 + 결제 (이수진이 아침 요가 예약) ──────────────
   // D27 — @db.Date 컬럼은 KST 기준 날짜 문자열로 넣는다(new Date()를 그대로 넣으면 UTC 날짜로 잘린다).
