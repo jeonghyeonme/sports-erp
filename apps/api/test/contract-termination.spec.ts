@@ -1,8 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { BranchContractStatus } from '@prisma/client';
-import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { ACCOUNTS, BRANCH, createApp, db, login, mockData } from './helpers/app';
 import { setBranchStatus } from './helpers/branch-status';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * 위탁계약 종료(TERMINATED) 지점의 신규 활동 차단 — 설계 1-1 §2-1 "TERMINATED 전이가 하위 도메인에 미치는 영향".
@@ -24,12 +25,15 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
   });
 
   beforeEach(async () => {
+    // D32 — 회원·예약이 DB에 남으므로(예: "예약 이력 1건" 기대) 테스트마다 워커 DB를 새로 만든다.
+    await resetWorkerDb();
     app = await createApp();
     admin = await login(app, ACCOUNTS.seochoAdmin);
     member = await login(app, ACCOUNTS.seochoMember);
-    const m = mockData(app);
-    const programIds = m.programs.filter((p) => p.branchId === BRANCH.seocho && p.status === 'RUNNING').map((p) => p.id);
-    const slot = m.scheduleSlots.find((s) => programIds.includes(s.programId));
+    const slot = await db(app).scheduleSlot.findFirst({
+      where: { program: { branchId: BRANCH.seocho, status: 'RUNNING' } },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { id: 'asc' }],
+    });
     if (!slot) throw new Error('테스트 전제 위반: 서초점 진행중 프로그램의 회차가 없다');
     slotId = slot.id;
   });
@@ -86,15 +90,16 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
     });
     it('차단된 요청은 데이터를 남기지 않는다', async () => {
       const m = mockData(app);
-      const counts = () => [
-        m.members.length,
-        m.reservations.length,
+      const prisma = db(app);
+      const counts = async () => [
+        await prisma.member.count(),
+        await prisma.reservation.count(),
         m.posts.length,
-        m.facilities.length,
+        await prisma.facility.count(),
         m.assets.length,
         m.documents.length,
       ];
-      const before = counts();
+      const before = await counts();
       await api(admin).post('/members', { name: '신규회원' });
       await api(member).post('/reservations', { scheduleSlotId: slotId });
       await api(admin).post('/posts', { title: 't', content: 'c', category: 'NOTICE' });
@@ -110,7 +115,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
         title: '신규 문서',
         fileUrl: 'https://files.example/x.pdf',
       });
-      expect(counts()).toEqual(before);
+      expect(await counts()).toEqual(before);
     });
   });
 

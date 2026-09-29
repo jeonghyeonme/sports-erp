@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { baseDatabaseUrl, databaseName, withDatabase } from '../setup/test-db';
+import { baseDatabaseUrl, databaseName, dropDatabase, withDatabase } from '../setup/test-db';
 import { disconnectTestDb } from './branch-status';
 
 /**
@@ -18,7 +18,7 @@ export async function resetWorkerDb(): Promise<void> {
   await disconnectTestDb();
   const admin = new PrismaClient({ datasourceUrl: withDatabase(base, 'postgres') });
   try {
-    await admin.$executeRawUnsafe(`DROP DATABASE IF EXISTS "${databaseName(worker)}" WITH (FORCE)`);
+    await dropDatabase(admin, databaseName(worker));
     await admin.$executeRawUnsafe(`CREATE DATABASE "${databaseName(worker)}" TEMPLATE "${databaseName(base)}"`);
   } finally {
     await admin.$disconnect();

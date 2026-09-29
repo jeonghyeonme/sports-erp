@@ -1,28 +1,19 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Instructor } from '@prisma/client';
-import { MockDataService } from '../../mock-data/mock-data.service';
 import { MockInstructor } from '../../mock-data/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { PrismaService } from '../../prisma/prisma.service';
-import { replaceAll, upsertById } from '../../mock-data/mirror';
 
 export type InstructorView = MockInstructor & { branchName?: string };
 
 /**
- * 강사 — D31(2-1_기술결정사항.md). 원천은 DB이고, mock에는 앱이 뜰 때 채우고 쓰기 뒤 갱신하는 미러를 둔다
- * (D30과 같은 방식). 직원 파견(StaffService.assign)이 강사 연결을 풀면 refreshMirror로 미러를 맞춘다.
+ * 강사 — D31(2-1_기술결정사항.md). 원천은 DB다.
+ * D31에서 둔 mock 미러는 D32로 마지막 독자가 사라져 없앴다. 직원 파견이 강사 겸임을 푸는 것은
+ * StaffService.assign 트랜잭션 안에서 끝난다(ADR-STF-04).
  */
 @Injectable()
-export class InstructorService implements OnModuleInit {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly mockData: MockDataService,
-  ) {}
-
-  async onModuleInit(): Promise<void> {
-    const rows = await this.prisma.instructor.findMany({ orderBy: { id: 'asc' } });
-    replaceAll(this.mockData.instructors, rows.map(toMockInstructor));
-  }
+export class InstructorService {
+  constructor(private readonly prisma: PrismaService) {}
 
   async list(branchId?: string): Promise<InstructorView[]> {
     const rows = await this.prisma.instructor.findMany({
@@ -46,7 +37,7 @@ export class InstructorService implements OnModuleInit {
     const row = await this.prisma.instructor.create({
       data: { branchId, name: input.name, specialty: input.specialty, bio: input.bio, phone: input.phone },
     });
-    return this.afterWrite(row.id);
+    return this.view(row.id);
   }
 
   // 07문서 §5 PATCH /instructors/:id. 07문서 §6 — 비활성화는 isActive=false(소프트 삭제), 연결된 프로그램은 유지.
@@ -67,24 +58,15 @@ export class InstructorService implements OnModuleInit {
         isActive: input.isActive,
       },
     });
-    return this.afterWrite(id);
+    return this.view(id);
   }
 
-  /** 다른 서비스의 트랜잭션이 강사 행을 바꾼 뒤(파견의 연결 해제 등) 그 행들을 미러에 다시 반영한다. */
-  async refreshMirror(ids: string[]): Promise<void> {
-    if (ids.length === 0) return;
-    const rows = await this.prisma.instructor.findMany({ where: { id: { in: ids } } });
-    for (const row of rows) upsertById(this.mockData.instructors, toMockInstructor(row));
-  }
-
-  private async afterWrite(id: string): Promise<InstructorView> {
+  private async view(id: string): Promise<InstructorView> {
     const row = await this.prisma.instructor.findUniqueOrThrow({
       where: { id },
       include: { branch: { select: { name: true } } },
     });
-    const mock = toMockInstructor(row);
-    upsertById(this.mockData.instructors, mock);
-    return { ...mock, branchName: row.branch.name };
+    return { ...toMockInstructor(row), branchName: row.branch.name };
   }
 }
 

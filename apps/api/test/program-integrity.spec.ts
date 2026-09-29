@@ -1,7 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { ProgramService } from '../src/modules/programs/program.service';
 import { ACCOUNTS, createApp, login } from './helpers/app';
 import { resetWorkerDb } from './helpers/worker-db';
 
@@ -169,13 +168,11 @@ describe('프로그램 무결성 — facilityId 지점 일치', () => {
     it('지난 회차(오늘 이전)의 예약은 세지 않는다', async () => {
       const { programId, slotId } = await createRunningProgramWithFutureSlot();
       await api(seochoMember).post('/reservations', { scheduleSlotId: slotId });
-      // 회차를 과거 날짜로 돌려서 "미래 회차만 센다"는 경계를 확인한다. D31 — 회차 원천은 DB라
-      // DB를 고치고 미러를 다시 채운다(미러 배열을 직접 고치지 않는다).
+      // 회차를 과거 날짜로 돌려서 "미래 회차만 센다"는 경계를 확인한다(회차·예약 원천은 DB).
       await app.get(PrismaService).scheduleSlot.update({
         where: { id: slotId },
         data: { date: new Date('2020-01-01T00:00:00Z') },
       });
-      await app.get(ProgramService).onModuleInit();
 
       const res = await api(seochoAdmin).patch(`/programs/${programId}/status`, { status: 'PAUSED' });
       expect(res.status).toBe(200);

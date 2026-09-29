@@ -6,7 +6,6 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode } from '../../prisma/integrity';
-import { InstructorService } from '../instructors/instructor.service';
 import * as bcrypt from 'bcrypt';
 
 type StaffRow = Staff & { branch: { name: string } };
@@ -17,7 +16,7 @@ const dateOf = (d: string) => new Date(`${d}T00:00:00Z`);
 /**
  * 직원·파견·관리자 계정 — D30(2-1_기술결정사항.md). 원천은 DB다.
  *
- * 아직 mock인 근태·휴가·업무일지·문서·회원·작성자 이름이 직원을 동기적으로 읽으므로, mock에는 "미러"를 둔다.
+ * 아직 mock인 근태·휴가·업무일지·문서·작성자 이름이 직원을 동기적으로 읽으므로, mock에는 "미러"를 둔다.
  * 앱이 뜰 때(onModuleInit) DB 전체로 채우고, 이 서비스의 쓰기가 커밋된 뒤 해당 직원만 다시 읽어 갱신한다.
  * 미러는 이 서비스만 쓴다 — 직원을 바꾸는 다른 경로가 생기면 미러가 낡는다.
  */
@@ -26,7 +25,6 @@ export class StaffService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mockData: MockDataService,
-    private readonly instructorService: InstructorService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -93,8 +91,8 @@ export class StaffService implements OnModuleInit {
     },
     assignedByAccountId: string,
   ): Promise<StaffView> {
-    // 계정이 두 저장소로 나뉜 동안(D30 결정 4): 회원 계정은 아직 mock에 있으므로 거기서도 확인한다.
-    if (this.mockData.isEmailTakenByActiveAccount(input.email)) {
+    // ADR-MEM-02 — 활성 계정끼리 이메일 유일. D32부터 회원 계정도 DB라 DB 한 곳만 본다(D30 결정 4 종료).
+    if (await this.prisma.account.findFirst({ where: { email: input.email, isActive: true }, select: { id: true } })) {
       throw emailTaken();
     }
     const hireDate = input.hireDate ?? todayKst();
@@ -187,8 +185,8 @@ export class StaffService implements OnModuleInit {
   /**
    * 파견 발령 — 옛 파견 종료 → 새 파견 → 담당 회원 해제 → 강사 연결 해제 → Staff.branchId 갱신을 이 순서로
    * 한 트랜잭션에(ADR-STF-01·STF-04). 순서가 바뀌면 D28 트리거(staff_branch_move)가 거부한다.
-   * 회원의 원천은 아직 mock이라, 커밋 뒤 mock 회원 담당도 해제하고 그 목록을 돌려준다(D30 결정 3).
-   * 강사는 D31부터 DB가 원천이라 커밋 뒤 미러만 다시 맞춘다.
+   * 담당이 풀린 회원 목록을 응답에 돌려준다(ADR-STF-04 가시화). D32부터 회원·강사 모두 DB가 원천이라
+   * 부수효과가 전부 이 트랜잭션 안에 있다(D30 결정 3의 "커밋 뒤 mock 적용"이 끝남).
    */
   async assign(
     id: string,
@@ -197,7 +195,7 @@ export class StaffService implements OnModuleInit {
     note?: string,
   ): Promise<StaffView & { unassignedMembers: Array<{ id: string; name: string }> }> {
     const today = dateOf(todayKst());
-    const releasedInstructorIds = await this.prisma.$transaction(async (tx) => {
+    const unassignedMembers = await this.prisma.$transaction(async (tx) => {
       const staff = await tx.staff.findUnique({ where: { id } });
       if (!staff) throw staffNotFound();
       if (staff.status === 'RESIGNED') {
@@ -210,24 +208,22 @@ export class StaffService implements OnModuleInit {
       await tx.staffAssignment.create({
         data: { staffId: id, branchId: newBranchId, startDate: today, assignedBy: assignedByAccountId, note },
       });
-      await tx.member.updateMany({
+      const released = await tx.member.findMany({
         where: { assignedStaffId: id, branchId: { not: newBranchId } },
+        select: { id: true, name: true },
+        orderBy: { memberNo: 'asc' },
+      });
+      await tx.member.updateMany({
+        where: { id: { in: released.map((m) => m.id) } },
         data: { assignedStaffId: null },
       });
-      const released = await tx.instructor.findMany({
-        where: { staffId: id, branchId: { not: newBranchId } },
-        select: { id: true },
-      });
       await tx.instructor.updateMany({
-        where: { id: { in: released.map((r) => r.id) } },
+        where: { staffId: id, branchId: { not: newBranchId } },
         data: { staffId: null, isActive: false },
       });
       await tx.staff.update({ where: { id }, data: { branchId: newBranchId } });
-      return released.map((r) => r.id);
+      return released;
     });
-    // D31 — 강사 원천도 DB가 됐으므로 연결을 푼 강사 행을 미러에 반영한다(ADR-STF-04의 mock 강사 숙제).
-    await this.instructorService.refreshMirror(releasedInstructorIds);
-    const unassignedMembers = this.mockData.unassignMembersOfStaff(id, newBranchId);
     return { ...(await this.afterWrite(id)), unassignedMembers };
   }
 

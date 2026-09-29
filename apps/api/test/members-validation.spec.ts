@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, BRANCH, createApp, login } from './helpers/app';
 import { setBranchStatus } from './helpers/branch-status';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * 회원 등록의 비즈니스 규칙 — domains/회원관리.md §11 "검증되지 않음" 항목 해소.
@@ -13,6 +14,7 @@ describe('회원 등록 검증 (미성년 동의 / 담당 직원 지점 일치 /
   let adminToken: string;
 
   beforeEach(async () => {
+    await resetWorkerDb(); // D32 — 등록한 회원이 DB에 남아 전화번호 중복 경고 등에 새어 들지 않게
     app = await createApp();
     adminToken = await login(app, ACCOUNTS.seochoAdmin);
   });

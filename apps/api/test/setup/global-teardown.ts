@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { withDatabase, workerDatabaseName } from './test-db';
+import { dropDatabase, withDatabase, workerDatabaseName } from './test-db';
 
 export default async function globalTeardown(globalConfig: { maxWorkers: number }): Promise<void> {
   const base = process.env.TEST_BASE_DATABASE_URL;
@@ -7,7 +7,7 @@ export default async function globalTeardown(globalConfig: { maxWorkers: number 
   const admin = new PrismaClient({ datasourceUrl: withDatabase(base, 'postgres') });
   try {
     for (let i = 1; i <= globalConfig.maxWorkers; i++) {
-      await admin.$executeRawUnsafe(`DROP DATABASE IF EXISTS "${workerDatabaseName(base, i)}" WITH (FORCE)`);
+      await dropDatabase(admin, workerDatabaseName(base, i));
     }
   } finally {
     await admin.$disconnect();

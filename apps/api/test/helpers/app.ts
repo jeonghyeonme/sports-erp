@@ -4,6 +4,7 @@ import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { AllExceptionsFilter } from '../../src/common/filters/all-exceptions.filter';
 import { MOCK_DEMO_PASSWORD, MockDataService } from '../../src/mock-data/mock-data.service';
+import { PrismaService } from '../../src/prisma/prisma.service';
 
 /**
  * 실제 서버(main.ts)와 같은 전역 설정으로 앱을 띄운다. main.ts의 bootstrap()은 listen까지 하므로
@@ -24,6 +25,11 @@ export async function createApp(): Promise<INestApplication> {
 
 export function mockData(app: INestApplication): MockDataService {
   return app.get(MockDataService);
+}
+
+/** DB가 원천인 도메인(지점·직원·시설·강사·프로그램·회차·회원·예약·결제)의 상태는 여기로 읽고 쓴다. */
+export function db(app: INestApplication): PrismaService {
+  return app.get(PrismaService);
 }
 
 // 시드된 데모 계정 (mock-data.service.ts). 서초점 소속 3명, 강남점 관리자, 본사 관리자.

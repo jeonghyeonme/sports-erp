@@ -1,32 +1,22 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Facility } from '@prisma/client';
-import { MockDataService } from '../../mock-data/mock-data.service';
 import { FacilityType, MockFacility } from '../../mock-data/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BranchService } from '../branches/branch.service';
-import { replaceAll, upsertById } from '../../mock-data/mirror';
 
 export type FacilityView = MockFacility & { branchName?: string };
 
 /**
  * 시설·혼잡도 — D31(2-1_기술결정사항.md). 원천은 DB다.
- *
- * 아직 mock인 도메인(프로그램 지점 검사 등)이 시설을 동기적으로 읽으므로 mock에 미러를 둔다(D30과 같은 방식).
- * 앱이 뜰 때 DB 전체로 채우고, 이 서비스의 쓰기가 커밋된 뒤 해당 시설만 다시 읽어 갱신한다.
+ * D31에서 둔 mock 미러는 D32로 마지막 독자가 사라져 없앴다.
  */
 @Injectable()
-export class FacilityService implements OnModuleInit {
+export class FacilityService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly mockData: MockDataService,
     private readonly branchService: BranchService,
   ) {}
-
-  async onModuleInit(): Promise<void> {
-    const rows = await this.prisma.facility.findMany({ orderBy: { id: 'asc' } });
-    replaceAll(this.mockData.facilities, rows.map(toMockFacility));
-  }
 
   // ADR-FAC-02 — 운영 중단(isActive=false)된 시설은 기본 목록에서 제외한다.
   async list(filter: { branchId?: string; isActive: boolean }): Promise<FacilityView[]> {
@@ -117,15 +107,13 @@ export class FacilityService implements OnModuleInit {
     return row;
   }
 
-  /** 커밋된 행을 다시 읽어 mock 미러에 반영하고, API 응답 형태로 돌려준다. */
+  /** 커밋된 행을 다시 읽어 API 응답 형태로 돌려준다. */
   private async afterWrite(id: string): Promise<FacilityView> {
     const row = await this.prisma.facility.findUniqueOrThrow({
       where: { id },
       include: { branch: { select: { name: true } } },
     });
-    const mock = toMockFacility(row);
-    upsertById(this.mockData.facilities, mock);
-    return { ...mock, branchName: row.branch.name };
+    return { ...toMockFacility(row), branchName: row.branch.name };
   }
 }
 

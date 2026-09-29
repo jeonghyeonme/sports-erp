@@ -1,11 +1,10 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma, Program, ScheduleSlot } from '@prisma/client';
-import { MockDataService } from '../../mock-data/mock-data.service';
 import { MockProgram, MockScheduleSlot } from '../../mock-data/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
-import { toKstDateString } from '../../common/date/kst-date';
+import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
-import { replaceAll, upsertById } from '../../mock-data/mirror';
+import { ACTIVE_RESERVATION_STATUSES } from '../../prisma/integrity';
 
 export type ProgramView = MockProgram & { branchName?: string; instructorName?: string };
 
@@ -37,27 +36,15 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const dateOf = (d: string) => new Date(`${d}T00:00:00Z`);
 const withNames = { branch: { select: { name: true } }, instructor: { select: { name: true } } } as const;
 
+const ACTIVE = [...ACTIVE_RESERVATION_STATUSES] as Array<'REQUESTED' | 'CONFIRMED'>;
+
 /**
  * 프로그램·회차 — D31(2-1_기술결정사항.md). 원천은 DB다.
- *
- * 아직 mock인 예약·결제·회원·지점 건수가 프로그램과 회차를 동기적으로 읽으므로 mock에 미러를 둔다(D30과 같은 방식).
- * 예약 정원 검사(ADR-RSV-01)는 예약이 옮겨질 때까지 mock 예약 + 이 미러로 돈다.
+ * D31에서 둔 mock 미러는 D32(예약·회원 이관)로 마지막 독자가 사라져 없앴다 — 예약 집계도 DB에서 센다.
  */
 @Injectable()
-export class ProgramService implements OnModuleInit {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly mockData: MockDataService,
-  ) {}
-
-  async onModuleInit(): Promise<void> {
-    const [programs, slots] = await Promise.all([
-      this.prisma.program.findMany({ orderBy: { id: 'asc' } }),
-      this.prisma.scheduleSlot.findMany({ orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { id: 'asc' }] }),
-    ]);
-    replaceAll(this.mockData.programs, programs.map(toMockProgram));
-    replaceAll(this.mockData.scheduleSlots, slots.map(toMockSlot));
-  }
+export class ProgramService {
+  constructor(private readonly prisma: PrismaService) {}
 
   // ── 조회 ──────────────────────────────────────────────
 
@@ -82,14 +69,42 @@ export class ProgramService implements OnModuleInit {
     return row ? toMockProgram(row) : null;
   }
 
-  /** 06문서 §5 GET /programs/:id/slots?date= — bookedCount는 아직 mock인 예약에서 센다. */
+  /** 06문서 §5 GET /programs/:id/slots?date= — bookedCount는 캐시 없이 유효 예약(REQUESTED/CONFIRMED)을 센다(06문서 §3). */
   async listSlots(programId: string, date?: string): Promise<Array<MockScheduleSlot & { bookedCount: number }>> {
     if (date !== undefined && !DATE_RE.test(date)) return [];
     const rows = await this.prisma.scheduleSlot.findMany({
       where: { programId, date: date ? dateOf(date) : undefined },
+      include: { _count: { select: { reservations: { where: { status: { in: ACTIVE } } } } } },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { id: 'asc' }],
     });
-    return rows.map((r) => ({ ...toMockSlot(r), bookedCount: this.mockData.bookedCount(r.id) }));
+    return rows.map((r) => ({ ...toMockSlot(r), bookedCount: r._count.reservations }));
+  }
+
+  /**
+   * ADR-PRG-02 — 상태 전이 응답에 포함할 "오늘(KST) 이후 회차의 유효 예약" 목록. 취소·노쇼·완료 건은
+   * 관리자가 조치할 대상이 아니므로 제외한다(bookedCount와 같은 유효 예약 정의).
+   */
+  async futureActiveReservations(programId: string): Promise<{
+    count: number;
+    items: Array<{ reservationId: string; memberId: string; memberName?: string; scheduleSlotId: string; date: string; startTime: string }>;
+  }> {
+    const rows = await this.prisma.reservation.findMany({
+      where: {
+        status: { in: ACTIVE },
+        scheduleSlot: { programId, date: { gte: dateOf(todayKst()) } },
+      },
+      include: { member: { select: { name: true } }, scheduleSlot: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const items = rows.map((r) => ({
+      reservationId: r.id,
+      memberId: r.memberId,
+      memberName: r.member.name,
+      scheduleSlotId: r.scheduleSlotId,
+      date: toKstDateString(r.scheduleSlot.date),
+      startTime: r.scheduleSlot.startTime,
+    }));
+    return { count: items.length, items };
   }
 
   // ── 쓰기 ──────────────────────────────────────────────
@@ -195,9 +210,7 @@ export class ProgramService implements OnModuleInit {
         capacity,
       },
     });
-    const slot = toMockSlot(row);
-    upsertById(this.mockData.scheduleSlots, slot);
-    return { ...slot, bookedCount: 0 };
+    return { ...toMockSlot(row), bookedCount: 0 };
   }
 
   // ── 내부 ──────────────────────────────────────────────
@@ -226,9 +239,7 @@ export class ProgramService implements OnModuleInit {
   }
 
   private async afterWrite(id: string): Promise<ProgramView> {
-    const row = await this.prisma.program.findUniqueOrThrow({ where: { id }, include: withNames });
-    upsertById(this.mockData.programs, toMockProgram(row));
-    return toView(row);
+    return toView(await this.prisma.program.findUniqueOrThrow({ where: { id }, include: withNames }));
   }
 }
 
@@ -249,7 +260,7 @@ function normalizePricing(input: { pricingType: MockProgram['pricingType']; pric
   return { price: input.price, capacity: input.capacity };
 }
 
-function toMockProgram(row: Program): MockProgram {
+export function toMockProgram(row: Program): MockProgram {
   return {
     id: row.id,
     branchId: row.branchId,
