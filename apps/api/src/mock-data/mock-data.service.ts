@@ -8,7 +8,6 @@ import {
   AssetType,
   AttendanceStatus,
   DocumentCategory,
-  FacilityType,
   LeaveType,
   MockAccount,
   MockAsset,
@@ -41,13 +40,6 @@ import { BranchGate } from '../modules/branches/branch-gate';
 import { AppException } from '../common/exceptions/app.exception';
 import { RequestUser } from '../common/interfaces/request-user.interface';
 
-// 07문서 §3-2 상태 전이표. ENDED는 종결 상태라 다음 상태가 없다.
-const PROGRAM_STATUS_TRANSITIONS: Record<MockProgram['status'], MockProgram['status'][]> = {
-  PREPARING: ['RUNNING', 'ENDED'],
-  RUNNING: ['PAUSED', 'ENDED'],
-  PAUSED: ['RUNNING', 'ENDED'],
-  ENDED: [],
-};
 
 // 데모 계정 공통 비밀번호. prisma/seed.ts의 DEMO_PASSWORD와 동일하게 맞춰서,
 // 나중에 실제 DB로 전환해도 로그인 테스트 계정 정보가 바뀌지 않도록 합니다.
@@ -126,112 +118,14 @@ export class MockDataService {
     ...this.generated.members,
   ];
 
-  readonly instructors: MockInstructor[] = [
-    {
-      id: 'instructor-seoyeon',
-      branchId: 'branch-seocho',
-      name: '박서연',
-      specialty: '요가·필라테스',
-      isActive: true,
-    },
-    ...this.generated.instructors,
-  ];
+  // D31 — 강사 원천은 DB, 이 배열은 InstructorService가 DB에서 채우는 미러다(직원 D30과 같은 방식).
+  readonly instructors: MockInstructor[] = [];
 
-  readonly programs: MockProgram[] = [
-    {
-      id: 'program-seocho-yoga',
-      branchId: 'branch-seocho',
-      facilityId: 'facility-seocho-gym',
-      instructorId: 'instructor-seoyeon',
-      name: '아침 요가',
-      category: '요가',
-      ageGroup: 'ADULT',
-      description: '기초 체력과 유연성을 함께 기르는 아침 요가 클래스입니다.',
-      pricingType: 'PAID_SESSION',
-      price: 30000,
-      capacity: 15,
-      status: 'RUNNING',
-      startDate: '2026-01-05',
-    },
-    {
-      id: 'program-seocho-pt',
-      branchId: 'branch-seocho',
-      facilityId: 'facility-seocho-gym',
-      instructorId: 'instructor-seoyeon',
-      name: '퍼스널 트레이닝',
-      category: 'PT',
-      ageGroup: 'ADULT',
-      description: '1:1 맞춤 트레이닝 프로그램(세션 차감형).',
-      pricingType: 'PT_PACKAGE',
-      price: 60000,
-      status: 'RUNNING',
-      startDate: '2026-01-05',
-    },
-    {
-      id: 'program-seocho-freegym',
-      branchId: 'branch-seocho',
-      facilityId: 'facility-seocho-gym',
-      name: '헬스장 자유이용',
-      category: '헬스',
-      ageGroup: 'ALL',
-      description: '헬스장 시설을 자유롭게 이용할 수 있는 상시 운영 프로그램입니다.',
-      pricingType: 'FREE_ACCESS',
-      price: 0,
-      status: 'RUNNING',
-      startDate: '2025-01-01',
-    },
-    {
-      id: 'program-seocho-pilates',
-      branchId: 'branch-seocho',
-      facilityId: 'facility-seocho-gym',
-      instructorId: 'instructor-seoyeon',
-      name: '필라테스 (10월 개강 예정)',
-      category: '필라테스',
-      ageGroup: 'ADULT',
-      description: '10월 개강 예정인 소규모 필라테스 클래스입니다.',
-      pricingType: 'PAID_SESSION',
-      price: 35000,
-      capacity: 12,
-      status: 'PREPARING',
-      startDate: '2026-10-01',
-    },
-    {
-      id: 'program-gangnam-pilates',
-      branchId: 'branch-gangnam',
-      facilityId: 'facility-gangnam-gym',
-      name: '강남점 필라테스',
-      category: '필라테스',
-      ageGroup: 'ADULT',
-      description: '강남점에서 운영하는 필라테스 클래스입니다.',
-      pricingType: 'PAID_SESSION',
-      price: 40000,
-      capacity: 10,
-      status: 'RUNNING',
-      startDate: '2026-02-01',
-    },
-    ...this.generated.programs,
-  ];
+  // D31 — 프로그램 원천은 DB, ProgramService가 채우는 미러. 예약·회원·지점 건수가 동기적으로 읽는다.
+  readonly programs: MockProgram[] = [];
 
-  // 06문서 §3 — '아침 요가'(PAID_SESSION, capacity 15)에 데모용 회차 2건을 시드해둔다.
-  // 두 번째 회차는 정원을 일부러 작게 잡아 SLOT_FULL(정원 초과) 케이스를 바로 테스트할 수 있게 한다.
-  readonly scheduleSlots: MockScheduleSlot[] = [
-    {
-      id: 'slot-seocho-yoga-1',
-      programId: 'program-seocho-yoga',
-      date: '2026-09-21',
-      startTime: '07:00',
-      endTime: '08:00',
-      capacity: 15,
-    },
-    {
-      id: 'slot-seocho-yoga-2',
-      programId: 'program-seocho-yoga',
-      date: '2026-09-22',
-      startTime: '07:00',
-      endTime: '08:00',
-      capacity: 2,
-    },
-  ];
+  // D31 — 회차 원천은 DB, ProgramService가 채우는 미러. 예약 정원 검사(ADR-RSV-01)가 여기서 읽는다.
+  readonly scheduleSlots: MockScheduleSlot[] = [];
 
   readonly reservations: MockReservation[] = [];
   readonly payments: MockPayment[] = [];
@@ -360,42 +254,8 @@ export class MockDataService {
     },
   ];
 
-  readonly facilities: MockFacility[] = [
-    {
-      id: 'facility-seocho-gym',
-      branchId: 'branch-seocho',
-      name: '서초점 헬스장',
-      type: 'GYM',
-      capacity: 60,
-      currentCount: 18,
-      level: 2,
-      lastUpdatedAt: '2026-09-01T09:00:00.000Z',
-      isActive: true,
-    },
-    {
-      id: 'facility-seocho-pool',
-      branchId: 'branch-seocho',
-      name: '서초점 수영장',
-      type: 'POOL',
-      capacity: 30,
-      currentCount: 26,
-      level: 5,
-      lastUpdatedAt: '2026-09-01T09:00:00.000Z',
-      isActive: true,
-    },
-    {
-      id: 'facility-gangnam-gym',
-      branchId: 'branch-gangnam',
-      name: '강남점 헬스장',
-      type: 'GYM',
-      capacity: 50,
-      currentCount: 12,
-      level: 2,
-      lastUpdatedAt: '2026-09-01T09:00:00.000Z',
-      isActive: true,
-    },
-    ...this.generated.facilities,
-  ];
+  // D31 — 시설 원천은 DB, FacilityService가 채우는 미러.
+  readonly facilities: MockFacility[] = [];
 
   readonly refreshTokens: MockRefreshToken[] = [];
 
@@ -858,24 +718,6 @@ export class MockDataService {
     return { enrollmentCount, ptRemainingTotal, lastPaymentAt };
   }
 
-  // 07문서 §5 PATCH /programs/:id/status, §3-2 전이표. 표에 없는 전이(자기 자신 포함)는 409.
-  updateProgramStatus(id: string, status: MockProgram['status']): MockProgram {
-    const program = this.programs.find((p) => p.id === id);
-    if (!program) {
-      throw new AppException('PROGRAM_NOT_FOUND', '프로그램을 찾을 수 없습니다.', 404);
-    }
-    const allowed = PROGRAM_STATUS_TRANSITIONS[program.status];
-    if (!allowed.includes(status)) {
-      throw new AppException(
-        'INVALID_STATUS_TRANSITION',
-        `${program.status} 상태에서 ${status}(으)로 전이할 수 없습니다.`,
-        409,
-      );
-    }
-    program.status = status;
-    return program;
-  }
-
   // ADR-PRG-02 — 상태 전이 응답에 포함할 "오늘 이후 회차의 유효(REQUESTED/CONFIRMED) 예약" 목록.
   // bookedCount와 같은 유효 예약 정의를 재사용한다(06문서 §3) — 취소·노쇼·완료 건은 관리자가 조치할 대상이 아니므로 제외.
   futureActiveReservationsForProgram(programId: string): {
@@ -906,199 +748,6 @@ export class MockDataService {
         };
       });
     return { count: items.length, items };
-  }
-
-  private assertInstructorInBranch(instructorId: string, branchId: string): void {
-    const instructor = this.instructors.find((i) => i.id === instructorId);
-    if (!instructor || instructor.branchId !== branchId) {
-      throw new AppException(
-        'INSTRUCTOR_BRANCH_MISMATCH',
-        '강사는 프로그램과 같은 지점 소속이어야 합니다.',
-        400,
-      );
-    }
-  }
-
-  // ADR-PRG-03 — assertInstructorInBranch와 동일 패턴. facilityId도 다른 지점 시설을 가리키면 안 된다.
-  private assertFacilityInBranch(facilityId: string, branchId: string): void {
-    const facility = this.findFacilityById(facilityId);
-    if (!facility || facility.branchId !== branchId) {
-      throw new AppException(
-        'FACILITY_BRANCH_MISMATCH',
-        '시설은 프로그램과 같은 지점 소속이어야 합니다.',
-        400,
-      );
-    }
-  }
-
-  // 07문서 §6 — pricingType=FREE_ACCESS는 예약 개념이 없어 price·capacity가 무의미하므로 서버에서도 강제로 비운다
-  // (클라이언트가 값을 보내도 무시 — 방어적 검증).
-  private normalizeProgramPricing(input: {
-    pricingType: MockProgram['pricingType'];
-    price: number;
-    capacity?: number;
-  }): { price: number; capacity?: number } {
-    if (input.pricingType === 'FREE_ACCESS') {
-      return { price: 0, capacity: undefined };
-    }
-    return { price: input.price, capacity: input.capacity };
-  }
-
-  // ADR-PRG-01 — PAID_SESSION은 정원이 예약 가능 좌석 수 그 자체라 추측해서 기본값을 넣으면 안 된다(§8 질문1 결정).
-  private assertCapacityForPricingType(pricingType: MockProgram['pricingType'], capacity?: number): void {
-    if (pricingType === 'PAID_SESSION' && (capacity === undefined || capacity < 1)) {
-      throw new AppException(
-        'PROGRAM_CAPACITY_REQUIRED',
-        'PAID_SESSION 프로그램은 정원(capacity)을 1명 이상 지정해야 합니다.',
-        400,
-      );
-    }
-  }
-
-  // 07문서 §5 POST /programs — BRANCH_ADMIN 전용(컨트롤러에서 강제).
-  createProgram(
-    branchId: string,
-    input: {
-      name: string;
-      category: string;
-      ageGroup: MockProgram['ageGroup'];
-      description?: string;
-      pricingType: MockProgram['pricingType'];
-      price: number;
-      capacity?: number;
-      facilityId?: string;
-      instructorId?: string;
-      startDate: string;
-      endDate?: string;
-    },
-  ): MockProgram {
-    if (input.instructorId) {
-      this.assertInstructorInBranch(input.instructorId, branchId);
-    }
-    if (input.facilityId) {
-      this.assertFacilityInBranch(input.facilityId, branchId);
-    }
-    this.assertCapacityForPricingType(input.pricingType, input.capacity);
-    const { price, capacity } = this.normalizeProgramPricing(input);
-    const program: MockProgram = {
-      id: `program-${randomUUID()}`,
-      branchId,
-      facilityId: input.facilityId,
-      instructorId: input.instructorId,
-      name: input.name,
-      category: input.category,
-      ageGroup: input.ageGroup,
-      description: input.description,
-      pricingType: input.pricingType,
-      price,
-      capacity,
-      status: 'PREPARING',
-      startDate: input.startDate,
-      endDate: input.endDate,
-    };
-    this.programs.push(program);
-    return program;
-  }
-
-  // 07문서 §5 PATCH /programs/:id — 상태는 이 메서드로 바꿀 수 없다(상태 전이 API 전용).
-  updateProgram(
-    id: string,
-    input: Partial<
-      Pick<
-        MockProgram,
-        | 'name'
-        | 'category'
-        | 'ageGroup'
-        | 'description'
-        | 'pricingType'
-        | 'price'
-        | 'capacity'
-        | 'facilityId'
-        | 'instructorId'
-        | 'startDate'
-        | 'endDate'
-      >
-    >,
-  ): MockProgram {
-    const program = this.findProgramById(id);
-    if (!program) {
-      throw new AppException('PROGRAM_NOT_FOUND', '프로그램을 찾을 수 없습니다.', 404);
-    }
-    // 검증을 전부 먼저 끝내고 나서 아래에서 한 번에 반영한다 — 중간에 검증이 실패하면
-    // 그 앞에서 이미 반영된 다른 필드만 저장되는 반쪽짜리 수정이 생기면 안 되기 때문이다.
-    if (input.instructorId) this.assertInstructorInBranch(input.instructorId, program.branchId);
-    if (input.facilityId) this.assertFacilityInBranch(input.facilityId, program.branchId);
-    const pricingType = input.pricingType ?? program.pricingType;
-    const capacity = input.capacity ?? program.capacity;
-    // ADR-PRG-01 — PAID_SESSION은 정원이 원인 시점(생성/수정)에 바로 막혀야 회차 생성 때 뒤늦게 실패하지 않는다.
-    this.assertCapacityForPricingType(pricingType, capacity);
-
-    if (input.instructorId !== undefined) program.instructorId = input.instructorId || undefined;
-    if (input.name !== undefined) program.name = input.name;
-    if (input.category !== undefined) program.category = input.category;
-    if (input.ageGroup !== undefined) program.ageGroup = input.ageGroup;
-    if (input.description !== undefined) program.description = input.description;
-    if (input.facilityId !== undefined) program.facilityId = input.facilityId || undefined;
-    if (input.startDate !== undefined) program.startDate = input.startDate;
-    if (input.endDate !== undefined) program.endDate = input.endDate || undefined;
-
-    const price = input.price ?? program.price;
-    const normalized = this.normalizeProgramPricing({ pricingType, price, capacity });
-    program.pricingType = pricingType;
-    program.price = normalized.price;
-    program.capacity = normalized.capacity;
-
-    return program;
-  }
-
-  // 07문서 §5 DELETE /programs/:id "삭제(소프트)" — Program은 물리 삭제 대신 이미 있는 status
-  // 생애주기의 종결 상태(ENDED)로 전이한다(1-1문서 D9 소프트 삭제 원칙, §3-2 전이표를 그대로 재사용).
-  endProgram(id: string): MockProgram {
-    return this.updateProgramStatus(id, 'ENDED');
-  }
-
-  findInstructorById(id: string): MockInstructor | undefined {
-    return this.instructors.find((i) => i.id === id);
-  }
-
-  // 07문서 §5 POST /instructors — BRANCH_ADMIN 전용(컨트롤러에서 강제).
-  hireInstructor(
-    branchId: string,
-    input: { name: string; specialty?: string; bio?: string; phone?: string },
-  ): MockInstructor {
-    const instructor: MockInstructor = {
-      id: `instructor-${randomUUID()}`,
-      branchId,
-      name: input.name,
-      specialty: input.specialty,
-      bio: input.bio,
-      phone: input.phone,
-      isActive: true,
-    };
-    this.instructors.push(instructor);
-    return instructor;
-  }
-
-  // 07문서 §5 PATCH /instructors/:id.
-  updateInstructor(
-    id: string,
-    input: Partial<Pick<MockInstructor, 'name' | 'specialty' | 'bio' | 'phone' | 'isActive'>>,
-  ): MockInstructor {
-    const instructor = this.findInstructorById(id);
-    if (!instructor) {
-      throw new AppException('INSTRUCTOR_NOT_FOUND', '강사를 찾을 수 없습니다.', 404);
-    }
-    if (input.name !== undefined) instructor.name = input.name;
-    if (input.specialty !== undefined) instructor.specialty = input.specialty;
-    if (input.bio !== undefined) instructor.bio = input.bio;
-    if (input.phone !== undefined) instructor.phone = input.phone;
-    if (input.isActive !== undefined) instructor.isActive = input.isActive;
-    return instructor;
-  }
-
-  // 07문서 §6 — 물리 삭제 대신 소프트 삭제(isActive=false), 기존 연결된 프로그램은 깨지지 않는다.
-  deactivateInstructor(id: string): MockInstructor {
-    return this.updateInstructor(id, { isActive: false });
   }
 
   findPostById(id: string): MockPost | undefined {
@@ -1529,103 +1178,8 @@ export class MockDataService {
     return this.facilities.find((f) => f.id === id);
   }
 
-  // 08문서 §4 5단계 매핑 — 수동 보정이든 정원 변경이든 currentCount/capacity 비율이 바뀔 때마다 재계산한다.
-  private computeCongestionLevel(currentCount: number, capacity: number): number {
-    const ratio = (currentCount / capacity) * 100;
-    if (ratio <= 20) return 1;
-    if (ratio <= 40) return 2;
-    if (ratio <= 60) return 3;
-    if (ratio <= 80) return 4;
-    return 5;
-  }
-
-  // 08문서 §6 POST /facilities — BRANCH_ADMIN 전용(컨트롤러에서 강제). capacity 1 이상 필수(§7 나눗셈 오류 방지).
-  // ADR-FAC-03 — 계약종료(TERMINATED) 지점의 신규 시설 등록 차단. 기존 시설 정정(updateFacility)은 대상 아님.
-  createFacility(
-    branchId: string,
-    input: { name: string; type: FacilityType; capacity: number },
-    gate: BranchGate,
-  ): MockFacility {
-    if (gate.isTerminated(branchId)) {
-      throw new AppException(
-        'BRANCH_TERMINATED',
-        '위탁계약이 종료된 지점에는 새 시설을 등록할 수 없습니다.',
-        409,
-      );
-    }
-    if (input.capacity < 1) {
-      throw new AppException('INVALID_CAPACITY', '정원은 1명 이상이어야 합니다.', 400);
-    }
-    const facility: MockFacility = {
-      id: `facility-${randomUUID()}`,
-      branchId,
-      name: input.name,
-      type: input.type,
-      capacity: input.capacity,
-      currentCount: 0,
-      level: 1,
-      lastUpdatedAt: new Date().toISOString(),
-      isActive: true,
-    };
-    this.facilities.push(facility);
-    return facility;
-  }
-
-  // 08문서 §6 PATCH /facilities/:id — 정원이 바뀌면 현재 인원 대비 혼잡도 단계를 즉시 재계산한다.
-  // ADR-FAC-02 — isActive 토글도 이 엔드포인트로 처리한다(비활성화·재활성화 둘 다).
-  updateFacility(
-    id: string,
-    input: Partial<{ name: string; type: FacilityType; capacity: number; isActive: boolean }>,
-  ): MockFacility {
-    const facility = this.findFacilityById(id);
-    if (!facility) {
-      throw new AppException('FACILITY_NOT_FOUND', '시설을 찾을 수 없습니다.', 404);
-    }
-    if (input.capacity !== undefined && input.capacity < 1) {
-      throw new AppException('INVALID_CAPACITY', '정원은 1명 이상이어야 합니다.', 400);
-    }
-    if (input.name !== undefined) facility.name = input.name;
-    if (input.type !== undefined) facility.type = input.type;
-    if (input.capacity !== undefined) {
-      facility.capacity = input.capacity;
-      facility.level = this.computeCongestionLevel(facility.currentCount, facility.capacity);
-    }
-    if (input.isActive !== undefined) facility.isActive = input.isActive;
-    return facility;
-  }
-
-  // 08문서 §6 POST /facilities/:id/congestion/manual, §4 "수동 보정"(source=MANUAL) — Phase 1 범위라
-  // 별도 CongestionSnapshot 이력 테이블 없이 MockFacility.currentCount/level을 직접 덮어쓴다.
-  // ADR-FAC-03 — 계약종료(TERMINATED) 지점의 신규 혼잡도 보정 차단(등록과 동일하게 "신규 활동"으로 취급).
-  setManualCongestion(id: string, currentCount: number, gate: BranchGate): MockFacility {
-    const facility = this.findFacilityById(id);
-    if (!facility) {
-      throw new AppException('FACILITY_NOT_FOUND', '시설을 찾을 수 없습니다.', 404);
-    }
-    if (gate.isTerminated(facility.branchId)) {
-      throw new AppException(
-        'BRANCH_TERMINATED',
-        '위탁계약이 종료된 지점의 혼잡도는 보정할 수 없습니다.',
-        409,
-      );
-    }
-    if (currentCount < 0) {
-      throw new AppException('INVALID_CURRENT_COUNT', '현재 인원은 0명 이상이어야 합니다.', 400);
-    }
-    facility.currentCount = currentCount;
-    facility.level = this.computeCongestionLevel(currentCount, facility.capacity);
-    facility.lastUpdatedAt = new Date().toISOString();
-    return facility;
-  }
-
   findScheduleSlotById(id: string): MockScheduleSlot | undefined {
     return this.scheduleSlots.find((s) => s.id === id);
-  }
-
-  listScheduleSlots(programId: string, date?: string): MockScheduleSlot[] {
-    let slots = this.scheduleSlots.filter((s) => s.programId === programId);
-    if (date) slots = slots.filter((s) => s.date === date);
-    return slots;
   }
 
   // 06문서 §3 — bookedCount는 캐시 필드를 두지 않고 매번 계산한다(REQUESTED/CONFIRMED만 유효 예약).
@@ -1633,38 +1187,6 @@ export class MockDataService {
     return this.reservations.filter(
       (r) => r.scheduleSlotId === scheduleSlotId && (r.status === 'REQUESTED' || r.status === 'CONFIRMED'),
     ).length;
-  }
-
-  // 06문서 §5 POST /programs/:id/slots — BRANCH_ADMIN 전용(컨트롤러에서 강제).
-  createScheduleSlot(
-    programId: string,
-    input: { date: string; startTime: string; endTime: string; capacity?: number },
-  ): MockScheduleSlot {
-    const program = this.findProgramById(programId);
-    if (!program) {
-      throw new AppException('PROGRAM_NOT_FOUND', '프로그램을 찾을 수 없습니다.', 404);
-    }
-    if (program.pricingType !== 'PAID_SESSION') {
-      throw new AppException(
-        'SLOT_NOT_APPLICABLE',
-        '회차 예약형(PAID_SESSION) 프로그램에만 회차를 추가할 수 있습니다.',
-        400,
-      );
-    }
-    const capacity = input.capacity ?? program.capacity;
-    if (!capacity || capacity < 1) {
-      throw new AppException('INVALID_CAPACITY', '정원은 1명 이상이어야 합니다.', 400);
-    }
-    const slot: MockScheduleSlot = {
-      id: `slot-${randomUUID()}`,
-      programId,
-      date: input.date,
-      startTime: input.startTime,
-      endTime: input.endTime,
-      capacity,
-    };
-    this.scheduleSlots.push(slot);
-    return slot;
   }
 
   findReservationById(id: string): MockReservation | undefined {

@@ -3,8 +3,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
-import { MockDataService } from '../../mock-data/mock-data.service';
-import { BranchService } from '../branches/branch.service';
+import { FacilityService } from './facility.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MockFacility } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
@@ -16,19 +15,13 @@ import { ManualCongestionDto } from './dto/manual-congestion.dto';
 @Controller('facilities')
 @UseGuards(BranchScopeGuard)
 export class FacilitiesController {
-  constructor(
-    private readonly mockData: MockDataService,
-    private readonly branchService: BranchService,
-  ) {}
+  constructor(private readonly facilityService: FacilityService) {}
 
   // ADR-FAC-02 — 운영 중단(isActive=false)된 시설은 기본 목록에서 제외한다(소프트 삭제 원칙).
   // ?isActive=false를 명시하면 반대로 비활성 시설만 돌려준다 — 재활성화 화면(admin-web)이 이걸로 목록을 채운다.
   @Get()
-  list(@Query('branchId') branchId?: string, @Query('isActive') isActiveQuery?: string) {
-    const wantActive = isActiveQuery !== 'false';
-    let facilities = this.mockData.facilities.filter((f) => f.isActive === wantActive);
-    if (branchId) facilities = facilities.filter((f) => f.branchId === branchId);
-    return ok(facilities.map((f) => this.toListItem(f)));
+  async list(@Query('branchId') branchId?: string, @Query('isActive') isActiveQuery?: string) {
+    return ok(await this.facilityService.list({ branchId, isActive: isActiveQuery !== 'false' }));
   }
 
   @Post()
@@ -37,14 +30,14 @@ export class FacilitiesController {
     if (!user.branchId) {
       throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
     }
-    return ok(this.toListItem(this.mockData.createFacility(user.branchId, dto, await this.branchService.loadGate())));
+    return ok(await this.facilityService.create(user.branchId, dto));
   }
 
   @Patch(':id')
   @Roles('BRANCH_ADMIN')
-  update(@Param('id') id: string, @Body() dto: UpdateFacilityDto, @CurrentUser() user: RequestUser) {
-    this.assertOwnBranch(this.findFacilityOrThrow(id), user);
-    return ok(this.toListItem(this.mockData.updateFacility(id, dto)));
+  async update(@Param('id') id: string, @Body() dto: UpdateFacilityDto, @CurrentUser() user: RequestUser) {
+    this.assertOwnBranch(await this.findFacilityOrThrow(id), user);
+    return ok(await this.facilityService.update(id, dto));
   }
 
   // 08문서 §4·§6 "수동 보정"(source=MANUAL) — Phase 2 자동계산 스케줄러가 생기기 전까지는
@@ -56,16 +49,12 @@ export class FacilitiesController {
     @Body() dto: ManualCongestionDto,
     @CurrentUser() user: RequestUser,
   ) {
-    this.assertOwnBranch(this.findFacilityOrThrow(id), user);
-    return ok(this.toListItem(this.mockData.setManualCongestion(id, dto.currentCount, await this.branchService.loadGate())));
+    this.assertOwnBranch(await this.findFacilityOrThrow(id), user);
+    return ok(await this.facilityService.setManualCongestion(id, dto.currentCount));
   }
 
-  private toListItem(facility: MockFacility) {
-    return { ...facility, branchName: this.mockData.findBranchById(facility.branchId)?.name };
-  }
-
-  private findFacilityOrThrow(id: string): MockFacility {
-    const facility = this.mockData.findFacilityById(id);
+  private async findFacilityOrThrow(id: string): Promise<MockFacility> {
+    const facility = await this.facilityService.findById(id);
     if (!facility) {
       throw new AppException('FACILITY_NOT_FOUND', '시설을 찾을 수 없습니다.', 404);
     }

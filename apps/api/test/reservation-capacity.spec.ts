@@ -1,7 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { MockDataService } from '../src/mock-data/mock-data.service';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { ProgramService } from '../src/modules/programs/program.service';
 import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * 예약및결제 도메인의 핵심 불변규칙 — domains/예약및결제.md §11 "검증되지 않음" 항목 해소.
@@ -44,6 +47,7 @@ describe('예약 정원 초과 방지 — 불변규칙 1', () => {
   let app: INestApplication;
 
   beforeEach(async () => {
+    await resetWorkerDb();
     app = await createApp();
   });
   afterEach(async () => {
@@ -192,16 +196,19 @@ describe('취소 정책 — 마감시간(24시간) 기준 환불 분기', () => 
   });
 
   it('마감시간(24시간) 이전 취소는 전액 환불된다(Payment REFUNDED)', async () => {
-    const data = mockData(app);
+    // D31 — 회차 원천은 DB라 DB에 만들고 미러를 다시 채운다(미러 배열을 직접 고치지 않는다).
     const futureSlotId = 'slot-test-future';
-    data.scheduleSlots.push({
-      id: futureSlotId,
-      programId: 'program-seocho-yoga',
-      date: '2099-01-01',
-      startTime: '07:00',
-      endTime: '08:00',
-      capacity: 5,
+    await app.get(PrismaService).scheduleSlot.create({
+      data: {
+        id: futureSlotId,
+        programId: 'program-seocho-yoga',
+        date: new Date('2099-01-01T00:00:00Z'),
+        startTime: '07:00',
+        endTime: '08:00',
+        capacity: 5,
+      },
     });
+    await app.get(ProgramService).onModuleInit();
 
     const resv = await request(app.getHttpServer())
       .post('/api/v1/reservations')
