@@ -3,6 +3,7 @@ import request from 'supertest';
 import { MOCK_DEMO_PASSWORD } from '../src/mock-data/mock-data.service';
 import { addYearsToDateString } from '../src/common/date/kst-date';
 import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * 파견 발령·퇴사 처리의 실제 효과 — domains/인사정보관리.md §11 "검증되지 않음" 항목 해소.
@@ -14,6 +15,7 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
   const STAFF_ID = 'staff-seoyeon'; // 서초점 소속 박서연
 
   beforeEach(async () => {
+    await resetWorkerDb(); // D30 — 테스트마다 파견·퇴사 전 상태에서 시작(직원의 원천이 DB라 앞 테스트의 변경이 남는다)
     app = await createApp();
   });
   afterEach(async () => {
@@ -76,12 +78,8 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
     expect(after.body.data.length).toBe(before.body.data.length + 1); // 새 레코드 1건 추가, 기존 것은 마감됨(삭제 아님)
   });
 
-  // D26(2026-09-28)로 /auth/login이 Prisma를 우선 조회하게 되면서 일시적으로 깨졌다 — 이 계정은
-  // Prisma·mock 양쪽에 같은 이메일로 존재하는데(과도기 공유 계정, auth.service.ts 참고), 퇴사 처리
-  // (/staff/:id/resign)는 아직 mock 도메인이라 mock 쪽 isActive만 false로 바뀌고 Prisma 쪽은 그대로다
-  // — 로그인이 Prisma를 먼저 찾아 성공해버린다. staff 도메인이 Prisma로 이관되면(다음 사이클) 자연히
-  // 다시 통과한다 — 그 전까지는 기대값을 바꾸지 않고 skip으로만 남겨 회귀를 추적한다.
-  it.skip('퇴사 처리 후 해당 계정은 로그인 자체가 실패한다(ACCOUNT_INACTIVE)', async () => {
+  // D26에서 skip했던 테스트 — D30으로 퇴사가 DB 계정을 비활성화하면서 다시 통과한다(skip 해제).
+  it('퇴사 처리 후 해당 계정은 로그인 자체가 실패한다(ACCOUNT_INACTIVE)', async () => {
     const adminToken = await login(app, ACCOUNTS.seochoAdmin);
     const resignRes = await request(app.getHttpServer())
       .patch(`/api/v1/staff/${STAFF_ID}/resign`)

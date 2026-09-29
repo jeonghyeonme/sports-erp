@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { MockDataService } from '../../mock-data/mock-data.service';
+import { StaffService } from '../staff/staff.service';
 import { ok } from '../../common/http/api-response';
 import { UpdateStaffRoleDto } from './dto/update-staff-role.dto';
 
@@ -8,15 +8,16 @@ import { UpdateStaffRoleDto } from './dto/update-staff-role.dto';
 @Controller('permissions')
 @Roles('SUPER_ADMIN')
 export class PermissionsController {
-  constructor(private readonly mockData: MockDataService) {}
+  // D30 — 계정·직원의 원천은 DB. 전환은 다음 요청부터 반영된다(JwtStrategy가 매 요청 계정을 다시 읽음, ADR-AUTH-01).
+  constructor(private readonly staffService: StaffService) {}
 
   @Get('staff')
-  listStaff() {
-    return ok(this.mockData.staffWithRole());
+  async listStaff() {
+    return ok(await this.staffService.listWithRole());
   }
 
   @Patch('staff/:staffId/role')
-  updateRole(@Param('staffId') staffId: string, @Body() dto: UpdateStaffRoleDto) {
-    return ok(this.mockData.updateStaffRole(staffId, dto.role));
+  async updateRole(@Param('staffId') staffId: string, @Body() dto: UpdateStaffRoleDto) {
+    return ok(await this.staffService.updateRole(staffId, dto.role));
   }
 }

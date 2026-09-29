@@ -8,6 +8,7 @@ import { PrismaClient, Role, PricingType, ProgramStatus, AgeGroup, FacilityType,
 import * as bcrypt from 'bcrypt';
 import { todayKst } from '../src/common/date/kst-date';
 import { allBranchRecords } from '../src/mock-data/branch-fixtures';
+import { staffSeed } from '../src/mock-data/staff-fixtures';
 
 const prisma = new PrismaClient();
 
@@ -37,83 +38,50 @@ async function main() {
   }
   const seocho = { id: 'branch-seocho' };
 
-  // ── 계정 · 인물 ────────────────────────────────────
+  // ── 직원·파견·관리자 계정 — D30: 원천은 DB, mock은 앱이 뜰 때 여기서 미러를 채운다 ─────────
+  // 히어로 id는 예전 mock 값 그대로다(아직 mock인 회원 담당 직원 등이 이 id를 가리킴).
+  // update에도 같은 값을 넣어 시드를 다시 돌리면 원천과 다시 맞춰지게 한다(비밀번호·활성 여부 포함).
+  const staffData = staffSeed();
+  for (const a of staffData.accounts) {
+    const data = { email: a.email, passwordHash, role: a.role as Role, name: a.name, isActive: true };
+    await prisma.account.upsert({ where: { id: a.id }, update: data, create: { id: a.id, ...data } });
+  }
+  const dateOf = (d: string) => new Date(`${d}T00:00:00Z`);
+  for (const st of staffData.staff) {
+    const data = {
+      accountId: st.accountId,
+      branchId: st.branchId,
+      staffCode: st.staffCode,
+      name: st.name,
+      phone: st.phone ?? null,
+      position: st.position ?? null,
+      employmentType: st.employmentType ?? null,
+      offDays: st.offDays ?? [],
+      hireDate: dateOf(st.hireDate),
+      resignDate: st.resignDate ? dateOf(st.resignDate) : null,
+      status: st.status,
+    };
+    await prisma.staff.upsert({ where: { id: st.id }, update: data, create: { id: st.id, ...data } });
+  }
+  for (const as of staffData.assignments) {
+    const data = {
+      staffId: as.staffId,
+      branchId: as.branchId,
+      startDate: dateOf(as.startDate),
+      endDate: as.endDate ? dateOf(as.endDate) : null,
+      assignedBy: as.assignedBy,
+      note: as.note ?? null,
+    };
+    await prisma.staffAssignment.upsert({ where: { id: as.id }, update: data, create: { id: as.id, ...data } });
+  }
+  const hqAccount = { id: 'account-haneul' };
+  const minsuAccount = { id: 'account-minsu' };
+  const seoyeonStaff = { id: 'staff-seoyeon' };
 
-  // D26(2026-09-28) — 이 4명은 MockDataService에도 똑같은 이메일로 존재하는 "과도기 공유 계정"이다
-  // (auth.service.ts의 Prisma-우선/mock-폴백 로그인 참고). id를 mock-data.service.ts의 값과 동일하게
-  // 맞춰야 req.user.staffId/memberId가 아직 이관 안 된 mock 도메인 컨트롤러에서도 그대로 유효하다 —
-  // 안 맞추면 Prisma로 로그인한 요청이 mock 쪽 STAFF_NOT_FOUND로 깨진다(처음엔 무작위 uuid로 만들었다가
-  // test/branch-isolation.spec.ts 등에서 이 문제를 실제로 겪고 나서 고쳤다).
-
-  // 정하늘 — 본사 운영팀장 (SUPER_ADMIN)
-  const hqAccount = await prisma.account.upsert({
-    where: { id: 'account-haneul' }, // D27 — email은 부분 unique라 upsert 키로 못 씀
+  const seoyeonInstructor = await prisma.instructor.upsert({
+    where: { staffId: seoyeonStaff.id },
     update: {},
     create: {
-      id: 'account-haneul',
-      email: 'jeong.haneul@spoism.example',
-      passwordHash,
-      role: Role.SUPER_ADMIN,
-      name: '정하늘',
-    },
-  });
-
-  // 김민수 — 서초점 지점장 (BRANCH_ADMIN)
-  const minsuAccount = await prisma.account.upsert({
-    where: { id: 'account-minsu' }, // D27 — email은 부분 unique라 upsert 키로 못 씀
-    update: {},
-    create: {
-      id: 'account-minsu',
-      email: 'kim.minsu@spoism.example',
-      passwordHash,
-      role: Role.BRANCH_ADMIN,
-      name: '김민수',
-    },
-  });
-  const minsuStaff = await prisma.staff.upsert({
-    where: { accountId: minsuAccount.id },
-    update: {},
-    create: {
-      id: 'staff-minsu',
-      accountId: minsuAccount.id,
-      branchId: seocho.id,
-      staffCode: 'SEOCHO-001',
-      name: '김민수',
-      position: '지점장',
-      employmentType: '정규직',
-      hireDate: new Date('2021-03-02'),
-    },
-  });
-
-  // 박서연 — 서초점 트레이너 겸 요가 강사 (Role=STAFF: 관리 권한 없이 본인 근태/업무일지만 셀프서비스)
-  const seoyeonAccount = await prisma.account.upsert({
-    where: { id: 'account-seoyeon' }, // D27 — email은 부분 unique라 upsert 키로 못 씀
-    update: {},
-    create: {
-      id: 'account-seoyeon',
-      email: 'park.seoyeon@spoism.example',
-      passwordHash,
-      role: Role.STAFF,
-      name: '박서연',
-    },
-  });
-  const seoyeonStaff = await prisma.staff.upsert({
-    where: { accountId: seoyeonAccount.id },
-    update: {},
-    create: {
-      id: 'staff-seoyeon',
-      accountId: seoyeonAccount.id,
-      branchId: seocho.id,
-      staffCode: 'SEOCHO-002',
-      name: '박서연',
-      position: '트레이너',
-      employmentType: '정규직',
-      hireDate: new Date('2022-07-11'),
-    },
-  });
-
-  const seoyeonInstructor = await prisma.instructor.create({
-    data: {
       branchId: seocho.id,
       staffId: seoyeonStaff.id,
       name: '박서연',
@@ -122,7 +90,7 @@ async function main() {
     },
   });
 
-  // 이수진 — 서초점 회원
+  // 이수진 — 서초점 회원(회원 도메인은 아직 mock이 원천 — D29 순서상 4단계)
   const sujinAccount = await prisma.account.upsert({
     where: { id: 'account-sujin' }, // D27 — email은 부분 unique라 upsert 키로 못 씀
     update: {},
@@ -149,11 +117,21 @@ async function main() {
     },
   });
 
-  // ── 채번 시퀀스 — D28/DI-03 ────────────────────────
-  // 위에서 번호를 직접 박아 넣은 직원·회원만큼 시퀀스를 올려 둔다. 안 그러면 allocateBranchCode의 첫 채번이
-  // SEOCHO-001/SEOCHO2026-001로 나와 기존 행과 unique 충돌한다(실데이터 이관 때도 같은 초기화가 필요).
+  // ── 채번 시퀀스 — D28/DI-03, D30 ────────────────────────
+  // 번호를 직접 박아 넣은 직원·회원만큼 시퀀스를 올려 둔다. 안 그러면 allocateBranchCode의 첫 채번이
+  // 기존 번호(SEOCHO-001 등)와 unique 충돌한다. 직원은 지점별 "{코드}-" prefix의 최대 순번으로 맞춘다.
+  const staffSeq = new Map<string, { branchId: string; prefix: string; lastValue: number }>();
+  const branchByCode = new Map(allBranchRecords().map((b) => [b.code, b.id]));
+  for (const st of staffData.staff) {
+    const m = /^(.+)-(\d+)$/.exec(st.staffCode);
+    const branchId = m && branchByCode.get(m[1]);
+    if (!m || !branchId) throw new Error(`시드 직원번호 형식 오류: ${st.staffCode}`);
+    const key = `${branchId}|${m[1]}-`;
+    const cur = staffSeq.get(key);
+    staffSeq.set(key, { branchId, prefix: `${m[1]}-`, lastValue: Math.max(cur?.lastValue ?? 0, Number(m[2])) });
+  }
   for (const seq of [
-    { branchId: seocho.id, kind: CodeSequenceKind.STAFF, prefix: 'SEOCHO-', lastValue: 2 },
+    ...[...staffSeq.values()].map((v) => ({ ...v, kind: CodeSequenceKind.STAFF })),
     { branchId: seocho.id, kind: CodeSequenceKind.MEMBER, prefix: 'SEOCHO2026', lastValue: 1 },
   ]) {
     await prisma.codeSequence.upsert({

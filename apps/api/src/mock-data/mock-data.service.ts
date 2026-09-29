@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { addYearsToDateString, kstHoursMinutes, toKstDateString, todayKst } from '../common/date/kst-date';
@@ -71,32 +71,9 @@ export class MockDataService {
   // D29 — 이름표 사본(계약 필드 없음). 원천은 DB이고 시드와 같은 목록(branch-fixtures.ts)에서 만든다.
   readonly branches: MockBranch[] = [...HERO_BRANCHES, ...this.generated.branches].map(toMockBranch);
 
+  // D30 — 관리자·직원 계정은 DB가 원천이고 여기에는 앱이 뜰 때 채우는 미러(StaffService)가 들어온다.
+  // 회원 계정만 아직 mock이 원천이다(회원 도메인은 D29 순서상 4단계).
   readonly accounts: MockAccount[] = [
-    {
-      id: 'account-haneul',
-      email: 'jeong.haneul@spoism.example',
-      passwordHash: this.passwordHash,
-      role: 'SUPER_ADMIN',
-      name: '정하늘',
-    },
-    {
-      id: 'account-minsu',
-      email: 'kim.minsu@spoism.example',
-      passwordHash: this.passwordHash,
-      role: 'BRANCH_ADMIN',
-      name: '김민수',
-      branchId: 'branch-seocho',
-      staffId: 'staff-minsu',
-    },
-    {
-      id: 'account-seoyeon',
-      email: 'park.seoyeon@spoism.example',
-      passwordHash: this.passwordHash,
-      role: 'STAFF',
-      name: '박서연',
-      branchId: 'branch-seocho',
-      staffId: 'staff-seoyeon',
-    },
     {
       id: 'account-sujin',
       email: 'lee.sujin@example.com',
@@ -106,68 +83,12 @@ export class MockDataService {
       branchId: 'branch-seocho',
       memberId: 'member-sujin',
     },
-    // 강남점 관리자 — 지점 격리(BranchScopeGuard) 동작을 시연하기 위해
-    // 실제 Prisma 시드(prisma/seed.ts)에는 없는, 구조 시연 전용 더미 계정입니다.
-    {
-      id: 'account-gangnam-admin',
-      email: 'choi.gangnam@spoism.example',
-      passwordHash: this.passwordHash,
-      role: 'BRANCH_ADMIN',
-      name: '최강남',
-      branchId: 'branch-gangnam',
-      staffId: 'staff-choi',
-    },
   ];
 
-  readonly staff: MockStaff[] = [
-    {
-      id: 'staff-minsu',
-      accountId: 'account-minsu',
-      branchId: 'branch-seocho',
-      staffCode: 'SEOCHO-001',
-      name: '김민수',
-      phone: '010-1111-2222',
-      position: '지점장',
-      employmentType: '정규직',
-      hireDate: '2021-03-02',
-      status: 'ACTIVE',
-    },
-    {
-      id: 'staff-seoyeon',
-      accountId: 'account-seoyeon',
-      branchId: 'branch-seocho',
-      staffCode: 'SEOCHO-002',
-      name: '박서연',
-      phone: '010-2222-3333',
-      position: '트레이너',
-      employmentType: '정규직',
-      hireDate: '2022-07-11',
-      status: 'ACTIVE',
-    },
-    {
-      id: 'staff-choi',
-      accountId: 'account-gangnam-admin',
-      branchId: 'branch-gangnam',
-      staffCode: 'GANGNAM-001',
-      name: '최강남',
-      phone: '010-3333-4444',
-      position: '지점장',
-      employmentType: '정규직',
-      hireDate: '2023-01-10',
-      status: 'ACTIVE',
-    },
-    ...this.generated.staff,
-  ];
-
-  // 최초 파견 이력 — 02문서 §3 "신규 등록 시 최초 StaffAssignment 자동 생성" 원칙을
-  // 시드 데이터에도 그대로 적용해, 모든 기존 직원이 처음부터 정확히 1건의 활성 파견을 갖게 한다.
-  readonly staffAssignments: MockStaffAssignment[] = this.staff.map((s) => ({
-    id: `assignment-${s.id}`,
-    staffId: s.id,
-    branchId: s.branchId,
-    startDate: s.hireDate,
-    assignedBy: 'account-haneul',
-  }));
+  // D30 — 직원·파견의 원천은 DB다. 이 두 배열은 아직 mock인 근태·문서·회원 등이 동기적으로 읽는 미러로,
+  // StaffService가 앱이 뜰 때 DB 전체로 채우고 직원 쓰기 뒤 해당 직원만 갱신한다(replace/upsertStaffMirror).
+  readonly staff: MockStaff[] = [];
+  readonly staffAssignments: MockStaffAssignment[] = [];
 
   readonly members: MockMember[] = [
     {
@@ -543,38 +464,6 @@ export class MockDataService {
   }
 
 
-  // 본사(SUPER_ADMIN) 전용 — 지점 직원의 현재 권한(Account.role)을 지점명과 함께 조회.
-  staffWithRole() {
-    return this.staff.map((s) => {
-      const account = this.findAccountById(s.accountId);
-      const branch = this.findBranchById(s.branchId);
-      return {
-        staffId: s.id,
-        branchId: s.branchId,
-        branchName: branch?.name ?? s.branchId,
-        staffCode: s.staffCode,
-        name: s.name,
-        position: s.position,
-        role: account?.role ?? 'STAFF',
-      };
-    });
-  }
-
-  // 본사(SUPER_ADMIN)가 지점 직원을 STAFF <-> BRANCH_ADMIN으로 전환.
-  // 실제 JWT는 로그인 시점에 role을 서명해 담으므로, 이미 로그인된 세션은 재로그인해야 반영된다.
-  updateStaffRole(staffId: string, role: Extract<Role, 'STAFF' | 'BRANCH_ADMIN'>) {
-    const staff = this.staff.find((s) => s.id === staffId);
-    if (!staff) {
-      throw new NotFoundException({ code: 'STAFF_NOT_FOUND', message: '직원을 찾을 수 없습니다.' });
-    }
-    const account = this.accounts.find((a) => a.id === staff.accountId);
-    if (!account) {
-      throw new NotFoundException({ code: 'ACCOUNT_NOT_FOUND', message: '연결된 계정을 찾을 수 없습니다.' });
-    }
-    account.role = role;
-    return this.staffWithRole().find((s) => s.staffId === staffId);
-  }
-
   findMemberById(id: string): MockMember | undefined {
     return this.members.find((m) => m.id === id);
   }
@@ -743,7 +632,7 @@ export class MockDataService {
   // 실제 부분 unique 인덱스가 없어 "isActive가 아닌 계정은 유일성 검사에서 제외"로 앱 레벨에서 흉내낸다.
   // findAccountByEmail()은 활성 여부와 무관하게 첫 매치를 돌려주므로(로그인 등에서 그대로 필요),
   // 이메일 재사용 가능 여부 판단에는 이 메서드를 따로 쓴다.
-  private isEmailTakenByActiveAccount(email: string): boolean {
+  isEmailTakenByActiveAccount(email: string): boolean {
     return this.accounts.some((a) => a.email === email && a.isActive !== false);
   }
 
@@ -1305,193 +1194,54 @@ export class MockDataService {
     return this.staff.find((s) => s.id === id);
   }
 
-  // `{최초배치지점코드}-{순번}` — 02문서 §3·§6. 파견 전환이 일어나도 재생성하지 않으므로
-  // "이 지점 코드로 이미 발급된 적 있는 staffCode 개수"를 기준으로 순번을 매긴다.
-  private generateStaffCode(branchId: string): string {
-    const branch = this.findBranchById(branchId);
-    const code = branch?.code ?? 'BR';
-    const seq = this.staff.filter((s) => s.staffCode.startsWith(`${code}-`)).length + 1;
-    return `${code}-${String(seq).padStart(3, '0')}`;
+  // ── D30 직원 미러 — StaffService만 쓴다(원천은 DB) ─────────────────────────────
+
+  /** 앱이 뜰 때 DB 전체로 미러를 채운다. 배열 참조는 유지한다(readonly 필드를 다른 코드가 붙잡고 있을 수 있음). */
+  replaceStaffMirror(data: { staff: MockStaff[]; assignments: MockStaffAssignment[]; accounts: MockAccount[] }): void {
+    this.staff.splice(0, this.staff.length, ...data.staff);
+    this.staffAssignments.splice(0, this.staffAssignments.length, ...data.assignments);
+    const memberAccounts = this.accounts.filter((a) => a.role === 'MEMBER');
+    this.accounts.splice(0, this.accounts.length, ...data.accounts, ...memberAccounts);
   }
 
-  // 신규 채용 등록 — 02문서 §5 POST /staff, SUPER_ADMIN 전용(컨트롤러에서 강제).
-  // Staff는 Account와 1:1이라 로그인 계정도 함께 만들고, 최초 StaffAssignment까지 원자적으로 생성한다.
-  hireStaff(
-    input: {
-      branchId: string;
-      name: string;
-      email: string;
-      phone?: string;
-      position?: string;
-      employmentType?: string;
-      offDays?: number[];
-      hireDate?: string;
-      note?: string;
-    },
-    assignedByAccountId: string,
-  ): MockStaff {
-    const branch = this.findBranchById(input.branchId);
-    if (!branch) {
-      throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
-    }
-    if (this.findAccountByEmail(input.email)) {
-      throw new AppException('EMAIL_ALREADY_EXISTS', '이미 사용 중인 이메일입니다.', 409);
-    }
-
-    const hireDate = input.hireDate ?? todayKst();
-    const staffId = `staff-${randomUUID()}`;
-    const accountId = `account-${randomUUID()}`;
-
-    this.accounts.push({
-      id: accountId,
-      email: input.email,
-      passwordHash: this.passwordHash,
-      role: 'STAFF',
-      name: input.name,
-      branchId: input.branchId,
-      staffId,
-    });
-
-    const staff: MockStaff = {
-      id: staffId,
-      accountId,
-      branchId: input.branchId,
-      staffCode: this.generateStaffCode(input.branchId),
-      name: input.name,
-      phone: input.phone,
-      position: input.position,
-      employmentType: input.employmentType,
-      offDays: input.employmentType === '파트타임' ? undefined : input.offDays,
-      hireDate,
-      status: 'ACTIVE',
+  /** 직원 쓰기가 커밋된 뒤 그 직원 한 명(직원·파견 이력 전체·계정)을 교체한다. */
+  upsertStaffMirror(data: { staff: MockStaff; assignments: MockStaffAssignment[]; account: MockAccount }): void {
+    const replace = <T extends { id: string }>(arr: T[], item: T) => {
+      const i = arr.findIndex((x) => x.id === item.id);
+      if (i >= 0) arr[i] = item;
+      else arr.push(item);
     };
-    this.staff.push(staff);
-
-    this.staffAssignments.push({
-      id: `assignment-${randomUUID()}`,
-      staffId,
-      branchId: input.branchId,
-      startDate: hireDate,
-      assignedBy: assignedByAccountId,
-      note: input.note,
-    });
-
-    return staff;
+    replace(this.staff, data.staff);
+    replace(this.accounts, data.account);
+    for (let i = this.staffAssignments.length - 1; i >= 0; i--) {
+      if (this.staffAssignments[i].staffId === data.staff.id) this.staffAssignments.splice(i, 1);
+    }
+    this.staffAssignments.push(...data.assignments);
   }
 
-  // 02문서 §5 PATCH /staff/:id — branchId는 이 메서드로 바꿀 수 없다(파견 발령 API 전용).
-  updateStaff(
-    id: string,
-    input: Partial<Pick<MockStaff, 'name' | 'phone' | 'position' | 'employmentType' | 'offDays'>>,
-  ): MockStaff {
-    const staff = this.staff.find((s) => s.id === id);
-    if (!staff) {
-      throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
+  // ADR-STF-04 — 파견으로 지점이 바뀐 직원을 담당자로 둔 옛 지점 회원의 담당을 해제한다. 회원의 원천은 아직 mock이라
+  // StaffService.assign이 DB 커밋 뒤 부른다(D30 결정 3). 해제한 회원을 돌려준다(파견 응답에 담는다).
+  unassignMembersOfStaff(staffId: string, newBranchId: string): Array<{ id: string; name: string }> {
+    const unassigned: Array<{ id: string; name: string }> = [];
+    for (const member of this.members) {
+      if (member.assignedStaffId === staffId && member.branchId !== newBranchId) {
+        member.assignedStaffId = undefined;
+        unassigned.push({ id: member.id, name: member.name });
+      }
     }
-    if (input.name !== undefined) staff.name = input.name;
-    if (input.phone !== undefined) staff.phone = input.phone;
-    if (input.position !== undefined) staff.position = input.position;
-    if (input.employmentType !== undefined) staff.employmentType = input.employmentType;
-    // ATT-T05 — 파트타임은 근태관리 도메인에서 이 필드를 쓰지 않는다(03문서 §3).
-    if (input.offDays !== undefined) {
-      staff.offDays = staff.employmentType === '파트타임' ? undefined : input.offDays;
-    }
-    return staff;
+    return unassigned;
   }
 
-  // 02문서 §5 PATCH /staff/:id/resign, §6 — Staff.status + Account.isActive + 활성 StaffAssignment
-  // 마감을 한 번에 처리한다(실DB 전환 시 여기가 트랜잭션으로 묶여야 할 지점).
-  resignStaff(id: string): MockStaff {
-    const staff = this.staff.find((s) => s.id === id);
-    if (!staff) {
-      throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
-    }
-    if (staff.status === 'RESIGNED') {
-      throw new AppException('STAFF_ALREADY_RESIGNED', '이미 퇴사 처리된 직원입니다.', 409);
-    }
-
-    const today = todayKst();
-    staff.status = 'RESIGNED';
-    staff.resignDate = today;
-
-    const account = this.accounts.find((a) => a.id === staff.accountId);
-    if (account) account.isActive = false;
-
-    const activeAssignment = this.staffAssignments.find((a) => a.staffId === id && !a.endDate);
-    if (activeAssignment) activeAssignment.endDate = today;
-
-    // ADR-RES-02 — 재직 중 업로드된 HR_RECORD 문서는 업로드 시점의 임시값(업로드일+3년)으로 보존기한이
-    // 고정돼 있었다. 법정 기산일(근로관계 종료일)이 확정되는 지금 시점에 퇴사일+3년으로 다시 계산한다.
-    const retentionUntil = this.addYears(today, 3);
+  // ADR-RES-02 — 재직 중 업로드된 HR_RECORD 문서는 업로드 시점의 임시값(업로드일+3년)으로 보존기한이 고정돼 있었다.
+  // 법정 기산일(근로관계 종료일)이 확정되는 퇴사 시점에 퇴사일+3년으로 다시 계산한다. 문서의 원천은 아직 mock이라
+  // StaffService.resign이 DB 커밋 뒤 부른다(D30 결정 3).
+  recalculateHrRetention(staffId: string, resignDate: string): void {
+    const retentionUntil = this.addYears(resignDate, 3);
     this.documents
-      .filter((d) => d.category === 'HR_RECORD' && d.relatedStaffId === id && !d.deletedAt)
+      .filter((d) => d.category === 'HR_RECORD' && d.relatedStaffId === staffId && !d.deletedAt)
       .forEach((d) => {
         d.retentionUntil = retentionUntil;
       });
-
-    return staff;
-  }
-
-  // 파견 발령(재배치) — 02문서 §5 POST /staff/:id/assignments, §6 불변식(활성 파견 최대 1건).
-  // SUPER_ADMIN 전용(컨트롤러에서 강제). 기존 활성 파견을 마감하고 새 파견을 열며 Staff/Account의
-  // branchId 캐시도 함께 갱신한다 — 이미 로그인된 세션은 재로그인해야 새 branchId가 반영된다
-  // (updateStaffRole과 동일한 제약, 01문서 §3.2).
-  // ADR-STF-04(DI-02) — 파견으로 지점이 바뀌면 이 직원을 담당자로 둔 옛 지점 회원의 담당을 해제하고, 해제한
-  // 회원을 돌려준다(본사가 파견 응답에서 바로 인지 — ADR-PRG-02와 같은 가시화). 실DB에선 이 해제가 Staff.branchId
-  // 갱신보다 먼저 같은 트랜잭션에 있어야 한다(Staff 지점 이동 트리거가 남은 담당 관계를 거부 — data-integrity.md §3).
-  // mock 강사에는 직원 연결 필드가 없어 강사 프로필 정리는 강사 도메인 Prisma 이관 때 여기에 추가한다.
-  assignStaff(
-    id: string,
-    newBranchId: string,
-    assignedByAccountId: string,
-    note?: string,
-  ): { staff: MockStaff; unassignedMembers: Array<{ id: string; name: string }> } {
-    const staff = this.staff.find((s) => s.id === id);
-    if (!staff) {
-      throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
-    }
-    if (staff.status === 'RESIGNED') {
-      throw new AppException('STAFF_ALREADY_RESIGNED', '퇴사한 직원은 재파견할 수 없습니다.', 409);
-    }
-    const branch = this.findBranchById(newBranchId);
-    if (!branch) {
-      throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
-    }
-
-    const today = todayKst();
-    const activeAssignment = this.staffAssignments.find((a) => a.staffId === id && !a.endDate);
-    if (activeAssignment) activeAssignment.endDate = today;
-
-    this.staffAssignments.push({
-      id: `assignment-${randomUUID()}`,
-      staffId: id,
-      branchId: newBranchId,
-      startDate: today,
-      assignedBy: assignedByAccountId,
-      note,
-    });
-
-    const unassignedMembers: Array<{ id: string; name: string }> = [];
-    for (const member of this.members) {
-      if (member.assignedStaffId === id && member.branchId !== newBranchId) {
-        member.assignedStaffId = undefined;
-        unassignedMembers.push({ id: member.id, name: member.name });
-      }
-    }
-
-    staff.branchId = newBranchId;
-    const account = this.accounts.find((a) => a.id === staff.accountId);
-    if (account) account.branchId = newBranchId;
-
-    return { staff, unassignedMembers };
-  }
-
-  // 02문서 §5 GET /staff/:id/assignments — 최신 파견이 먼저 오도록 정렬.
-  staffAssignmentHistory(staffId: string): MockStaffAssignment[] {
-    return this.staffAssignments
-      .filter((a) => a.staffId === staffId)
-      .slice()
-      .sort((a, b) => (a.startDate < b.startDate ? 1 : -1));
   }
 
   // ── 03. 근태관리 ──────────────────────────────────────────────────────────
