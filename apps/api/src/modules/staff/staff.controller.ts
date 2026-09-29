@@ -81,8 +81,9 @@ export class StaffController {
   @Roles('SUPER_ADMIN')
   assign(@Param('id') id: string, @Body() dto: AssignStaffDto, @CurrentUser() user: RequestUser) {
     this.findStaffOrThrow(id);
-    const updated = this.mockData.assignStaff(id, dto.branchId, user.accountId, dto.note);
-    return ok(this.toListItem(updated));
+    const { staff, unassignedMembers } = this.mockData.assignStaff(id, dto.branchId, user.accountId, dto.note);
+    // ADR-STF-04 — 파견으로 담당이 해제된 옛 지점 회원을 함께 돌려준다(본사가 즉시 인지).
+    return ok({ ...this.toListItem(staff), unassignedMembers });
   }
 
   // 파견 이력 조회 — "해당 지점 권한자 또는 SUPER_ADMIN"(§5). 현재 파견 지점 기준으로 판단.

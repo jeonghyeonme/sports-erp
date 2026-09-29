@@ -172,4 +172,24 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
     expect(byId('doc-test-contract').retentionUntil).toBe('2099-01-01');
     expect(byId('doc-test-hr-deleted').retentionUntil).toBe('2099-01-01');
   });
+  it('파견 발령 시 옛 지점 담당 회원의 담당자가 해제되고 응답에 그 회원이 담긴다 (ADR-STF-04)', async () => {
+    const m = mockData(app);
+    // 대조군: 박서연이 아닌 직원을 담당자로 둔 회원은 건드리지 않아야 한다.
+    const otherMember = m.members.find((x) => x.branchId === BRANCH.seocho && x.id !== 'member-sujin')!;
+    otherMember.assignedStaffId = 'staff-minsu';
+    expect(m.members.find((x) => x.id === 'member-sujin')!.assignedStaffId).toBe(STAFF_ID); // 시드 전제
+
+    const superToken = await login(app, ACCOUNTS.superAdmin);
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/staff/${STAFF_ID}/assignments`)
+      .set('Authorization', superToken)
+      .send({ branchId: BRANCH.gangnam });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.unassignedMembers).toEqual([{ id: 'member-sujin', name: '이수진' }]);
+    expect(m.members.find((x) => x.id === 'member-sujin')!.assignedStaffId).toBeUndefined();
+    expect(otherMember.assignedStaffId).toBe('staff-minsu');
+    // 해제 후엔 "회원↔담당 직원 같은 지점"(MEM-T02)이 다시 성립한다 — 강남으로 간 직원을 담당자로 둔 서초 회원이 없다.
+    expect(m.members.filter((x) => x.assignedStaffId === STAFF_ID && x.branchId !== BRANCH.gangnam)).toEqual([]);
+  });
 });

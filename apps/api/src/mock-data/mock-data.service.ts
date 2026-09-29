@@ -1461,7 +1461,16 @@ export class MockDataService {
   // SUPER_ADMIN 전용(컨트롤러에서 강제). 기존 활성 파견을 마감하고 새 파견을 열며 Staff/Account의
   // branchId 캐시도 함께 갱신한다 — 이미 로그인된 세션은 재로그인해야 새 branchId가 반영된다
   // (updateStaffRole과 동일한 제약, 01문서 §3.2).
-  assignStaff(id: string, newBranchId: string, assignedByAccountId: string, note?: string): MockStaff {
+  // ADR-STF-04(DI-02) — 파견으로 지점이 바뀌면 이 직원을 담당자로 둔 옛 지점 회원의 담당을 해제하고, 해제한
+  // 회원을 돌려준다(본사가 파견 응답에서 바로 인지 — ADR-PRG-02와 같은 가시화). 실DB에선 이 해제가 Staff.branchId
+  // 갱신보다 먼저 같은 트랜잭션에 있어야 한다(Staff 지점 이동 트리거가 남은 담당 관계를 거부 — data-integrity.md §3).
+  // mock 강사에는 직원 연결 필드가 없어 강사 프로필 정리는 강사 도메인 Prisma 이관 때 여기에 추가한다.
+  assignStaff(
+    id: string,
+    newBranchId: string,
+    assignedByAccountId: string,
+    note?: string,
+  ): { staff: MockStaff; unassignedMembers: Array<{ id: string; name: string }> } {
     const staff = this.staff.find((s) => s.id === id);
     if (!staff) {
       throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
@@ -1487,11 +1496,19 @@ export class MockDataService {
       note,
     });
 
+    const unassignedMembers: Array<{ id: string; name: string }> = [];
+    for (const member of this.members) {
+      if (member.assignedStaffId === id && member.branchId !== newBranchId) {
+        member.assignedStaffId = undefined;
+        unassignedMembers.push({ id: member.id, name: member.name });
+      }
+    }
+
     staff.branchId = newBranchId;
     const account = this.accounts.find((a) => a.id === staff.accountId);
     if (account) account.branchId = newBranchId;
 
-    return staff;
+    return { staff, unassignedMembers };
   }
 
   // 02문서 §5 GET /staff/:id/assignments — 최신 파견이 먼저 오도록 정렬.
@@ -1957,6 +1974,12 @@ export class MockDataService {
     }
     if (program.status !== 'RUNNING') {
       throw new AppException('PROGRAM_NOT_RUNNING', '진행중인 프로그램이 아닙니다.', 409);
+    }
+    // DI-02(data-integrity.md §3) — 회원은 자기가 등록된 지점의 프로그램만 예약한다(CLAUDE.md 지점 격리).
+    // 회차 조회는 막혀 있었지만 회차 id만 알면 타 지점 예약이 되던 공백을 막는다.
+    const member = this.members.find((m) => m.id === memberId);
+    if (!member || member.branchId !== program.branchId) {
+      throw new AppException('MEMBER_BRANCH_MISMATCH', '본인이 등록된 지점의 프로그램만 예약할 수 있습니다.', 403);
     }
     const branch = this.findBranchById(program.branchId);
     if (branch?.contractStatus === 'TERMINATED') {
