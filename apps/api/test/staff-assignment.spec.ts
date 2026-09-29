@@ -1,8 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { MOCK_DEMO_PASSWORD } from '../src/mock-data/mock-data.service';
-import { addYearsToDateString } from '../src/common/date/kst-date';
-import { ACCOUNTS, BRANCH, createApp, db, login, mockData } from './helpers/app';
+import { addYearsToDateString, toKstDateString } from '../src/common/date/kst-date';
+import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
 import { resetWorkerDb } from './helpers/worker-db';
 
 /**
@@ -110,52 +110,18 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
   // 보존기한이 고정돼 있었다. 퇴사 처리 시 법정 기산일(근로관계 종료일) 기준으로 다시 계산돼야 한다.
   it('퇴사 처리 시 재직 중 업로드된 HR_RECORD 문서 보존기한이 퇴사일 기준으로 재계산된다 (ADR-RES-02)', async () => {
     const adminToken = await login(app, ACCOUNTS.seochoAdmin);
-    const m = mockData(app);
-    // 재직 중 업로드 시점의 "임시값"을 흉내 — 일부러 실제 계산 결과와 다른 값으로 시드한다.
-    m.documents.push({
-      id: 'doc-test-hr-stale',
-      category: 'HR_RECORD',
-      branchId: BRANCH.seocho,
-      relatedStaffId: STAFF_ID,
-      title: '근로계약서',
-      fileUrl: 'https://files.example/contract.pdf',
-      uploadedBy: 'account-haneul',
-      retentionUntil: '2099-01-01',
-      createdAt: new Date().toISOString(),
-    });
-    // 대조군: 다른 직원의 HR_RECORD, 다른 카테고리 문서, 소프트 삭제된 문서 — 전부 안 바뀌어야 한다.
-    m.documents.push({
-      id: 'doc-test-hr-other-staff',
-      category: 'HR_RECORD',
-      branchId: BRANCH.seocho,
-      relatedStaffId: 'staff-minsu',
-      title: '다른 직원 근로계약서',
-      fileUrl: 'https://files.example/other.pdf',
-      uploadedBy: 'account-haneul',
-      retentionUntil: '2099-01-01',
-      createdAt: new Date().toISOString(),
-    });
-    m.documents.push({
-      id: 'doc-test-contract',
-      category: 'CONTRACT',
-      branchId: BRANCH.seocho,
-      title: '위탁계약서',
-      fileUrl: 'https://files.example/contract2.pdf',
-      uploadedBy: 'account-haneul',
-      retentionUntil: '2099-01-01',
-      createdAt: new Date().toISOString(),
-    });
-    m.documents.push({
-      id: 'doc-test-hr-deleted',
-      category: 'HR_RECORD',
-      branchId: BRANCH.seocho,
-      relatedStaffId: STAFF_ID,
-      title: '삭제된 근로계약서',
-      fileUrl: 'https://files.example/deleted.pdf',
-      uploadedBy: 'account-haneul',
-      retentionUntil: '2099-01-01',
-      createdAt: new Date().toISOString(),
-      deletedAt: new Date().toISOString(),
+    // D34 — 문서 원천은 DB라 픽스처도 DB에 넣는다.
+    const prisma = db(app);
+    const base = { branchId: BRANCH.seocho, uploadedBy: 'account-haneul', retentionUntil: new Date('2099-01-01T00:00:00Z') };
+    await prisma.document.createMany({
+      data: [
+        // 재직 중 업로드 시점의 "임시값"을 흉내 — 일부러 실제 계산 결과와 다른 값으로 시드한다.
+        { ...base, id: 'doc-test-hr-stale', category: 'HR_RECORD', relatedStaffId: STAFF_ID, title: '근로계약서', fileUrl: 'https://files.example/contract.pdf' },
+        // 대조군: 다른 직원의 HR_RECORD, 다른 카테고리 문서, 소프트 삭제된 문서 — 전부 안 바뀌어야 한다.
+        { ...base, id: 'doc-test-hr-other-staff', category: 'HR_RECORD', relatedStaffId: 'staff-minsu', title: '다른 직원 근로계약서', fileUrl: 'https://files.example/other.pdf' },
+        { ...base, id: 'doc-test-contract', category: 'CONTRACT', title: '위탁계약서', fileUrl: 'https://files.example/contract2.pdf' },
+        { ...base, id: 'doc-test-hr-deleted', category: 'HR_RECORD', relatedStaffId: STAFF_ID, title: '삭제된 근로계약서', fileUrl: 'https://files.example/deleted.pdf', deletedAt: new Date() },
+      ],
     });
 
     const resignRes = await request(app.getHttpServer())
@@ -164,11 +130,12 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
     expect(resignRes.status).toBe(200);
     const expected = addYearsToDateString(resignRes.body.data.resignDate, 3);
 
-    const byId = (id: string) => m.documents.find((d) => d.id === id)!;
-    expect(byId('doc-test-hr-stale').retentionUntil).toBe(expected);
-    expect(byId('doc-test-hr-other-staff').retentionUntil).toBe('2099-01-01');
-    expect(byId('doc-test-contract').retentionUntil).toBe('2099-01-01');
-    expect(byId('doc-test-hr-deleted').retentionUntil).toBe('2099-01-01');
+    const retentionOf = async (id: string) =>
+      toKstDateString((await prisma.document.findUniqueOrThrow({ where: { id } })).retentionUntil!);
+    expect(await retentionOf('doc-test-hr-stale')).toBe(expected);
+    expect(await retentionOf('doc-test-hr-other-staff')).toBe('2099-01-01');
+    expect(await retentionOf('doc-test-contract')).toBe('2099-01-01');
+    expect(await retentionOf('doc-test-hr-deleted')).toBe('2099-01-01');
   });
   it('파견 발령 시 옛 지점 담당 회원의 담당자가 해제되고 응답에 그 회원이 담긴다 (ADR-STF-04)', async () => {
     // D32 — 회원 원천은 DB다.

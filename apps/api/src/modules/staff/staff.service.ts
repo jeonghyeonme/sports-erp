@@ -6,6 +6,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode } from '../../prisma/integrity';
+import { recalculateHrRetention } from '../documents/document.service';
 import * as bcrypt from 'bcrypt';
 
 type StaffRow = Staff & { branch: { name: string } };
@@ -16,10 +17,10 @@ const dateOf = (d: string) => new Date(`${d}T00:00:00Z`);
 /**
  * 직원·파견·관리자 계정 — D30(2-1_기술결정사항.md). 원천은 DB다.
  *
- * 아직 mock인 문서·작성자 이름이 직원·계정을 동기적으로 읽으므로, mock에는 "미러"를 둔다
- * (근태는 D33으로 DB로 옮겨 파견 이력 미러는 없앴다).
- * 앱이 뜰 때(onModuleInit) DB 전체로 채우고, 이 서비스의 쓰기가 커밋된 뒤 해당 직원만 다시 읽어 갱신한다.
- * 미러는 이 서비스만 쓴다 — 직원을 바꾸는 다른 경로가 생기면 미러가 낡는다.
+ * 아직 mock인 게시판이 작성자 이름을 계정에서 동기적으로 읽으므로, mock에는 관리자·직원 계정 "미러"를 둔다
+ * (파견 이력 미러는 D33, 직원 미러는 D34로 독자가 DB로 옮겨져 없앴다).
+ * 앱이 뜰 때(onModuleInit) DB 전체로 채우고, 이 서비스의 쓰기가 커밋된 뒤 해당 직원의 계정만 다시 읽어 갱신한다.
+ * 미러는 이 서비스만 쓴다 — 계정을 바꾸는 다른 경로가 생기면 미러가 낡는다.
  */
 @Injectable()
 export class StaffService implements OnModuleInit {
@@ -34,10 +35,7 @@ export class StaffService implements OnModuleInit {
       this.prisma.account.findMany({ where: { role: { not: 'MEMBER' } } }),
     ]);
     const staffByAccount = new Map(staff.map((s) => [s.accountId, s]));
-    this.mockData.replaceStaffMirror({
-      staff: staff.map(toMockStaff),
-      accounts: accounts.map((a) => toMockAccount(a, staffByAccount.get(a.id))),
-    });
+    this.mockData.replaceAccountMirror(accounts.map((a) => toMockAccount(a, staffByAccount.get(a.id))));
   }
 
   // ── 조회 ──────────────────────────────────────────────
@@ -163,7 +161,8 @@ export class StaffService implements OnModuleInit {
   /**
    * 퇴사 — 직원 상태·퇴사일 + 계정 비활성화 + 진행 중 파견 종료를 한 트랜잭션으로(ADR-STF-01).
    * JwtStrategy가 매 요청 계정을 다시 읽으므로 이미 발급된 토큰도 다음 요청부터 막힌다(ADR-AUTH-01).
-   * 아직 mock인 문서 도메인의 인사서류 보존기한 재계산(ADR-RES-02)은 커밋 뒤 mock에 적용한다(D30 결정 3).
+   * 인사서류 보존기한 재계산(ADR-RES-02)도 같은 트랜잭션에서 한다 — D34로 문서가 DB로 옮겨져
+   * D30 결정 3의 "커밋 뒤 mock 적용"이 끝났다(data-integrity §6 퇴사 체크리스트).
    */
   async resign(id: string): Promise<StaffView> {
     const today = todayKst();
@@ -176,8 +175,8 @@ export class StaffService implements OnModuleInit {
       await tx.staff.update({ where: { id }, data: { status: 'RESIGNED', resignDate: dateOf(today) } });
       await tx.account.update({ where: { id: staff.accountId }, data: { isActive: false } });
       await tx.staffAssignment.updateMany({ where: { staffId: id, endDate: null }, data: { endDate: dateOf(today) } });
+      await recalculateHrRetention(tx, id, today);
     });
-    this.mockData.recalculateHrRetention(id, today);
     return this.afterWrite(id);
   }
 
@@ -253,16 +252,13 @@ export class StaffService implements OnModuleInit {
     return (await this.listWithRole()).find((s) => s.staffId === staffId);
   }
 
-  /** 커밋된 직원 한 명(직원·계정)을 다시 읽어 mock 미러를 갱신하고 응답 형식으로 돌려준다. */
+  /** 커밋된 직원 한 명을 다시 읽어 mock 계정 미러를 갱신하고 응답 형식으로 돌려준다. */
   private async afterWrite(staffId: string): Promise<StaffView> {
     const row = await this.prisma.staff.findUniqueOrThrow({
       where: { id: staffId },
       include: { branch: { select: { name: true } }, account: true },
     });
-    this.mockData.upsertStaffMirror({
-      staff: toMockStaff(row),
-      account: toMockAccount(row.account, row),
-    });
+    this.mockData.upsertAccountMirror(toMockAccount(row.account, row));
     return toView(row);
   }
 }
