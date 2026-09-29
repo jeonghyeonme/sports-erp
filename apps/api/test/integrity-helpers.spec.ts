@@ -128,4 +128,37 @@ describe('정합성 헬퍼 — 채번(ADR-STF-02)·회차 행 락(ADR-RSV-01)', 
       prisma.pTSession.update({ where: { id: pt.id }, data: { usedSessions: pt.totalSessions + 1 } }),
     ).rejects.toThrow(/PTSession_usage_range_ck/);
   });
+  describe('교차 테이블 지점 일치 트리거(DI-02, ADR-STF-04) — 파견 트랜잭션 순서', () => {
+    const rollback = new Error('rollback');
+
+    it('담당 회원을 남긴 채 직원 지점을 옮기면 DB가 거부한다', async () => {
+      await expect(
+        prisma.$transaction(async (tx) => {
+          await tx.staff.update({ where: { id: 'staff-seoyeon' }, data: { branchId: 'branch-gangnam' } });
+        }),
+      ).rejects.toThrow(/BRANCH_MISMATCH/);
+    });
+
+    it('대조군: 담당 해제 → 강사 프로필 연결 해제 → 지점 이동 순서면 통과한다(롤백으로 되돌림)', async () => {
+      await expect(
+        prisma.$transaction(async (tx) => {
+          await tx.member.updateMany({ where: { assignedStaffId: 'staff-seoyeon' }, data: { assignedStaffId: null } });
+          await tx.instructor.updateMany({ where: { staffId: 'staff-seoyeon' }, data: { isActive: false, staffId: null } });
+          await tx.staff.update({ where: { id: 'staff-seoyeon' }, data: { branchId: 'branch-gangnam' } });
+          throw rollback;
+        }),
+      ).rejects.toBe(rollback);
+    });
+
+    it('다른 지점 회차 예약은 앱을 우회해도 DB가 거부한다', async () => {
+      const slotId = await newSlot(5); // 서초 프로그램의 회차
+      const gangnamMember = await prisma.member.create({
+        data: { branchId: 'branch-gangnam', memberNo: `D28-GN-${RUN}`, name: '강남회원', joinedAt: new Date('2026-09-29') },
+      });
+      memberIds.push(gangnamMember.id);
+      await expect(
+        prisma.reservation.create({ data: { memberId: gangnamMember.id, scheduleSlotId: slotId, status: 'REQUESTED' } }),
+      ).rejects.toThrow(/BRANCH_MISMATCH/);
+    });
+  });
 });

@@ -60,7 +60,7 @@ npm run test    # jest — HTTP 통합 테스트(`apps/api/test/`), 실제 AppMo
                 # `npm run db:up` → `npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma`
                 # → `npm run prisma:seed --workspace=apps/api` 순으로 준비할 것(CI도 동일 순서, `.github/workflows/ci.yml` 참고).
                 # D27(2026-09-29)부터 마이그레이션에 `DIRECT_URL`도 필요하다(로컬은 DATABASE_URL과 같은 값, `.env.example` 참고).
-                # 부분 unique 인덱스 3종·CHECK 제약 18개(D28)는 schema.prisma가 아니라 마이그레이션 SQL에만 있다 — schema.prisma 상단 주석 참고.
+                # 부분 unique 인덱스 3종·CHECK 제약 18개·지점 일치 트리거 7개(D28)는 schema.prisma가 아니라 마이그레이션 SQL에만 있다 — schema.prisma 상단 주석 참고.
                 # 도메인을 Prisma로 옮길 때는 docs/architecture/data-integrity.md §6 정합성 체크리스트(채번·회차 락 헬퍼 포함)를 따를 것.
 npm run build   # nest build
 

@@ -266,6 +266,19 @@ describe('지점 데이터 격리', () => {
       const res = await call(tok.seochoMember, 'get', `/programs/${ctx.gangnam.programId}/slots`);
       expect(FOREIGN).toContain(res.status);
     });
+    // DI-02(data-integrity.md §3) — 회차 조회는 막혀 있어도 회차 id만 알면 타 지점 예약이 되던 공백.
+    // 대조군은 beforeAll의 픽스처(서초 회원이 서초 회차 예약 → 201)다.
+    it('회원 수진은 다른 지점 프로그램 회차를 예약할 수 없다', async () => {
+      const slot = await call(tok.gangnamAdmin, 'post', '/programs/program-gangnam-pilates/slots', {
+        date: '2026-12-01',
+        startTime: '10:00',
+        endTime: '11:00',
+      });
+      expect(slot.status).toBe(201);
+      const res = await call(tok.seochoMember, 'post', '/reservations', { scheduleSlotId: slot.body.data.id });
+      expect(FOREIGN).toContain(res.status);
+      expect(mockData(app).reservations.filter((r) => r.scheduleSlotId === slot.body.data.id)).toEqual([]);
+    });
     it('회원은 회원 목록 API를 쓸 수 없다', async () => {
       expect((await call(tok.seochoMember, 'get', '/members')).status).toBe(403);
     });
