@@ -3,7 +3,7 @@
 // 히어로 데이터로 남아있고, 이 파일은 그 나머지를 채운다). 전부 인덱스 기반 결정적 생성이라
 // 서버를 몇 번을 재기동해도 같은 결과가 나온다 — Math.random은 쓰지 않는다.
 
-import { AgeGroup, MockBranch, MockFacility, MockInstructor, MockMember, MockProgram, MockStaff } from './mock-data.types';
+import { AgeGroup, BranchRecord, MockFacility, MockInstructor, MockMember, MockProgram, MockStaff } from './mock-data.types';
 
 // 지점명에 쓰는 구체적 지역(area)과, 대시보드에서 "지역별로 묶기"에 쓰는 광역 단위(region)를 분리한다 —
 // "강동점"처럼 실제 동네 느낌은 살리면서도, 대시보드에서는 서울/부산/경기 같은 광역으로 접을 수 있게.
@@ -74,7 +74,7 @@ function addDays(base: Date, days: number) {
 }
 
 export interface GeneratedDataset {
-  branches: MockBranch[];
+  branches: BranchRecord[];
   staff: MockStaff[];
   members: MockMember[];
   programs: MockProgram[];
@@ -85,7 +85,7 @@ export interface GeneratedDataset {
 const LIGHT_BRANCH_COUNT = 96;
 
 export function generateLightBranches(): GeneratedDataset {
-  const branches: MockBranch[] = [];
+  const branches: BranchRecord[] = [];
   const staff: MockStaff[] = [];
   const members: MockMember[] = [];
   const programs: MockProgram[] = [];
@@ -101,7 +101,7 @@ export function generateLightBranches(): GeneratedDataset {
     const name = `${area.name}${complex}점`;
 
     // 계약 상태 분포(96개 기준): ACTIVE 80 / RENEWAL_DUE 9 / EXPIRED 4 / TERMINATED 3
-    let contractStatus: MockBranch['contractStatus'];
+    let contractStatus: BranchRecord['contractStatus'];
     let contractEndAt: string;
     if (i < 80) {
       contractStatus = 'ACTIVE';

@@ -6,6 +6,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
 import { MockDataService } from '../../mock-data/mock-data.service';
+import { BranchService } from '../branches/branch.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MockMember } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
@@ -26,6 +27,7 @@ import { AuthService } from '../auth/auth.service';
 export class MembersController {
   constructor(
     private readonly mockData: MockDataService,
+    private readonly branchService: BranchService,
     private readonly authService: AuthService,
   ) {}
 
@@ -51,6 +53,7 @@ export class MembersController {
   @Post('register')
   async register(@Body() dto: RegisterMemberDto) {
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    const gate = await this.branchService.loadGate();
     const { member, account, warnings } = this.mockData.registerMember({
       branchId: dto.branchId,
       name: dto.name,
@@ -60,7 +63,7 @@ export class MembersController {
       birthDate: dto.birthDate,
       gender: dto.gender,
       guardianConsent: dto.guardianConsent,
-    });
+    }, gate);
     return ok(
       { ...this.authService.issueSession(account), member: this.toListItem(member) },
       warnings.length ? { warnings } : undefined,
@@ -101,11 +104,11 @@ export class MembersController {
 
   @Post()
   @Roles('BRANCH_ADMIN')
-  create(@Body() dto: CreateMemberDto, @CurrentUser() user: RequestUser) {
+  async create(@Body() dto: CreateMemberDto, @CurrentUser() user: RequestUser) {
     if (!user.branchId) {
       throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
     }
-    const { member, warnings } = this.mockData.createMember(user.branchId, dto);
+    const { member, warnings } = this.mockData.createMember(user.branchId, dto, await this.branchService.loadGate());
     return ok(this.toListItem(member), warnings.length ? { warnings } : undefined);
   }
 
@@ -147,10 +150,10 @@ export class MembersController {
 
   @Post(':id/enrollments')
   @Roles('BRANCH_ADMIN')
-  createEnrollment(@Param('id') id: string, @Body() dto: CreateEnrollmentDto, @CurrentUser() user: RequestUser) {
+  async createEnrollment(@Param('id') id: string, @Body() dto: CreateEnrollmentDto, @CurrentUser() user: RequestUser) {
     const member = this.findMemberOrThrow(id);
     this.assertWritable(member, user);
-    return ok(this.toEnrollmentItem(this.mockData.createEnrollment(id, dto)));
+    return ok(this.toEnrollmentItem(this.mockData.createEnrollment(id, dto, await this.branchService.loadGate())));
   }
 
   // ADR-MEM-03 — PT 잔여세션 탭. PT_PACKAGE 결제 연동은 범위 제외라 관리자가 구매를 직접 등록한다.
@@ -169,10 +172,10 @@ export class MembersController {
 
   @Post(':id/pt-sessions')
   @Roles('BRANCH_ADMIN')
-  createPTSession(@Param('id') id: string, @Body() dto: CreatePTSessionDto, @CurrentUser() user: RequestUser) {
+  async createPTSession(@Param('id') id: string, @Body() dto: CreatePTSessionDto, @CurrentUser() user: RequestUser) {
     const member = this.findMemberOrThrow(id);
     this.assertWritable(member, user);
-    return ok(this.toPTSessionItem(this.mockData.createPTSession(id, dto)));
+    return ok(this.toPTSessionItem(this.mockData.createPTSession(id, dto, await this.branchService.loadGate())));
   }
 
   @Post(':id/pt-sessions/:sessionId/use')

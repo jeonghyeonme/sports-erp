@@ -7,6 +7,7 @@
 import { PrismaClient, Role, PricingType, ProgramStatus, AgeGroup, FacilityType, ReservationStatus, PaymentMethod, PaymentStatus, CongestionSource, CodeSequenceKind } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { todayKst } from '../src/common/date/kst-date';
+import { allBranchRecords } from '../src/mock-data/branch-fixtures';
 
 const prisma = new PrismaClient();
 
@@ -15,36 +16,26 @@ const DEMO_PASSWORD = 'demo-password-1234'; // 로컬 시연용. 실제 배포�
 async function main() {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
-  // ── 지점 ──────────────────────────────────────────
-  const seocho = await prisma.branch.upsert({
-    where: { id: 'branch-seocho' },
-    update: {},
-    create: {
-      id: 'branch-seocho',
-      name: '서초점',
-      code: 'SEOCHO',
-      address: '서울시 서초구',
-      region: '서울',
-      standardCheckInTime: '09:00',
-      contractPartner: '서초 OO아파트 입주자대표회의',
-      contractStartAt: new Date('2024-03-01'),
-    },
-  });
-
-  const gangnam = await prisma.branch.upsert({
-    where: { id: 'branch-gangnam' },
-    update: {},
-    create: {
-      id: 'branch-gangnam',
-      name: '강남점',
-      code: 'GANGNAM',
-      address: '서울시 강남구',
-      region: '서울',
-      standardCheckInTime: '09:00',
-      contractPartner: '강남 OO오피스텔 관리사무소',
-      contractStartAt: new Date('2023-10-01'),
-    },
-  });
+  // ── 지점 — D29: mock과 같은 원천(branch-fixtures.ts)에서 98개 전부 ──────────────
+  // 예전엔 서초·강남 2개를 여기 따로 적어 계약 종료일 등이 mock과 달랐다. 이제 지점의 원천은 DB이고,
+  // mock에는 계약 필드를 뺀 이름표 사본만 남는다(test/branch-parity.spec.ts가 둘이 같은지 검증).
+  // update에도 같은 값을 넣어 시드를 다시 돌리면 지점이 원천과 다시 맞춰지게 한다.
+  for (const b of allBranchRecords()) {
+    const data = {
+      name: b.name,
+      code: b.code,
+      address: b.address,
+      region: b.region,
+      standardCheckInTime: b.standardCheckInTime,
+      cancellationDeadlineHours: b.cancellationDeadlineHours,
+      contractPartner: b.contractPartner,
+      contractStartAt: new Date(`${b.contractStartAt}T00:00:00Z`),
+      contractEndAt: b.contractEndAt ? new Date(`${b.contractEndAt}T00:00:00Z`) : null,
+      contractStatus: b.contractStatus,
+    };
+    await prisma.branch.upsert({ where: { id: b.id }, update: data, create: { id: b.id, ...data } });
+  }
+  const seocho = { id: 'branch-seocho' };
 
   // ── 계정 · 인물 ────────────────────────────────────
 

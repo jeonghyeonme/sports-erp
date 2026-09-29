@@ -1,7 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { BranchContractStatus } from '../src/mock-data/mock-data.types';
+import { BranchContractStatus } from '@prisma/client';
 import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { setBranchStatus } from './helpers/branch-status';
 
 /**
  * 위탁계약 종료(TERMINATED) 지점의 신규 활동 차단 — 설계 1-1 §2-1 "TERMINATED 전이가 하위 도메인에 미치는 영향".
@@ -15,9 +16,8 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
   let member: string; // 서초점 회원 수진
   let slotId: string;
 
-  const setSeochoStatus = (status: BranchContractStatus) => {
-    mockData(app).branches.find((b) => b.id === BRANCH.seocho)!.contractStatus = status;
-  };
+  // D29 — 계약 상태의 원천은 DB다. 바꾼 값은 setup/after-env.ts가 매 테스트 뒤에 되돌린다.
+  const setSeochoStatus = (status: BranchContractStatus) => setBranchStatus(BRANCH.seocho, status);
   const api = (auth: string) => ({
     get: (p: string) => request(app.getHttpServer()).get(`/api/v1${p}`).set('Authorization', auth),
     post: (p: string, b?: object) => request(app.getHttpServer()).post(`/api/v1${p}`).set('Authorization', auth).send(b),
@@ -166,9 +166,9 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
       expect(res.body.data.branchId).toBeUndefined();
     });
     it('기존 예약 이력 조회', async () => {
-      setSeochoStatus('ACTIVE'); // 예약은 활성 상태에서 만들고
+      await setSeochoStatus('ACTIVE'); // 예약은 활성 상태에서 만들고
       expect((await api(member).post('/reservations', { scheduleSlotId: slotId })).status).toBe(201);
-      setSeochoStatus('TERMINATED'); // 종료된 뒤에도 이력은 보인다
+      await setSeochoStatus('TERMINATED'); // 종료된 뒤에도 이력은 보인다
       const res = await api(member).get('/reservations');
       expect(res.status).toBe(200);
       expect(res.body.data.length).toBe(1);

@@ -4,6 +4,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
 import { MockDataService } from '../../mock-data/mock-data.service';
+import { BranchService } from '../branches/branch.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MockFacility } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
@@ -15,7 +16,10 @@ import { ManualCongestionDto } from './dto/manual-congestion.dto';
 @Controller('facilities')
 @UseGuards(BranchScopeGuard)
 export class FacilitiesController {
-  constructor(private readonly mockData: MockDataService) {}
+  constructor(
+    private readonly mockData: MockDataService,
+    private readonly branchService: BranchService,
+  ) {}
 
   // ADR-FAC-02 — 운영 중단(isActive=false)된 시설은 기본 목록에서 제외한다(소프트 삭제 원칙).
   // ?isActive=false를 명시하면 반대로 비활성 시설만 돌려준다 — 재활성화 화면(admin-web)이 이걸로 목록을 채운다.
@@ -29,11 +33,11 @@ export class FacilitiesController {
 
   @Post()
   @Roles('BRANCH_ADMIN')
-  create(@Body() dto: CreateFacilityDto, @CurrentUser() user: RequestUser) {
+  async create(@Body() dto: CreateFacilityDto, @CurrentUser() user: RequestUser) {
     if (!user.branchId) {
       throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
     }
-    return ok(this.toListItem(this.mockData.createFacility(user.branchId, dto)));
+    return ok(this.toListItem(this.mockData.createFacility(user.branchId, dto, await this.branchService.loadGate())));
   }
 
   @Patch(':id')
@@ -47,13 +51,13 @@ export class FacilitiesController {
   // 이 값이 조회 API의 최신값으로 그대로 노출된다.
   @Post(':id/congestion/manual')
   @Roles('BRANCH_ADMIN')
-  correctCongestion(
+  async correctCongestion(
     @Param('id') id: string,
     @Body() dto: ManualCongestionDto,
     @CurrentUser() user: RequestUser,
   ) {
     this.assertOwnBranch(this.findFacilityOrThrow(id), user);
-    return ok(this.toListItem(this.mockData.setManualCongestion(id, dto.currentCount)));
+    return ok(this.toListItem(this.mockData.setManualCongestion(id, dto.currentCount, await this.branchService.loadGate())));
   }
 
   private toListItem(facility: MockFacility) {

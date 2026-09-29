@@ -3,6 +3,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { MockDataService } from '../../mock-data/mock-data.service';
+import { BranchService } from '../branches/branch.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MockReservation } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
@@ -12,15 +13,22 @@ import { CancelReservationDto } from './dto/cancel-reservation.dto';
 // 06문서 §5·§7 — 회원은 본인 예약만, BRANCH_ADMIN은 본인 지점 프로그램에 연결된 예약만.
 @Controller('reservations')
 export class ReservationsController {
-  constructor(private readonly mockData: MockDataService) {}
+  constructor(
+    private readonly mockData: MockDataService,
+    private readonly branchService: BranchService,
+  ) {}
 
   @Post()
   @Roles('MEMBER')
-  create(@Body() dto: CreateReservationDto, @CurrentUser() user: RequestUser) {
+  async create(@Body() dto: CreateReservationDto, @CurrentUser() user: RequestUser) {
     if (!user.memberId) {
       throw new AppException('MEMBER_REQUIRED', '회원 계정이 아닙니다.', 403);
     }
-    const { reservation, payment } = this.mockData.createReservation(user.memberId, dto.scheduleSlotId);
+    const { reservation, payment } = this.mockData.createReservation(
+      user.memberId,
+      dto.scheduleSlotId,
+      await this.branchService.loadGate(),
+    );
     return ok({ ...this.toListItem(reservation), payment });
   }
 

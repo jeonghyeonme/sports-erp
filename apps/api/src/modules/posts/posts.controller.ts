@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { MockDataService } from '../../mock-data/mock-data.service';
+import { BranchService } from '../branches/branch.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MockPost } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
@@ -12,7 +13,10 @@ import { UpdatePostDto } from './dto/update-post.dto';
 // 작성: SUPER_ADMIN→HQ_TO_BRANCH, BRANCH_ADMIN→BRANCH_TO_MEMBER(본인 지점 강제). 수정/삭제는 작성자 본인만(삭제는 SUPER_ADMIN도 가능).
 @Controller('posts')
 export class PostsController {
-  constructor(private readonly mockData: MockDataService) {}
+  constructor(
+    private readonly mockData: MockDataService,
+    private readonly branchService: BranchService,
+  ) {}
 
   // ADR-BRD-02 — 게시글이 누적돼도 응답 크기가 무한히 커지지 않도록 page/limit로 잘라 돌려준다.
   // 기본 limit=20, meta.total/meta.page/meta.pageSize를 함께 내려 클라이언트가 다음 페이지 유무를 계산할 수 있게 한다.
@@ -43,13 +47,14 @@ export class PostsController {
   }
 
   @Post()
-  create(@Body() dto: CreatePostDto, @CurrentUser() user: RequestUser) {
+  async create(@Body() dto: CreatePostDto, @CurrentUser() user: RequestUser) {
     if (user.role !== 'SUPER_ADMIN' && user.role !== 'BRANCH_ADMIN') {
       throw new AppException('POST_FORBIDDEN_ROLE', '게시글 작성 권한이 없습니다.', 403);
     }
     const post = this.mockData.createPost(
       { accountId: user.accountId, role: user.role, branchId: user.branchId },
       dto,
+      await this.branchService.loadGate(),
     );
     return ok(this.toListItem(post));
   }

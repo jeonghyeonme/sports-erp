@@ -36,6 +36,8 @@ import {
   Role,
 } from './mock-data.types';
 import { generateLightBranches } from './branch-generator';
+import { HERO_BRANCHES, toMockBranch } from './branch-fixtures';
+import { BranchGate } from '../modules/branches/branch-gate';
 import { AppException } from '../common/exceptions/app.exception';
 import { RequestUser } from '../common/interfaces/request-user.interface';
 
@@ -66,35 +68,8 @@ export class MockDataService {
   // 나머지 96개는 branch-generator.ts가 인덱스 기반으로 결정적으로 만든다.
   private readonly generated = generateLightBranches();
 
-  readonly branches: MockBranch[] = [
-    {
-      id: 'branch-seocho',
-      name: '서초점',
-      address: '서울시 서초구',
-      region: '서울',
-      code: 'SEOCHO',
-      standardCheckInTime: '09:00',
-      cancellationDeadlineHours: 24,
-      contractPartner: '서초 OO아파트 입주자대표회의',
-      contractStartAt: '2024-03-01',
-      contractEndAt: '2027-02-28',
-      contractStatus: 'ACTIVE',
-    },
-    {
-      id: 'branch-gangnam',
-      name: '강남점',
-      address: '서울시 강남구',
-      region: '서울',
-      code: 'GANGNAM',
-      standardCheckInTime: '09:30',
-      cancellationDeadlineHours: 24,
-      contractPartner: '강남 OO오피스텔 관리사무소',
-      contractStartAt: '2023-10-01',
-      contractEndAt: '2026-10-15',
-      contractStatus: 'RENEWAL_DUE',
-    },
-    ...this.generated.branches,
-  ];
+  // D29 — 이름표 사본(계약 필드 없음). 원천은 DB이고 시드와 같은 목록(branch-fixtures.ts)에서 만든다.
+  readonly branches: MockBranch[] = [...HERO_BRANCHES, ...this.generated.branches].map(toMockBranch);
 
   readonly accounts: MockAccount[] = [
     {
@@ -555,23 +530,18 @@ export class MockDataService {
     return this.branches.find((b) => b.id === id);
   }
 
-  branchSummary(branchId: string) {
-    const branch = this.findBranchById(branchId);
+  // D29 — 지점 목록의 "건수" 부분만. 지점 자체(이름·계약)는 BranchService가 DB에서 읽는다.
+  // 회원·직원·프로그램이 Prisma로 옮겨지면 이 메서드도 사라진다.
+  branchCounts(branchId: string) {
     return {
-      id: branchId,
-      name: branch?.name ?? branchId,
-      region: branch?.region ?? '기타',
       memberCount: this.members.filter((m) => m.branchId === branchId).length,
       staffCount: this.staff.filter((s) => s.branchId === branchId).length,
       runningProgramCount: this.programs.filter(
         (p) => p.branchId === branchId && p.status === 'RUNNING',
       ).length,
-      contractPartner: branch?.contractPartner,
-      contractStatus: branch?.contractStatus ?? 'ACTIVE',
-      contractStartAt: branch?.contractStartAt,
-      contractEndAt: branch?.contractEndAt,
     };
   }
+
 
   // 본사(SUPER_ADMIN) 전용 — 지점 직원의 현재 권한(Account.role)을 지점명과 함께 조회.
   staffWithRole() {
@@ -643,12 +613,13 @@ export class MockDataService {
       guardianConsent?: boolean;
       memo?: string;
     },
+    gate: BranchGate,
   ): { member: MockMember; warnings: string[] } {
     const branch = this.findBranchById(branchId);
     if (!branch) {
       throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
     }
-    if (branch.contractStatus === 'TERMINATED') {
+    if (gate.isTerminated(branchId)) {
       throw new AppException(
         'BRANCH_TERMINATED',
         '위탁계약이 종료된 지점에는 신규 회원을 등록할 수 없습니다.',
@@ -830,16 +801,19 @@ export class MockDataService {
   // ADR-MEM-02 — 앱 회원가입. Account+Member를 동시에 만든다. 이메일 중복은 createMember(계약종료·
   // 미성년 동의) 검증보다 먼저 확인한다 — 여기서 실패하면 Member 배열에 아무것도 남기지 않아야
   // 하기 때문(트랜잭션이 없는 인메모리 배열이라 "먼저 실패할 수 있는 걸 먼저 검사"로 롤백을 대신한다).
-  registerMember(input: {
-    branchId: string;
-    name: string;
-    email: string;
-    passwordHash: string;
-    phone?: string;
-    birthDate?: string;
-    gender?: string;
-    guardianConsent?: boolean;
-  }): { member: MockMember; account: MockAccount; warnings: string[] } {
+  registerMember(
+    input: {
+      branchId: string;
+      name: string;
+      email: string;
+      passwordHash: string;
+      phone?: string;
+      birthDate?: string;
+      gender?: string;
+      guardianConsent?: boolean;
+    },
+    gate: BranchGate,
+  ): { member: MockMember; account: MockAccount; warnings: string[] } {
     if (this.isEmailTakenByActiveAccount(input.email)) {
       throw new AppException('EMAIL_ALREADY_EXISTS', '이미 사용 중인 이메일입니다.', 409);
     }
@@ -850,7 +824,7 @@ export class MockDataService {
       birthDate: input.birthDate,
       gender: input.gender,
       guardianConsent: input.guardianConsent,
-    });
+    }, gate);
 
     const account: MockAccount = {
       id: `account-${randomUUID()}`,
@@ -884,13 +858,12 @@ export class MockDataService {
   }
 
   // ADR-MEM-03 — 다른 도메인(회원·게시글·예약·시설·자산·문서)과 동일한 계약종료 지점 신규활동 차단.
-  private assertBranchNotTerminatedForMember(memberId: string): MockMember {
+  private assertBranchNotTerminatedForMember(memberId: string, gate: BranchGate): MockMember {
     const member = this.findMemberById(memberId);
     if (!member) {
       throw new AppException('MEMBER_NOT_FOUND', '회원을 찾을 수 없습니다.', 404);
     }
-    const branch = this.findBranchById(member.branchId);
-    if (branch?.contractStatus === 'TERMINATED') {
+    if (gate.isTerminated(member.branchId)) {
       throw new AppException(
         'BRANCH_TERMINATED',
         '위탁계약이 종료된 지점에는 신규 수강·PT 세션을 등록할 수 없습니다.',
@@ -908,8 +881,9 @@ export class MockDataService {
   createEnrollment(
     memberId: string,
     input: { programId: string; enrolledAt: string; expiresAt?: string },
+    gate: BranchGate,
   ): MockCourseEnrollment {
-    const member = this.assertBranchNotTerminatedForMember(memberId);
+    const member = this.assertBranchNotTerminatedForMember(memberId, gate);
     this.assertProgramInBranch(input.programId, member.branchId);
     const enrollment: MockCourseEnrollment = {
       id: `enrollment-${randomUUID()}`,
@@ -942,8 +916,9 @@ export class MockDataService {
   createPTSession(
     memberId: string,
     input: { programId: string; totalSessions: number; purchasedAt: string },
+    gate: BranchGate,
   ): MockPTSession & { remainingSessions: number } {
-    const member = this.assertBranchNotTerminatedForMember(memberId);
+    const member = this.assertBranchNotTerminatedForMember(memberId, gate);
     this.assertProgramInBranch(input.programId, member.branchId);
     const session: MockPTSession = {
       id: `pt-session-${randomUUID()}`,
@@ -1252,6 +1227,7 @@ export class MockDataService {
       branchId?: string;
       visibleToMember?: boolean;
     },
+    gate: BranchGate,
   ): MockPost {
     let scope: PostScope;
     let branchId: string | undefined;
@@ -1266,8 +1242,7 @@ export class MockDataService {
       if (!author.branchId) {
         throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
       }
-      const branch = this.findBranchById(author.branchId);
-      if (branch?.contractStatus === 'TERMINATED') {
+      if (gate.isTerminated(author.branchId)) {
         throw new AppException(
           'BRANCH_TERMINATED',
           '위탁계약이 종료된 지점에서는 새 게시글을 작성할 수 없습니다.',
@@ -1816,9 +1791,12 @@ export class MockDataService {
 
   // 08문서 §6 POST /facilities — BRANCH_ADMIN 전용(컨트롤러에서 강제). capacity 1 이상 필수(§7 나눗셈 오류 방지).
   // ADR-FAC-03 — 계약종료(TERMINATED) 지점의 신규 시설 등록 차단. 기존 시설 정정(updateFacility)은 대상 아님.
-  createFacility(branchId: string, input: { name: string; type: FacilityType; capacity: number }): MockFacility {
-    const branch = this.findBranchById(branchId);
-    if (branch?.contractStatus === 'TERMINATED') {
+  createFacility(
+    branchId: string,
+    input: { name: string; type: FacilityType; capacity: number },
+    gate: BranchGate,
+  ): MockFacility {
+    if (gate.isTerminated(branchId)) {
       throw new AppException(
         'BRANCH_TERMINATED',
         '위탁계약이 종료된 지점에는 새 시설을 등록할 수 없습니다.',
@@ -1869,13 +1847,12 @@ export class MockDataService {
   // 08문서 §6 POST /facilities/:id/congestion/manual, §4 "수동 보정"(source=MANUAL) — Phase 1 범위라
   // 별도 CongestionSnapshot 이력 테이블 없이 MockFacility.currentCount/level을 직접 덮어쓴다.
   // ADR-FAC-03 — 계약종료(TERMINATED) 지점의 신규 혼잡도 보정 차단(등록과 동일하게 "신규 활동"으로 취급).
-  setManualCongestion(id: string, currentCount: number): MockFacility {
+  setManualCongestion(id: string, currentCount: number, gate: BranchGate): MockFacility {
     const facility = this.findFacilityById(id);
     if (!facility) {
       throw new AppException('FACILITY_NOT_FOUND', '시설을 찾을 수 없습니다.', 404);
     }
-    const branch = this.findBranchById(facility.branchId);
-    if (branch?.contractStatus === 'TERMINATED') {
+    if (gate.isTerminated(facility.branchId)) {
       throw new AppException(
         'BRANCH_TERMINATED',
         '위탁계약이 종료된 지점의 혼잡도는 보정할 수 없습니다.',
@@ -1960,7 +1937,11 @@ export class MockDataService {
   // 없다(자바스크립트 이벤트 루프의 단일 스레드 특성이 곧 그 락 역할을 대신한다) — 그래서 정원 체크와
   // INSERT 사이에 별도 락 코드가 없어도 팬텀 삽입이 발생하지 않는다. 실DB 전환 시에는 문서가 명시한
   // `ScheduleSlot` 행 락을 그대로 적용해야 한다.
-  createReservation(memberId: string, scheduleSlotId: string): { reservation: MockReservation; payment?: MockPayment } {
+  createReservation(
+    memberId: string,
+    scheduleSlotId: string,
+    gate: BranchGate,
+  ): { reservation: MockReservation; payment?: MockPayment } {
     const slot = this.findScheduleSlotById(scheduleSlotId);
     if (!slot) {
       throw new AppException('SLOT_NOT_FOUND', '회차를 찾을 수 없습니다.', 404);
@@ -1981,8 +1962,7 @@ export class MockDataService {
     if (!member || member.branchId !== program.branchId) {
       throw new AppException('MEMBER_BRANCH_MISMATCH', '본인이 등록된 지점의 프로그램만 예약할 수 있습니다.', 403);
     }
-    const branch = this.findBranchById(program.branchId);
-    if (branch?.contractStatus === 'TERMINATED') {
+    if (gate.isTerminated(program.branchId)) {
       throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 예약할 수 없습니다.', 409);
     }
     const duplicate = this.reservations.find(
@@ -2123,12 +2103,12 @@ export class MockDataService {
     quantity?: number;
     location?: string;
     note?: string;
-  }): MockAsset {
+  }, gate: BranchGate): MockAsset {
     const branch = this.findBranchById(input.branchId);
     if (!branch) {
       throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
     }
-    if (branch.contractStatus === 'TERMINATED') {
+    if (gate.isTerminated(input.branchId)) {
       throw new AppException(
         'BRANCH_TERMINATED',
         '위탁계약이 종료된 지점에는 새 자산을 등록할 수 없습니다.',
@@ -2244,13 +2224,14 @@ export class MockDataService {
       fileSize?: number;
       retentionUntil?: string;
     },
+    gate: BranchGate,
   ): MockDocument {
     if (input.branchId) {
       const branch = this.findBranchById(input.branchId);
       if (!branch) {
         throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
       }
-      if (branch.contractStatus === 'TERMINATED') {
+      if (gate.isTerminated(input.branchId)) {
         throw new AppException(
           'BRANCH_TERMINATED',
           '위탁계약이 종료된 지점에는 새 문서를 등록할 수 없습니다.',

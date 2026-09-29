@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { ACCOUNTS, BRANCH, createApp, login } from './helpers/app';
+import { setBranchStatus } from './helpers/branch-status';
 
 /**
  * 회원관리 도메인 — ADR-MEM-03(회원 상세 요약 + 수강내역/PT잔여세션 탭별 지연 로드).
@@ -68,7 +69,7 @@ describe('회원 상세 요약 · 수강내역 · PT 잔여세션', () => {
     });
 
     it('계약종료 지점 회원에게는 신규 수강 등록이 409 BRANCH_TERMINATED', async () => {
-      mockData(app).branches.find((b) => b.id === BRANCH.seocho)!.contractStatus = 'TERMINATED';
+      await setBranchStatus(BRANCH.seocho, 'TERMINATED');
       const res = await api(seochoAdmin).post(`/members/${MEMBER_ID}/enrollments`, {
         programId: 'program-seocho-yoga',
         enrolledAt: '2026-09-26',
@@ -141,7 +142,7 @@ describe('회원 상세 요약 · 수강내역 · PT 잔여세션', () => {
     it('계약종료 지점 회원에게는 신규 PT 패키지 등록이 409 BRANCH_TERMINATED, 기존 세션 사용은 차단되지 않는다', async () => {
       const before = await api(seochoAdmin).get(`/members/${MEMBER_ID}/pt-sessions`);
       const sessionId = before.body.data[0].id;
-      mockData(app).branches.find((b) => b.id === BRANCH.seocho)!.contractStatus = 'TERMINATED';
+      await setBranchStatus(BRANCH.seocho, 'TERMINATED');
 
       const created = await api(seochoAdmin).post(`/members/${MEMBER_ID}/pt-sessions`, {
         programId: 'program-seocho-pt',
