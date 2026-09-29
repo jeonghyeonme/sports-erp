@@ -38,7 +38,7 @@ export async function allocateSequence(
 }
 
 /**
- * mock-data.service.ts의 generateStaffCode/generateMemberNo/generateAssetCode와 같은 형식을 만든다.
+ * 예전 mock의 generateStaffCode/generateMemberNo/generateAssetCode(D36으로 mock 삭제)와 같은 형식을 만든다.
  * MEMBER의 연도는 todayKst() 기준 — mock은 new Date().getFullYear()(호스트 시간대)라 서버가 UTC면
  * 1월 1일 00:00~08:59 KST에 전년도 번호가 나온다(date-time-handling.md와 같은 뿌리).
  */

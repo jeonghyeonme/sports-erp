@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { MOCK_DEMO_PASSWORD } from '../src/mock-data/mock-data.service';
+import { MOCK_DEMO_PASSWORD } from '../src/mock-data/demo-password';
 import { addYearsToDateString, toKstDateString } from '../src/common/date/kst-date';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
 import { resetWorkerDb } from './helpers/worker-db';

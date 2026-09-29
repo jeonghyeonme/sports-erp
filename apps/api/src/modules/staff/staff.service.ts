@@ -1,7 +1,7 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { Account, Prisma, Role, Staff, StaffAssignment } from '@prisma/client';
-import { MOCK_DEMO_PASSWORD, MockDataService } from '../../mock-data/mock-data.service';
-import { MockAccount, MockStaff, MockStaffAssignment } from '../../mock-data/mock-data.types';
+import { Injectable } from '@nestjs/common';
+import { Prisma, Role, Staff, StaffAssignment } from '@prisma/client';
+import { MOCK_DEMO_PASSWORD } from '../../mock-data/demo-password';
+import { MockStaff, MockStaffAssignment } from '../../mock-data/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -16,27 +16,12 @@ const dateOf = (d: string) => new Date(`${d}T00:00:00Z`);
 
 /**
  * 직원·파견·관리자 계정 — D30(2-1_기술결정사항.md). 원천은 DB다.
- *
- * 아직 mock인 게시판이 작성자 이름을 계정에서 동기적으로 읽으므로, mock에는 관리자·직원 계정 "미러"를 둔다
- * (파견 이력 미러는 D33, 직원 미러는 D34로 독자가 DB로 옮겨져 없앴다).
- * 앱이 뜰 때(onModuleInit) DB 전체로 채우고, 이 서비스의 쓰기가 커밋된 뒤 해당 직원의 계정만 다시 읽어 갱신한다.
- * 미러는 이 서비스만 쓴다 — 계정을 바꾸는 다른 경로가 생기면 미러가 낡는다.
+ * D30~D35 동안 아직 mock인 도메인을 위해 mock에 직원·파견·계정 "미러"를 채웠지만, D36(게시판 이관)으로
+ * 마지막 독자가 사라져 미러와 MockDataService를 모두 없앴다.
  */
 @Injectable()
-export class StaffService implements OnModuleInit {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly mockData: MockDataService,
-  ) {}
-
-  async onModuleInit(): Promise<void> {
-    const [staff, accounts] = await Promise.all([
-      this.prisma.staff.findMany(),
-      this.prisma.account.findMany({ where: { role: { not: 'MEMBER' } } }),
-    ]);
-    const staffByAccount = new Map(staff.map((s) => [s.accountId, s]));
-    this.mockData.replaceAccountMirror(accounts.map((a) => toMockAccount(a, staffByAccount.get(a.id))));
-  }
+export class StaffService {
+  constructor(private readonly prisma: PrismaService) {}
 
   // ── 조회 ──────────────────────────────────────────────
 
@@ -252,13 +237,12 @@ export class StaffService implements OnModuleInit {
     return (await this.listWithRole()).find((s) => s.staffId === staffId);
   }
 
-  /** 커밋된 직원 한 명을 다시 읽어 mock 계정 미러를 갱신하고 응답 형식으로 돌려준다. */
+  /** 커밋된 직원 한 명을 다시 읽어 응답 형식으로 돌려준다. */
   private async afterWrite(staffId: string): Promise<StaffView> {
     const row = await this.prisma.staff.findUniqueOrThrow({
       where: { id: staffId },
-      include: { branch: { select: { name: true } }, account: true },
+      include: { branch: { select: { name: true } } },
     });
-    this.mockData.upsertAccountMirror(toMockAccount(row.account, row));
     return toView(row);
   }
 }
@@ -298,19 +282,6 @@ function toMockAssignment(a: StaffAssignment): MockStaffAssignment {
     endDate: a.endDate ? toKstDateString(a.endDate) : undefined,
     assignedBy: a.assignedBy,
     note: a.note ?? undefined,
-  };
-}
-
-function toMockAccount(a: Account, staff?: Staff): MockAccount {
-  return {
-    id: a.id,
-    email: a.email,
-    passwordHash: a.passwordHash,
-    role: a.role,
-    name: a.name,
-    isActive: a.isActive,
-    branchId: staff?.branchId,
-    staffId: staff?.id,
   };
 }
 

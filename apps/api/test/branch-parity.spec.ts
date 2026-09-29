@@ -1,15 +1,16 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { allBranchRecords, toMockBranch } from '../src/mock-data/branch-fixtures';
+import { ACCOUNTS, BRANCH, createApp, login } from './helpers/app';
 import { setBranchStatus } from './helpers/branch-status';
 
 /**
- * D29 — 지점의 원천은 DB다. 아직 mock인 도메인은 계약 필드를 뺀 "이름표 사본"을 동기적으로 쓴다.
- * 사본이 DB와 어긋나면 지점명·코드(채번)·체크인 기준 시각(지각 판정)·취소 기준 시간이 조용히 틀어지므로 여기서 잡는다.
- * 어긋나면 시드(prisma/seed.ts)와 mock이 같은 원천(src/mock-data/branch-fixtures.ts)을 쓰는지부터 볼 것.
+ * D29 — 지점의 원천은 DB다. D36으로 mock 이름표 사본(MockDataService.branches)은 독자가 사라져 없앴고,
+ * 이제는 시드 원천(src/mock-data/branch-fixtures.ts)이 DB에 그대로 들어갔는지를 본다 — 어긋나면 지점명·코드(채번)·
+ * 체크인 기준 시각(지각 판정)·취소 기준 시간이 조용히 틀어진다.
  */
-describe('지점 원천(DB)과 mock 이름표 사본', () => {
+describe('지점 원천(DB)과 시드 원천', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -19,10 +20,10 @@ describe('지점 원천(DB)과 mock 이름표 사본', () => {
     await app.close();
   });
 
-  it('mock 사본의 모든 필드가 DB 지점과 같다(98개)', async () => {
+  it('시드 원천의 모든 이름표 필드가 DB 지점과 같다(98개)', async () => {
     const rows = await app.get(PrismaService).branch.findMany();
     const db = new Map(rows.map((r) => [r.id, r]));
-    const mock = mockData(app).branches;
+    const mock = allBranchRecords().map(toMockBranch);
 
     expect(mock).toHaveLength(98);
     expect(rows).toHaveLength(mock.length);
@@ -54,7 +55,7 @@ describe('지점 원천(DB)과 mock 이름표 사본', () => {
     };
 
     expect(await statusOf()).toBe('RENEWAL_DUE'); // 시드 값(대조군)
-    await setBranchStatus(BRANCH.gangnam, 'TERMINATED'); // mock은 건드리지 않는다
+    await setBranchStatus(BRANCH.gangnam, 'TERMINATED'); // DB만 바꾼다
     expect(await statusOf()).toBe('TERMINATED');
   });
 

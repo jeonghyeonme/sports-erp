@@ -1,12 +1,13 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, createApp, login } from './helpers/app';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * ADR-BRD-01 — 회원은 본인 지점 BRANCH_TO_MEMBER 게시글 + visibleToMember=true인 HQ 공지만 볼 수 있다.
  * 직원 전용 HQ 공지(예: 교육자료)가 회원에게 노출되던 정보 노출 결함(docs/domains/게시판.md §6 D1)의 회귀 테스트.
  * ADR-BRD-02 — GET /posts 목록 조회 페이지네이션(기본 limit=20, meta.total/page/pageSize).
- * MockDataService가 인메모리 상태를 가지므로 테스트마다 새 앱을 띄운다.
+ * D36 — 게시글 원천이 DB라 테스트마다 워커 DB를 되돌린 뒤 새 앱을 띄운다(예전엔 mock 인메모리라 새 앱만으로 충분했다).
  */
 describe('회원 대상 게시글 가시성(visibleToMember)', () => {
   let app: INestApplication;
@@ -21,6 +22,7 @@ describe('회원 대상 게시글 가시성(visibleToMember)', () => {
   });
 
   beforeEach(async () => {
+    await resetWorkerDb();
     app = await createApp();
     superAdmin = await login(app, ACCOUNTS.superAdmin);
     seochoAdmin = await login(app, ACCOUNTS.seochoAdmin);

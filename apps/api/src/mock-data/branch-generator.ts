@@ -1,6 +1,6 @@
 // 1-1문서 §1-1이 인용하는 원본 RFP 수치("전국 98개 업장")에 맞춰, 화면이 실제 규모에서도
-// 스캔 가능한지 검증할 수 있도록 mock 지점을 96개 더 만든다(서초점·강남점 2개는 mock-data.service.ts에
-// 히어로 데이터로 남아있고, 이 파일은 그 나머지를 채운다). 전부 인덱스 기반 결정적 생성이라
+// 스캔 가능한지 검증할 수 있도록 mock 지점을 96개 더 만든다(서초점·강남점 2개는 branch-fixtures.ts의
+// 히어로 데이터이고, 이 파일은 그 나머지를 채운다 — D36 이후 쓰는 곳은 시드뿐). 전부 인덱스 기반 결정적 생성이라
 // 서버를 몇 번을 재기동해도 같은 결과가 나온다 — Math.random은 쓰지 않는다.
 
 import { AgeGroup, BranchRecord, MockFacility, MockInstructor, MockMember, MockProgram, MockStaff } from './mock-data.types';

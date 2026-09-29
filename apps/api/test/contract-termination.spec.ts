@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { BranchContractStatus } from '@prisma/client';
-import { ACCOUNTS, BRANCH, createApp, db, login, mockData } from './helpers/app';
+import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
 import { setBranchStatus } from './helpers/branch-status';
 import { resetWorkerDb } from './helpers/worker-db';
 
@@ -89,12 +89,11 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
       expect(res.body.error.code).toBe('BRANCH_TERMINATED');
     });
     it('차단된 요청은 데이터를 남기지 않는다', async () => {
-      const m = mockData(app);
       const prisma = db(app);
       const counts = async () => [
         await prisma.member.count(),
         await prisma.reservation.count(),
-        m.posts.length,
+        await prisma.post.count(), // D36 — 게시글 원천은 DB
         await prisma.facility.count(),
         await prisma.asset.count(), // D35 — 자산 원천은 DB
         await prisma.document.count(), // D34 — 문서 원천은 DB

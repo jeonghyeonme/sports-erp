@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ACCOUNTS, BRANCH, createApp, db, login, mockData } from './helpers/app';
+import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
 
 /**
  * 지점 데이터 격리 — 원본 RFP 핵심 요구사항("타 지점 조회 불가", CLAUDE.md 프로젝트 가드레일).
@@ -49,10 +49,9 @@ describe('지점 데이터 격리', () => {
 
   beforeAll(async () => {
     app = await createApp();
-    const m = mockData(app);
-    // D32 — 회원·시설·강사·프로그램·회차는 DB가 원천(미러 없음). D34 — 직원·문서, D35 — 자산도 DB. 게시글은 아직 mock.
+    // 모든 픽스처의 원천은 DB다(D32 회원·카탈로그, D34 직원·문서, D35 자산, D36 게시글).
     const prisma = db(app);
-    const [members, programs, facilities, instructors, staff, documents, assets] = await Promise.all([
+    const [members, programs, facilities, instructors, staff, documents, assets, posts] = await Promise.all([
       prisma.member.findMany({ orderBy: { memberNo: 'asc' } }),
       prisma.program.findMany({ orderBy: { id: 'asc' } }),
       prisma.facility.findMany({ orderBy: { id: 'asc' } }),
@@ -60,6 +59,7 @@ describe('지점 데이터 격리', () => {
       prisma.staff.findMany(), // 예전 직원 미러와 같은 순서(미러는 이 조회로 채워졌다)
       prisma.document.findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } }),
       prisma.asset.findMany({ orderBy: { assetCode: 'asc' } }), // 예전 mock 배열 순서(시드 A001→)와 같다
+      prisma.post.findMany({ where: { deletedAt: null }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }), // mock 배열 순서(등록순)
     ]);
     for (const [k, email] of Object.entries(ACCOUNTS)) tok[k] = await login(app, email);
 
@@ -95,7 +95,7 @@ describe('지점 데이터 격리', () => {
     const seochoInstructor = first(instructors, BRANCH.seocho, '강사');
     const seochoAsset = first(assets, BRANCH.seocho, '자산');
     const seochoDoc = first(documents, BRANCH.seocho, '문서');
-    const seochoPost = first(m.posts, BRANCH.seocho, '게시글');
+    const seochoPost = first(posts, BRANCH.seocho, '게시글');
 
     const gm = first(members, BRANCH.gangnam, '회원');
     const gs = first(staff, BRANCH.gangnam, '직원');
@@ -105,7 +105,7 @@ describe('지점 데이터 격리', () => {
     const ownedBy = (branchId: string) =>
       [
         ...members, ...staff, ...programs, ...facilities, ...instructors,
-        ...assets, ...documents, ...m.posts,
+        ...assets, ...documents, ...posts,
       ]
         .filter((x) => (x.branchId ?? undefined) === branchId)
         .map((x) => x.id);
@@ -238,13 +238,13 @@ describe('지점 데이터 격리', () => {
   // 서버는 거부(403/404)하거나, 본문 branchId를 무시하고 요청자 본인 지점으로 만들 수 있다(현재 구현).
   // 어느 쪽이든 "서초점(피해 지점)에는 아무것도 생성되지 않는다"가 불변식이므로 저장소를 직접 확인한다.
   describe('본문에 타 지점 ID를 지정해도 타 지점에는 생성되지 않는다', () => {
-    // D34 — 문서, D35 — 자산은 DB. 게시글은 아직 mock.
+    // 모두 DB가 원천이다(D34 문서, D35 자산, D36 게시글).
     const seochoCount = async (kind: 'documents' | 'assets' | 'posts') =>
       kind === 'documents'
         ? db(app).document.count({ where: { branchId: BRANCH.seocho, deletedAt: null } })
         : kind === 'assets'
           ? db(app).asset.count({ where: { branchId: BRANCH.seocho } })
-          : mockData(app).posts.filter((x) => x.branchId === BRANCH.seocho).length;
+          : db(app).post.count({ where: { branchId: BRANCH.seocho, deletedAt: null } });
 
     it('강남 관리자가 서초점 소속으로 문서를 등록해도 서초점에 문서가 늘지 않는다', async () => {
       const before = await seochoCount('documents');

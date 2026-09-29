@@ -12,6 +12,7 @@ import { catalogSeed } from '../src/mock-data/catalog-fixtures';
 import { memberSeed } from '../src/mock-data/member-fixtures';
 import { documentSeed } from '../src/mock-data/document-fixtures';
 import { assetSeed } from '../src/mock-data/asset-fixtures';
+import { postSeed } from '../src/mock-data/post-fixtures';
 
 const prisma = new PrismaClient();
 
@@ -39,9 +40,8 @@ async function main() {
     };
     await prisma.branch.upsert({ where: { id: b.id }, update: data, create: { id: b.id, ...data } });
   }
-  const seocho = { id: 'branch-seocho' };
 
-  // ── 직원·파견·관리자 계정 — D30: 원천은 DB, mock은 앱이 뜰 때 여기서 미러를 채운다 ─────────
+  // ── 직원·파견·관리자 계정 — D30: 원천은 DB, (D36 이후 mock 미러 없음) ─────────
   // 히어로 id는 예전 mock 값 그대로다(아직 mock인 회원 담당 직원 등이 이 id를 가리킴).
   // update에도 같은 값을 넣어 시드를 다시 돌리면 원천과 다시 맞춰지게 한다(비밀번호·활성 여부 포함).
   const staffData = staffSeed();
@@ -77,8 +77,6 @@ async function main() {
     };
     await prisma.staffAssignment.upsert({ where: { id: as.id }, update: data, create: { id: as.id, ...data } });
   }
-  const hqAccount = { id: 'account-haneul' };
-  const minsuAccount = { id: 'account-minsu' };
 
   // ── 채번 시퀀스 — D28/DI-03, D30 ────────────────────────
   // 번호를 직접 박아 넣은 직원·회원만큼 시퀀스를 올려 둔다. 안 그러면 allocateBranchCode의 첫 채번이
@@ -271,31 +269,22 @@ async function main() {
     await prisma.asset.upsert({ where: { id: a.id }, update: data, create: { id: a.id, ...data } });
   }
 
-  // ── 게시판 ────────────────────────────────────────
-  await prisma.post.create({
-    data: {
-      scope: 'HQ_TO_BRANCH',
-      branchId: null, // 전체 지점 공지
-      authorId: hqAccount.id,
-      category: 'TRAINING_MATERIAL',
-      title: 'ERP 시스템 사용 매뉴얼 안내',
-      content: '전 지점 팀장급 직원 대상 ERP 사용법 매뉴얼을 게시판에 업로드했습니다.',
-      publishedAt: new Date('2026-08-20'), // D27 — DB 기본값 없음(@db.Date)
-    },
-  });
-
-  await prisma.post.create({
-    data: {
-      scope: 'BRANCH_TO_MEMBER',
-      branchId: seocho.id,
-      authorId: minsuAccount.id,
-      category: 'EVENT',
-      title: '9월 아침 요가 이벤트 안내',
-      content: '9월 한 달간 아침 요가 신규 회원 20% 할인 이벤트를 진행합니다.',
-      publishedAt: new Date('2026-08-28'),
-      visibleToMember: true,
-    },
-  });
+  // ── 게시판 — D36: 원천은 DB(post-fixtures.ts). 예전엔 무작위 uuid로 create해 mock id와 달랐고 다시 돌리면 두 벌이 됐다 ─────
+  for (const p of postSeed()) {
+    const data = {
+      scope: p.scope,
+      branchId: p.branchId ?? null,
+      authorId: p.authorId,
+      category: p.category,
+      title: p.title,
+      content: p.content,
+      viewCount: p.viewCount,
+      publishedAt: new Date(`${p.publishedAt}T00:00:00Z`),
+      visibleToMember: p.visibleToMember,
+      createdAt: new Date(p.createdAt),
+    };
+    await prisma.post.upsert({ where: { id: p.id }, update: data, create: { id: p.id, ...data } });
+  }
 
   // ── 혼잡도 스냅샷 + 체크인 ─────────────────────────
   await prisma.facilityCheckIn.create({
