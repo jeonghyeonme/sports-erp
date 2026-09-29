@@ -23,7 +23,7 @@ export class CreateProgramDto {
   @IsIn(PRICING_TYPES)
   pricingType!: PricingType;
 
-  // FREE_ACCESS면 서버가 무시하고 0/undefined로 강제 정규화한다(mock-data.service.ts 참고).
+  // FREE_ACCESS면 서버가 무시하고 0/undefined로 강제 정규화한다(program.service.ts의 가격 정규화 참고).
   @IsInt()
   @Min(0)
   price!: number;

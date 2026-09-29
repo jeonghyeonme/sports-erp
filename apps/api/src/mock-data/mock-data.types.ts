@@ -1,7 +1,7 @@
-// Phase 1 스캐폴딩 단계의 인메모리 더미 데이터 타입 정의.
-// 실제 DB(Prisma) 연동 전까지 apps/api 전체가 이 타입들을 기준으로 동작합니다.
-// 필드 구성은 prisma/schema.prisma를 최대한 그대로 따릅니다 — 나중에 MockDataService를
-// PrismaService 기반 리포지토리로 교체할 때 컨트롤러 코드는 거의 손대지 않아도 되도록 하기 위함입니다.
+// API 응답 형식(날짜는 KST YYYY-MM-DD 문자열, 없는 값은 필드 생략) 타입 정의.
+// Phase 1의 인메모리 mock 저장소가 쓰던 타입이지만, D26~D36의 실DB 전환 동안 각 서비스가 DB 행을 이 형식으로
+// 바꿔 돌려주는 "응답 계약"으로 남겼다 — admin-web이 이 형식에 맞춰져 있다. MockDataService는 D36으로 삭제됐다.
+// 시드 원천(*-fixtures.ts)도 이 타입으로 적는다.
 
 export type Role = 'SUPER_ADMIN' | 'BRANCH_ADMIN' | 'STAFF' | 'MEMBER';
 export type ProgramStatus = 'PREPARING' | 'RUNNING' | 'PAUSED' | 'ENDED';
@@ -84,7 +84,7 @@ export interface MockStaff {
 }
 
 // 파견 이력 — 01문서 §2-2, 02문서 §3. endDate=undefined인 레코드가 직원당 항상 최대 1건이어야
-// 한다는 불변식은 MockDataService.assignStaff/resignStaff가 보장한다.
+// 한다는 불변식은 StaffService.assign/resign(한 트랜잭션)과 DB 부분 unique(ADR-STF-03)가 보장한다.
 export interface MockStaffAssignment {
   id: string;
   staffId: string;

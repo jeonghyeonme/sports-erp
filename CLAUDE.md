@@ -22,7 +22,7 @@
 ## 구조
 
 ```
-apps/api/         NestJS + TypeScript (Prisma 스키마는 있지만 현재 코드는 MockDataService로 동작 — 아래 "현재 상태" 참고)
+apps/api/         NestJS + TypeScript + Prisma(Supabase Postgres) — D36(2026-09-29)으로 전 도메인 실DB 전환 완료, 아래 "현재 상태" 참고
 apps/admin-web/    React + Vite — 본사/지점 관리자 웹
 apps/member-app/   React Native(Expo) — Phase 3 착수 예정, 아직 미착수
 packages/types/     클라이언트-서버 공유 타입
@@ -73,11 +73,11 @@ npm run lint    # eslint .
 npm run build   # tsc -b && vite build
 ```
 
-**검증 현황 (2026-09-20, DB 의존성은 2026-09-28 D26 갱신):** ESLint 10(flat config, `eslint.config.*`)이 두 앱에 설치돼 있다. api 테스트는 **도메인 핵심 규칙 3개 영역**만 다룬다 — 지점 데이터 격리(`branch-isolation`), 계약 종료 지점 차단(`contract-termination`), 인사 권한 분리(`hr-authority`) + 부팅 스모크. 그 밖의 도메인 로직(예약·결제 계산, 근태, 자산 등)과 admin-web은 테스트가 없어 **lint + 빌드(타입체크)**뿐이다. 테스트가 없는 영역은 "검증되지 않음"으로 보고할 것. D26에서 `it.skip`했던 `auth-lifecycle.spec.ts` 2건·`staff-assignment.spec.ts` 1건은 D30(직원·권한 DB 이관)으로 재활성화돼 현재 skip은 없다. `account-mirror.spec.ts`가 계정 원천(DB)과 mock 계정 미러의 일치를, `catalog-flow.spec.ts`가 카탈로그↔예약·회원 경로를 본다. D32부터 예약 정원·중복·결제 이중 승인·연동 동시성 테스트가 실제 DB 동시성 위에서 돈다(`reservation-capacity`·`member-link`). D33부터 근태의 동시 체크인·동시 연차 승인·결근 확정·업무일지 하루 1건과 지각 판정·KST 연차 연도를 `attendance-rules.spec.ts`가 본다. D34부터 문서 규칙(인사서류 대상 직원·보존기한 기산·소프트 삭제·임박 목록)을 `document-rules.spec.ts`가, D35부터 자산 규칙(동시 채번·자동 판정·수량·상태 전이 경합)을 `asset-rules.spec.ts`가 본다.
+**검증 현황 (2026-09-20, DB 의존성은 2026-09-28 D26 갱신):** ESLint 10(flat config, `eslint.config.*`)이 두 앱에 설치돼 있다. api 테스트는 **도메인 핵심 규칙 3개 영역**만 다룬다 — 지점 데이터 격리(`branch-isolation`), 계약 종료 지점 차단(`contract-termination`), 인사 권한 분리(`hr-authority`) + 부팅 스모크. 그 밖의 도메인 로직(예약·결제 계산, 근태, 자산 등)과 admin-web은 테스트가 없어 **lint + 빌드(타입체크)**뿐이다. 테스트가 없는 영역은 "검증되지 않음"으로 보고할 것. D26에서 `it.skip`했던 `auth-lifecycle.spec.ts` 2건·`staff-assignment.spec.ts` 1건은 D30(직원·권한 DB 이관)으로 재활성화돼 현재 skip은 없다. `staff-write.spec.ts`가 채용·파견의 DB 반영을, `catalog-flow.spec.ts`가 카탈로그↔예약·회원 경로를 본다. D32부터 예약 정원·중복·결제 이중 승인·연동 동시성 테스트가 실제 DB 동시성 위에서 돈다(`reservation-capacity`·`member-link`). D33부터 근태의 동시 체크인·동시 연차 승인·결근 확정·업무일지 하루 1건과 지각 판정·KST 연차 연도를 `attendance-rules.spec.ts`가 본다. D34부터 문서 규칙(인사서류 대상 직원·보존기한 기산·소프트 삭제·임박 목록)을 `document-rules.spec.ts`가, D35부터 자산 규칙(동시 채번·자동 판정·수량·상태 전이 경합)을 `asset-rules.spec.ts`가, D36부터 게시판 규칙(동시 조회수·소프트 삭제·수정/삭제 권한·작성 범위)을 `post-rules.spec.ts`가 본다.
 
-**테스트 작성 규칙:** 통합 테스트는 `test/helpers/app.ts`의 `createApp()`으로 `main.ts`와 같은 전역 설정(prefix·ValidationPipe·필터)의 앱을 띄운다 — `main.ts`의 전역 설정을 바꾸면 이 헬퍼도 같이 바꿀 것. `MockDataService`는 인메모리 상태라 스위트(또는 테스트)마다 새 앱을 띄워야 서로 오염되지 않는다. 가드 → 파이프 → 핸들러 순서라서 **거부 케이스도 유효한 요청 본문**을 보내야 400이 아니라 403이 나온다. 거부(403) 테스트에는 반드시 자기 지점 접근이 성공하는 대조군을 함께 둔다. `tsconfig.build.json`이 `test/`를 빌드에서 제외한다(없으면 `dist/main.js` 경로가 `dist/src/main.js`로 바뀐다).
+**테스트 작성 규칙:** 통합 테스트는 `test/helpers/app.ts`의 `createApp()`으로 `main.ts`와 같은 전역 설정(prefix·ValidationPipe·필터)의 앱을 띄운다 — `main.ts`의 전역 설정을 바꾸면 이 헬퍼도 같이 바꿀 것. D36부터 모든 상태가 DB에 있어 테스트 간 격리는 워커 DB 재생성(`resetWorkerDb`)이 맡는다 — 같은 파일 안에서 DB 쓰기가 다음 테스트로 새면 `beforeEach`에서 `createApp()` 전에 부를 것(mock 시절엔 새 앱만 띄우면 됐던 스펙이 이 이유로 깨진 적이 있다, D36 `posts-member-visibility`). 가드 → 파이프 → 핸들러 순서라서 **거부 케이스도 유효한 요청 본문**을 보내야 400이 아니라 403이 나온다. 거부(403) 테스트에는 반드시 자기 지점 접근이 성공하는 대조군을 함께 둔다. `tsconfig.build.json`이 `test/`를 빌드에서 제외한다(없으면 `dist/main.js` 경로가 `dist/src/main.js`로 바뀐다).
 
-**Prisma로 이관된 도메인의 데모 계정은 mock과 id를 맞출 것(2026-09-28):** `apps/api/prisma/seed.ts`의 정하늘/김민수/박서연/이수진처럼, `mock-data.service.ts`에도 같은 이메일로 존재하는 "과도기 공유 계정"은 `Account`/`Staff`/`Member`의 `id`를 mock 쪽 값(`account-haneul`, `staff-seoyeon` 등)과 반드시 동일하게 시드할 것 — 안 맞추면 Prisma로 로그인한 요청의 `req.user.staffId`/`memberId`가 아직 이관 안 된 mock 컨트롤러에서 `NOT_FOUND`로 깨진다(D26에서 실제로 겪음, `docs/process/06_진행_로그.md` 참고). D32(2026-09-29)부터 **모든 계정(관리자·직원·회원)이 DB에 있고 인증의 mock 폴백은 없다.** mock `accounts`에는 D30 미러(관리자·직원 계정)만 남아 게시판이 작성자 이름을 읽는 데 쓴다. 테스트에서 DB 상태는 `test/helpers/app.ts`의 `db(app)`(PrismaService)로 읽고 쓴다.
+**시드 데이터의 원천은 `src/mock-data/*-fixtures.ts` 한 곳이다(D29~D36):** `prisma/seed.ts`는 이 파일들을 읽어 upsert한다. 데모 계정·히어로 데이터의 `id`(`account-haneul`, `staff-seoyeon`, `post-hq-manual` 등)는 예전 mock 값 그대로이고, 테스트·admin-web이 이 id에 기대므로 바꾸지 말 것. Supabase(배포 DB)에 시드를 넣을 때는 같은 픽스처로 upsert SQL을 만들어 빈 로컬 복제 DB에서 2회 실행·지문 비교 후 사용자 승인을 받아 적용한다(진행 로그 §44~§50 절차). `src/mock-data/` 폴더 이름은 역사적 이름이다 — `MockDataService`는 D36으로 삭제됐고 지금은 응답 형식 타입(`mock-data.types.ts`)·시드 원천(`*-fixtures.ts`)·데모 비밀번호(`demo-password.ts`)만 있다. 테스트에서 DB 상태는 `test/helpers/app.ts`의 `db(app)`(PrismaService)로 읽고 쓴다.
 
 **날짜 계산은 반드시 `apps/api/src/common/date/kst-date.ts`를 쓸 것(2026-09-23).** `new Date().toISOString().slice(0, 10)`로 "오늘 날짜"를 직접 구하지 말 것 — `toISOString()`은 서버 시간대와 무관하게 항상 UTC라, 매일 00:00~08:59 KST 사이 이벤트가 하루 전 날짜로 기록되는 구조적 버그가 5개 도메인 10곳에서 실제로 있었다(`docs/architecture/date-time-handling.md`). "오늘"은 `todayKst()`, 임의 시각의 KST 날짜는 `toKstDateString(date)`, 시:분 비교는 `kstHoursMinutes(date)`를 쓸 것.
 
@@ -91,7 +91,7 @@ npm run build   # tsc -b && vite build
 
 ## 현재 구현 상태 (착각하기 쉬운 부분)
 
-- **API 대부분이 `PrismaService`(Supabase Postgres)로 동작한다(2026-09-29 D35 기준).** D29 순서(지점 → 직원·파견 → 시설·강사·프로그램·회차 → 회원)로 인증(D26)·지점(D29)·직원·파견·권한(D30)·시설·강사·프로그램·회차(D31)·회원·수강·PT·예약·결제(D32)가 DB로 옮겨졌고, 이어서 근태·휴가·업무일지(D33)·문서(D34)·자산(D35)도 옮겼다. **아직 `MockDataService`(인메모리)인 것은 게시판 1개 도메인(posts 컨트롤러)뿐이다.** 게시판이 작성자 계정을 동기적으로 읽어서 mock의 관리자·직원 계정(`accounts`)만 **DB에서 채우는 미러**(D30)로 남아 있다 — 앱 부팅 시 `StaffService.onModuleInit`이 채우고 직원 쓰기는 DB 커밋 뒤 `afterWrite`로 반영한다. 미러 배열을 직접 넣거나 고치지 말 것(테스트 포함). D31의 카탈로그 미러는 D32로, 파견 이력 미러(`staffAssignments`)는 D33으로, 직원 미러(`staff`)는 D34로 독자가 사라져 없앴다. 지점 계약 상태의 원천은 DB뿐이다 — mock의 `branches`는 계약 필드가 없는 이름표 사본이고, 아직 mock인 쓰기 경로는 `BranchService.loadGate()`로 받은 gate로 계약 종료를 판정한다(`src/modules/branches/branch-gate.ts`). 예약 생성은 회차 행 락(`lockScheduleSlot`) 위에서 정원을 센다(ADR-RSV-01). "Prisma 스키마에 있으니 동작한다"고 가정하지 말 것 — 실제 동작 여부는 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2를 확인.
+- **API 전체가 `PrismaService`(Supabase Postgres)로 동작한다(2026-09-29 D36으로 실DB 전환 완료).** D29 순서(지점 → 직원·파견 → 시설·강사·프로그램·회차 → 회원)로 인증(D26)·지점(D29)·직원·파견·권한(D30)·시설·강사·프로그램·회차(D31)·회원·수강·PT·예약·결제(D32)를, 이어서 근태·휴가·업무일지(D33)·문서(D34)·자산(D35)·게시판(D36)을 옮겼다. **`MockDataService`·`MockDataModule`과 과도기 미러(카탈로그·파견 이력·직원·계정)는 모두 삭제됐다** — 인메모리 저장소를 새로 만들지 말 것. 계약 종료 판정은 `BranchService.loadGate()`로 받은 gate(`src/modules/branches/branch-gate.ts`)로 한다. 예약 생성은 회차 행 락(`lockScheduleSlot`) 위에서 정원을 센다(ADR-RSV-01). "Prisma 스키마에 있으니 동작한다"고 가정하지 말 것 — 실제 동작 여부는 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2를 확인.
 - Write API는 권한관리(로그인/토큰갱신/로그아웃/비밀번호변경/Role전환)·인사정보관리(채용/파견/퇴사)·회원관리(등록/수정/상태전환)·근태관리(체크인/휴가/업무일지)·강사프로그램게시(강사 CRUD·프로그램 등록/수정/종료/상태전이·회차 등록)·게시판(작성/수정/삭제)·혼잡도관리(시설 등록/수정·수동 보정)·예약및결제(예약 생성/취소/체크인·모의결제)·자원문서관리(자산 CRUD·문서 CRUD)에 있다. 전 도메인이 최소 Phase 1 수준의 Write API를 갖췄다 — 정확한 도메인별 현황은 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2-2를 확인.
 - **admin-web 프론트엔드가 API를 못 따라간 경우가 있다.** 예: 인사정보관리(1-3)는 채용/파견/퇴사 API가 다 있는데 `StaffPage.tsx`가 조회 전용이라 화면에서는 할 수 없다(2-3문서 §2-2). "API가 있으니 화면도 있다"고 가정하지 말 것. (강사프로그램게시의 지점 현황판은 2026-09-18에 `BranchDetailPage.tsx`가 연결해 해소됨 — 아래 줄 참고.)
 - 모든 도메인에 코드가 있다. 1-4(근태관리)·1-5(게시판)·1-7(예약및결제, Phase 1+2 핵심만)·1-8(강사프로그램게시)·1-9(혼잡도관리, Phase 1만)는 2026-09-18에, 1-10(자원문서관리, Phase 1만 — 재물조사·감가상각·파일 업로드 없음)은 2026-09-19에 API+화면 모두 구현 완료.
@@ -105,7 +105,7 @@ npm run build   # tsc -b && vite build
 
 **도메인 불변식 — 코드를 바꿀 때 깨뜨리면 안 되는 것**
 - **지점 데이터 격리**: BRANCH_ADMIN은 자기 지점 데이터만 조회·수정한다(원본 RFP 핵심 요구사항). 지점 단위 데이터를 다루는 라우트를 추가·수정할 때는 **`apps/api/test/branch-isolation.spec.ts`의 공격 케이스 표에 그 라우트를 함께 추가**하고 다른 지점 ID로 접근했을 때 403/404가 나오는지 확인한다. 격리는 `BranchScopeGuard`(`branchId` 파라미터·쿼리만 검사)와 컨트롤러별 `assert*` 수작업의 조합이라 `:id` 라우트는 컨트롤러가 직접 검사해야 한다.
-  - **검사의 공통 가드 중앙화는 실DB 전환(MockDataService → PrismaService) 이후에 한다**(2026-09-20 결정, 2-3문서 §3 6번). mock 위에서 만들면 전환 때 다시 써야 하므로 그 전에는 착수하지 않는다. 그때까지는 위 테스트가 누락을 잡는 안전망이다.
+  - **검사의 공통 가드 중앙화는 실DB 전환(MockDataService → PrismaService) 이후에 한다**(2026-09-20 결정, 2-3문서 §3 6번). 이 전제조건은 D36(2026-09-29)으로 충족됐다 — 착수는 별도 결정(사용자 승인) 대상이고, 착수 전까지는 위 테스트가 누락을 잡는 안전망이다.
 - **계약 종료 지점 차단**: 계약 상태가 **`TERMINATED`**인 지점은 신규 회원 등록·예약 생성·게시글 신규 작성이 409(`BRANCH_TERMINATED`)로 막혀야 하고, 과거 데이터 조회는 유지한다(1-1문서 §2-1). `EXPIRED`·`RENEWAL_DUE`는 차단하지 않는다. TERMINATED 시 파견 직원의 파견 종료·재배치 대상 등록은 설계에 있으나 아직 미구현이다.
 - **인사 권한 분리**: 채용·재배치는 본사(SUPER_ADMIN)만 한다. BRANCH_ADMIN은 파견된 인력의 일상 관리만 한다.
 - `Branch`는 매장이 아니라 위탁계약 현장이고 `Staff`는 지점 소속이 아니라 본사 소속 파견 인력이다. "지점이 직원을 고용한다"는 전제로 코드·문서를 쓰지 않는다.

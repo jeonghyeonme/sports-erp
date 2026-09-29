@@ -3,15 +3,15 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { AllExceptionsFilter } from '../../src/common/filters/all-exceptions.filter';
-import { MOCK_DEMO_PASSWORD, MockDataService } from '../../src/mock-data/mock-data.service';
+import { MOCK_DEMO_PASSWORD } from '../../src/mock-data/demo-password';
 import { PrismaService } from '../../src/prisma/prisma.service';
 
 /**
  * 실제 서버(main.ts)와 같은 전역 설정으로 앱을 띄운다. main.ts의 bootstrap()은 listen까지 하므로
  * 재사용할 수 없어 설정을 여기에 복제했다 — main.ts의 전역 prefix/pipe/filter를 바꾸면 같이 바꿀 것.
  *
- * MockDataService는 인메모리 상태를 가지므로, 테스트 간 오염을 막기 위해 스위트마다 새 앱을 띄운다.
- * AppModule은 PrismaModule을 import하지 않아 DB 없이 부팅된다.
+ * D36부터 모든 도메인의 원천이 DB라(MockDataService 제거) 테스트 간 격리는 워커 DB 재생성(resetWorkerDb)이 맡는다.
+ * 앱은 여전히 스위트(또는 테스트)마다 새로 띄운다 — 인증 토큰 등 앱 인스턴스 상태를 섞지 않기 위해서다.
  */
 export async function createApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -23,11 +23,7 @@ export async function createApp(): Promise<INestApplication> {
   return app;
 }
 
-export function mockData(app: INestApplication): MockDataService {
-  return app.get(MockDataService);
-}
-
-/** DB가 원천인 도메인(지점·직원·시설·강사·프로그램·회차·회원·예약·결제·근태)의 상태는 여기로 읽고 쓴다. */
+/** 모든 도메인의 원천은 DB다(D36) — 테스트의 상태 확인·준비는 여기로 읽고 쓴다. */
 export function db(app: INestApplication): PrismaService {
   return app.get(PrismaService);
 }
