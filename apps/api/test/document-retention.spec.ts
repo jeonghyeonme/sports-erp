@@ -1,10 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ACCOUNTS, createApp, login, mockData } from './helpers/app';
+import { ACCOUNTS, createApp, db, login } from './helpers/app';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * 자원문서관리 도메인 — ADR-RES-03(CONTRACT 문서 보존기한 서버 필수화).
- * MockDataService가 인메모리 상태를 가지므로 테스트마다 새 앱을 띄운다.
+ * D34 — 문서 원천은 DB라 테스트마다 워커 DB를 되돌리고 새 앱을 띄운다.
  */
 describe('문서 보존기한 — CONTRACT 필수화', () => {
   let app: INestApplication;
@@ -15,6 +16,7 @@ describe('문서 보존기한 — CONTRACT 필수화', () => {
   });
 
   beforeEach(async () => {
+    await resetWorkerDb();
     app = await createApp();
     admin = await login(app, ACCOUNTS.seochoAdmin);
   });
@@ -61,13 +63,13 @@ describe('문서 보존기한 — CONTRACT 필수화', () => {
   });
 
   it('차단된 요청은 데이터를 남기지 않는다', async () => {
-    const before = mockData(app).documents.length;
+    const before = await db(app).document.count();
     const rejected = await api(admin).post('/documents', {
       category: 'CONTRACT',
       title: '보존기한 없는 계약서',
       fileUrl: 'https://files.example/no-retention.pdf',
     });
     expect(rejected.status).toBe(400);
-    expect(mockData(app).documents.length).toBe(before);
+    expect(await db(app).document.count()).toBe(before);
   });
 });

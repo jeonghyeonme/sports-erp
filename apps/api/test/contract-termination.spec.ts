@@ -97,7 +97,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
         m.posts.length,
         await prisma.facility.count(),
         m.assets.length,
-        m.documents.length,
+        await prisma.document.count(), // D34 — 문서 원천은 DB
       ];
       const before = await counts();
       await api(admin).post('/members', { name: '신규회원' });

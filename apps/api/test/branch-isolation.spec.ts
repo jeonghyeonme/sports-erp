@@ -50,17 +50,19 @@ describe('지점 데이터 격리', () => {
   beforeAll(async () => {
     app = await createApp();
     const m = mockData(app);
-    // D32 — 회원·시설·강사·프로그램·회차는 DB가 원천(미러 없음). 직원(D30 미러)·자산·문서·게시글은 mock.
+    // D32 — 회원·시설·강사·프로그램·회차는 DB가 원천(미러 없음). D34 — 직원·문서도 DB. 자산·게시글은 아직 mock.
     const prisma = db(app);
-    const [members, programs, facilities, instructors] = await Promise.all([
+    const [members, programs, facilities, instructors, staff, documents] = await Promise.all([
       prisma.member.findMany({ orderBy: { memberNo: 'asc' } }),
       prisma.program.findMany({ orderBy: { id: 'asc' } }),
       prisma.facility.findMany({ orderBy: { id: 'asc' } }),
       prisma.instructor.findMany({ orderBy: { id: 'asc' } }),
+      prisma.staff.findMany(), // 예전 직원 미러와 같은 순서(미러는 이 조회로 채워졌다)
+      prisma.document.findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } }),
     ]);
     for (const [k, email] of Object.entries(ACCOUNTS)) tok[k] = await login(app, email);
 
-    const first = <T extends { branchId?: string }>(arr: T[], branchId: string, what: string): T => {
+    const first = <T extends { branchId?: string | null }>(arr: T[], branchId: string, what: string): T => {
       const found = arr.find((x) => x.branchId === branchId);
       if (!found) throw new Error(`테스트 전제 위반: ${branchId}에 ${what} 시드 데이터가 없다`);
       return found;
@@ -86,23 +88,23 @@ describe('지점 데이터 격리', () => {
     await call(tok.seochoStaff, 'post', '/attendance/check-in');
     await call(tok.seochoStaff, 'post', '/work-logs', { date: '2026-09-20', content: '격리 테스트 업무일지' });
 
-    const seochoStaff = first(m.staff, BRANCH.seocho, '직원');
+    const seochoStaff = first(staff, BRANCH.seocho, '직원');
     const seochoMember = first(members, BRANCH.seocho, '회원');
     const seochoFacility = first(facilities, BRANCH.seocho, '시설');
     const seochoInstructor = first(instructors, BRANCH.seocho, '강사');
     const seochoAsset = first(m.assets, BRANCH.seocho, '자산');
-    const seochoDoc = first(m.documents, BRANCH.seocho, '문서');
+    const seochoDoc = first(documents, BRANCH.seocho, '문서');
     const seochoPost = first(m.posts, BRANCH.seocho, '게시글');
 
     const gm = first(members, BRANCH.gangnam, '회원');
-    const gs = first(m.staff, BRANCH.gangnam, '직원');
+    const gs = first(staff, BRANCH.gangnam, '직원');
     const gp = first(programs, BRANCH.gangnam, '프로그램');
     const gf = first(facilities, BRANCH.gangnam, '시설');
 
     const ownedBy = (branchId: string) =>
       [
-        ...members, ...m.staff, ...programs, ...facilities, ...instructors,
-        ...m.assets, ...m.documents, ...m.posts,
+        ...members, ...staff, ...programs, ...facilities, ...instructors,
+        ...m.assets, ...documents, ...m.posts,
       ]
         .filter((x) => (x.branchId ?? undefined) === branchId)
         .map((x) => x.id);
@@ -235,11 +237,14 @@ describe('지점 데이터 격리', () => {
   // 서버는 거부(403/404)하거나, 본문 branchId를 무시하고 요청자 본인 지점으로 만들 수 있다(현재 구현).
   // 어느 쪽이든 "서초점(피해 지점)에는 아무것도 생성되지 않는다"가 불변식이므로 저장소를 직접 확인한다.
   describe('본문에 타 지점 ID를 지정해도 타 지점에는 생성되지 않는다', () => {
-    const seochoCount = (kind: 'documents' | 'posts') =>
-      mockData(app)[kind].filter((x) => x.branchId === BRANCH.seocho).length;
+    // D34 — 문서는 DB, 게시글은 아직 mock.
+    const seochoCount = async (kind: 'documents' | 'posts') =>
+      kind === 'documents'
+        ? db(app).document.count({ where: { branchId: BRANCH.seocho, deletedAt: null } })
+        : mockData(app).posts.filter((x) => x.branchId === BRANCH.seocho).length;
 
     it('강남 관리자가 서초점 소속으로 문서를 등록해도 서초점에 문서가 늘지 않는다', async () => {
-      const before = seochoCount('documents');
+      const before = await seochoCount('documents');
       const res = await call(tok.gangnamAdmin, 'post', '/documents', {
         category: 'MANUAL',
         branchId: BRANCH.seocho,
@@ -248,10 +253,10 @@ describe('지점 데이터 격리', () => {
       });
       expect(res.status).toBeLessThan(500);
       if (res.status < 300) expect(res.body.data.branchId).not.toBe(BRANCH.seocho);
-      expect(seochoCount('documents')).toBe(before);
+      expect(await seochoCount('documents')).toBe(before);
     });
     it('강남 관리자가 서초점 소속으로 공지를 작성해도 서초점에 게시글이 늘지 않는다', async () => {
-      const before = seochoCount('posts');
+      const before = await seochoCount('posts');
       const res = await call(tok.gangnamAdmin, 'post', '/posts', {
         title: '침입 공지',
         content: 'x',
@@ -260,7 +265,7 @@ describe('지점 데이터 격리', () => {
       });
       expect(res.status).toBeLessThan(500);
       if (res.status < 300) expect(res.body.data.branchId).not.toBe(BRANCH.seocho);
-      expect(seochoCount('posts')).toBe(before);
+      expect(await seochoCount('posts')).toBe(before);
     });
   });
 

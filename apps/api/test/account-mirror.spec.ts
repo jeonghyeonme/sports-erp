@@ -5,11 +5,11 @@ import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
 import { resetWorkerDb } from './helpers/worker-db';
 
 /**
- * D30 — 직원·파견·관리자 계정의 원천은 DB이고, 아직 mock인 문서·게시판은 직원·계정 "미러"를 읽는다.
- * 미러가 DB와 어긋나면 문서 대상 직원 검사·작성자 이름이 조용히 틀어지므로 여기서 잡는다.
- * D33 — 파견 이력 미러의 유일한 독자(근태)가 DB로 옮겨져 파견 이력은 미러하지 않는다(DB만 확인).
+ * D30 — 직원·파견·관리자 계정의 원천은 DB이고, 아직 mock인 도메인은 mock "미러"를 읽는다.
+ * D33(근태)·D34(문서)로 파견 이력·직원 미러의 독자가 사라져, 남은 미러는 게시판이 작성자 이름을 읽는
+ * 관리자·직원 계정뿐이다. 미러가 DB와 어긋나면 작성자 이름이 조용히 틀어지므로 여기서 잡는다.
  */
-describe('직원 원천(DB)과 mock 미러', () => {
+describe('계정 원천(DB)과 mock 계정 미러', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const api = (token: string) => ({
@@ -25,32 +25,24 @@ describe('직원 원천(DB)과 mock 미러', () => {
     await app.close();
   });
 
-  it('앱이 뜨면 미러가 DB의 직원·관리자 계정 전체와 같다', async () => {
-    const [staff, accounts] = await Promise.all([
-      prisma.staff.count(),
-      prisma.account.count({ where: { role: { not: 'MEMBER' } } }),
-    ]);
+  it('앱이 뜨면 미러가 DB의 관리자·직원 계정 전체와 같다(회원 계정·직원 배열은 없다)', async () => {
+    const accounts = await prisma.account.count({ where: { role: { not: 'MEMBER' } } });
     const m = mockData(app);
-    expect(m.staff).toHaveLength(staff);
-    // D32 — 회원 계정도 DB로 가서 mock accounts에는 미러(관리자·직원)만 있다.
     expect(m.accounts).toHaveLength(accounts);
-    expect(staff).toBe(195);
-    // 대표 행 하나는 필드까지 비교(날짜는 KST YYYY-MM-DD, 빈 휴무 요일은 생략)
-    expect(m.staff.find((s) => s.id === 'staff-seoyeon')).toEqual({
-      id: 'staff-seoyeon',
-      accountId: 'account-seoyeon',
-      branchId: BRANCH.seocho,
-      staffCode: 'SEOCHO-002',
+    expect(m.accounts.some((a) => a.role === 'MEMBER')).toBe(false);
+    expect('staff' in m).toBe(false); // D34 — 직원 미러 제거
+    // 대표 행 하나는 필드까지 비교(지점·직원 id는 연결된 직원 행에서 온다)
+    expect(m.accounts.find((a) => a.id === 'account-seoyeon')).toMatchObject({
+      email: ACCOUNTS.seochoStaff,
+      role: 'STAFF',
       name: '박서연',
-      phone: '010-2222-3333',
-      position: '트레이너',
-      employmentType: '정규직',
-      hireDate: '2022-07-11',
-      status: 'ACTIVE',
+      isActive: true,
+      branchId: BRANCH.seocho,
+      staffId: 'staff-seoyeon',
     });
   });
 
-  it('채용: DB 시퀀스로 직원번호가 나오고(시드 다음 번호) 미러에 직원·계정이, DB에 최초 파견이 들어간다', async () => {
+  it('채용: DB 시퀀스로 직원번호가 나오고(시드 다음 번호) DB에 직원·최초 파견이, 미러에 계정이 들어간다', async () => {
     const res = await api(await login(app, ACCOUNTS.superAdmin)).post('/staff', {
       branchId: BRANCH.seocho,
       name: '신규채용',
@@ -61,7 +53,7 @@ describe('직원 원천(DB)과 mock 미러', () => {
 
     const id = res.body.data.id as string;
     const m = mockData(app);
-    expect(m.staff.find((s) => s.id === id)).toMatchObject({ staffCode: 'SEOCHO-003' });
+    expect(await prisma.staff.findUniqueOrThrow({ where: { id } })).toMatchObject({ staffCode: 'SEOCHO-003' });
     expect(await prisma.staffAssignment.count({ where: { staffId: id } })).toBe(1);
     expect(m.accounts.find((a) => a.email === 'new.hire@spoism.example')).toMatchObject({ role: 'STAFF', staffId: id });
     // 새 직원은 바로 로그인된다(계정이 DB에 있음)
@@ -80,7 +72,7 @@ describe('직원 원천(DB)과 mock 미러', () => {
     expect(memberEmail.body.error.code).toBe('EMAIL_ALREADY_EXISTS');
   });
 
-  it('파견: DB의 지점·파견 이력과 미러의 지점이 함께 바뀌고, 회원의 담당도 같은 트랜잭션에서 풀린다', async () => {
+  it('파견: DB의 지점·파견 이력과 미러 계정의 지점이 함께 바뀌고, 회원의 담당도 같은 트랜잭션에서 풀린다', async () => {
     const res = await api(await login(app, ACCOUNTS.superAdmin)).post('/staff/staff-seoyeon/assignments', {
       branchId: BRANCH.gangnam,
     });
@@ -89,7 +81,7 @@ describe('직원 원천(DB)과 mock 미러', () => {
     const db = await prisma.staff.findUniqueOrThrow({ where: { id: 'staff-seoyeon' } });
     const m = mockData(app);
     expect(db.branchId).toBe(BRANCH.gangnam);
-    expect(m.staff.find((s) => s.id === 'staff-seoyeon')!.branchId).toBe(BRANCH.gangnam);
+    expect(m.accounts.find((a) => a.id === 'account-seoyeon')!.branchId).toBe(BRANCH.gangnam);
     expect(await prisma.staffAssignment.findMany({ where: { staffId: 'staff-seoyeon', endDate: null } })).toEqual([
       expect.objectContaining({ branchId: BRANCH.gangnam }),
     ]);

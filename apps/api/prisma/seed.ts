@@ -10,6 +10,7 @@ import { allBranchRecords } from '../src/mock-data/branch-fixtures';
 import { staffSeed } from '../src/mock-data/staff-fixtures';
 import { catalogSeed } from '../src/mock-data/catalog-fixtures';
 import { memberSeed } from '../src/mock-data/member-fixtures';
+import { documentSeed } from '../src/mock-data/document-fixtures';
 
 const prisma = new PrismaClient();
 
@@ -221,6 +222,23 @@ async function main() {
     await prisma.pTSessionLog.upsert({ where: { id: log.id }, update: data, create: { id: log.id, ...data } });
   }
   const sujinMember = { id: 'member-sujin' };
+
+  // ── 문서 — D34: 원천은 DB(document-fixtures.ts). update에도 같은 값을 넣어 다시 돌리면 원천과 맞춰진다 ─────
+  for (const d of documentSeed()) {
+    const data = {
+      category: d.category,
+      branchId: d.branchId ?? null,
+      relatedStaffId: d.relatedStaffId ?? null,
+      title: d.title,
+      fileUrl: d.fileUrl,
+      fileType: d.fileType ?? null,
+      fileSize: d.fileSize ?? null,
+      uploadedBy: d.uploadedBy,
+      retentionUntil: d.retentionUntil ? new Date(`${d.retentionUntil}T00:00:00Z`) : null,
+      createdAt: new Date(d.createdAt),
+    };
+    await prisma.document.upsert({ where: { id: d.id }, update: data, create: { id: d.id, ...data } });
+  }
 
   // ── 게시판 ────────────────────────────────────────
   await prisma.post.create({

@@ -1,17 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { addYearsToDateString, toKstDateString, todayKst } from '../common/date/kst-date';
+import { todayKst } from '../common/date/kst-date';
 import {
   AssetCategory,
   AssetStatus,
   AssetType,
-  DocumentCategory,
   MockAccount,
   MockAsset,
-  MockDocument,
   MockBranch,
   MockPost,
-  MockStaff,
   PostScope,
   Role,
 } from './mock-data.types';
@@ -42,13 +39,9 @@ export class MockDataService {
   readonly branches: MockBranch[] = [...HERO_BRANCHES, ...this.generated.branches].map(toMockBranch);
 
   // D30 — 관리자·직원 계정은 DB가 원천이고 여기에는 앱이 뜰 때 채우는 미러(StaffService)가 들어온다.
-  // D32 — 회원 계정도 DB로 옮겨져 mock이 원천인 계정은 없다. 게시판·문서가 작성자 이름을 읽는 용도로만 남는다.
+  // D32 — 회원 계정도 DB로 옮겨져 mock이 원천인 계정은 없다. 게시판이 작성자 이름을 읽는 용도로만 남는다.
+  // 다른 미러는 독자가 DB로 옮겨지며 없앴다 — 카탈로그(D32), 파견 이력(D33, 근태), 직원(D34, 문서).
   readonly accounts: MockAccount[] = [];
-
-  // D30 — 직원의 원천은 DB다. 이 배열은 아직 mock인 문서가 동기적으로 읽는 미러로, StaffService가 앱이 뜰 때
-  // DB 전체로 채우고 직원 쓰기 뒤 해당 직원만 갱신한다(replace/upsertStaffMirror).
-  // D31의 시설·강사·프로그램·회차 미러는 D32로, 파견 이력 미러는 D33(근태 이관)으로 독자가 사라져 없앴다.
-  readonly staff: MockStaff[] = [];
 
   // 1-10문서 §4 — 서초점 데모 자산. 러닝머신은 100만원 초과라 FIXED_ASSET, 소독제는 CONSUMABLE.
   readonly assets: MockAsset[] = [
@@ -91,32 +84,6 @@ export class MockDataService {
       acquisitionCost: 45000,
       status: 'NORMAL',
       quantity: 12,
-    },
-  ];
-
-  // 1-10문서 §5 — 전사 매뉴얼(영구 보관) + 서초점 위탁계약서(수동 보존기한, 임박 목록 시연용).
-  readonly documents: MockDocument[] = [
-    {
-      id: 'doc-hq-manual',
-      category: 'MANUAL',
-      title: 'ERP 이용자 매뉴얼 v1',
-      fileUrl: 'https://files.example/spoism/erp-manual-v1.pdf',
-      fileType: 'pdf',
-      fileSize: 2048000,
-      uploadedBy: 'account-haneul',
-      createdAt: '2026-08-20T09:00:00.000Z',
-    },
-    {
-      id: 'doc-seocho-contract',
-      category: 'CONTRACT',
-      branchId: 'branch-seocho',
-      title: '서초점 위탁운영계약서',
-      fileUrl: 'https://files.example/spoism/seocho-contract.pdf',
-      fileType: 'pdf',
-      fileSize: 1024000,
-      uploadedBy: 'account-haneul',
-      retentionUntil: '2026-10-05',
-      createdAt: '2026-01-05T09:00:00.000Z',
     },
   ];
 
@@ -248,42 +215,20 @@ export class MockDataService {
     return post;
   }
 
-  findStaffById(id: string): MockStaff | undefined {
-    return this.staff.find((s) => s.id === id);
+  // ── D30 계정 미러 — StaffService만 쓴다(원천은 DB) ─────────────────────────────
+
+  /** 앱이 뜰 때 DB의 관리자·직원 계정 전체로 미러를 채운다. 배열 참조는 유지한다(readonly 필드를 다른 코드가 붙잡고 있을 수 있음). */
+  replaceAccountMirror(accounts: MockAccount[]): void {
+    this.accounts.splice(0, this.accounts.length, ...accounts);
   }
 
-  // ── D30 직원 미러 — StaffService만 쓴다(원천은 DB) ─────────────────────────────
-
-  /** 앱이 뜰 때 DB 전체로 미러를 채운다. 배열 참조는 유지한다(readonly 필드를 다른 코드가 붙잡고 있을 수 있음). */
-  replaceStaffMirror(data: { staff: MockStaff[]; accounts: MockAccount[] }): void {
-    this.staff.splice(0, this.staff.length, ...data.staff);
-    const memberAccounts = this.accounts.filter((a) => a.role === 'MEMBER');
-    this.accounts.splice(0, this.accounts.length, ...data.accounts, ...memberAccounts);
+  /** 직원 쓰기가 커밋된 뒤 그 직원의 계정 하나를 교체한다. */
+  upsertAccountMirror(account: MockAccount): void {
+    const i = this.accounts.findIndex((a) => a.id === account.id);
+    if (i >= 0) this.accounts[i] = account;
+    else this.accounts.push(account);
   }
 
-  /** 직원 쓰기가 커밋된 뒤 그 직원 한 명(직원·계정)을 교체한다. */
-  upsertStaffMirror(data: { staff: MockStaff; account: MockAccount }): void {
-    const replace = <T extends { id: string }>(arr: T[], item: T) => {
-      const i = arr.findIndex((x) => x.id === item.id);
-      if (i >= 0) arr[i] = item;
-      else arr.push(item);
-    };
-    replace(this.staff, data.staff);
-    replace(this.accounts, data.account);
-  }
-
-
-  // ADR-RES-02 — 재직 중 업로드된 HR_RECORD 문서는 업로드 시점의 임시값(업로드일+3년)으로 보존기한이 고정돼 있었다.
-  // 법정 기산일(근로관계 종료일)이 확정되는 퇴사 시점에 퇴사일+3년으로 다시 계산한다. 문서의 원천은 아직 mock이라
-  // StaffService.resign이 DB 커밋 뒤 부른다(D30 결정 3).
-  recalculateHrRetention(staffId: string, resignDate: string): void {
-    const retentionUntil = this.addYears(resignDate, 3);
-    this.documents
-      .filter((d) => d.category === 'HR_RECORD' && d.relatedStaffId === staffId && !d.deletedAt)
-      .forEach((d) => {
-        d.retentionUntil = retentionUntil;
-      });
-  }
 
   findAssetById(id: string): MockAsset | undefined {
     return this.assets.find((a) => a.id === id);
@@ -397,108 +342,4 @@ export class MockDataService {
     return asset;
   }
 
-  findDocumentById(id: string): MockDocument | undefined {
-    return this.documents.find((d) => d.id === id && !d.deletedAt);
-  }
-
-  private addYears(date: string, years: number): string {
-    return addYearsToDateString(date, years);
-  }
-
-  // 1-10문서 §5-6 — HR_RECORD는 근로관계 종료일(없으면 업로드일)+3년, CONTRACT는 관리자 직접 입력
-  // (계약 유형마다 법정 기간이 달라 일괄 자동계산 안 함), MANUAL/OTHER는 영구 보관(null).
-  private computeRetentionUntil(
-    category: DocumentCategory,
-    relatedStaffId: string | undefined,
-    manualRetentionUntil: string | undefined,
-  ): string | undefined {
-    if (category === 'CONTRACT') return manualRetentionUntil;
-    if (category === 'HR_RECORD') {
-      const staff = relatedStaffId ? this.findStaffById(relatedStaffId) : undefined;
-      const base = staff?.resignDate ?? todayKst();
-      return this.addYears(base, 3);
-    }
-    return undefined;
-  }
-
-  // 1-10문서 §5 POST /documents — 권한·지점 강제는 컨트롤러에서 한다.
-  // ADR-RES-01 — 계약종료(TERMINATED) 지점의 신규 문서 업로드 차단. branchId=null(전사 문서)은
-  // 특정 지점 계약 상태와 무관하므로 대상 아님.
-  createDocument(
-    uploadedBy: string,
-    input: {
-      category: DocumentCategory;
-      branchId?: string;
-      relatedStaffId?: string;
-      title: string;
-      fileUrl: string;
-      fileType?: string;
-      fileSize?: number;
-      retentionUntil?: string;
-    },
-    gate: BranchGate,
-  ): MockDocument {
-    if (input.branchId) {
-      const branch = this.findBranchById(input.branchId);
-      if (!branch) {
-        throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
-      }
-      if (gate.isTerminated(input.branchId)) {
-        throw new AppException(
-          'BRANCH_TERMINATED',
-          '위탁계약이 종료된 지점에는 새 문서를 등록할 수 없습니다.',
-          409,
-        );
-      }
-    }
-    if (input.category === 'HR_RECORD') {
-      if (!input.relatedStaffId) {
-        throw new AppException('STAFF_REQUIRED', '인사서류는 대상 직원을 지정해야 합니다.', 400);
-      }
-      if (!this.findStaffById(input.relatedStaffId)) {
-        throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
-      }
-    }
-    // ADR-RES-03 — CONTRACT는 자동계산이 없어(§5-6) 미입력을 허용하면 조용히 "영구 보관" 취급되어
-    // retention-alerts에 영원히 안 뜬다. STAFF_REQUIRED와 동일한 패턴으로 서버에서 필수화한다.
-    if (input.category === 'CONTRACT' && !input.retentionUntil) {
-      throw new AppException(
-        'RETENTION_UNTIL_REQUIRED',
-        '계약서 문서는 보존기한을 직접 입력해야 합니다.',
-        400,
-      );
-    }
-    const document: MockDocument = {
-      id: `doc-${randomUUID()}`,
-      category: input.category,
-      branchId: input.branchId,
-      relatedStaffId: input.category === 'HR_RECORD' ? input.relatedStaffId : undefined,
-      title: input.title,
-      fileUrl: input.fileUrl,
-      fileType: input.fileType,
-      fileSize: input.fileSize,
-      uploadedBy,
-      retentionUntil: this.computeRetentionUntil(input.category, input.relatedStaffId, input.retentionUntil),
-      createdAt: new Date().toISOString(),
-    };
-    this.documents.push(document);
-    return document;
-  }
-
-  // D9 소프트 삭제 — 계약·인사 분쟁 시 감사 목적으로 복구 가능해야 한다.
-  deleteDocument(id: string): void {
-    const document = this.findDocumentById(id);
-    if (!document) {
-      throw new AppException('DOCUMENT_NOT_FOUND', '문서를 찾을 수 없습니다.', 404);
-    }
-    document.deletedAt = new Date().toISOString();
-  }
-
-  // §5-6 — 보존기한이 지난 문서도 자동 삭제하지 않고 경고 대상으로 남긴다(법정 의무는 "최소" 보존기간).
-  listRetentionAlerts(withinDays = 30): MockDocument[] {
-    const limitStr = toKstDateString(new Date(Date.now() + withinDays * 24 * 60 * 60 * 1000));
-    return this.documents
-      .filter((d) => !d.deletedAt && d.retentionUntil !== undefined && d.retentionUntil <= limitStr)
-      .sort((a, b) => a.retentionUntil!.localeCompare(b.retentionUntil!));
-  }
 }
