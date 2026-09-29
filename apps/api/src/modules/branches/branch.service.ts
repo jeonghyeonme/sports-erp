@@ -30,6 +30,30 @@ export class BranchService {
     return this.prisma.branch.findMany({ where: { id: user.branchId } });
   }
 
+  /**
+   * 지점 목록의 건수 — D32로 회원·직원·프로그램이 전부 DB가 되어 mock 집계(branchCounts)를 대신한다.
+   * 예전 mock과 같은 정의: 회원·직원은 상태와 무관하게 전부, 프로그램은 RUNNING만.
+   */
+  async counts(branchIds: string[]): Promise<Map<string, { memberCount: number; staffCount: number; runningProgramCount: number }>> {
+    const [members, staff, programs] = await Promise.all([
+      this.prisma.member.groupBy({ by: ['branchId'], where: { branchId: { in: branchIds } }, _count: { _all: true } }),
+      this.prisma.staff.groupBy({ by: ['branchId'], where: { branchId: { in: branchIds } }, _count: { _all: true } }),
+      this.prisma.program.groupBy({
+        by: ['branchId'],
+        where: { branchId: { in: branchIds }, status: 'RUNNING' },
+        _count: { _all: true },
+      }),
+    ]);
+    const of = (rows: Array<{ branchId: string; _count: { _all: number } }>, id: string) =>
+      rows.find((r) => r.branchId === id)?._count._all ?? 0;
+    return new Map(
+      branchIds.map((id) => [
+        id,
+        { memberCount: of(members, id), staffCount: of(staff, id), runningProgramCount: of(programs, id) },
+      ]),
+    );
+  }
+
   /** API 응답 형식 — @db.Date 컬럼을 "YYYY-MM-DD"로(이관 전 mock 응답과 같은 형식). */
   static toContractView(branch: Branch) {
     return {

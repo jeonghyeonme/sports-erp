@@ -3,7 +3,6 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
-import { MockDataService } from '../../mock-data/mock-data.service';
 import { ProgramService } from './program.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MockProgram } from '../../mock-data/mock-data.types';
@@ -17,10 +16,7 @@ import { CreateScheduleSlotDto } from './dto/create-schedule-slot.dto';
 @Controller('programs')
 @UseGuards(BranchScopeGuard)
 export class ProgramsController {
-  constructor(
-    private readonly programService: ProgramService,
-    private readonly mockData: MockDataService,
-  ) {}
+  constructor(private readonly programService: ProgramService) {}
 
   @Get()
   async list(
@@ -50,7 +46,7 @@ export class ProgramsController {
 
   // 07문서 §5 상태 전이(§3-2 표의 허용 전이만 통과, 위반 시 409) — BRANCH_ADMIN 본인 지점만(§7).
   // ADR-PRG-02 — 응답에 이 프로그램의 오늘 이후 유효 예약 건수·목록을 포함해, 알림 인프라 없이도
-  // 관리자가 "몇 명에게 영향이 가는지"를 전이 즉시 알 수 있게 한다. 예약은 아직 mock이라 mock에서 센다(D31).
+  // 관리자가 "몇 명에게 영향이 가는지"를 전이 즉시 알 수 있게 한다. 예약도 D32부터 DB에서 센다.
   @Patch(':id/status')
   @Roles('BRANCH_ADMIN')
   async updateStatus(
@@ -60,7 +56,7 @@ export class ProgramsController {
   ) {
     this.assertOwnBranch(await this.findProgramOrThrow(id), user);
     const updated = await this.programService.updateStatus(id, dto.status);
-    const affectedReservations = this.mockData.futureActiveReservationsForProgram(id);
+    const affectedReservations = await this.programService.futureActiveReservations(id);
     return ok({ ...updated, affectedReservations });
   }
 
@@ -71,7 +67,7 @@ export class ProgramsController {
   async remove(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     this.assertOwnBranch(await this.findProgramOrThrow(id), user);
     const updated = await this.programService.updateStatus(id, 'ENDED');
-    const affectedReservations = this.mockData.futureActiveReservationsForProgram(id);
+    const affectedReservations = await this.programService.futureActiveReservations(id);
     return ok({ ...updated, affectedReservations });
   }
 

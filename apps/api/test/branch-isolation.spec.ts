@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { ACCOUNTS, BRANCH, createApp, db, login, mockData } from './helpers/app';
 
 /**
  * 지점 데이터 격리 — 원본 RFP 핵심 요구사항("타 지점 조회 불가", CLAUDE.md 프로젝트 가드레일).
@@ -50,6 +50,14 @@ describe('지점 데이터 격리', () => {
   beforeAll(async () => {
     app = await createApp();
     const m = mockData(app);
+    // D32 — 회원·시설·강사·프로그램·회차는 DB가 원천(미러 없음). 직원(D30 미러)·자산·문서·게시글은 mock.
+    const prisma = db(app);
+    const [members, programs, facilities, instructors] = await Promise.all([
+      prisma.member.findMany({ orderBy: { memberNo: 'asc' } }),
+      prisma.program.findMany({ orderBy: { id: 'asc' } }),
+      prisma.facility.findMany({ orderBy: { id: 'asc' } }),
+      prisma.instructor.findMany({ orderBy: { id: 'asc' } }),
+    ]);
     for (const [k, email] of Object.entries(ACCOUNTS)) tok[k] = await login(app, email);
 
     const first = <T extends { branchId?: string }>(arr: T[], branchId: string, what: string): T => {
@@ -57,10 +65,14 @@ describe('지점 데이터 격리', () => {
       if (!found) throw new Error(`테스트 전제 위반: ${branchId}에 ${what} 시드 데이터가 없다`);
       return found;
     };
-    const seochoProgramIds = m.programs.filter((p) => p.branchId === BRANCH.seocho).map((p) => p.id);
-    const slot = m.scheduleSlots.find((s) => seochoProgramIds.includes(s.programId));
+    const seochoProgramIds = programs.filter((p) => p.branchId === BRANCH.seocho).map((p) => p.id);
+    const seochoSlots = await prisma.scheduleSlot.findMany({
+      where: { programId: { in: seochoProgramIds } },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { id: 'asc' }],
+    });
+    const slot = seochoSlots[0];
     if (!slot) throw new Error('테스트 전제 위반: 서초점 회차(slot) 시드 데이터가 없다');
-    const runningSeochoProgram = m.programs.find((p) => p.id === slot.programId)!;
+    const runningSeochoProgram = programs.find((p) => p.id === slot.programId)!;
 
     // 예약·휴가·근태·업무일지는 시드에 없어 실제 API로 만든다(서초점 소속 계정으로).
     const resv = await call(tok.seochoMember, 'post', '/reservations', { scheduleSlotId: slot.id });
@@ -75,24 +87,24 @@ describe('지점 데이터 격리', () => {
     await call(tok.seochoStaff, 'post', '/work-logs', { date: '2026-09-20', content: '격리 테스트 업무일지' });
 
     const seochoStaff = first(m.staff, BRANCH.seocho, '직원');
-    const seochoMember = first(m.members, BRANCH.seocho, '회원');
-    const seochoFacility = first(m.facilities, BRANCH.seocho, '시설');
-    const seochoInstructor = first(m.instructors, BRANCH.seocho, '강사');
+    const seochoMember = first(members, BRANCH.seocho, '회원');
+    const seochoFacility = first(facilities, BRANCH.seocho, '시설');
+    const seochoInstructor = first(instructors, BRANCH.seocho, '강사');
     const seochoAsset = first(m.assets, BRANCH.seocho, '자산');
     const seochoDoc = first(m.documents, BRANCH.seocho, '문서');
     const seochoPost = first(m.posts, BRANCH.seocho, '게시글');
 
-    const gm = first(m.members, BRANCH.gangnam, '회원');
+    const gm = first(members, BRANCH.gangnam, '회원');
     const gs = first(m.staff, BRANCH.gangnam, '직원');
-    const gp = first(m.programs, BRANCH.gangnam, '프로그램');
-    const gf = first(m.facilities, BRANCH.gangnam, '시설');
+    const gp = first(programs, BRANCH.gangnam, '프로그램');
+    const gf = first(facilities, BRANCH.gangnam, '시설');
 
     const ownedBy = (branchId: string) =>
       [
-        ...m.members, ...m.staff, ...m.programs, ...m.facilities, ...m.instructors,
+        ...members, ...m.staff, ...programs, ...facilities, ...instructors,
         ...m.assets, ...m.documents, ...m.posts,
       ]
-        .filter((x) => x.branchId === branchId)
+        .filter((x) => (x.branchId ?? undefined) === branchId)
         .map((x) => x.id);
 
     ctx = {
@@ -108,7 +120,7 @@ describe('지점 데이터 격리', () => {
         postId: seochoPost.id,
         reservationId: resv.body.data.reservation?.id ?? resv.body.data.id,
         leaveId: leave.body.data.id,
-        ids: [...ownedBy(BRANCH.seocho), ...m.scheduleSlots.filter((s) => seochoProgramIds.includes(s.programId)).map((s) => s.id)],
+        ids: [...ownedBy(BRANCH.seocho), ...seochoSlots.map((s) => s.id)],
       },
       gangnam: { memberId: gm.id, staffId: gs.id, programId: gp.id, facilityId: gf.id, ids: ownedBy(BRANCH.gangnam) },
     };
@@ -277,7 +289,7 @@ describe('지점 데이터 격리', () => {
       expect(slot.status).toBe(201);
       const res = await call(tok.seochoMember, 'post', '/reservations', { scheduleSlotId: slot.body.data.id });
       expect(FOREIGN).toContain(res.status);
-      expect(mockData(app).reservations.filter((r) => r.scheduleSlotId === slot.body.data.id)).toEqual([]);
+      expect(await db(app).reservation.count({ where: { scheduleSlotId: slot.body.data.id } })).toBe(0);
     });
     it('회원은 회원 목록 API를 쓸 수 없다', async () => {
       expect((await call(tok.seochoMember, 'get', '/members')).status).toBe(403);

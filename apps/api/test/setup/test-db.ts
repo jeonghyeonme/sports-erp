@@ -33,3 +33,31 @@ export function databaseName(url: string): string {
 export function workerDatabaseName(base: string, workerId: string | number): string {
   return `${databaseName(base)}_w${workerId}`;
 }
+
+type RawExecutor = { $executeRawUnsafe(query: string): Promise<number> };
+const errorCode = (e: unknown) => (e as { meta?: { code?: string } }).meta?.code ?? String(e);
+
+/**
+ * 테스트 DB 삭제 — D32에서 드러난 간헐 실패 대응.
+ *
+ * `WITH (FORCE)`는 그 DB에 붙은 모든 프로세스를 호출자 권한으로 종료하려 한다. 테스트가 DB에 쓴 직후 PostgreSQL
+ * autovacuum이 그 DB에서 돌고 있으면, 테스트 계정(비superuser)은 그 프로세스를 종료할 권한이 없어 42501로 실패한다
+ * (D32로 테스트마다 DB를 다시 만드는 스위트가 늘며 자주 보이게 됐고, D30 로그의 "설명 안 된 smoke 실패"도 같은 원인
+ * 후보다). FORCE 없는 DROP은 서버가 autovacuum을 직접 멈추고 기다리므로 권한이 필요 없다. 그래서 FORCE를 먼저 쓰고,
+ * 권한 오류면 FORCE 없이, 아직 다른 연결이 남아 있으면(55006 — 방금 닫은 앱의 연결 정리 지연) 잠깐 기다렸다 다시 한다.
+ */
+export async function dropDatabase(admin: RawExecutor, name: string): Promise<void> {
+  const force = `DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`;
+  const plain = `DROP DATABASE IF EXISTS "${name}"`;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await admin.$executeRawUnsafe(attempt === 0 ? force : plain);
+      return;
+    } catch (e) {
+      const code = errorCode(e);
+      const retryable = code.includes('42501') || code.includes('55006');
+      if (!retryable || attempt >= 20) throw e;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  }
+}

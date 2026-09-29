@@ -33,7 +33,8 @@ describe('직원 원천(DB)과 mock 미러', () => {
     const m = mockData(app);
     expect(m.staff).toHaveLength(staff);
     expect(m.staffAssignments).toHaveLength(assignments);
-    expect(m.accounts.filter((a) => a.role !== 'MEMBER')).toHaveLength(accounts);
+    // D32 — 회원 계정도 DB로 가서 mock accounts에는 미러(관리자·직원)만 있다.
+    expect(m.accounts).toHaveLength(accounts);
     expect(staff).toBe(195);
     // 대표 행 하나는 필드까지 비교(날짜는 KST YYYY-MM-DD, 빈 휴무 요일은 생략)
     expect(m.staff.find((s) => s.id === 'staff-seoyeon')).toEqual({
@@ -71,7 +72,7 @@ describe('직원 원천(DB)과 mock 미러', () => {
     })).status).toBe(200);
   });
 
-  it('채용: 이메일은 DB 직원 계정과도, 아직 mock에 있는 회원 계정과도 겹치면 409', async () => {
+  it('채용: 이메일은 직원 계정과도, 회원 계정과도 겹치면 409(D32부터 둘 다 DB)', async () => {
     const hq = api(await login(app, ACCOUNTS.superAdmin));
     const staffEmail = await hq.post('/staff', { branchId: BRANCH.seocho, name: 'x', email: ACCOUNTS.seochoStaff });
     const memberEmail = await hq.post('/staff', { branchId: BRANCH.seocho, name: 'x', email: ACCOUNTS.seochoMember });
@@ -80,7 +81,7 @@ describe('직원 원천(DB)과 mock 미러', () => {
     expect(memberEmail.body.error.code).toBe('EMAIL_ALREADY_EXISTS');
   });
 
-  it('파견: DB와 미러의 지점·파견 이력이 함께 바뀌고, mock 회원의 담당도 풀린다', async () => {
+  it('파견: DB와 미러의 지점·파견 이력이 함께 바뀌고, 회원의 담당도 같은 트랜잭션에서 풀린다', async () => {
     const res = await api(await login(app, ACCOUNTS.superAdmin)).post('/staff/staff-seoyeon/assignments', {
       branchId: BRANCH.gangnam,
     });
@@ -93,8 +94,8 @@ describe('직원 원천(DB)과 mock 미러', () => {
     expect(m.staffAssignments.filter((a) => a.staffId === 'staff-seoyeon' && !a.endDate)).toEqual([
       expect.objectContaining({ branchId: BRANCH.gangnam }),
     ]);
-    expect(m.members.filter((x) => x.assignedStaffId === 'staff-seoyeon' && x.branchId !== BRANCH.gangnam)).toEqual([]);
-    // DB 쪽 회원(시드의 이수진)도 같은 트랜잭션에서 담당이 풀렸다 — 안 풀렸으면 D28 트리거가 파견 자체를 거부했을 것
+    // 회원(시드의 이수진)도 같은 트랜잭션에서 담당이 풀렸다 — 안 풀렸으면 D28 트리거가 파견 자체를 거부했을 것
     expect((await prisma.member.findUniqueOrThrow({ where: { id: 'member-sujin' } })).assignedStaffId).toBeNull();
+    expect(await prisma.member.count({ where: { assignedStaffId: 'staff-seoyeon', branchId: { not: BRANCH.gangnam } } })).toBe(0);
   });
 });
