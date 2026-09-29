@@ -16,7 +16,8 @@ const dateOf = (d: string) => new Date(`${d}T00:00:00Z`);
 /**
  * 직원·파견·관리자 계정 — D30(2-1_기술결정사항.md). 원천은 DB다.
  *
- * 아직 mock인 근태·휴가·업무일지·문서·작성자 이름이 직원을 동기적으로 읽으므로, mock에는 "미러"를 둔다.
+ * 아직 mock인 문서·작성자 이름이 직원·계정을 동기적으로 읽으므로, mock에는 "미러"를 둔다
+ * (근태는 D33으로 DB로 옮겨 파견 이력 미러는 없앴다).
  * 앱이 뜰 때(onModuleInit) DB 전체로 채우고, 이 서비스의 쓰기가 커밋된 뒤 해당 직원만 다시 읽어 갱신한다.
  * 미러는 이 서비스만 쓴다 — 직원을 바꾸는 다른 경로가 생기면 미러가 낡는다.
  */
@@ -28,15 +29,13 @@ export class StaffService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    const [staff, assignments, accounts] = await Promise.all([
+    const [staff, accounts] = await Promise.all([
       this.prisma.staff.findMany(),
-      this.prisma.staffAssignment.findMany(),
       this.prisma.account.findMany({ where: { role: { not: 'MEMBER' } } }),
     ]);
     const staffByAccount = new Map(staff.map((s) => [s.accountId, s]));
     this.mockData.replaceStaffMirror({
       staff: staff.map(toMockStaff),
-      assignments: assignments.map(toMockAssignment),
       accounts: accounts.map((a) => toMockAccount(a, staffByAccount.get(a.id))),
     });
   }
@@ -254,15 +253,14 @@ export class StaffService implements OnModuleInit {
     return (await this.listWithRole()).find((s) => s.staffId === staffId);
   }
 
-  /** 커밋된 직원 한 명(직원·파견 이력·계정)을 다시 읽어 mock 미러를 갱신하고 응답 형식으로 돌려준다. */
+  /** 커밋된 직원 한 명(직원·계정)을 다시 읽어 mock 미러를 갱신하고 응답 형식으로 돌려준다. */
   private async afterWrite(staffId: string): Promise<StaffView> {
     const row = await this.prisma.staff.findUniqueOrThrow({
       where: { id: staffId },
-      include: { branch: { select: { name: true } }, account: true, assignments: true },
+      include: { branch: { select: { name: true } }, account: true },
     });
     this.mockData.upsertStaffMirror({
       staff: toMockStaff(row),
-      assignments: row.assignments.map(toMockAssignment),
       account: toMockAccount(row.account, row),
     });
     return toView(row);

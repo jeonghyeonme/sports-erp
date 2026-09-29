@@ -27,7 +27,7 @@ export function mockData(app: INestApplication): MockDataService {
   return app.get(MockDataService);
 }
 
-/** DB가 원천인 도메인(지점·직원·시설·강사·프로그램·회차·회원·예약·결제)의 상태는 여기로 읽고 쓴다. */
+/** DB가 원천인 도메인(지점·직원·시설·강사·프로그램·회차·회원·예약·결제·근태)의 상태는 여기로 읽고 쓴다. */
 export function db(app: INestApplication): PrismaService {
   return app.get(PrismaService);
 }

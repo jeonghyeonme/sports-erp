@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-import { MockDataService } from '../../mock-data/mock-data.service';
+import { AttendanceService } from './attendance.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { ok } from '../../common/http/api-response';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
@@ -13,40 +13,38 @@ import { ConfirmAbsencesDto } from './dto/confirm-absences.dto';
 // STAFF와 동일하게 셀프서비스한다. "본인 지점 조회 + 휴가 승인"은 그 위에 얹히는 관리 권한이다.
 @Controller()
 export class AttendanceController {
-  constructor(private readonly mockData: MockDataService) {}
+  constructor(private readonly attendance: AttendanceService) {}
 
   @Post('attendance/check-in')
   @Roles('BRANCH_ADMIN', 'STAFF')
-  checkIn(@CurrentUser() user: RequestUser) {
-    return ok(this.mockData.checkIn(this.requireStaffId(user)));
+  async checkIn(@CurrentUser() user: RequestUser) {
+    return ok(await this.attendance.checkIn(this.requireStaffId(user)));
   }
 
   @Post('attendance/check-out')
   @Roles('BRANCH_ADMIN', 'STAFF')
-  checkOut(@CurrentUser() user: RequestUser) {
-    return ok(this.mockData.checkOut(this.requireStaffId(user)));
+  async checkOut(@CurrentUser() user: RequestUser) {
+    return ok(await this.attendance.checkOut(this.requireStaffId(user)));
   }
 
   // 03문서 §5 GET /attendance?staffId=&month= — staffId 생략 시 본인 기준(SUPER_ADMIN 제외).
   @Get('attendance')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
-  list(@Query('staffId') staffId: string | undefined, @Query('month') month: string | undefined, @CurrentUser() user: RequestUser) {
+  async list(@Query('staffId') staffId: string | undefined, @Query('month') month: string | undefined, @CurrentUser() user: RequestUser) {
     const targetStaffId = staffId ?? this.requireStaffId(user);
-    this.assertStaffScope(targetStaffId, user);
-    let records = this.mockData.attendanceRecords.filter((r) => r.staffId === targetStaffId);
-    if (month) records = records.filter((r) => r.date.startsWith(month));
-    return ok(records);
+    await this.assertStaffScope(targetStaffId, user);
+    return ok(await this.attendance.listAttendance(targetStaffId, month));
   }
 
   // 03문서 §5 GET /attendance/summary?branchId=&month= — BRANCH_ADMIN은 본인 지점 고정.
   @Get('attendance/summary')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
-  summary(@Query('branchId') branchId: string | undefined, @Query('month') month: string, @CurrentUser() user: RequestUser) {
+  async summary(@Query('branchId') branchId: string | undefined, @Query('month') month: string, @CurrentUser() user: RequestUser) {
     const targetBranchId = user.role === 'SUPER_ADMIN' ? branchId : user.branchId;
     if (!targetBranchId) {
       throw new AppException('BRANCH_REQUIRED', 'branchId가 필요합니다.', 400);
     }
-    return ok(this.mockData.attendanceSummary(targetBranchId, month));
+    return ok(await this.attendance.summary(targetBranchId, month));
   }
 
   // ADR-ATT-02(domains/근태관리.md) — 스케줄러 없이 결근을 표현하는 미리보기(저장 안 함).
@@ -54,96 +52,94 @@ export class AttendanceController {
   // SUPER_ADMIN은 summary와 동일하게 조회만 가능(현장 운영 비개입 원칙, 03문서 §7).
   @Get('attendance/absence-preview')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
-  absencePreview(@Query('branchId') branchId: string | undefined, @Query('month') month: string, @CurrentUser() user: RequestUser) {
+  async absencePreview(@Query('branchId') branchId: string | undefined, @Query('month') month: string, @CurrentUser() user: RequestUser) {
     const targetBranchId = user.role === 'SUPER_ADMIN' ? branchId : user.branchId;
     if (!targetBranchId) {
       throw new AppException('BRANCH_REQUIRED', 'branchId가 필요합니다.', 400);
     }
-    return ok(this.mockData.previewAbsences(targetBranchId, month));
+    return ok(await this.attendance.previewAbsences(targetBranchId, month));
   }
 
   // ADR-ATT-02 — 결근 확정. 되돌리기 어려운 인사 조치라 BRANCH_ADMIN만(SUPER_ADMIN도 불가,
   // ADR-AUTH-02·03문서 §7 "SUPER_ADMIN은 현장 운영에 직접 개입하지 않는다"와 같은 원칙).
   @Post('attendance/absence-confirm')
   @Roles('BRANCH_ADMIN')
-  confirmAbsences(@Body() dto: ConfirmAbsencesDto, @CurrentUser() user: RequestUser) {
+  async confirmAbsences(@Body() dto: ConfirmAbsencesDto, @CurrentUser() user: RequestUser) {
     if (!user.branchId) {
       throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
     }
-    return ok(this.mockData.confirmAbsences(user.branchId, dto.month, dto.note));
+    return ok(await this.attendance.confirmAbsences(user.branchId, dto.month, dto.note));
   }
 
   @Post('leave-requests')
   @Roles('BRANCH_ADMIN', 'STAFF')
-  createLeaveRequest(@Body() dto: CreateLeaveRequestDto, @CurrentUser() user: RequestUser) {
-    const { request, warning } = this.mockData.requestLeave(this.requireStaffId(user), dto);
+  async createLeaveRequest(@Body() dto: CreateLeaveRequestDto, @CurrentUser() user: RequestUser) {
+    const { request, warning } = await this.attendance.requestLeave(this.requireStaffId(user), dto);
     return ok(request, warning ? { warning } : undefined);
   }
 
   // 03문서 §4 "휴가 승인함" 화면이 필요로 하는 목록 조회 — §5 API 표에 빠져 있던 엔드포인트를 채운다.
   @Get('leave-requests')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
-  listLeaveRequests(
+  async listLeaveRequests(
     @Query('staffId') staffId: string | undefined,
     @Query('status') status: string | undefined,
     @CurrentUser() user: RequestUser,
   ) {
-    let requests = this.mockData.leaveRequests;
     if (staffId) {
-      this.assertStaffScope(staffId, user);
-      requests = requests.filter((r) => r.staffId === staffId);
-    } else if (user.role === 'STAFF') {
-      requests = requests.filter((r) => r.staffId === user.staffId);
-    } else if (user.role === 'BRANCH_ADMIN') {
-      const branchStaffIds = new Set(
-        this.mockData.staff.filter((s) => s.branchId === user.branchId).map((s) => s.id),
-      );
-      requests = requests.filter((r) => branchStaffIds.has(r.staffId));
+      await this.assertStaffScope(staffId, user);
+      return ok(await this.attendance.listLeaveRequests({ staffId, status }));
     }
-    if (status) requests = requests.filter((r) => r.status === status);
-    return ok(requests);
+    if (user.role === 'STAFF') {
+      if (!user.staffId) return ok([]);
+      return ok(await this.attendance.listLeaveRequests({ staffId: user.staffId, status }));
+    }
+    if (user.role === 'BRANCH_ADMIN') {
+      // 지점 소속 직원(현재 소속 기준)의 신청만 — branchId 없는 관리자 계정이면 빈 목록.
+      if (!user.branchId) return ok([]);
+      return ok(await this.attendance.listLeaveRequests({ branchId: user.branchId, status }));
+    }
+    return ok(await this.attendance.listLeaveRequests({ status }));
   }
 
   @Patch('leave-requests/:id/approve')
   @Roles('BRANCH_ADMIN')
-  approveLeaveRequest(@Param('id') id: string, @CurrentUser() user: RequestUser) {
-    this.assertStaffScope(this.findLeaveRequestStaffId(id), user);
-    return ok(this.mockData.approveLeaveRequest(id, user.accountId));
+  async approveLeaveRequest(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    await this.assertStaffScope(await this.attendance.leaveRequestStaffId(id), user);
+    return ok(await this.attendance.approveLeaveRequest(id, user.accountId));
   }
 
   @Patch('leave-requests/:id/reject')
   @Roles('BRANCH_ADMIN')
-  rejectLeaveRequest(@Param('id') id: string, @CurrentUser() user: RequestUser) {
-    this.assertStaffScope(this.findLeaveRequestStaffId(id), user);
-    return ok(this.mockData.rejectLeaveRequest(id, user.accountId));
+  async rejectLeaveRequest(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    await this.assertStaffScope(await this.attendance.leaveRequestStaffId(id), user);
+    return ok(await this.attendance.rejectLeaveRequest(id, user.accountId));
   }
 
   @Get('leave-balance/:staffId')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
-  leaveBalance(@Param('staffId') staffId: string, @CurrentUser() user: RequestUser) {
-    this.assertStaffScope(staffId, user);
-    return ok(this.mockData.leaveBalance(staffId));
+  async leaveBalance(@Param('staffId') staffId: string, @CurrentUser() user: RequestUser) {
+    await this.assertStaffScope(staffId, user);
+    return ok(await this.attendance.leaveBalance(staffId));
   }
 
   @Post('work-logs')
   @Roles('BRANCH_ADMIN', 'STAFF')
-  createWorkLog(@Body() dto: CreateWorkLogDto, @CurrentUser() user: RequestUser) {
-    return ok(this.mockData.upsertWorkLog(this.requireStaffId(user), dto.date, dto.content));
+  async createWorkLog(@Body() dto: CreateWorkLogDto, @CurrentUser() user: RequestUser) {
+    return ok(await this.attendance.upsertWorkLog(this.requireStaffId(user), dto.date, dto.content));
   }
 
   // 03문서 §5 GET /work-logs?staffId=&date= — "관리자는 본인 지점 전 직원 업무일지 열람 가능"(§6).
   @Get('work-logs')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
-  listWorkLogs(
+  async listWorkLogs(
     @Query('staffId') staffId: string | undefined,
     @Query('date') date: string | undefined,
     @CurrentUser() user: RequestUser,
   ) {
     const targetStaffId = staffId ?? this.requireStaffId(user);
-    this.assertStaffScope(targetStaffId, user);
-    let logs = this.mockData.workLogs.filter((l) => l.staffId === targetStaffId);
-    if (date) logs = logs.filter((l) => l.date === date);
-    return ok(logs);
+    await this.assertStaffScope(targetStaffId, user);
+    return ok(await this.attendance.listWorkLogs(targetStaffId, date));
   }
 
   // STAFF/BRANCH_ADMIN 라우트에만 붙지만, RequestUser.staffId가 optional 타입이라 방어적으로 확인한다.
@@ -155,23 +151,15 @@ export class AttendanceController {
   }
 
   // 03문서 §7: SUPER_ADMIN 전체 / BRANCH_ADMIN 본인 지점 / STAFF 본인만.
-  private assertStaffScope(targetStaffId: string, user: RequestUser): void {
+  private async assertStaffScope(targetStaffId: string, user: RequestUser): Promise<void> {
     if (user.role === 'SUPER_ADMIN') return;
     if (user.role === 'STAFF') {
       if (user.staffId === targetStaffId) return;
       throw new AppException('ATTENDANCE_SCOPE_VIOLATION', '본인 데이터만 조회할 수 있습니다.', 403);
     }
-    const staff = this.mockData.findStaffById(targetStaffId);
-    if (!staff || staff.branchId !== user.branchId) {
+    const branchId = await this.attendance.staffBranchId(targetStaffId);
+    if (!branchId || branchId !== user.branchId) {
       throw new AppException('ATTENDANCE_SCOPE_VIOLATION', '본인 지점 직원의 데이터만 조회할 수 있습니다.', 403);
     }
-  }
-
-  private findLeaveRequestStaffId(id: string): string {
-    const request = this.mockData.leaveRequests.find((r) => r.id === id);
-    if (!request) {
-      throw new AppException('LEAVE_REQUEST_NOT_FOUND', '휴가 신청을 찾을 수 없습니다.', 404);
-    }
-    return request.staffId;
   }
 }
