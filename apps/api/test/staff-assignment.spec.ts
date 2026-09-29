@@ -2,7 +2,8 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { MOCK_DEMO_PASSWORD } from '../src/mock-data/mock-data.service';
 import { addYearsToDateString } from '../src/common/date/kst-date';
-import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { ACCOUNTS, BRANCH, createApp, db, login, mockData } from './helpers/app';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * 파견 발령·퇴사 처리의 실제 효과 — domains/인사정보관리.md §11 "검증되지 않음" 항목 해소.
@@ -14,6 +15,7 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
   const STAFF_ID = 'staff-seoyeon'; // 서초점 소속 박서연
 
   beforeEach(async () => {
+    await resetWorkerDb(); // D30 — 테스트마다 파견·퇴사 전 상태에서 시작(직원의 원천이 DB라 앞 테스트의 변경이 남는다)
     app = await createApp();
   });
   afterEach(async () => {
@@ -76,6 +78,7 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
     expect(after.body.data.length).toBe(before.body.data.length + 1); // 새 레코드 1건 추가, 기존 것은 마감됨(삭제 아님)
   });
 
+  // D26에서 skip했던 테스트 — D30으로 퇴사가 DB 계정을 비활성화하면서 다시 통과한다(skip 해제).
   it('퇴사 처리 후 해당 계정은 로그인 자체가 실패한다(ACCOUNT_INACTIVE)', async () => {
     const adminToken = await login(app, ACCOUNTS.seochoAdmin);
     const resignRes = await request(app.getHttpServer())
@@ -166,5 +169,26 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
     expect(byId('doc-test-hr-other-staff').retentionUntil).toBe('2099-01-01');
     expect(byId('doc-test-contract').retentionUntil).toBe('2099-01-01');
     expect(byId('doc-test-hr-deleted').retentionUntil).toBe('2099-01-01');
+  });
+  it('파견 발령 시 옛 지점 담당 회원의 담당자가 해제되고 응답에 그 회원이 담긴다 (ADR-STF-04)', async () => {
+    // D32 — 회원 원천은 DB다.
+    const prisma = db(app);
+    // 대조군: 박서연이 아닌 직원을 담당자로 둔 회원은 건드리지 않아야 한다.
+    await prisma.member.update({ where: { id: 'member-dormant' }, data: { assignedStaffId: 'staff-minsu' } });
+    const assignedOf = async (id: string) => (await prisma.member.findUniqueOrThrow({ where: { id } })).assignedStaffId;
+    expect(await assignedOf('member-sujin')).toBe(STAFF_ID); // 시드 전제
+
+    const superToken = await login(app, ACCOUNTS.superAdmin);
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/staff/${STAFF_ID}/assignments`)
+      .set('Authorization', superToken)
+      .send({ branchId: BRANCH.gangnam });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.unassignedMembers).toEqual([{ id: 'member-sujin', name: '이수진' }]);
+    expect(await assignedOf('member-sujin')).toBeNull();
+    expect(await assignedOf('member-dormant')).toBe('staff-minsu');
+    // 해제 후엔 "회원↔담당 직원 같은 지점"(MEM-T02)이 다시 성립한다 — 강남으로 간 직원을 담당자로 둔 서초 회원이 없다.
+    expect(await prisma.member.count({ where: { assignedStaffId: STAFF_ID, branchId: { not: BRANCH.gangnam } } })).toBe(0);
   });
 });

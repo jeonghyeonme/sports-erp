@@ -1,15 +1,18 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
+import { setBranchStatus } from './helpers/branch-status';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * 회원관리 도메인 — ADR-MEM-02(앱 회원가입, 탈퇴 회원 이메일 재사용 = 부분 unique).
- * MockDataService가 인메모리 상태를 가지므로 테스트마다 새 앱을 띄운다.
+ * D32 — 회원·계정은 DB가 원천이라 테스트마다 워커 DB를 새로 만든다(같은 이메일로 여러 번 가입하므로).
  */
 describe('POST /members/register (앱 회원가입)', () => {
   let app: INestApplication;
 
   beforeEach(async () => {
+    await resetWorkerDb();
     app = await createApp();
   });
   afterEach(async () => {
@@ -34,8 +37,10 @@ describe('POST /members/register (앱 회원가입)', () => {
     expect(res.body.data.user).toMatchObject({ role: 'MEMBER', branchId: BRANCH.seocho });
     expect(res.body.data.member).toMatchObject({ name: '신규가입자', branchId: BRANCH.seocho, status: 'ACTIVE' });
 
-    const member = mockData(app).members.find((m) => m.id === res.body.data.member.id);
-    expect(member?.accountId).toBeDefined();
+    const member = await db(app).member.findUnique({ where: { id: res.body.data.member.id } });
+    expect(member?.accountId).toBeTruthy();
+    // D32 결정 4 — 회원번호는 지점·연도별 시퀀스(시드 SEOCHO2026-001 다음)
+    expect(res.body.data.member.memberNo).toBe('SEOCHO2026-002');
   });
 
   it('가입 후 그 계정으로 실제 로그인이 된다', async () => {
@@ -47,7 +52,7 @@ describe('POST /members/register (앱 회원가입)', () => {
   });
 
   it('계약종료 지점에는 신규 가입이 409 BRANCH_TERMINATED(불변규칙 2)', async () => {
-    mockData(app).branches.find((b) => b.id === BRANCH.seocho)!.contractStatus = 'TERMINATED';
+    await setBranchStatus(BRANCH.seocho, 'TERMINATED');
     const res = await register({});
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('BRANCH_TERMINATED');
@@ -79,7 +84,7 @@ describe('POST /members/register (앱 회원가입)', () => {
       .send({ status: 'WITHDRAWN' });
     expect(withdraw.status).toBe(200);
 
-    const sujinAccount = mockData(app).accounts.find((a) => a.id === 'account-sujin');
+    const sujinAccount = await db(app).account.findUnique({ where: { id: 'account-sujin' } });
     expect(sujinAccount?.isActive).toBe(false);
 
     // 같은 이메일(sujin의 원래 이메일)로 새로 가입 — 이메일 값을 변형하지 않고 그대로 뒀기 때문에 가능해야 한다.
@@ -87,13 +92,13 @@ describe('POST /members/register (앱 회원가입)', () => {
     expect(res.status).toBe(201);
 
     // 원래 탈퇴 계정의 이메일은 그대로 보존돼 있다(대안 B의 "값 변형" 방식이 아님을 확인).
-    expect(mockData(app).accounts.find((a) => a.id === 'account-sujin')?.email).toBe(sujinAccount!.email);
+    expect((await db(app).account.findUnique({ where: { id: 'account-sujin' } }))?.email).toBe(sujinAccount!.email);
   });
 
-  it('이메일 중복 검사가 먼저라 실패 시 Member가 생성되지 않는다(롤백 대신 순서로 방지)', async () => {
-    const before = mockData(app).members.length;
+  it('이메일 중복이면 Member·Account가 하나도 생기지 않는다', async () => {
+    const before = [await db(app).member.count(), await db(app).account.count()];
     await register({ email: 'kim.minsu@spoism.example' });
-    expect(mockData(app).members.length).toBe(before);
+    expect([await db(app).member.count(), await db(app).account.count()]).toEqual(before);
   });
 
   it('존재하지 않는 지점이면 404 BRANCH_NOT_FOUND', async () => {

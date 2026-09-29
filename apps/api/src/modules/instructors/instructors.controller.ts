@@ -3,7 +3,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
-import { MockDataService } from '../../mock-data/mock-data.service';
+import { InstructorService } from './instructor.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MockInstructor } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
@@ -14,46 +14,39 @@ import { UpdateInstructorDto } from './dto/update-instructor.dto';
 @Controller('instructors')
 @UseGuards(BranchScopeGuard)
 export class InstructorsController {
-  constructor(private readonly mockData: MockDataService) {}
+  constructor(private readonly instructorService: InstructorService) {}
 
   @Get()
-  list(@Query('branchId') branchId?: string) {
-    const instructors = branchId
-      ? this.mockData.instructors.filter((i) => i.branchId === branchId)
-      : this.mockData.instructors;
-    return ok(instructors.map((i) => this.toListItem(i)));
+  async list(@Query('branchId') branchId?: string) {
+    return ok(await this.instructorService.list(branchId));
   }
 
   @Post()
   @Roles('BRANCH_ADMIN')
-  hire(@Body() dto: CreateInstructorDto, @CurrentUser() user: RequestUser) {
+  async hire(@Body() dto: CreateInstructorDto, @CurrentUser() user: RequestUser) {
     if (!user.branchId) {
       throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
     }
-    return ok(this.toListItem(this.mockData.hireInstructor(user.branchId, dto)));
+    return ok(await this.instructorService.hire(user.branchId, dto));
   }
 
   @Patch(':id')
   @Roles('BRANCH_ADMIN')
-  update(@Param('id') id: string, @Body() dto: UpdateInstructorDto, @CurrentUser() user: RequestUser) {
-    this.assertOwnBranch(this.findInstructorOrThrow(id), user);
-    return ok(this.toListItem(this.mockData.updateInstructor(id, dto)));
+  async update(@Param('id') id: string, @Body() dto: UpdateInstructorDto, @CurrentUser() user: RequestUser) {
+    this.assertOwnBranch(await this.findInstructorOrThrow(id), user);
+    return ok(await this.instructorService.update(id, dto));
   }
 
   // 07문서 §5 "수정/비활성화" — 물리 삭제 대신 isActive=false로 소프트 비활성화한다(§6 소프트 삭제 원칙).
   @Delete(':id')
   @Roles('BRANCH_ADMIN')
-  deactivate(@Param('id') id: string, @CurrentUser() user: RequestUser) {
-    this.assertOwnBranch(this.findInstructorOrThrow(id), user);
-    return ok(this.toListItem(this.mockData.deactivateInstructor(id)));
+  async deactivate(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    this.assertOwnBranch(await this.findInstructorOrThrow(id), user);
+    return ok(await this.instructorService.update(id, { isActive: false }));
   }
 
-  private toListItem(instructor: MockInstructor) {
-    return { ...instructor, branchName: this.mockData.findBranchById(instructor.branchId)?.name };
-  }
-
-  private findInstructorOrThrow(id: string): MockInstructor {
-    const instructor = this.mockData.findInstructorById(id);
+  private async findInstructorOrThrow(id: string): Promise<MockInstructor> {
+    const instructor = await this.instructorService.findById(id);
     if (!instructor) {
       throw new AppException('INSTRUCTOR_NOT_FOUND', '강사를 찾을 수 없습니다.', 404);
     }

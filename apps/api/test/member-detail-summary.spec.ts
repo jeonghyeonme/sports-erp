@@ -1,10 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
+import { setBranchStatus } from './helpers/branch-status';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * 회원관리 도메인 — ADR-MEM-03(회원 상세 요약 + 수강내역/PT잔여세션 탭별 지연 로드).
- * MockDataService가 인메모리 상태를 가지므로 테스트마다 새 앱을 띄운다.
+ * D32 — 수강·PT가 DB에 남으므로(요약 카운트·사용 횟수 기대) 테스트마다 워커 DB를 새로 만든다.
  */
 describe('회원 상세 요약 · 수강내역 · PT 잔여세션', () => {
   let app: INestApplication;
@@ -19,6 +21,7 @@ describe('회원 상세 요약 · 수강내역 · PT 잔여세션', () => {
   });
 
   beforeEach(async () => {
+    await resetWorkerDb();
     app = await createApp();
     seochoAdmin = await login(app, ACCOUNTS.seochoAdmin);
     gangnamAdmin = await login(app, ACCOUNTS.gangnamAdmin);
@@ -68,7 +71,7 @@ describe('회원 상세 요약 · 수강내역 · PT 잔여세션', () => {
     });
 
     it('계약종료 지점 회원에게는 신규 수강 등록이 409 BRANCH_TERMINATED', async () => {
-      mockData(app).branches.find((b) => b.id === BRANCH.seocho)!.contractStatus = 'TERMINATED';
+      await setBranchStatus(BRANCH.seocho, 'TERMINATED');
       const res = await api(seochoAdmin).post(`/members/${MEMBER_ID}/enrollments`, {
         programId: 'program-seocho-yoga',
         enrolledAt: '2026-09-26',
@@ -138,10 +141,22 @@ describe('회원 상세 요약 · 수강내역 · PT 잔여세션', () => {
       expect(res.body.error.code).toBe('PT_SESSION_EXHAUSTED');
     });
 
+    it('동시에 잔여보다 많이 차감해도 잔여만큼만 성공한다(D32 — 조건부 차감)', async () => {
+      const sessionId = 'pt-session-sujin'; // 잔여 7
+      const results = await Promise.all(
+        Array.from({ length: 9 }, () => api(seochoAdmin).post(`/members/${MEMBER_ID}/pt-sessions/${sessionId}/use`)),
+      );
+      expect(results.filter((r) => r.status === 201)).toHaveLength(7);
+      expect(results.filter((r) => r.status === 409)).toHaveLength(2);
+      const row = await db(app).pTSession.findUniqueOrThrow({ where: { id: sessionId } });
+      expect(row.usedSessions).toBe(10);
+      expect(await db(app).pTSessionLog.count({ where: { ptSessionId: sessionId } })).toBe(10);
+    });
+
     it('계약종료 지점 회원에게는 신규 PT 패키지 등록이 409 BRANCH_TERMINATED, 기존 세션 사용은 차단되지 않는다', async () => {
       const before = await api(seochoAdmin).get(`/members/${MEMBER_ID}/pt-sessions`);
       const sessionId = before.body.data[0].id;
-      mockData(app).branches.find((b) => b.id === BRANCH.seocho)!.contractStatus = 'TERMINATED';
+      await setBranchStatus(BRANCH.seocho, 'TERMINATED');
 
       const created = await api(seochoAdmin).post(`/members/${MEMBER_ID}/pt-sessions`, {
         programId: 'program-seocho-pt',

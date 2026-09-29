@@ -1,6 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ACCOUNTS, createApp, login, mockData } from './helpers/app';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { ACCOUNTS, createApp, login } from './helpers/app';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * 강사프로그램게시 도메인 — ADR-PRG-01(capacity 필수)·ADR-PRG-02(상태전이 확정예약 가시화)·
@@ -28,6 +30,7 @@ describe('프로그램 무결성 — facilityId 지점 일치', () => {
   };
 
   beforeEach(async () => {
+    await resetWorkerDb();
     app = await createApp();
     seochoAdmin = await login(app, ACCOUNTS.seochoAdmin);
     seochoMember = await login(app, ACCOUNTS.seochoMember);
@@ -165,8 +168,11 @@ describe('프로그램 무결성 — facilityId 지점 일치', () => {
     it('지난 회차(오늘 이전)의 예약은 세지 않는다', async () => {
       const { programId, slotId } = await createRunningProgramWithFutureSlot();
       await api(seochoMember).post('/reservations', { scheduleSlotId: slotId });
-      // 시드 데이터를 직접 과거 날짜로 돌려서 "미래 회차만 센다"는 경계를 확인한다.
-      mockData(app).scheduleSlots.find((s) => s.id === slotId)!.date = '2020-01-01';
+      // 회차를 과거 날짜로 돌려서 "미래 회차만 센다"는 경계를 확인한다(회차·예약 원천은 DB).
+      await app.get(PrismaService).scheduleSlot.update({
+        where: { id: slotId },
+        data: { date: new Date('2020-01-01T00:00:00Z') },
+      });
 
       const res = await api(seochoAdmin).patch(`/programs/${programId}/status`, { status: 'PAUSED' });
       expect(res.status).toBe(200);

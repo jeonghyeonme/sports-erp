@@ -1,0 +1,66 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-09-28T00:00:00Z"
+  },
+  "title": "4주차 진행상황 발표",
+  "order": [
+    "cover",
+    "summary",
+    "cycle-method",
+    "deploy",
+    "loadtest-setup",
+    "loadtest-numbers",
+    "bottleneck",
+    "edge-fix",
+    "migration",
+    "roadmap",
+    "cycle-momentum",
+    "dom-attendance",
+    "dom-congestion",
+    "dom-program",
+    "dom-board",
+    "dom-asset",
+    "dom-member",
+    "next-directions",
+    "closing"
+  ],
+  "sections": {
+    "intro": {
+      "description": "이번 주 한 줄 요약",
+      "start": "cover"
+    },
+    "partA": {
+      "description": "Part A — 방법론을 기능 스코프에 적용해 ADR을 뽑고, 구현·배포까지 마쳤다",
+      "start": "cycle-method"
+    },
+    "partB": {
+      "description": "Part B — 배포 도중 만난 트래픽·인프라 문제 (D24 부하테스트 → D26 무상태화 로드맵)",
+      "start": "deploy"
+    },
+    "partC": {
+      "description": "Part C — 그 관점을 도메인 전체에 적용한 트래픽·인프라 후보 이슈, 그리고 다음 단계",
+      "start": "cycle-momentum"
+    },
+    "wrap": {
+      "description": "마무리 — 라이브 로그인 데모 이후",
+      "start": "closing"
+    }
+  },
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
+}

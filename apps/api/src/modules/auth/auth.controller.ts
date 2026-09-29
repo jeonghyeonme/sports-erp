@@ -33,8 +33,8 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('logout')
-  logout(@Body() dto: RefreshTokenDto) {
-    this.authService.logout(dto.refreshToken);
+  async logout(@Body() dto: RefreshTokenDto) {
+    await this.authService.logout(dto.refreshToken);
     return ok({ loggedOut: true });
   }
 

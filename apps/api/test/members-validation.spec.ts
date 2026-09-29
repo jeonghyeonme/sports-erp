@@ -1,6 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { ACCOUNTS, BRANCH, createApp, login } from './helpers/app';
+import { setBranchStatus } from './helpers/branch-status';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * 회원 등록의 비즈니스 규칙 — domains/회원관리.md §11 "검증되지 않음" 항목 해소.
@@ -12,6 +14,7 @@ describe('회원 등록 검증 (미성년 동의 / 담당 직원 지점 일치 /
   let adminToken: string;
 
   beforeEach(async () => {
+    await resetWorkerDb(); // D32 — 등록한 회원이 DB에 남아 전화번호 중복 경고 등에 새어 들지 않게
     app = await createApp();
     adminToken = await login(app, ACCOUNTS.seochoAdmin);
   });
@@ -80,8 +83,7 @@ describe('회원 등록 검증 (미성년 동의 / 담당 직원 지점 일치 /
   });
 
   it('위탁계약이 TERMINATED인 지점 소속 관리자는 애초에 회원을 등록할 수 없다(참고 — contract-termination.spec.ts가 더 상세히 다룸)', async () => {
-    const seocho = mockData(app).branches.find((b) => b.id === BRANCH.seocho)!;
-    seocho.contractStatus = 'TERMINATED';
+    await setBranchStatus(BRANCH.seocho, 'TERMINATED');
     const res = await create({ name: '차단대상' });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('BRANCH_TERMINATED');

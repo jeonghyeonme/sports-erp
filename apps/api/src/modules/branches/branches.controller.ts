@@ -3,28 +3,32 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
-import { MockDataService } from '../../mock-data/mock-data.service';
 import { ok } from '../../common/http/api-response';
+import { PrismaService } from '../../prisma/prisma.service';
+import { toMockProgram } from '../programs/program.service';
+import { BranchService } from './branch.service';
 
 @Controller('branches')
 export class BranchesController {
-  constructor(private readonly mockData: MockDataService) {}
+  constructor(
+    private readonly branchService: BranchService,
+    private readonly prisma: PrismaService,
+  ) {}
 
+  // D29 — 지점·계약 정보는 DB에서. D32 — 회원·직원·진행중 프로그램 건수도 전부 DB 집계다.
   @Get()
-  list(@CurrentUser() user: RequestUser) {
-    const branches =
-      user.role === 'SUPER_ADMIN'
-        ? this.mockData.branches
-        : this.mockData.branches.filter((b) => b.id === user.branchId);
-    return ok(branches.map((b) => this.mockData.branchSummary(b.id)));
+  async list(@CurrentUser() user: RequestUser) {
+    const branches = await this.branchService.listVisibleTo(user);
+    const counts = await this.branchService.counts(branches.map((b) => b.id));
+    return ok(branches.map((b) => ({ ...BranchService.toContractView(b), ...counts.get(b.id)! })));
   }
 
   // 07문서 §5 — 지점별 진행중 프로그램 현황판
   @Get(':branchId/programs/summary')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   @UseGuards(BranchScopeGuard)
-  programsSummary(@Param('branchId') branchId: string) {
-    const programs = this.mockData.programs.filter((p) => p.branchId === branchId);
+  async programsSummary(@Param('branchId') branchId: string) {
+    const programs = (await this.prisma.program.findMany({ where: { branchId }, orderBy: { id: 'asc' } })).map(toMockProgram);
     const byStatus = {
       PREPARING: programs.filter((p) => p.status === 'PREPARING').length,
       RUNNING: programs.filter((p) => p.status === 'RUNNING').length,

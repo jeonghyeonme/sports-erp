@@ -23,7 +23,9 @@ export type AssetType = 'FIXED_ASSET' | 'CONSUMABLE';
 export type AssetStatus = 'NORMAL' | 'REPAIRING' | 'DISPOSAL_PENDING' | 'DISPOSED';
 export type DocumentCategory = 'CONTRACT' | 'HR_RECORD' | 'MANUAL' | 'OTHER';
 
-export interface MockBranch {
+// 지점 원천 레코드 — D29부터 원천은 DB(Prisma Branch)다. 이 형태는 시드(prisma/seed.ts)와 mock 사본이
+// 같은 원천(branch-fixtures.ts의 HERO_BRANCHES + branch-generator.ts)에서 만들어지도록 공유하는 입력 형식이다.
+export interface BranchRecord {
   id: string;
   name: string;
   address?: string;
@@ -37,6 +39,11 @@ export interface MockBranch {
   contractEndAt?: string;
   contractStatus: BranchContractStatus;
 }
+
+// D29 — 아직 mock인 도메인이 동기적으로 쓰는 지점 "이름표". 계약 필드는 일부러 뺐다: 계약 상태의 원천은 DB 하나뿐이고,
+// mock에서 계약 상태를 읽는 코드가 남아 있으면 컴파일이 실패하게 하려는 것(계약 종료 판정은 BranchGate로 받는다).
+// 남은 필드가 DB와 같은지는 test/branch-parity.spec.ts가 검증한다.
+export type MockBranch = Omit<BranchRecord, 'contractPartner' | 'contractStartAt' | 'contractEndAt' | 'contractStatus'>;
 
 // 01문서 §3 RefreshToken — 원문 대신 해시로 저장, 로그아웃/rotate 시 revokedAt만 채운다(물리삭제 안 함).
 export interface MockRefreshToken {
@@ -185,6 +192,7 @@ export interface MockPTSessionLog {
 export interface MockInstructor {
   id: string;
   branchId: string;
+  staffId?: string; // 겸임 직원(DB Instructor.staffId). D31부터 미러에 실린다 — 파견 시 ADR-STF-04가 연결을 푼다.
   name: string;
   specialty?: string; // 전문분야(요가/필라테스/수영/골프 등)
   bio?: string;

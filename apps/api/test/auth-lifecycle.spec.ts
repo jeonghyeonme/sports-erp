@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, createApp, login } from './helpers/app';
+import { resetWorkerDb } from './helpers/worker-db';
 
 /**
  * 퇴사·Role 전환의 "재로그인 없이 즉시 반영" — domains/권한관리.md ADR-AUTH-01, §11 "검증되지 않음" 항목 해소.
@@ -12,12 +13,14 @@ describe('인증 상태의 즉시 반영 (퇴사·Role 전환)', () => {
   let app: INestApplication;
 
   beforeEach(async () => {
+    await resetWorkerDb(); // D30 — 테스트마다 퇴사·Role 전환 전 상태에서 시작
     app = await createApp();
   });
   afterEach(async () => {
     await app.close();
   });
 
+  // D26에서 skip했던 두 테스트 — D30으로 퇴사·Role 전환이 DB 계정을 바꾸면서 다시 통과한다(skip 해제).
   it('로그인된 상태에서 퇴사 처리 → 같은 토큰으로 바로 다음 요청이 401(ACCOUNT_INACTIVE)', async () => {
     const staffToken = await login(app, ACCOUNTS.seochoStaff);
 

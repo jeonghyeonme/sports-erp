@@ -1,8 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { MockDataService } from './mock-data.service';
 
-// Phase 1 스캐폴딩 단계 전용 — 실제 DB 연동 시 이 모듈은 제거하고
-// 각 기능 모듈이 PrismaService를 직접 사용하도록 바꿉니다.
+// D26(2026-09-28)부터 도메인별로 순차 이관 중 — 아직 이관 안 된 도메인만 이 모듈을 쓴다.
+// 전 도메인 이관이 끝나면 이 모듈은 제거한다.
 @Global()
 @Module({
   providers: [MockDataService],

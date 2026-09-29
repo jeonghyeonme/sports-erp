@@ -55,7 +55,17 @@ npm run prisma:generate / prisma:migrate
 
 # apps/api 안에서
 npm run lint    # eslint --fix (파일을 직접 수정하므로 실행 후 git diff 확인. 수정 없이 검사만 하려면 `npm exec -- eslint .`)
-npm run test    # jest — HTTP 통합 테스트(`apps/api/test/`), 실제 AppModule + supertest, DB 불필요
+npm run test    # jest — HTTP 통합 테스트(`apps/api/test/`), 실제 AppModule + supertest.
+                # D26(2026-09-28)부터 인증 모듈이 PrismaService로 이관돼 로컬 Postgres(DATABASE_URL)가 필요하다.
+                # `npm run db:up` → `npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma`
+                # → `npm run prisma:seed --workspace=apps/api` 순으로 준비할 것(CI도 동일 순서, `.github/workflows/ci.yml` 참고).
+                # D27(2026-09-29)부터 마이그레이션에 `DIRECT_URL`도 필요하다(로컬은 DATABASE_URL과 같은 값, `.env.example` 참고).
+                # 부분 unique 인덱스 3종·CHECK 제약 18개·지점 일치 트리거 7개(D28)는 schema.prisma가 아니라 마이그레이션 SQL에만 있다 — schema.prisma 상단 주석 참고.
+                # 도메인을 Prisma로 옮길 때는 docs/architecture/data-integrity.md §6 정합성 체크리스트(채번·회차 락 헬퍼 포함)를 따를 것.
+                # D29(2026-09-29)부터 jest가 워커마다 기준 DB를 템플릿으로 복제해 쓴다(test/setup/). 기준 DB 계정에 CREATEDB 권한이 필요하고,
+                # 테스트가 DB 상태를 바꿔도 기준 DB는 오염되지 않는다. 지점 계약 상태는 mockData가 아니라 test/helpers/branch-status.ts의 setBranchStatus로 바꿀 것.
+                # D30부터 워커 DB는 파일마다 기준 템플릿에서 다시 만든다(test/helpers/worker-db.ts의 resetWorkerDb, after-env beforeAll).
+                # 같은 파일 안에서 테스트끼리 DB 쓰기(채용·퇴사·파견 등)가 새면 beforeEach에서 resetWorkerDb()를 createApp() 전에 부를 것.
 npm run build   # nest build
 
 # apps/admin-web 안에서
@@ -63,9 +73,11 @@ npm run lint    # eslint .
 npm run build   # tsc -b && vite build
 ```
 
-**검증 현황 (2026-09-20):** ESLint 10(flat config, `eslint.config.*`)이 두 앱에 설치돼 있다. api 테스트는 **도메인 핵심 규칙 3개 영역**만 다룬다 — 지점 데이터 격리(`branch-isolation`), 계약 종료 지점 차단(`contract-termination`), 인사 권한 분리(`hr-authority`) + 부팅 스모크. 그 밖의 도메인 로직(예약·결제 계산, 근태, 자산 등)과 admin-web은 테스트가 없어 **lint + 빌드(타입체크)**뿐이다. 테스트가 없는 영역은 "검증되지 않음"으로 보고할 것.
+**검증 현황 (2026-09-20, DB 의존성은 2026-09-28 D26 갱신):** ESLint 10(flat config, `eslint.config.*`)이 두 앱에 설치돼 있다. api 테스트는 **도메인 핵심 규칙 3개 영역**만 다룬다 — 지점 데이터 격리(`branch-isolation`), 계약 종료 지점 차단(`contract-termination`), 인사 권한 분리(`hr-authority`) + 부팅 스모크. 그 밖의 도메인 로직(예약·결제 계산, 근태, 자산 등)과 admin-web은 테스트가 없어 **lint + 빌드(타입체크)**뿐이다. 테스트가 없는 영역은 "검증되지 않음"으로 보고할 것. D26에서 `it.skip`했던 `auth-lifecycle.spec.ts` 2건·`staff-assignment.spec.ts` 1건은 D30(직원·권한 DB 이관)으로 재활성화돼 현재 skip은 없다. `staff-mirror.spec.ts`가 직원 원천(DB)과 mock 미러의 일치를, `catalog-flow.spec.ts`가 카탈로그↔예약·회원 경로를 본다. D32부터 예약 정원·중복·결제 이중 승인·연동 동시성 테스트가 실제 DB 동시성 위에서 돈다(`reservation-capacity`·`member-link`).
 
 **테스트 작성 규칙:** 통합 테스트는 `test/helpers/app.ts`의 `createApp()`으로 `main.ts`와 같은 전역 설정(prefix·ValidationPipe·필터)의 앱을 띄운다 — `main.ts`의 전역 설정을 바꾸면 이 헬퍼도 같이 바꿀 것. `MockDataService`는 인메모리 상태라 스위트(또는 테스트)마다 새 앱을 띄워야 서로 오염되지 않는다. 가드 → 파이프 → 핸들러 순서라서 **거부 케이스도 유효한 요청 본문**을 보내야 400이 아니라 403이 나온다. 거부(403) 테스트에는 반드시 자기 지점 접근이 성공하는 대조군을 함께 둔다. `tsconfig.build.json`이 `test/`를 빌드에서 제외한다(없으면 `dist/main.js` 경로가 `dist/src/main.js`로 바뀐다).
+
+**Prisma로 이관된 도메인의 데모 계정은 mock과 id를 맞출 것(2026-09-28):** `apps/api/prisma/seed.ts`의 정하늘/김민수/박서연/이수진처럼, `mock-data.service.ts`에도 같은 이메일로 존재하는 "과도기 공유 계정"은 `Account`/`Staff`/`Member`의 `id`를 mock 쪽 값(`account-haneul`, `staff-seoyeon` 등)과 반드시 동일하게 시드할 것 — 안 맞추면 Prisma로 로그인한 요청의 `req.user.staffId`/`memberId`가 아직 이관 안 된 mock 컨트롤러에서 `NOT_FOUND`로 깨진다(D26에서 실제로 겪음, `docs/process/06_진행_로그.md` 참고). D32(2026-09-29)부터 **모든 계정(관리자·직원·회원)이 DB에 있고 인증의 mock 폴백은 없다.** mock `accounts`에는 D30 미러(관리자·직원 계정)만 남아 게시판·문서가 작성자 이름을 읽는 데 쓴다. 테스트에서 DB 상태는 `test/helpers/app.ts`의 `db(app)`(PrismaService)로 읽고 쓴다.
 
 **날짜 계산은 반드시 `apps/api/src/common/date/kst-date.ts`를 쓸 것(2026-09-23).** `new Date().toISOString().slice(0, 10)`로 "오늘 날짜"를 직접 구하지 말 것 — `toISOString()`은 서버 시간대와 무관하게 항상 UTC라, 매일 00:00~08:59 KST 사이 이벤트가 하루 전 날짜로 기록되는 구조적 버그가 5개 도메인 10곳에서 실제로 있었다(`docs/architecture/date-time-handling.md`). "오늘"은 `todayKst()`, 임의 시각의 KST 날짜는 `toKstDateString(date)`, 시:분 비교는 `kstHoursMinutes(date)`를 쓸 것.
 
@@ -79,7 +91,7 @@ npm run build   # tsc -b && vite build
 
 ## 현재 구현 상태 (착각하기 쉬운 부분)
 
-- **API는 Prisma가 아니라 `MockDataService`(인메모리)로 동작 중이다.** `apps/api/prisma/schema.prisma`는 설계돼 있지만 실제 컨트롤러는 대부분 mock 데이터를 반환한다. "Prisma 스키마에 있으니 동작한다"고 가정하지 말 것 — 실제 동작 여부는 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2를 확인.
+- **API 대부분이 `PrismaService`(Supabase Postgres)로 동작한다(2026-09-29 D32 기준).** D29 순서(지점 → 직원·파견 → 시설·강사·프로그램·회차 → 회원)로 인증(D26)·지점(D29)·직원·파견·권한(D30)·시설·강사·프로그램·회차(D31)·회원·수강·PT·예약·결제(D32)가 DB로 옮겨졌다. **아직 `MockDataService`(인메모리)인 것은 근태·게시판·자산·문서 4개 도메인(attendance·posts·assets·documents 컨트롤러)뿐이다.** 이 넷이 직원을 동기적으로 읽어서 mock의 `staff`·`staffAssignments`·관리자 계정은 **DB에서 채우는 미러**(D30)로 남아 있다 — 앱 부팅 시 `StaffService.onModuleInit`이 채우고 직원 쓰기는 DB 커밋 뒤 `afterWrite`로 반영한다. 미러 배열을 직접 넣거나 고치지 말 것(테스트 포함). D31의 카탈로그 미러는 D32로 독자가 사라져 없앴다. 지점 계약 상태의 원천은 DB뿐이다 — mock의 `branches`는 계약 필드가 없는 이름표 사본이고, 아직 mock인 쓰기 경로는 `BranchService.loadGate()`로 받은 gate로 계약 종료를 판정한다(`src/modules/branches/branch-gate.ts`). 예약 생성은 회차 행 락(`lockScheduleSlot`) 위에서 정원을 센다(ADR-RSV-01). "Prisma 스키마에 있으니 동작한다"고 가정하지 말 것 — 실제 동작 여부는 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2를 확인.
 - Write API는 권한관리(로그인/토큰갱신/로그아웃/비밀번호변경/Role전환)·인사정보관리(채용/파견/퇴사)·회원관리(등록/수정/상태전환)·근태관리(체크인/휴가/업무일지)·강사프로그램게시(강사 CRUD·프로그램 등록/수정/종료/상태전이·회차 등록)·게시판(작성/수정/삭제)·혼잡도관리(시설 등록/수정·수동 보정)·예약및결제(예약 생성/취소/체크인·모의결제)·자원문서관리(자산 CRUD·문서 CRUD)에 있다. 전 도메인이 최소 Phase 1 수준의 Write API를 갖췄다 — 정확한 도메인별 현황은 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2-2를 확인.
 - **admin-web 프론트엔드가 API를 못 따라간 경우가 있다.** 예: 인사정보관리(1-3)는 채용/파견/퇴사 API가 다 있는데 `StaffPage.tsx`가 조회 전용이라 화면에서는 할 수 없다(2-3문서 §2-2). "API가 있으니 화면도 있다"고 가정하지 말 것. (강사프로그램게시의 지점 현황판은 2026-09-18에 `BranchDetailPage.tsx`가 연결해 해소됨 — 아래 줄 참고.)
 - 모든 도메인에 코드가 있다. 1-4(근태관리)·1-5(게시판)·1-7(예약및결제, Phase 1+2 핵심만)·1-8(강사프로그램게시)·1-9(혼잡도관리, Phase 1만)는 2026-09-18에, 1-10(자원문서관리, Phase 1만 — 재물조사·감가상각·파일 업로드 없음)은 2026-09-19에 API+화면 모두 구현 완료.

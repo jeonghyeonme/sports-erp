@@ -2,13 +2,39 @@
 // 1-2~1-9 기능 문서의 데이터 모델을 그대로 반영합니다. 문서 번호는 각 모델 위 주석 참고(docs/1.spec/ 하위 폴더는 README 문서 표 참고).
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // native = 로컬/CI, rhel-openssl-3.0.x = AWS Lambda(Node 20, Amazon Linux 2023) — D27, D26 "다음 작업" ④
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
+// D27 — url은 앱 런타임 연결(Supabase에선 트랜잭션 풀러 6543 + ?pgbouncer=true&connection_limit=1,
+// Lambda 동시 인스턴스마다 연결을 열어 DB 커넥션이 고갈되는 것을 막는다 — D26 "다음 작업" ②),
+// directUrl은 마이그레이션 전용 직접 연결(5432). 로컬/CI는 둘 다 같은 값이면 된다.
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
+
+// ── D27: 날짜 컬럼 규칙(docs/architecture/date-time-handling.md) ──
+// "YYYY-MM-DD" 의미의 필드는 @db.Date이고 DB 기본값(now())을 두지 않는다 — DB의 now()는 UTC라
+// 00:00~08:59 KST에 하루 전 날짜가 들어간다(2026-09-23에 고친 버그의 재발 경로). 앱이 todayKst()로 채운다.
+//
+// ── D27: 부분 unique 인덱스(Prisma 5 스키마 문법으로 표현 불가 — 마이그레이션 SQL에만 있다) ──
+// 1) Account(email) WHERE isActive                                              — ADR-MEM-02
+// 2) StaffAssignment(staffId) WHERE endDate IS NULL                             — ADR-STF-03
+// 3) Reservation(memberId, scheduleSlotId) WHERE status IN (REQUESTED, CONFIRMED) — ADR-RSV-02
+// Prisma 5.22의 `migrate dev`는 이 인덱스들을 건드리지 않음을 확인했다(2026-09-29, 빈 마이그레이션 생성).
+// Prisma 버전을 올린 뒤 새 마이그레이션에 이 인덱스의 DROP INDEX가 생기면 지우고 커밋할 것.
+//
+// ── D28: CHECK 제약 18개(마이그레이션 20260929004339_d28_integrity_checks에만 있다) ──
+// 한 행 안에서 판정되는 정합성 규칙을 앱 검증과 이중화한다 — 목록·원칙은 docs/architecture/data-integrity.md.
+// 앱이 이미 검증하는 규칙만 옮긴다(앱이 먼저 400/409를 내야 하므로). 규칙을 바꾸면 앱과 CHECK를 같이 고칠 것.
+// Prisma는 CHECK·부분 인덱스·트리거는 건드리지 않지만, SQL로만 추가한 FK는 다음 마이그레이션에서 DROP한다.
+//
+// ── D28 DI-02: 지점 일치 트리거 7개(마이그레이션 20260929005902_d28_branch_consistency_triggers) ──
+// 프로그램↔시설·강사, 회원↔담당 직원, 수강·PT↔프로그램, 예약↔회차, 강사↔직원의 branchId가 같아야 한다.
+// Staff.branchId를 바꾸려면(파견) 그 직원의 다른 지점 담당 회원·강사 연결을 같은 트랜잭션에서 먼저 정리해야 한다(ADR-STF-04).
 
 // ── 공통 enum ──────────────────────────────────────────
 
@@ -23,9 +49,10 @@ enum Role {
 
 model Account {
   id               String    @id @default(uuid())
-  email            String    @unique
+  email            String // 부분 unique(활성 계정끼리만) — 파일 상단 주석 1). findUnique 불가, findFirst 사용
   passwordHash     String
   role             Role
+  name             String // SUPER_ADMIN은 Staff/Member 프로필이 없어 이름을 여기 직접 둔다 — Staff/Member 보유 계정도 조회 편의상 함께 저장(항상 그쪽 name과 동기화)
   isActive         Boolean   @default(true)
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
@@ -39,6 +66,7 @@ model Account {
   auditLogs            AuditLog[]
   staffAssignmentsMade StaffAssignment[] // 이 계정이 SUPER_ADMIN으로서 발령한 파견 이력(assignedBy)
 
+  @@index([email])
   @@index([role])
 }
 
@@ -67,19 +95,23 @@ model Branch {
   isActive                  Boolean              @default(true)
   // 위탁계약 필드 — 1-1문서 §2-1. Branch는 매장이 아니라 위탁운영 계약 현장이라는 재해석의 핵심 데이터.
   contractPartner           String // 위탁계약 상대방(예: "서초 OO아파트 입주자대표회의") — 관리자 전용 정보
-  contractStartAt           DateTime
-  contractEndAt             DateTime?
+  contractStartAt           DateTime             @db.Date
+  contractEndAt             DateTime?            @db.Date
   contractStatus            BranchContractStatus @default(ACTIVE)
   createdAt                 DateTime             @default(now())
   updatedAt                 DateTime             @updatedAt
 
-  staff            Staff[]
-  staffAssignments StaffAssignment[]
-  members          Member[]
-  facilities       Facility[]
-  instructors      Instructor[]
-  programs         Program[]
-  posts            Post[]
+  staff             Staff[]
+  staffAssignments  StaffAssignment[]
+  attendanceRecords AttendanceRecord[]
+  members           Member[]
+  facilities        Facility[]
+  instructors       Instructor[]
+  programs          Program[]
+  posts             Post[]
+  assets            Asset[]
+  documents         Document[]
+  codeSequences     CodeSequence[]
 
   @@index([isActive])
   @@index([contractStatus])
@@ -111,9 +143,10 @@ model Staff {
   phone          String?
   position       String? // 팀장/지점장/트레이너/행정직원 등
   employmentType String? // 정규직/계약직/파트타임
-  hireDate       DateTime
-  resignDate     DateTime?
+  hireDate       DateTime    @db.Date
+  resignDate     DateTime?   @db.Date
   status         StaffStatus @default(ACTIVE)
+  offDays        Int[]       @default([]) // 주간 정기 휴무 요일(0=일~6=토) — 근태 isWorkDay 판정에 사용
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
@@ -189,6 +222,7 @@ enum AttendanceStatus {
 model AttendanceRecord {
   id         String           @id @default(uuid())
   staffId    String
+  branchId   String // 체크인 시점 지점 스냅샷 — 파견 재배치 중에도 과거 기록의 지점이 바뀌지 않도록 고정(ADR-ATT-03)
   date       DateTime         @db.Date
   checkInAt  DateTime?
   checkOutAt DateTime?
@@ -196,10 +230,12 @@ model AttendanceRecord {
   note       String?
   createdAt  DateTime         @default(now())
 
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id])
 
   @@unique([staffId, date])
   @@index([staffId, date])
+  @@index([branchId])
 }
 
 enum LeaveType {
@@ -282,7 +318,7 @@ model Post {
   pinned          Boolean      @default(false)
   visibleToMember Boolean      @default(false) // HQ 공지의 회원 노출 여부
   viewCount       Int          @default(0)
-  publishedAt     DateTime     @default(now())
+  publishedAt     DateTime     @db.Date // 앱이 todayKst()로 채움(파일 상단 날짜 규칙)
   deletedAt       DateTime?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -336,8 +372,9 @@ model Member {
   phone           String?
   birthDate       DateTime?    @db.Date
   gender          String?
-  joinedAt        DateTime     @default(now())
+  joinedAt        DateTime     @db.Date // 앱이 todayKst()로 채움(파일 상단 날짜 규칙)
   status          MemberStatus @default(ACTIVE)
+  guardianConsent Boolean      @default(false) // 미성년 회원 법정대리인 동의 (05문서 §3·§6)
   memo            String?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -359,15 +396,16 @@ model Member {
 
 enum EnrollmentStatus {
   ACTIVE
-  EXPIRED
+  COMPLETED
+  CANCELLED
 }
 
 model CourseEnrollment {
   id         String           @id @default(uuid())
   memberId   String
   programId  String
-  enrolledAt DateTime         @default(now())
-  expiresAt  DateTime?
+  enrolledAt DateTime         @db.Date
+  expiresAt  DateTime?        @db.Date
   status     EnrollmentStatus @default(ACTIVE)
 
   member  Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
@@ -382,7 +420,7 @@ model PTSession {
   programId     String
   totalSessions Int
   usedSessions  Int      @default(0)
-  purchasedAt   DateTime @default(now())
+  purchasedAt   DateTime @db.Date
 
   member  Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
   program Program        @relation(fields: [programId], references: [id])
@@ -523,7 +561,9 @@ model Reservation {
   scheduleSlot ScheduleSlot @relation(fields: [scheduleSlotId], references: [id])
   payment      Payment?
 
-  @@unique([memberId, scheduleSlotId])
+  // (memberId, scheduleSlotId) 유일성은 활성 예약에만 — 부분 unique(파일 상단 주석 3). 전역 @@unique는
+  // 취소 후 재예약을 막아 ADR-RSV-02와 모순이었다.
+  @@index([memberId, scheduleSlotId])
   @@index([scheduleSlotId, status])
   @@index([memberId, status])
 }
@@ -545,6 +585,8 @@ model Payment {
   reservationId  String        @unique
   memberId       String
   amount         Int
+  supplyAmount   Int // 공급가액 = round(amount / 1.1)
+  vat            Int // 부가세 = amount - supplyAmount
   method         PaymentMethod
   status         PaymentStatus @default(PENDING)
   mockApprovalNo String?
@@ -569,12 +611,17 @@ enum FacilityType {
 }
 
 model Facility {
-  id       String       @id @default(uuid())
-  branchId String
-  name     String
-  type     FacilityType
-  capacity Int
-  isActive Boolean      @default(true)
+  id            String       @id @default(uuid())
+  branchId      String
+  name          String
+  type          FacilityType
+  capacity      Int
+  isActive      Boolean      @default(true)
+  // 혼잡도 현재값 — CongestionSnapshot(이력 테이블)은 스키마엔 있지만 Phase 1 범위 밖이라
+  // 아직 안 쓴다. 지금은 mock과 동일하게 Facility에 직접 현재값을 얹는다.
+  currentCount  Int          @default(0)
+  level         Int          @default(1) // 1~5
+  lastUpdatedAt DateTime?
 
   branch              Branch               @relation(fields: [branchId], references: [id])
   programs            Program[]
@@ -616,7 +663,106 @@ model FacilityCheckIn {
   @@index([facilityId, checkOutAt])
 }
 
+// ── 1-10. 자원문서관리(Phase 1만 — 재물조사·감가상각·파일 업로드 없음) ──────
+
+enum AssetCategory {
+  EXERCISE_EQUIPMENT
+  SAFETY_EQUIPMENT
+  OFFICE_FURNITURE
+  OTHER
+}
+
+enum AssetType {
+  FIXED_ASSET
+  CONSUMABLE
+}
+
+enum AssetStatus {
+  NORMAL
+  REPAIRING
+  DISPOSAL_PENDING
+  DISPOSED
+}
+
+model Asset {
+  id              String        @id @default(uuid())
+  assetCode       String        @unique // {지점코드}-A{순번}
+  branchId        String
+  name            String
+  category        AssetCategory
+  assetType       AssetType
+  acquiredAt      DateTime      @db.Date
+  acquisitionCost Int
+  usefulLifeYears Int? // FIXED_ASSET만 사용
+  status          AssetStatus
+  quantity        Int // CONSUMABLE은 재고 수량, FIXED_ASSET은 항상 1
+  location        String?
+  note            String?
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+}
+
+enum DocumentCategory {
+  CONTRACT
+  HR_RECORD
+  MANUAL
+  OTHER
+}
+
+model Document {
+  id             String           @id @default(uuid())
+  category       DocumentCategory
+  branchId       String? // 전사 문서면 null
+  relatedStaffId String? // HR_RECORD 대상 직원
+  title          String
+  fileUrl        String // 실제 파일 업로드 인프라는 아직 없음 — 문자열 필드일 뿐
+  fileType       String?
+  fileSize       Int?
+  uploadedBy     String // FK → Account
+  retentionUntil DateTime?        @db.Date // null = 영구 보관
+  createdAt      DateTime         @default(now())
+  deletedAt      DateTime? // 소프트 삭제(D9)
+
+  branch Branch? @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+}
+
 // ── 공통: 변경 이력 ─────────────────────────────────────
+
+// ── 공통: 채번 시퀀스 ───────────────────────────────────
+// D27, ADR-STF-02 — 지점별 시퀀스 행을 SELECT ... FOR UPDATE로 잠그고 lastValue를 올린다(ADR-RSV-01과
+// 같은 "잠글 대상이 반드시 있는 행을 잠근다" 패턴). mock의 "기존 개수+1"은 동시 요청(=Lambda 병렬
+// 인스턴스)에서 같은 번호를 낸다. prefix: STAFF="{지점코드}-", MEMBER="{지점코드}{연도}", ASSET="{지점코드}-A".
+enum CodeSequenceKind {
+  STAFF
+  MEMBER
+  ASSET
+}
+
+model CodeSequence {
+  branchId  String
+  kind      CodeSequenceKind
+  prefix    String
+  lastValue Int              @default(0)
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@id([branchId, kind, prefix])
+}
+
+// ── 공통: 회원 연동 실패 기록 ─────────────────────────────
+// D27, ADR-MEM-01 — memberNo 기준 1시간 슬라이딩 윈도 5회 제한. mock은 인스턴스 메모리 Map이라 Lambda처럼
+// 인스턴스가 여러 개면 제한이 인스턴스 수만큼 느슨해진다 → 공유 저장소(DB)로 옮긴다.
+model MemberLinkAttempt {
+  id          String   @id @default(uuid())
+  memberNo    String
+  attemptedAt DateTime @default(now())
+
+  @@index([memberNo, attemptedAt])
+}
 
 model AuditLog {
   id        String   @id @default(uuid())

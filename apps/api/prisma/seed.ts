@@ -4,8 +4,12 @@
  *
  * 실행: npm run prisma:seed --workspace=apps/api  (package.json의 prisma.seed 설정 참고)
  */
-import { PrismaClient, Role, PricingType, ProgramStatus, AgeGroup, FacilityType, ReservationStatus, PaymentMethod, PaymentStatus, CongestionSource } from '@prisma/client';
+import { PrismaClient, Role, PricingType, ProgramStatus, AgeGroup, FacilityType, CongestionSource, CodeSequenceKind, MemberStatus, EnrollmentStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { allBranchRecords } from '../src/mock-data/branch-fixtures';
+import { staffSeed } from '../src/mock-data/staff-fixtures';
+import { catalogSeed } from '../src/mock-data/catalog-fixtures';
+import { memberSeed } from '../src/mock-data/member-fixtures';
 
 const prisma = new PrismaClient();
 
@@ -14,256 +18,209 @@ const DEMO_PASSWORD = 'demo-password-1234'; // 로컬 시연용. 실제 배포�
 async function main() {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
-  // ── 지점 ──────────────────────────────────────────
-  const seocho = await prisma.branch.upsert({
-    where: { id: 'branch-seocho' },
-    update: {},
-    create: {
-      id: 'branch-seocho',
-      name: '서초점',
-      code: 'SEOCHO',
-      address: '서울시 서초구',
-      standardCheckInTime: '09:00',
-    },
-  });
+  // ── 지점 — D29: mock과 같은 원천(branch-fixtures.ts)에서 98개 전부 ──────────────
+  // 예전엔 서초·강남 2개를 여기 따로 적어 계약 종료일 등이 mock과 달랐다. 이제 지점의 원천은 DB이고,
+  // mock에는 계약 필드를 뺀 이름표 사본만 남는다(test/branch-parity.spec.ts가 둘이 같은지 검증).
+  // update에도 같은 값을 넣어 시드를 다시 돌리면 지점이 원천과 다시 맞춰지게 한다.
+  for (const b of allBranchRecords()) {
+    const data = {
+      name: b.name,
+      code: b.code,
+      address: b.address,
+      region: b.region,
+      standardCheckInTime: b.standardCheckInTime,
+      cancellationDeadlineHours: b.cancellationDeadlineHours,
+      contractPartner: b.contractPartner,
+      contractStartAt: new Date(`${b.contractStartAt}T00:00:00Z`),
+      contractEndAt: b.contractEndAt ? new Date(`${b.contractEndAt}T00:00:00Z`) : null,
+      contractStatus: b.contractStatus,
+    };
+    await prisma.branch.upsert({ where: { id: b.id }, update: data, create: { id: b.id, ...data } });
+  }
+  const seocho = { id: 'branch-seocho' };
 
-  const gangnam = await prisma.branch.upsert({
-    where: { id: 'branch-gangnam' },
-    update: {},
-    create: {
-      id: 'branch-gangnam',
-      name: '강남점',
-      code: 'GANGNAM',
-      address: '서울시 강남구',
-      standardCheckInTime: '09:00',
-    },
-  });
+  // ── 직원·파견·관리자 계정 — D30: 원천은 DB, mock은 앱이 뜰 때 여기서 미러를 채운다 ─────────
+  // 히어로 id는 예전 mock 값 그대로다(아직 mock인 회원 담당 직원 등이 이 id를 가리킴).
+  // update에도 같은 값을 넣어 시드를 다시 돌리면 원천과 다시 맞춰지게 한다(비밀번호·활성 여부 포함).
+  const staffData = staffSeed();
+  for (const a of staffData.accounts) {
+    const data = { email: a.email, passwordHash, role: a.role as Role, name: a.name, isActive: true };
+    await prisma.account.upsert({ where: { id: a.id }, update: data, create: { id: a.id, ...data } });
+  }
+  const dateOf = (d: string) => new Date(`${d}T00:00:00Z`);
+  for (const st of staffData.staff) {
+    const data = {
+      accountId: st.accountId,
+      branchId: st.branchId,
+      staffCode: st.staffCode,
+      name: st.name,
+      phone: st.phone ?? null,
+      position: st.position ?? null,
+      employmentType: st.employmentType ?? null,
+      offDays: st.offDays ?? [],
+      hireDate: dateOf(st.hireDate),
+      resignDate: st.resignDate ? dateOf(st.resignDate) : null,
+      status: st.status,
+    };
+    await prisma.staff.upsert({ where: { id: st.id }, update: data, create: { id: st.id, ...data } });
+  }
+  for (const as of staffData.assignments) {
+    const data = {
+      staffId: as.staffId,
+      branchId: as.branchId,
+      startDate: dateOf(as.startDate),
+      endDate: as.endDate ? dateOf(as.endDate) : null,
+      assignedBy: as.assignedBy,
+      note: as.note ?? null,
+    };
+    await prisma.staffAssignment.upsert({ where: { id: as.id }, update: data, create: { id: as.id, ...data } });
+  }
+  const hqAccount = { id: 'account-haneul' };
+  const minsuAccount = { id: 'account-minsu' };
 
-  // ── 계정 · 인물 ────────────────────────────────────
+  // ── 채번 시퀀스 — D28/DI-03, D30 ────────────────────────
+  // 번호를 직접 박아 넣은 직원·회원만큼 시퀀스를 올려 둔다. 안 그러면 allocateBranchCode의 첫 채번이
+  // 기존 번호(SEOCHO-001 등)와 unique 충돌한다. 직원은 지점별 "{코드}-" prefix의 최대 순번으로 맞춘다.
+  const staffSeq = new Map<string, { branchId: string; prefix: string; lastValue: number }>();
+  const branchByCode = new Map(allBranchRecords().map((b) => [b.code, b.id]));
+  for (const st of staffData.staff) {
+    const m = /^(.+)-(\d+)$/.exec(st.staffCode);
+    const branchId = m && branchByCode.get(m[1]);
+    if (!m || !branchId) throw new Error(`시드 직원번호 형식 오류: ${st.staffCode}`);
+    const key = `${branchId}|${m[1]}-`;
+    const cur = staffSeq.get(key);
+    staffSeq.set(key, { branchId, prefix: `${m[1]}-`, lastValue: Math.max(cur?.lastValue ?? 0, Number(m[2])) });
+  }
+  // 회원은 "{코드}{연도}" prefix별 최대 순번(D32) — SEOCHO2025-014처럼 지난 연도 번호도 그 prefix의 시퀀스를 올린다.
+  const memberData = memberSeed();
+  const memberSeq = new Map<string, { branchId: string; prefix: string; lastValue: number }>();
+  for (const mb of memberData.members) {
+    const m = /^(.+)-(\d+)$/.exec(mb.memberNo);
+    if (!m) throw new Error(`시드 회원번호 형식 오류: ${mb.memberNo}`);
+    const key = `${mb.branchId}|${m[1]}`;
+    const cur = memberSeq.get(key);
+    memberSeq.set(key, { branchId: mb.branchId, prefix: m[1], lastValue: Math.max(cur?.lastValue ?? 0, Number(m[2])) });
+  }
+  for (const seq of [
+    ...[...staffSeq.values()].map((v) => ({ ...v, kind: CodeSequenceKind.STAFF })),
+    ...[...memberSeq.values()].map((v) => ({ ...v, kind: CodeSequenceKind.MEMBER })),
+  ]) {
+    await prisma.codeSequence.upsert({
+      where: { branchId_kind_prefix: { branchId: seq.branchId, kind: seq.kind, prefix: seq.prefix } },
+      update: { lastValue: seq.lastValue },
+      create: seq,
+    });
+  }
 
-  // 정하늘 — 본사 운영팀장 (SUPER_ADMIN)
-  const hqAccount = await prisma.account.upsert({
-    where: { email: 'jeong.haneul@spoism.example' },
-    update: {},
-    create: {
-      email: 'jeong.haneul@spoism.example',
-      passwordHash,
-      role: Role.SUPER_ADMIN,
-    },
-  });
+  // ── 시설·강사·프로그램·회차 — D31: 원천은 DB, mock은 앱이 뜰 때 여기서 미러를 채운다 ─────────
+  // 히어로 id·값은 예전 mock 그대로다(catalog-fixtures.ts). update에도 같은 값을 넣어 시드를 다시 돌리면
+  // 원천과 다시 맞춰지게 한다. 참조 순서: 시설·강사 → 프로그램(D28 지점 일치 트리거) → 회차.
+  const catalog = catalogSeed();
+  for (const f of catalog.facilities) {
+    const data = {
+      branchId: f.branchId,
+      name: f.name,
+      type: f.type as FacilityType,
+      capacity: f.capacity,
+      currentCount: f.currentCount,
+      level: f.level,
+      lastUpdatedAt: new Date(f.lastUpdatedAt),
+      isActive: f.isActive,
+    };
+    await prisma.facility.upsert({ where: { id: f.id }, update: data, create: { id: f.id, ...data } });
+  }
+  for (const ins of catalog.instructors) {
+    const data = {
+      branchId: ins.branchId,
+      staffId: ins.staffId ?? null,
+      name: ins.name,
+      specialty: ins.specialty ?? null,
+      bio: ins.bio ?? null,
+      photoUrl: ins.photoUrl ?? null,
+      phone: ins.phone ?? null,
+      isActive: ins.isActive,
+    };
+    await prisma.instructor.upsert({ where: { id: ins.id }, update: data, create: { id: ins.id, ...data } });
+  }
+  for (const p of catalog.programs) {
+    const data = {
+      branchId: p.branchId,
+      facilityId: p.facilityId ?? null,
+      instructorId: p.instructorId ?? null,
+      name: p.name,
+      category: p.category,
+      ageGroup: p.ageGroup as AgeGroup,
+      description: p.description ?? null,
+      pricingType: p.pricingType as PricingType,
+      price: p.price,
+      capacity: p.capacity ?? null,
+      status: p.status as ProgramStatus,
+      startDate: dateOf(p.startDate),
+      endDate: p.endDate ? dateOf(p.endDate) : null,
+    };
+    await prisma.program.upsert({ where: { id: p.id }, update: data, create: { id: p.id, ...data } });
+  }
+  for (const sl of catalog.slots) {
+    const data = {
+      programId: sl.programId,
+      date: dateOf(sl.date),
+      startTime: sl.startTime,
+      endTime: sl.endTime,
+      capacity: sl.capacity,
+    };
+    await prisma.scheduleSlot.upsert({ where: { id: sl.id }, update: data, create: { id: sl.id, ...data } });
+  }
+  const gym = { id: 'facility-seocho-gym' };
 
-  // 김민수 — 서초점 지점장 (BRANCH_ADMIN)
-  const minsuAccount = await prisma.account.upsert({
-    where: { email: 'kim.minsu@spoism.example' },
-    update: {},
-    create: {
-      email: 'kim.minsu@spoism.example',
-      passwordHash,
-      role: Role.BRANCH_ADMIN,
-    },
-  });
-  const minsuStaff = await prisma.staff.upsert({
-    where: { accountId: minsuAccount.id },
-    update: {},
-    create: {
-      accountId: minsuAccount.id,
-      branchId: seocho.id,
-      staffCode: 'SEOCHO-001',
-      name: '김민수',
-      position: '지점장',
-      employmentType: '정규직',
-      hireDate: new Date('2021-03-02'),
-    },
-  });
-
-  // 박서연 — 서초점 트레이너 겸 요가 강사 (Role=STAFF: 관리 권한 없이 본인 근태/업무일지만 셀프서비스)
-  const seoyeonAccount = await prisma.account.upsert({
-    where: { email: 'park.seoyeon@spoism.example' },
-    update: {},
-    create: {
-      email: 'park.seoyeon@spoism.example',
-      passwordHash,
-      role: Role.STAFF,
-    },
-  });
-  const seoyeonStaff = await prisma.staff.upsert({
-    where: { accountId: seoyeonAccount.id },
-    update: {},
-    create: {
-      accountId: seoyeonAccount.id,
-      branchId: seocho.id,
-      staffCode: 'SEOCHO-002',
-      name: '박서연',
-      position: '트레이너',
-      employmentType: '정규직',
-      hireDate: new Date('2022-07-11'),
-    },
-  });
-
-  const seoyeonInstructor = await prisma.instructor.create({
-    data: {
-      branchId: seocho.id,
-      staffId: seoyeonStaff.id,
-      name: '박서연',
-      specialty: '요가 · 필라테스',
-      bio: '5년차 요가 강사, 하타/빈야사 전문',
-    },
-  });
-
-  // 이수진 — 서초점 회원
-  const sujinAccount = await prisma.account.upsert({
-    where: { email: 'lee.sujin@example.com' },
-    update: {},
-    create: {
-      email: 'lee.sujin@example.com',
-      passwordHash,
-      role: Role.MEMBER,
-    },
-  });
-  const sujinMember = await prisma.member.upsert({
-    where: { accountId: sujinAccount.id },
-    update: {},
-    create: {
-      accountId: sujinAccount.id,
-      branchId: seocho.id,
-      memberNo: 'SEOCHO2026-001',
-      name: '이수진',
-      phone: '010-1234-5678',
-      joinedAt: new Date('2026-03-15'),
-    },
-  });
-
-  // ── 시설 ──────────────────────────────────────────
-  const gym = await prisma.facility.upsert({
-    where: { id: 'facility-seocho-gym' },
-    update: {},
-    create: { id: 'facility-seocho-gym', branchId: seocho.id, name: '서초점 헬스장', type: FacilityType.GYM, capacity: 60 },
-  });
-  await prisma.facility.upsert({
-    where: { id: 'facility-seocho-pool' },
-    update: {},
-    create: { id: 'facility-seocho-pool', branchId: seocho.id, name: '서초점 수영장', type: FacilityType.POOL, capacity: 30 },
-  });
-
-  // ── 프로그램 (pricingType 세 갈래를 모두 시연) ─────────
-
-  // PAID_SESSION — 요가 그룹 클래스 (유료 회차 예약)
-  const yogaProgram = await prisma.program.upsert({
-    where: { id: 'program-seocho-yoga' },
-    update: {},
-    create: {
-      id: 'program-seocho-yoga',
-      branchId: seocho.id,
-      facilityId: gym.id,
-      instructorId: seoyeonInstructor.id,
-      name: '아침 요가',
-      category: '요가',
-      ageGroup: AgeGroup.ADULT,
-      price: 30000,
-      pricingType: PricingType.PAID_SESSION,
-      capacity: 15,
-      status: ProgramStatus.RUNNING,
-      startDate: new Date('2026-01-05'),
-    },
-  });
-
-  // PT_PACKAGE — 개인 PT (세션 차감형)
-  const ptProgram = await prisma.program.upsert({
-    where: { id: 'program-seocho-pt' },
-    update: {},
-    create: {
-      id: 'program-seocho-pt',
-      branchId: seocho.id,
-      facilityId: gym.id,
-      instructorId: seoyeonInstructor.id,
-      name: '퍼스널 트레이닝',
-      category: 'PT',
-      ageGroup: AgeGroup.ADULT,
-      price: 60000, // 1회당 단가(참고용, 결제는 세션 패키지 구매 시 별도 처리)
-      pricingType: PricingType.PT_PACKAGE,
-      status: ProgramStatus.RUNNING,
-      startDate: new Date('2026-01-05'),
-    },
-  });
-
-  // FREE_ACCESS — 헬스장 자유이용 (예약 없이 이용)
-  await prisma.program.upsert({
-    where: { id: 'program-seocho-freegym' },
-    update: {},
-    create: {
-      id: 'program-seocho-freegym',
-      branchId: seocho.id,
-      facilityId: gym.id,
-      name: '헬스장 자유이용',
-      category: '헬스',
-      ageGroup: AgeGroup.ALL,
-      pricingType: PricingType.FREE_ACCESS,
-      status: ProgramStatus.RUNNING,
-      startDate: new Date('2025-01-01'),
-    },
-  });
-
-  // 준비중 상태 예시 — 다음 달 개강 예정인 신규 프로그램(지점별 "진행중/준비중" 구분을 보여주기 위한 데이터)
-  await prisma.program.upsert({
-    where: { id: 'program-seocho-pilates' },
-    update: {},
-    create: {
-      id: 'program-seocho-pilates',
-      branchId: seocho.id,
-      facilityId: gym.id,
-      instructorId: seoyeonInstructor.id,
-      name: '필라테스 (10월 개강 예정)',
-      category: '필라테스',
-      ageGroup: AgeGroup.ADULT,
-      price: 35000,
-      pricingType: PricingType.PAID_SESSION,
-      capacity: 12,
-      status: ProgramStatus.PREPARING,
-      startDate: new Date('2026-10-01'),
-    },
-  });
-
-  // ── 예약 + 결제 (이수진이 아침 요가 예약) ──────────────
-  const today = new Date();
-  const slot = await prisma.scheduleSlot.create({
-    data: {
-      programId: yogaProgram.id,
-      date: today,
-      startTime: '10:00',
-      endTime: '11:00',
-      capacity: 15,
-    },
-  });
-
-  const reservation = await prisma.reservation.create({
-    data: {
-      memberId: sujinMember.id,
-      scheduleSlotId: slot.id,
-      status: ReservationStatus.CONFIRMED,
-    },
-  });
-
-  await prisma.payment.create({
-    data: {
-      reservationId: reservation.id,
-      memberId: sujinMember.id,
-      amount: 30000,
-      method: PaymentMethod.MOCK_CARD,
-      status: PaymentStatus.APPROVED,
-      mockApprovalNo: 'MOCK-APPROVAL-000001',
-      approvedAt: new Date(),
-    },
-  });
-
-  // ── PT 잔여세션 (이수진, 10회 중 3회 사용) ──────────────
-  await prisma.pTSession.create({
-    data: {
-      memberId: sujinMember.id,
-      programId: ptProgram.id,
-      totalSessions: 10,
-      usedSessions: 3,
-    },
-  });
+  // ── 회원·회원 계정·수강·PT — D32: 원천은 DB(미러 없음). 값은 예전 mock 그대로(member-fixtures.ts) ─────
+  // 참조 순서: 계정 → 회원(지점·담당 직원) → 수강·PT(프로그램) → PT 사용 기록. 예전에 여기서 만들던
+  // 예약·결제 데모 행과 그 회차는 mock에 없던 데이터라 뺐다(D32 "데이터").
+  for (const a of memberData.accounts) {
+    const data = { email: a.email, passwordHash, role: Role.MEMBER, name: a.name, isActive: true };
+    await prisma.account.upsert({ where: { id: a.id }, update: data, create: { id: a.id, ...data } });
+  }
+  for (const mb of memberData.members) {
+    const data = {
+      accountId: mb.accountId ?? null,
+      branchId: mb.branchId,
+      assignedStaffId: mb.assignedStaffId ?? null,
+      memberNo: mb.memberNo,
+      name: mb.name,
+      phone: mb.phone ?? null,
+      birthDate: mb.birthDate ? dateOf(mb.birthDate) : null,
+      gender: mb.gender ?? null,
+      joinedAt: dateOf(mb.joinedAt),
+      status: mb.status as MemberStatus,
+      guardianConsent: mb.guardianConsent,
+      memo: mb.memo ?? null,
+    };
+    await prisma.member.upsert({ where: { id: mb.id }, update: data, create: { id: mb.id, ...data } });
+  }
+  for (const e of memberData.enrollments) {
+    const data = {
+      memberId: e.memberId,
+      programId: e.programId,
+      enrolledAt: dateOf(e.enrolledAt),
+      expiresAt: e.expiresAt ? dateOf(e.expiresAt) : null,
+      status: e.status as EnrollmentStatus,
+    };
+    await prisma.courseEnrollment.upsert({ where: { id: e.id }, update: data, create: { id: e.id, ...data } });
+  }
+  for (const pt of memberData.ptSessions) {
+    const data = {
+      memberId: pt.memberId,
+      programId: pt.programId,
+      totalSessions: pt.totalSessions,
+      usedSessions: pt.usedSessions,
+      purchasedAt: dateOf(pt.purchasedAt),
+    };
+    await prisma.pTSession.upsert({ where: { id: pt.id }, update: data, create: { id: pt.id, ...data } });
+  }
+  for (const log of memberData.ptSessionLogs) {
+    const data = { ptSessionId: log.ptSessionId, usedAt: new Date(log.usedAt), note: log.note ?? null };
+    await prisma.pTSessionLog.upsert({ where: { id: log.id }, update: data, create: { id: log.id, ...data } });
+  }
+  const sujinMember = { id: 'member-sujin' };
 
   // ── 게시판 ────────────────────────────────────────
   await prisma.post.create({
@@ -274,6 +231,7 @@ async function main() {
       category: 'TRAINING_MATERIAL',
       title: 'ERP 시스템 사용 매뉴얼 안내',
       content: '전 지점 팀장급 직원 대상 ERP 사용법 매뉴얼을 게시판에 업로드했습니다.',
+      publishedAt: new Date('2026-08-20'), // D27 — DB 기본값 없음(@db.Date)
     },
   });
 
@@ -285,6 +243,7 @@ async function main() {
       category: 'EVENT',
       title: '9월 아침 요가 이벤트 안내',
       content: '9월 한 달간 아침 요가 신규 회원 20% 할인 이벤트를 진행합니다.',
+      publishedAt: new Date('2026-08-28'),
       visibleToMember: true,
     },
   });

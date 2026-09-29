@@ -3,7 +3,7 @@
 // 히어로 데이터로 남아있고, 이 파일은 그 나머지를 채운다). 전부 인덱스 기반 결정적 생성이라
 // 서버를 몇 번을 재기동해도 같은 결과가 나온다 — Math.random은 쓰지 않는다.
 
-import { AgeGroup, MockBranch, MockFacility, MockInstructor, MockMember, MockProgram, MockStaff } from './mock-data.types';
+import { AgeGroup, BranchRecord, MockFacility, MockInstructor, MockMember, MockProgram, MockStaff } from './mock-data.types';
 
 // 지점명에 쓰는 구체적 지역(area)과, 대시보드에서 "지역별로 묶기"에 쓰는 광역 단위(region)를 분리한다 —
 // "강동점"처럼 실제 동네 느낌은 살리면서도, 대시보드에서는 서울/부산/경기 같은 광역으로 접을 수 있게.
@@ -74,7 +74,7 @@ function addDays(base: Date, days: number) {
 }
 
 export interface GeneratedDataset {
-  branches: MockBranch[];
+  branches: BranchRecord[];
   staff: MockStaff[];
   members: MockMember[];
   programs: MockProgram[];
@@ -85,7 +85,7 @@ export interface GeneratedDataset {
 const LIGHT_BRANCH_COUNT = 96;
 
 export function generateLightBranches(): GeneratedDataset {
-  const branches: MockBranch[] = [];
+  const branches: BranchRecord[] = [];
   const staff: MockStaff[] = [];
   const members: MockMember[] = [];
   const programs: MockProgram[] = [];
@@ -101,7 +101,7 @@ export function generateLightBranches(): GeneratedDataset {
     const name = `${area.name}${complex}점`;
 
     // 계약 상태 분포(96개 기준): ACTIVE 80 / RENEWAL_DUE 9 / EXPIRED 4 / TERMINATED 3
-    let contractStatus: MockBranch['contractStatus'];
+    let contractStatus: BranchRecord['contractStatus'];
     let contractEndAt: string;
     if (i < 80) {
       contractStatus = 'ACTIVE';
@@ -183,6 +183,8 @@ export function generateLightBranches(): GeneratedDataset {
     for (let p = 0; p < programCount; p++) {
       const template = PROGRAM_POOL[(i + p) % PROGRAM_POOL.length];
       const status: MockProgram['status'] = (i + p) % 11 === 0 ? 'PREPARING' : (i + p) % 17 === 0 ? 'PAUSED' : 'RUNNING';
+      const pricingType: MockProgram['pricingType'] =
+        template.price === 0 ? 'FREE_ACCESS' : p === 0 ? 'PAID_SESSION' : 'PT_PACKAGE';
       programs.push({
         id: `program-gen-${pad(i + 1, 3)}-${p + 1}`,
         branchId,
@@ -192,8 +194,11 @@ export function generateLightBranches(): GeneratedDataset {
         category: template.category,
         ageGroup: template.ageGroup,
         description: template.description,
-        pricingType: template.price === 0 ? 'FREE_ACCESS' : p === 0 ? 'PAID_SESSION' : 'PT_PACKAGE',
+        pricingType,
         price: template.price,
+        // ADR-PRG-01 — PAID_SESSION은 정원 필수. 예전엔 비워 뒀는데 D28 CHECK(Program_paid_session_capacity_ck)가
+        // D31 시드에서 이 결함을 잡았다(API로는 만들 수 없는 상태였다). 소규모 그룹 수업 규모로 둔다.
+        capacity: pricingType === 'PAID_SESSION' ? 10 + (i % 3) * 5 : undefined,
         status,
         startDate: toDateStr(addDays(now, -(60 + (i + p) * 4))),
       });
