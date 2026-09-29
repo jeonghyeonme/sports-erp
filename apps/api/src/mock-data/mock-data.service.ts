@@ -1,24 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { addYearsToDateString, kstHoursMinutes, toKstDateString, todayKst } from '../common/date/kst-date';
+import { addYearsToDateString, toKstDateString, todayKst } from '../common/date/kst-date';
 import {
   AssetCategory,
   AssetStatus,
   AssetType,
-  AttendanceStatus,
   DocumentCategory,
-  LeaveType,
   MockAccount,
   MockAsset,
   MockDocument,
-  MockAttendanceRecord,
   MockBranch,
-  MockLeaveBalance,
-  MockLeaveRequest,
   MockPost,
   MockStaff,
-  MockStaffAssignment,
-  MockWorkLog,
   PostScope,
   Role,
 } from './mock-data.types';
@@ -52,11 +45,10 @@ export class MockDataService {
   // D32 — 회원 계정도 DB로 옮겨져 mock이 원천인 계정은 없다. 게시판·문서가 작성자 이름을 읽는 용도로만 남는다.
   readonly accounts: MockAccount[] = [];
 
-  // D30 — 직원·파견의 원천은 DB다. 이 두 배열은 아직 mock인 근태·문서·게시판이 동기적으로 읽는 미러로,
-  // StaffService가 앱이 뜰 때 DB 전체로 채우고 직원 쓰기 뒤 해당 직원만 갱신한다(replace/upsertStaffMirror).
-  // D31의 시설·강사·프로그램·회차 미러는 D32로 독자(예약·회원)가 DB로 옮겨져 없앴다.
+  // D30 — 직원의 원천은 DB다. 이 배열은 아직 mock인 문서가 동기적으로 읽는 미러로, StaffService가 앱이 뜰 때
+  // DB 전체로 채우고 직원 쓰기 뒤 해당 직원만 갱신한다(replace/upsertStaffMirror).
+  // D31의 시설·강사·프로그램·회차 미러는 D32로, 파견 이력 미러는 D33(근태 이관)으로 독자가 사라져 없앴다.
   readonly staff: MockStaff[] = [];
-  readonly staffAssignments: MockStaffAssignment[] = [];
 
   // 1-10문서 §4 — 서초점 데모 자산. 러닝머신은 100만원 초과라 FIXED_ASSET, 소독제는 CONSUMABLE.
   readonly assets: MockAsset[] = [
@@ -263,15 +255,14 @@ export class MockDataService {
   // ── D30 직원 미러 — StaffService만 쓴다(원천은 DB) ─────────────────────────────
 
   /** 앱이 뜰 때 DB 전체로 미러를 채운다. 배열 참조는 유지한다(readonly 필드를 다른 코드가 붙잡고 있을 수 있음). */
-  replaceStaffMirror(data: { staff: MockStaff[]; assignments: MockStaffAssignment[]; accounts: MockAccount[] }): void {
+  replaceStaffMirror(data: { staff: MockStaff[]; accounts: MockAccount[] }): void {
     this.staff.splice(0, this.staff.length, ...data.staff);
-    this.staffAssignments.splice(0, this.staffAssignments.length, ...data.assignments);
     const memberAccounts = this.accounts.filter((a) => a.role === 'MEMBER');
     this.accounts.splice(0, this.accounts.length, ...data.accounts, ...memberAccounts);
   }
 
-  /** 직원 쓰기가 커밋된 뒤 그 직원 한 명(직원·파견 이력 전체·계정)을 교체한다. */
-  upsertStaffMirror(data: { staff: MockStaff; assignments: MockStaffAssignment[]; account: MockAccount }): void {
+  /** 직원 쓰기가 커밋된 뒤 그 직원 한 명(직원·계정)을 교체한다. */
+  upsertStaffMirror(data: { staff: MockStaff; account: MockAccount }): void {
     const replace = <T extends { id: string }>(arr: T[], item: T) => {
       const i = arr.findIndex((x) => x.id === item.id);
       if (i >= 0) arr[i] = item;
@@ -279,10 +270,6 @@ export class MockDataService {
     };
     replace(this.staff, data.staff);
     replace(this.accounts, data.account);
-    for (let i = this.staffAssignments.length - 1; i >= 0; i--) {
-      if (this.staffAssignments[i].staffId === data.staff.id) this.staffAssignments.splice(i, 1);
-    }
-    this.staffAssignments.push(...data.assignments);
   }
 
 
@@ -297,288 +284,6 @@ export class MockDataService {
         d.retentionUntil = retentionUntil;
       });
   }
-
-  // ── 03. 근태관리 ──────────────────────────────────────────────────────────
-
-  readonly attendanceRecords: MockAttendanceRecord[] = [];
-  readonly leaveRequests: MockLeaveRequest[] = [];
-  readonly leaveBalances: MockLeaveBalance[] = [];
-  readonly workLogs: MockWorkLog[] = [];
-
-  // ADR-ATT-03(domains/근태관리.md) — 특정 과거 날짜에 그 직원이 소속돼 있던 지점을 파견 이력에서
-  // 조회한다. endDate를 배타적(exclusive)으로 다룬다 — 파견 전환 당일은 새 지점 소속으로 본다
-  // (assignStaff가 그날 Staff.branchId를 즉시 갱신하는 것과 같은 "즉시 반영" 원칙, ADR-AUTH-01).
-  // 일치하는 파견 이력이 없으면(데이터 이상) 현재 소속으로 보수적으로 대체한다.
-  private branchIdForStaffOnDate(staffId: string, date: string): string | undefined {
-    const match = this.staffAssignments
-      .filter((a) => a.staffId === staffId && a.startDate <= date && (!a.endDate || date < a.endDate))
-      .sort((a, b) => b.startDate.localeCompare(a.startDate))[0];
-    return match?.branchId ?? this.staff.find((s) => s.id === staffId)?.branchId;
-  }
-
-  // 03문서 §6 "자동 지각 판정" — Branch.standardCheckInTime 대비 10분 초과 시 LATE.
-  // 체크인 중복 방지(§6): staffId+date로 이미 checkInAt이 있으면 409.
-  checkIn(staffId: string): MockAttendanceRecord {
-    const staff = this.staff.find((s) => s.id === staffId);
-    if (!staff) {
-      throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
-    }
-    const today = new Date();
-    const date = todayKst();
-    if (this.attendanceRecords.some((r) => r.staffId === staffId && r.date === date && r.checkInAt)) {
-      throw new AppException('ALREADY_CHECKED_IN', '오늘 이미 체크인했습니다.', 409);
-    }
-
-    const branch = this.findBranchById(staff.branchId);
-    const status: AttendanceStatus = this.isLate(today, branch?.standardCheckInTime) ? 'LATE' : 'NORMAL';
-    // 오늘 체크인이므로 항상 "현재" 소속 지점이 맞다 — 그래도 branchIdForStaffOnDate로 통일해
-    // confirmAbsences와 같은 경로를 타게 한다(호출부가 둘로 갈리면 나중에 또 어긋나기 쉽다).
-    const branchId = this.branchIdForStaffOnDate(staffId, date) ?? staff.branchId;
-
-    let record = this.attendanceRecords.find((r) => r.staffId === staffId && r.date === date);
-    if (record) {
-      record.checkInAt = today.toISOString();
-      record.status = status;
-      record.branchId = branchId;
-    } else {
-      record = {
-        id: `attendance-${randomUUID()}`,
-        staffId,
-        branchId,
-        date,
-        checkInAt: today.toISOString(),
-        status,
-      };
-      this.attendanceRecords.push(record);
-    }
-    return record;
-  }
-
-  checkOut(staffId: string): MockAttendanceRecord {
-    const date = todayKst();
-    const record = this.attendanceRecords.find((r) => r.staffId === staffId && r.date === date);
-    if (!record || !record.checkInAt) {
-      throw new AppException('NOT_CHECKED_IN', '오늘 체크인 기록이 없습니다.', 400);
-    }
-    if (record.checkOutAt) {
-      throw new AppException('ALREADY_CHECKED_OUT', '오늘 이미 체크아웃했습니다.', 409);
-    }
-    record.checkOutAt = new Date().toISOString();
-    return record;
-  }
-
-  // 지점 출근 기준시각(HH:mm) 대비 10분 초과 여부. 지점에 기준시각이 없으면 지각 판정 자체를 하지 않는다.
-  // KST 시:분으로 비교한다(서버 프로세스의 로컬 시간대에 의존하던 setHours()는 date-time-handling.md와
-  // 같은 이유로 제거 — 배포 환경의 시간대 설정과 무관하게 항상 정확해야 한다).
-  private isLate(checkInAt: Date, standardCheckInTime?: string): boolean {
-    if (!standardCheckInTime) return false;
-    const [h, m] = standardCheckInTime.split(':').map(Number);
-    const { hours, minutes } = kstHoursMinutes(checkInAt);
-    return hours * 60 + minutes > h * 60 + m + 10;
-  }
-
-  // 03문서 §5 GET /attendance/summary — 지점 근태 요약(상태별 집계). month는 "YYYY-MM".
-  // ADR-ATT-03 — 집계 기준은 "현재 이 지점 소속 직원"이 아니라 "그 기록 자체의 branchId"다.
-  // 월중 파견 이동이 있었다면, 이동 전 기록은 예전 지점 요약에, 이동 후 기록은 새 지점 요약에 각각
-  // 정확히 잡힌다(소급 왜곡 없음). 표에 뜨는 직원 명단도 "현재 이 지점 소속"과 "이 달에 이 지점
-  // 기록이 있는 사람"의 합집합이라, 월중 전출한 직원도 전출 전 기록만큼은 여기 남는다.
-  attendanceSummary(branchId: string, month: string) {
-    const records = this.attendanceRecords.filter((r) => r.branchId === branchId && r.date.startsWith(month));
-    const staffIds = new Set(this.staff.filter((s) => s.branchId === branchId).map((s) => s.id));
-    for (const r of records) staffIds.add(r.staffId);
-
-    return Array.from(staffIds).map((staffId) => {
-      const own = records.filter((r) => r.staffId === staffId);
-      return {
-        staffId,
-        name: this.findStaffById(staffId)?.name ?? '(알 수 없음)',
-        normal: own.filter((r) => r.status === 'NORMAL').length,
-        late: own.filter((r) => r.status === 'LATE').length,
-        absent: own.filter((r) => r.status === 'ABSENT').length,
-        earlyLeave: own.filter((r) => r.status === 'EARLY_LEAVE').length,
-        onLeave: own.filter((r) => r.status === 'ON_LEAVE').length,
-      };
-    });
-  }
-
-  // ADR-ATT-02(domains/근태관리.md) — 오늘이 그 직원의 근무일인지 판정.
-  // 파트타임은 근무일이 주 단위로 고정되지 않아 이 판정 자체를 하지 않는다(03문서 §3).
-  private isWorkDay(staff: MockStaff, dateStr: string): boolean {
-    if (staff.employmentType === '파트타임') return false;
-    const dayOfWeek = new Date(`${dateStr}T00:00:00Z`).getUTCDay(); // 0=일~6=토, UTC 고정 파싱이라 호스트 시간대 무관
-    return !(staff.offDays ?? []).includes(dayOfWeek);
-  }
-
-  // ADR-ATT-02 — "잠정 결근" 미리보기: 스케줄러 없이 조회 시점에 계산만 하고 저장하지 않는다.
-  // 대상: ①재직 중 ②오늘 이전 과거 날짜 ③**그 날짜 기준 이 지점 소속**(ADR-ATT-03, branchIdForStaffOnDate —
-  // 현재 소속이 아니라 그날 당시 소속으로 판정. 월중 파견 이동으로 다른 지점 후보에서 빠지지 않도록,
-  // 후보 직원 명단도 "현재 이 지점" + "이 지점 파견 이력이 있는 사람"의 합집합으로 잡는다) ④근무일
-  // (파트타임 제외, isWorkDay) ⑤근태기록 없음 ⑥승인된 휴가 기간이 아님. confirmAbsences를 호출해야만
-  // 실제로 저장된다.
-  previewAbsences(branchId: string, month: string): Array<{ staffId: string; name: string; date: string }> {
-    const candidateIds = new Set<string>(this.staff.filter((s) => s.branchId === branchId).map((s) => s.id));
-    for (const a of this.staffAssignments) {
-      if (a.branchId === branchId) candidateIds.add(a.staffId);
-    }
-    const [y, m] = month.split('-').map(Number);
-    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
-    const todayStr = todayKst();
-    const result: Array<{ staffId: string; name: string; date: string }> = [];
-
-    for (const staffId of candidateIds) {
-      const staff = this.staff.find((s) => s.id === staffId);
-      if (!staff || staff.status !== 'ACTIVE') continue;
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${month}-${String(day).padStart(2, '0')}`;
-        if (dateStr >= todayStr) continue; // 오늘·미래는 아직 판단하지 않는다
-        if (this.branchIdForStaffOnDate(staffId, dateStr) !== branchId) continue; // 그날은 이 지점 소속이 아니었음
-        if (!this.isWorkDay(staff, dateStr)) continue;
-        const hasRecord = this.attendanceRecords.some((r) => r.staffId === staffId && r.date === dateStr);
-        if (hasRecord) continue;
-        const hasApprovedLeave = this.leaveRequests.some(
-          (r) => r.staffId === staffId && r.status === 'APPROVED' && r.startDate <= dateStr && dateStr <= r.endDate,
-        );
-        if (hasApprovedLeave) continue;
-        result.push({ staffId, name: staff.name, date: dateStr });
-      }
-    }
-    return result;
-  }
-
-  // ADR-ATT-02 — 결근 확정(BRANCH_ADMIN 명시적 액션, 컨트롤러에서 role 강제). previewAbsences가 이미
-  // "근태기록 없음"을 조건으로 걸러 두므로, 확정된 날짜는 다음 호출의 미리보기에서 자연히 빠진다(멱등).
-  // branchId는 호출 시 넘긴 값을 그대로 쓴다 — previewAbsences가 이미 그 날짜 기준 이 지점 소속인
-  // 후보만 돌려주므로(ADR-ATT-03) 다시 조회할 필요가 없다.
-  confirmAbsences(branchId: string, month: string, note?: string): MockAttendanceRecord[] {
-    const candidates = this.previewAbsences(branchId, month);
-    const created: MockAttendanceRecord[] = candidates.map((c) => ({
-      id: `attendance-${randomUUID()}`,
-      staffId: c.staffId,
-      branchId,
-      date: c.date,
-      status: 'ABSENT' as AttendanceStatus,
-      note: note ?? '결근 확정(관리자 확인)',
-    }));
-    this.attendanceRecords.push(...created);
-    return created;
-  }
-
-  // 03문서 §3 "입사연차 기준 자동계산" — 근로기준법 원칙의 단순화: 1년 미만은 11일,
-  // 1년 이상은 15일에서 시작해 2년마다 1일 가산(최대 25일). 정밀한 월별 개근 판정은 범위 밖.
-  private calcAnnualLeaveTotalDays(hireDate: string, asOfYear: number): number {
-    const hire = new Date(hireDate);
-    const yearsOfService = asOfYear - hire.getFullYear();
-    if (yearsOfService < 1) return 11;
-    return Math.min(15 + Math.floor((yearsOfService - 1) / 2), 25);
-  }
-
-  // year를 안 주면 올해 기준. 해당 연도 레코드가 아직 없으면 그 자리에서 계산해 생성한다(지연 생성).
-  leaveBalance(staffId: string, year?: number): MockLeaveBalance {
-    const targetYear = year ?? new Date().getFullYear();
-    let balance = this.leaveBalances.find((b) => b.staffId === staffId && b.year === targetYear);
-    if (!balance) {
-      const staff = this.staff.find((s) => s.id === staffId);
-      if (!staff) {
-        throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
-      }
-      balance = {
-        staffId,
-        year: targetYear,
-        totalDays: this.calcAnnualLeaveTotalDays(staff.hireDate, targetYear),
-        usedDays: 0,
-      };
-      this.leaveBalances.push(balance);
-    }
-    return balance;
-  }
-
-  // 03문서 §6 "연차 일수 계산" — 종료일 포함(inclusive), 주말 제외는 Phase 2.
-  private calcLeaveDays(startDate: string, endDate: string): number {
-    const ms = new Date(endDate).getTime() - new Date(startDate).getTime();
-    return Math.floor(ms / 86_400_000) + 1;
-  }
-
-  // 03문서 §6 — 잔여일수 초과 신청도 막지 않고 경고만 반환(마이너스 연차를 관리자 재량으로 승인하는 실무 반영).
-  requestLeave(
-    staffId: string,
-    input: { type: LeaveType; startDate: string; endDate: string; reason?: string },
-  ): { request: MockLeaveRequest; warning?: string } {
-    const days = this.calcLeaveDays(input.startDate, input.endDate);
-    if (days <= 0) {
-      throw new AppException('INVALID_DATE_RANGE', '종료일은 시작일 이후여야 합니다.', 400);
-    }
-
-    let warning: string | undefined;
-    if (input.type === 'ANNUAL') {
-      const balance = this.leaveBalance(staffId);
-      if (balance.totalDays - balance.usedDays < days) {
-        warning = '잔여 연차보다 많은 일수를 신청했습니다. 관리자 재량으로 승인될 수 있습니다.';
-      }
-    }
-
-    const request: MockLeaveRequest = {
-      id: `leave-${randomUUID()}`,
-      staffId,
-      type: input.type,
-      startDate: input.startDate,
-      endDate: input.endDate,
-      days,
-      reason: input.reason,
-      status: 'PENDING',
-    };
-    this.leaveRequests.push(request);
-    return { request, warning };
-  }
-
-  private findLeaveRequestOrThrow(id: string): MockLeaveRequest {
-    const request = this.leaveRequests.find((r) => r.id === id);
-    if (!request) {
-      throw new AppException('LEAVE_REQUEST_NOT_FOUND', '휴가 신청을 찾을 수 없습니다.', 404);
-    }
-    return request;
-  }
-
-  // 03문서 §6 — 승인 시점에만 차감(신청만으로는 차감 안 함 → 반려 시 복구 로직 불필요).
-  // type=ANNUAL(연차)만 LeaveBalance.usedDays에 반영, SICK/FAMILY_EVENT/OTHER는 이력만 남긴다.
-  approveLeaveRequest(id: string, approverId: string): MockLeaveRequest {
-    const request = this.findLeaveRequestOrThrow(id);
-    if (request.status !== 'PENDING') {
-      throw new AppException('LEAVE_REQUEST_ALREADY_REVIEWED', '이미 처리된 휴가 신청입니다.', 409);
-    }
-    request.status = 'APPROVED';
-    request.approverId = approverId;
-    request.reviewedAt = new Date().toISOString();
-
-    if (request.type === 'ANNUAL') {
-      const balance = this.leaveBalance(request.staffId);
-      balance.usedDays += request.days;
-    }
-    return request;
-  }
-
-  rejectLeaveRequest(id: string, approverId: string): MockLeaveRequest {
-    const request = this.findLeaveRequestOrThrow(id);
-    if (request.status !== 'PENDING') {
-      throw new AppException('LEAVE_REQUEST_ALREADY_REVIEWED', '이미 처리된 휴가 신청입니다.', 409);
-    }
-    request.status = 'REJECTED';
-    request.approverId = approverId;
-    request.reviewedAt = new Date().toISOString();
-    return request;
-  }
-
-  // staffId+date 하루 1건 권장(§3) — 같은 날 다시 작성하면 새 글을 추가하지 않고 내용을 덮어쓴다.
-  upsertWorkLog(staffId: string, date: string, content: string): MockWorkLog {
-    let log = this.workLogs.find((l) => l.staffId === staffId && l.date === date);
-    if (log) {
-      log.content = content;
-    } else {
-      log = { id: `worklog-${randomUUID()}`, staffId, date, content, createdAt: new Date().toISOString() };
-      this.workLogs.push(log);
-    }
-    return log;
-  }
-
 
   findAssetById(id: string): MockAsset | undefined {
     return this.assets.find((a) => a.id === id);
