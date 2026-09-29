@@ -4,7 +4,7 @@
  *
  * 실행: npm run prisma:seed --workspace=apps/api  (package.json의 prisma.seed 설정 참고)
  */
-import { PrismaClient, Role, PricingType, ProgramStatus, AgeGroup, FacilityType, ReservationStatus, PaymentMethod, PaymentStatus, CongestionSource } from '@prisma/client';
+import { PrismaClient, Role, PricingType, ProgramStatus, AgeGroup, FacilityType, ReservationStatus, PaymentMethod, PaymentStatus, CongestionSource, CodeSequenceKind } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { todayKst } from '../src/common/date/kst-date';
 
@@ -157,6 +157,20 @@ async function main() {
       joinedAt: new Date('2026-03-15'),
     },
   });
+
+  // ── 채번 시퀀스 — D28/DI-03 ────────────────────────
+  // 위에서 번호를 직접 박아 넣은 직원·회원만큼 시퀀스를 올려 둔다. 안 그러면 allocateBranchCode의 첫 채번이
+  // SEOCHO-001/SEOCHO2026-001로 나와 기존 행과 unique 충돌한다(실데이터 이관 때도 같은 초기화가 필요).
+  for (const seq of [
+    { branchId: seocho.id, kind: CodeSequenceKind.STAFF, prefix: 'SEOCHO-', lastValue: 2 },
+    { branchId: seocho.id, kind: CodeSequenceKind.MEMBER, prefix: 'SEOCHO2026', lastValue: 1 },
+  ]) {
+    await prisma.codeSequence.upsert({
+      where: { branchId_kind_prefix: { branchId: seq.branchId, kind: seq.kind, prefix: seq.prefix } },
+      update: { lastValue: seq.lastValue },
+      create: seq,
+    });
+  }
 
   // ── 시설 ──────────────────────────────────────────
   const gym = await prisma.facility.upsert({
