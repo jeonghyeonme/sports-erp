@@ -37,6 +37,8 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://sports_erp:change-me-in-local-env@localhost:5432/sports_erp?schema=public
+      # D27 — schema.prisma의 directUrl(마이그레이션 전용 직접 연결). CI는 풀러가 없어 같은 값.
+      DIRECT_URL: postgresql://sports_erp:change-me-in-local-env@localhost:5432/sports_erp?schema=public
     steps:
       - uses: actions/checkout@v4
 

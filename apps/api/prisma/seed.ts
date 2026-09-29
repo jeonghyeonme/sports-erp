@@ -6,6 +6,7 @@
  */
 import { PrismaClient, Role, PricingType, ProgramStatus, AgeGroup, FacilityType, ReservationStatus, PaymentMethod, PaymentStatus, CongestionSource } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { todayKst } from '../src/common/date/kst-date';
 
 const prisma = new PrismaClient();
 
@@ -55,7 +56,7 @@ async function main() {
 
   // 정하늘 — 본사 운영팀장 (SUPER_ADMIN)
   const hqAccount = await prisma.account.upsert({
-    where: { email: 'jeong.haneul@spoism.example' },
+    where: { id: 'account-haneul' }, // D27 — email은 부분 unique라 upsert 키로 못 씀
     update: {},
     create: {
       id: 'account-haneul',
@@ -68,7 +69,7 @@ async function main() {
 
   // 김민수 — 서초점 지점장 (BRANCH_ADMIN)
   const minsuAccount = await prisma.account.upsert({
-    where: { email: 'kim.minsu@spoism.example' },
+    where: { id: 'account-minsu' }, // D27 — email은 부분 unique라 upsert 키로 못 씀
     update: {},
     create: {
       id: 'account-minsu',
@@ -95,7 +96,7 @@ async function main() {
 
   // 박서연 — 서초점 트레이너 겸 요가 강사 (Role=STAFF: 관리 권한 없이 본인 근태/업무일지만 셀프서비스)
   const seoyeonAccount = await prisma.account.upsert({
-    where: { email: 'park.seoyeon@spoism.example' },
+    where: { id: 'account-seoyeon' }, // D27 — email은 부분 unique라 upsert 키로 못 씀
     update: {},
     create: {
       id: 'account-seoyeon',
@@ -132,7 +133,7 @@ async function main() {
 
   // 이수진 — 서초점 회원
   const sujinAccount = await prisma.account.upsert({
-    where: { email: 'lee.sujin@example.com' },
+    where: { id: 'account-sujin' }, // D27 — email은 부분 unique라 upsert 키로 못 씀
     update: {},
     create: {
       id: 'account-sujin',
@@ -248,7 +249,8 @@ async function main() {
   });
 
   // ── 예약 + 결제 (이수진이 아침 요가 예약) ──────────────
-  const today = new Date();
+  // D27 — @db.Date 컬럼은 KST 기준 날짜 문자열로 넣는다(new Date()를 그대로 넣으면 UTC 날짜로 잘린다).
+  const today = new Date(`${todayKst()}T00:00:00Z`);
   const slot = await prisma.scheduleSlot.create({
     data: {
       programId: yogaProgram.id,
@@ -288,6 +290,7 @@ async function main() {
       programId: ptProgram.id,
       totalSessions: 10,
       usedSessions: 3,
+      purchasedAt: new Date('2026-08-01'), // D27 — DB 기본값 없음(@db.Date)
     },
   });
 
@@ -300,6 +303,7 @@ async function main() {
       category: 'TRAINING_MATERIAL',
       title: 'ERP 시스템 사용 매뉴얼 안내',
       content: '전 지점 팀장급 직원 대상 ERP 사용법 매뉴얼을 게시판에 업로드했습니다.',
+      publishedAt: new Date('2026-08-20'), // D27 — DB 기본값 없음(@db.Date)
     },
   });
 
@@ -311,6 +315,7 @@ async function main() {
       category: 'EVENT',
       title: '9월 아침 요가 이벤트 안내',
       content: '9월 한 달간 아침 요가 신규 회원 20% 할인 이벤트를 진행합니다.',
+      publishedAt: new Date('2026-08-28'),
       visibleToMember: true,
     },
   });
