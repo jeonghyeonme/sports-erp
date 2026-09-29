@@ -26,6 +26,11 @@ datasource db {
 // 3) Reservation(memberId, scheduleSlotId) WHERE status IN (REQUESTED, CONFIRMED) — ADR-RSV-02
 // Prisma 5.22의 `migrate dev`는 이 인덱스들을 건드리지 않음을 확인했다(2026-09-29, 빈 마이그레이션 생성).
 // Prisma 버전을 올린 뒤 새 마이그레이션에 이 인덱스의 DROP INDEX가 생기면 지우고 커밋할 것.
+//
+// ── D28: CHECK 제약 18개(마이그레이션 20260929004339_d28_integrity_checks에만 있다) ──
+// 한 행 안에서 판정되는 정합성 규칙을 앱 검증과 이중화한다 — 목록·원칙은 docs/architecture/data-integrity.md.
+// 앱이 이미 검증하는 규칙만 옮긴다(앱이 먼저 400/409를 내야 하므로). 규칙을 바꾸면 앱과 CHECK를 같이 고칠 것.
+// Prisma는 CHECK·부분 인덱스·트리거는 건드리지 않지만, SQL로만 추가한 FK는 다음 마이그레이션에서 DROP한다.
 
 // ── 공통 enum ──────────────────────────────────────────
 
