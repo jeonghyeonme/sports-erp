@@ -96,7 +96,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
         await prisma.reservation.count(),
         m.posts.length,
         await prisma.facility.count(),
-        m.assets.length,
+        await prisma.asset.count(), // D35 — 자산 원천은 DB
         await prisma.document.count(), // D34 — 문서 원천은 DB
       ];
       const before = await counts();
