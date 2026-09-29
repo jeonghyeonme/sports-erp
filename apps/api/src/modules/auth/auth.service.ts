@@ -37,8 +37,12 @@ export class AuthService {
     email: string,
     password: string,
   ): Promise<{ accessToken: string; refreshToken: string; user: RequestUser }> {
-    const account = await this.prisma.account.findUnique({
+    // D27 — email은 활성 계정끼리만 unique(ADR-MEM-02 부분 인덱스)라 탈퇴 계정과 재가입 계정이 같은
+    // 이메일로 공존할 수 있다. 활성 계정을 먼저 고르고, 비활성뿐이면 그걸 돌려 assertAccountActive가
+    // ACCOUNT_INACTIVE로 거부하게 한다(비활성 계정을 건너뛰어 mock 폴백으로 새는 것을 막음).
+    const account = await this.prisma.account.findFirst({
       where: { email },
+      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
       include: { staff: true, member: true },
     });
     if (account) {
