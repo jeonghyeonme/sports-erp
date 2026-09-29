@@ -62,6 +62,8 @@ npm run test    # jest — HTTP 통합 테스트(`apps/api/test/`), 실제 AppMo
                 # D27(2026-09-29)부터 마이그레이션에 `DIRECT_URL`도 필요하다(로컬은 DATABASE_URL과 같은 값, `.env.example` 참고).
                 # 부분 unique 인덱스 3종·CHECK 제약 18개·지점 일치 트리거 7개(D28)는 schema.prisma가 아니라 마이그레이션 SQL에만 있다 — schema.prisma 상단 주석 참고.
                 # 도메인을 Prisma로 옮길 때는 docs/architecture/data-integrity.md §6 정합성 체크리스트(채번·회차 락 헬퍼 포함)를 따를 것.
+                # D29(2026-09-29)부터 jest가 워커마다 기준 DB를 템플릿으로 복제해 쓴다(test/setup/). 기준 DB 계정에 CREATEDB 권한이 필요하고,
+                # 테스트가 DB 상태를 바꿔도 기준 DB는 오염되지 않는다. 지점 계약 상태는 mockData가 아니라 test/helpers/branch-status.ts의 setBranchStatus로 바꿀 것.
 npm run build   # nest build
 
 # apps/admin-web 안에서
@@ -87,7 +89,7 @@ npm run build   # tsc -b && vite build
 
 ## 현재 구현 상태 (착각하기 쉬운 부분)
 
-- **API는 대부분 Prisma가 아니라 `MockDataService`(인메모리)로 동작한다 — 단, 인증(로그인/토큰갱신/로그아웃/비밀번호변경)은 2026-09-28 D26으로 `PrismaService`(Supabase Postgres)로 이관됐다.** `AuthService`/`JwtStrategy`는 이메일·accountId를 Prisma에서 먼저 찾고 없으면 mock으로 폴백하는 과도기 이중 경로다(`apps/api/src/modules/auth/auth.service.ts` 상단 주석 참고). 그 밖의 17개 컨트롤러는 여전히 mock 데이터를 반환한다. "Prisma 스키마에 있으니 동작한다"고 가정하지 말 것 — 실제 동작 여부는 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2를 확인.
+- **API는 대부분 Prisma가 아니라 `MockDataService`(인메모리)로 동작한다 — 단, 인증(로그인/토큰갱신/로그아웃/비밀번호변경)은 2026-09-28 D26으로, 지점(Branch)은 2026-09-29 D29로 `PrismaService`(Supabase Postgres)로 이관됐다.** 지점 계약 상태의 원천은 DB뿐이다 — mock의 `branches`는 계약 필드가 없는 이름표 사본이고, 아직 mock인 쓰기 경로는 `BranchService.loadGate()`로 받은 gate로 계약 종료를 판정한다(`src/modules/branches/branch-gate.ts`). 도메인 이관 순서는 참조되는 쪽부터다(지점 → 직원·파견 → 프로그램·시설·강사·회차 → 회원, D29). `AuthService`/`JwtStrategy`는 이메일·accountId를 Prisma에서 먼저 찾고 없으면 mock으로 폴백하는 과도기 이중 경로다(`apps/api/src/modules/auth/auth.service.ts` 상단 주석 참고). 그 밖의 17개 컨트롤러는 여전히 mock 데이터를 반환한다. "Prisma 스키마에 있으니 동작한다"고 가정하지 말 것 — 실제 동작 여부는 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2를 확인.
 - Write API는 권한관리(로그인/토큰갱신/로그아웃/비밀번호변경/Role전환)·인사정보관리(채용/파견/퇴사)·회원관리(등록/수정/상태전환)·근태관리(체크인/휴가/업무일지)·강사프로그램게시(강사 CRUD·프로그램 등록/수정/종료/상태전이·회차 등록)·게시판(작성/수정/삭제)·혼잡도관리(시설 등록/수정·수동 보정)·예약및결제(예약 생성/취소/체크인·모의결제)·자원문서관리(자산 CRUD·문서 CRUD)에 있다. 전 도메인이 최소 Phase 1 수준의 Write API를 갖췄다 — 정확한 도메인별 현황은 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2-2를 확인.
 - **admin-web 프론트엔드가 API를 못 따라간 경우가 있다.** 예: 인사정보관리(1-3)는 채용/파견/퇴사 API가 다 있는데 `StaffPage.tsx`가 조회 전용이라 화면에서는 할 수 없다(2-3문서 §2-2). "API가 있으니 화면도 있다"고 가정하지 말 것. (강사프로그램게시의 지점 현황판은 2026-09-18에 `BranchDetailPage.tsx`가 연결해 해소됨 — 아래 줄 참고.)
 - 모든 도메인에 코드가 있다. 1-4(근태관리)·1-5(게시판)·1-7(예약및결제, Phase 1+2 핵심만)·1-8(강사프로그램게시)·1-9(혼잡도관리, Phase 1만)는 2026-09-18에, 1-10(자원문서관리, Phase 1만 — 재물조사·감가상각·파일 업로드 없음)은 2026-09-19에 API+화면 모두 구현 완료.

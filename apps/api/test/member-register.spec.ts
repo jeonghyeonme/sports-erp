@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, BRANCH, createApp, login, mockData } from './helpers/app';
+import { setBranchStatus } from './helpers/branch-status';
 
 /**
  * 회원관리 도메인 — ADR-MEM-02(앱 회원가입, 탈퇴 회원 이메일 재사용 = 부분 unique).
@@ -47,7 +48,7 @@ describe('POST /members/register (앱 회원가입)', () => {
   });
 
   it('계약종료 지점에는 신규 가입이 409 BRANCH_TERMINATED(불변규칙 2)', async () => {
-    mockData(app).branches.find((b) => b.id === BRANCH.seocho)!.contractStatus = 'TERMINATED';
+    await setBranchStatus(BRANCH.seocho, 'TERMINATED');
     const res = await register({});
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('BRANCH_TERMINATED');

@@ -3,6 +3,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { MockDataService } from '../../mock-data/mock-data.service';
+import { BranchService } from '../branches/branch.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MockAsset } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
@@ -14,7 +15,10 @@ import { UpdateAssetStatusDto } from './dto/update-asset-status.dto';
 @Controller('assets')
 @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
 export class AssetsController {
-  constructor(private readonly mockData: MockDataService) {}
+  constructor(
+    private readonly mockData: MockDataService,
+    private readonly branchService: BranchService,
+  ) {}
 
   @Get()
   list(
@@ -40,12 +44,12 @@ export class AssetsController {
   }
 
   @Post()
-  create(@Body() dto: CreateAssetDto, @CurrentUser() user: RequestUser) {
+  async create(@Body() dto: CreateAssetDto, @CurrentUser() user: RequestUser) {
     const branchId = user.role === 'BRANCH_ADMIN' ? user.branchId : dto.branchId;
     if (!branchId) {
       throw new AppException('BRANCH_REQUIRED', '자산을 등록할 지점을 지정해야 합니다.', 400);
     }
-    return ok(this.toListItem(this.mockData.createAsset({ ...dto, branchId })));
+    return ok(this.toListItem(this.mockData.createAsset({ ...dto, branchId }, await this.branchService.loadGate())));
   }
 
   @Patch(':id')

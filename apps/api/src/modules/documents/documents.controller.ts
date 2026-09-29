@@ -3,6 +3,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { MockDataService } from '../../mock-data/mock-data.service';
+import { BranchService } from '../branches/branch.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MockDocument } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
@@ -11,7 +12,10 @@ import { CreateDocumentDto } from './dto/create-document.dto';
 // 1-10문서 §5-5·§5-7 — SUPER_ADMIN 전체, BRANCH_ADMIN은 본인 지점+전사 문서. STAFF 본인 인사서류 조회는 범위 제외.
 @Controller('documents')
 export class DocumentsController {
-  constructor(private readonly mockData: MockDataService) {}
+  constructor(
+    private readonly mockData: MockDataService,
+    private readonly branchService: BranchService,
+  ) {}
 
   @Get()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
@@ -46,7 +50,7 @@ export class DocumentsController {
 
   @Post()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
-  create(@Body() dto: CreateDocumentDto, @CurrentUser() user: RequestUser) {
+  async create(@Body() dto: CreateDocumentDto, @CurrentUser() user: RequestUser) {
     let branchId = dto.branchId;
     if (user.role === 'BRANCH_ADMIN') {
       branchId = user.branchId;
@@ -57,7 +61,7 @@ export class DocumentsController {
         }
       }
     }
-    return ok(this.toListItem(this.mockData.createDocument(user.accountId, { ...dto, branchId })));
+    return ok(this.toListItem(this.mockData.createDocument(user.accountId, { ...dto, branchId }, await this.branchService.loadGate())));
   }
 
   @Delete(':id')
