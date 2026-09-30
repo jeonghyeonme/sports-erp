@@ -44,3 +44,6 @@ apps/member-app/android/
 # misc
 coverage/
 *.tsbuildinfo
+
+# D37 — Lambda 배포 묶음(apps/api/scripts/package-lambda.sh 결과)
+apps/api/.lambda/

@@ -1,0 +1,101 @@
+name: Deploy api (AWS Lambda)
+
+# D37(2-1_기술결정사항.md) — 배포 브랜치(main-5x9td9)에 api가 바뀌면 Lambda(서울)로 배포한다.
+# AWS 인증은 GitHub OIDC로 역할을 맡는다(액세스 키를 저장하지 않음). 설정 전에는 배포 잡이 건너뛰어진다.
+#
+# 저장소 설정(Settings → Secrets and variables → Actions)에 필요한 값 — aws-lambda/README.md 체크리스트 참고:
+#   variables: AWS_LAMBDA_DEPLOY_ROLE_ARN, LAMBDA_FUNCTION_NAME, LAMBDA_FUNCTION_URL
+#   secrets:   ORIGIN_SECRET (Lambda 환경변수·Worker secret과 같은 값 — 배포 후 health 확인에 쓴다)
+on:
+  push:
+    branches: [main-5x9td9]
+    paths:
+      - 'apps/api/**'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-api-lambda.yml'
+  workflow_dispatch:
+
+# 배포는 겹치지 않게 한 번에 하나씩, 진행 중인 배포는 취소하지 않는다(별칭 이동 도중 끊기지 않게).
+concurrency:
+  group: deploy-api-lambda
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-northeast-2
+  ALIAS: live
+
+jobs:
+  deploy:
+    name: package · deploy · health check
+    if: ${{ vars.AWS_LAMBDA_DEPLOY_ROLE_ARN != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Lambda 런타임(nodejs22.x)과 같은 메이저로 빌드한다.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # 운영 의존성(bcrypt 네이티브 모듈 포함)은 Lambda 공식 이미지 안에서 설치한다.
+      - name: Package
+        run: LAMBDA_DOCKER=1 bash apps/api/scripts/package-lambda.sh
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_LAMBDA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload code and publish version
+        id: publish
+        env:
+          FN: ${{ vars.LAMBDA_FUNCTION_NAME }}
+        run: |
+          set -euo pipefail
+          PREVIOUS=$(aws lambda get-alias --function-name "$FN" --name "$ALIAS" --query FunctionVersion --output text)
+          echo "previous=$PREVIOUS" >> "$GITHUB_OUTPUT"
+          aws lambda update-function-code --function-name "$FN" --zip-file fileb://apps/api/.lambda/lambda.zip >/dev/null
+          aws lambda wait function-updated-v2 --function-name "$FN"
+          VERSION=$(aws lambda publish-version --function-name "$FN" \
+            --description "${GITHUB_SHA::7}" --query Version --output text)
+          aws lambda wait published-version-active --function-name "$FN" --qualifier "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "새 버전 $VERSION (이전 $PREVIOUS)"
+
+      - name: Move alias
+        env:
+          FN: ${{ vars.LAMBDA_FUNCTION_NAME }}
+        run: aws lambda update-alias --function-name "$FN" --name "$ALIAS" --function-version "${{ steps.publish.outputs.version }}" >/dev/null
+
+      # Render 자동배포가 조용히 멈췄던 일(진행 로그 §51)을 반복하지 않도록, 배포가 실제로 응답하는지 여기서 확인한다.
+      # 첫 호출은 콜드 스타트라 몇 번 재시도한다.
+      - name: Health check
+        id: health
+        env:
+          URL: ${{ vars.LAMBDA_FUNCTION_URL }}
+          ORIGIN_SECRET: ${{ secrets.ORIGIN_SECRET }}
+        run: |
+          set -uo pipefail
+          for i in 1 2 3 4 5; do
+            CODE=$(curl -s -o /tmp/health.json -w '%{http_code}' -H "X-Origin-Secret: $ORIGIN_SECRET" "${URL%/}/api/v1/health")
+            if [ "$CODE" = "200" ]; then cat /tmp/health.json; echo; exit 0; fi
+            echo "시도 $i: HTTP $CODE"; sleep 5
+          done
+          exit 1
+
+      - name: Roll back alias on failed health check
+        if: ${{ failure() && steps.health.outcome == 'failure' }}
+        env:
+          FN: ${{ vars.LAMBDA_FUNCTION_NAME }}
+        run: |
+          aws lambda update-alias --function-name "$FN" --name "$ALIAS" --function-version "${{ steps.publish.outputs.previous }}" >/dev/null
+          echo "health 실패 — 별칭 $ALIAS 를 이전 버전 ${{ steps.publish.outputs.previous }} 로 되돌렸다" >&2

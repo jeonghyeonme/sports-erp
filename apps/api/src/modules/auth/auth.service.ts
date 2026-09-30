@@ -7,9 +7,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { AppException } from '../../common/exceptions/app.exception';
 import { AccessTokenPayload, RefreshTokenPayload } from './types/jwt-payload.interface';
+import { secretFromEnv } from '../../common/config/secrets';
 
 // 01문서 §3 RefreshToken — access token과 별도 시크릿/수명을 쓴다(하나가 새도 다른 하나까지 위조되지 않도록).
-const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET ?? 'change-me-refresh';
+const REFRESH_TOKEN_SECRET = secretFromEnv('JWT_REFRESH_SECRET', 'change-me-refresh');
 const REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN ?? '14d';
 
 type AccountWithProfile = Account & { staff: Staff | null; member: Member | null };
