@@ -1,0 +1,167 @@
+# api → AWS Lambda(서울) 전환 체크리스트
+
+근거: `docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md` **D37**. 요약하면 다음과 같다.
+- API는 Lambda(ap-northeast-2, Function URL)에서 돈다.
+- DB는 Supabase(서울) 그대로다.
+- 앞단은 기존 Cloudflare Worker(UI + `/api/*` 프록시 + 로그인 rate limit)다.
+- 동시 실행 상한 10을 넘는 요청은 입구에서 바로 거절한다(Lambda 429 → Worker 503 `SERVER_BUSY`).
+
+**이 세션(Claude)에서는 AWS·Cloudflare에 접속할 수 없다.** 아래 AWS 콘솔·Cloudflare·GitHub 설정은 직접 해야 한다. 코드 쪽(핸들러·패키징·배포 워크플로·Worker 변경)은 저장소에 이미 있다.
+
+| 구성 요소 | 위치 |
+|---|---|
+| Lambda 핸들러 | `apps/api/src/lambda.ts` → `dist/lambda.handler` |
+| 전역 설정 공용 함수 | `apps/api/src/app.setup.ts`(`configureApp`) |
+| 배포 묶음 만들기 | `bash apps/api/scripts/package-lambda.sh` → `apps/api/.lambda/lambda.zip` |
+| 자동 배포 | `.github/workflows/deploy-api-lambda.yml`(`main-5x9td9` push 시) |
+| Worker 변경 | `cloudflare-worker/src/index.ts`(비밀 헤더, 429 → 503) |
+| 부하 검증 | `loadtest/k6-lambda.js`(D37 §4 S1~S3) |
+
+---
+
+## 0. 먼저 확인
+
+- [ ] **리전은 아시아 태평양(서울) `ap-northeast-2`.** Supabase와 같은 리전이다. 다른 리전이면 쿼리마다 왕복 지연이 쌓인다(D37 컨텍스트).
+- [ ] **Service Quotas → AWS Lambda → Concurrent executions** 값을 확인한다.
+  - 10이면 그 값이 곧 상한이다. 3번의 reserved concurrency는 건너뛴다.
+  - 1,000 이상이면 3번에서 reserved concurrency 10을 건다.
+
+## 1. 비밀값 준비
+
+| 이름 | 값 | 쓰는 곳 |
+|---|---|---|
+| `ORIGIN_SECRET` | 무작위 32바이트 이상(`openssl rand -hex 32`) | Lambda 환경변수, Worker secret, GitHub secret — **세 곳 모두 같은 값** |
+| `JWT_ACCESS_SECRET` | 무작위 32바이트 이상 | Lambda 환경변수 |
+| `JWT_REFRESH_SECRET` | 무작위 32바이트 이상, access와 다른 값 | Lambda 환경변수 |
+| `DATABASE_URL` | Supabase 대시보드 → Connect → **Transaction pooler**(포트 6543) 문자열 끝에 `?pgbouncer=true&connection_limit=1&pool_timeout=5` | Lambda 환경변수 |
+
+- JWT 비밀값을 새로 만들면 기존 로그인 토큰은 무효가 된다. 데모 사용자는 다시 로그인하면 된다.
+- `DIRECT_URL`은 마이그레이션 전용이라 Lambda에는 필요 없다.
+
+## 2. Lambda 함수 만들기
+
+**함수 생성**: 콘솔 → Lambda → 함수 생성 → "새로 작성".
+- [ ] 이름 `sports-erp-api`, 런타임 **Node.js 22.x**, 아키텍처 **x86_64**
+  - Prisma 엔진이 `rhel-openssl-3.0.x`(x86_64)만 들어 있다(D27). arm64는 안 된다.
+- [ ] 실행 역할: "기본 Lambda 권한으로 새 역할 생성"(CloudWatch Logs 쓰기만)
+
+**코드 업로드**:
+- [ ] 로컬 리포 루트에서 `npm ci && bash apps/api/scripts/package-lambda.sh`를 실행한다.
+- [ ] 콘솔 "코드 소스 → 업로드 대상 → .zip 파일"로 `apps/api/.lambda/lambda.zip`을 올린다.
+- 로컬이 Linux x86_64가 아니면(macOS 등) bcrypt 네이티브 바이너리가 맞지 않을 수 있다. 그때는 먼저 5번(GitHub OIDC)을 설정하고 워크플로의 수동 실행(workflow_dispatch)으로 올린다.
+
+**구성**:
+- [ ] 런타임 설정 → 핸들러 `dist/lambda.handler`
+- [ ] 일반 구성 → 메모리 **1024MB**, 제한 시간 **10초**
+- [ ] 환경 변수: `NODE_ENV=production`, 그리고 1번의 `DATABASE_URL`·`JWT_ACCESS_SECRET`·`JWT_REFRESH_SECRET`·`ORIGIN_SECRET`
+  - 하나라도 빠지면 init에서 바로 실패한다(의도된 동작, D37 결정 5). 로그에 어떤 변수가 없는지 나온다.
+
+**버전과 별칭**:
+- [ ] 버전 → "새 버전 발행"(버전 1)
+- [ ] 별칭 → 이름 **`live`** → 버전 1
+- 이후 배포는 워크플로가 새 버전을 발행하고 `live`를 옮긴다. 롤백은 `live`를 이전 버전으로 되돌리면 된다.
+
+## 3. 진입점과 동시 실행 상한
+
+**Function URL**: **별칭 `live`를 선택한 상태에서** 구성 → 함수 URL → 생성한다.
+- [ ] 인증 유형 `NONE`, CORS 끔
+  - UI와 API가 Worker 오리진 하나로 묶여 있어서 CORS가 필요 없다(D25).
+- [ ] 발급된 URL(`https://<id>.lambda-url.ap-northeast-2.on.aws/`)을 적어 둔다. 4·5번에서 쓴다.
+- [ ] 확인: `curl <URL>api/v1/health`가 **403 `FORBIDDEN_ORIGIN`**이어야 한다. 비밀 헤더가 없는 직접 호출은 막힌다.
+- [ ] 확인: `curl -H "X-Origin-Secret: <ORIGIN_SECRET>" <URL>api/v1/health`는 200이어야 한다.
+
+**동시 실행 상한** — 0번 결과에 따라:
+- [ ] 계정 한도가 1,000 이상이면 별칭이 아니라 **함수**의 구성 → 동시성 → 예약된 동시성 **10**
+- [ ] 계정 한도가 10이면 설정하지 않는다(계정 한도가 상한)
+
+## 4. Cloudflare Worker 전환
+
+```bash
+cd cloudflare-worker
+npx wrangler secret put ORIGIN_SECRET      # 1번 값 붙여넣기
+```
+
+- [ ] `wrangler.jsonc`의 `vars.API_ORIGIN`을 3번의 Function URL(끝 `/` 없이)로 바꾼다.
+- [ ] 리포 루트에서 `npm run build --workspace=apps/admin-web`(UI도 최신으로), 이어서 `cd cloudflare-worker && npx wrangler deploy`
+- [ ] Worker 주소에서 화면이 뜨고 로그인이 되는지 확인한다(데모 계정 `kim.minsu@spoism.example` / `demo-password-1234`).
+
+## 5. GitHub 자동 배포(OIDC)
+
+**IAM 자격 증명 공급자**: 유형 OpenID Connect, 공급자 URL `https://token.actions.githubusercontent.com`, 대상 `sts.amazonaws.com`.
+
+**IAM 역할 `sports-erp-github-deploy`** — 신뢰 정책(이 저장소의 배포 브랜치만 맡을 수 있게):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": { "Federated": "arn:aws:iam::<계정ID>:oidc-provider/token.actions.githubusercontent.com" },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+      "StringEquals": {
+        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+        "token.actions.githubusercontent.com:sub": "repo:jeonghyeonme/sports-erp:ref:refs/heads/main-5x9td9"
+      }
+    }
+  }]
+}
+```
+
+권한 정책(이 함수만):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": [
+      "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:UpdateFunctionCode",
+      "lambda:PublishVersion", "lambda:GetAlias", "lambda:UpdateAlias"
+    ],
+    "Resource": [
+      "arn:aws:lambda:ap-northeast-2:<계정ID>:function:sports-erp-api",
+      "arn:aws:lambda:ap-northeast-2:<계정ID>:function:sports-erp-api:*"
+    ]
+  }]
+}
+```
+
+**GitHub 저장소 설정** — Settings → Secrets and variables → Actions:
+- [ ] Variables: `AWS_LAMBDA_DEPLOY_ROLE_ARN`(위 역할 ARN), `LAMBDA_FUNCTION_NAME`(`sports-erp-api`), `LAMBDA_FUNCTION_URL`(3번 URL)
+- [ ] Secrets: `ORIGIN_SECRET`(1번 값)
+- [ ] Actions 탭 → "Deploy api (AWS Lambda)" → Run workflow로 한 번 실행해 health 확인까지 초록인지 본다.
+  - `AWS_LAMBDA_DEPLOY_ROLE_ARN`이 비어 있으면 배포 잡은 건너뛴다.
+
+## 6. 워밍·관측·비용 안전장치
+
+**워밍**: EventBridge Scheduler → 일정 생성.
+- [ ] 반복 `rate(5 minutes)`, 대상 "AWS Lambda Invoke" → 함수 `sports-erp-api`, **별칭 `live`**, 페이로드 `{"warmup": true}`
+- 콜드 스타트를 줄이고, 1시간에 한 번 DB에 `SELECT 1`을 보내 Supabase 무료 프로젝트의 7일 비활성 일시정지를 막는다.
+- Worker를 거치지 않으므로 Workers 요청 한도에 잡히지 않는다.
+
+**관측**:
+- [ ] CloudWatch → 로그 그룹 `/aws/lambda/sports-erp-api` → 보존 기간 **14일**
+- [ ] CloudWatch 경보: `Throttles` > 0(5분), `Errors` > 0(5분), `Duration` p95 > 1000ms. 알림은 이메일(SNS)로 받는다.
+
+**비용**:
+- [ ] Billing → Budgets → 월 **$1** 비용 예산 + 이메일 알림
+- 동시 실행 상한 10이 비용 상한도 겸한다(D37 결정 2).
+
+## 7. 검증(D37 §4)
+
+- [ ] k6: `k6 run -e BASE_URL=<Function URL>api/v1 -e ORIGIN_SECRET=<값> loadtest/k6-lambda.js`
+  - thresholds가 곧 통과 기준이다(S1 로그인 p95<500ms, S2 50 rps p95<300ms·거절 0, S3 300 rps 거절 p95<100ms·성공 p95<500ms).
+  - 결과 요약을 세션에 붙여주면 D37·진행 로그에 기록한다. 로그인 기준을 못 넘으면 메모리를 1769MB로 올리고 다시 잰다.
+- [ ] S4 콜드 스타트: 30분 이상 쉬게 한 뒤(워밍 일정은 잠시 끔) 요청을 보낸다. CloudWatch 로그 `REPORT` 줄의 `Init Duration`이 1.5초 미만인지 본다.
+  - 로컬 Amazon Linux 2023 컨테이너 측정값은 1.2초였다(진행 로그 §52).
+- [ ] S3를 Worker 주소로도 짧게 돌려 넘친 요청이 503 `SERVER_BUSY`로 오는지 본다(선택). Workers 무료 일일 한도 안에서.
+
+## 8. 전환 후 정리
+
+- [ ] Render `sports-erp-api` 일시정지(Suspend). Render는 D26 코드에 멈춰 있어 롤백 대상이 아니다. 롤백은 Lambda 별칭으로 한다.
+- [ ] Render `sports-erp-web`(이미 일시정지, D25로 폐기)은 대시보드에서 삭제해도 된다.
+
+## 승인 대기
+
+- `statement_timeout` 5초를 DB 역할(role)에 거는 것(D37 결정 1)은 **DB 설정 변경이라 사용자 승인 후 적용**한다. 풀러의 트랜잭션 모드는 연결 옵션을 무시할 수 있어서 역할 단위 설정이 필요하다.

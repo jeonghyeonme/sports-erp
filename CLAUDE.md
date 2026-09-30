@@ -24,7 +24,7 @@
 ```
 apps/api/         NestJS + TypeScript + Prisma(Supabase Postgres) — D36(2026-09-29)으로 전 도메인 실DB 전환 완료, 아래 "현재 상태" 참고
 apps/admin-web/    React + Vite — 본사/지점 관리자 웹
-apps/member-app/   React Native(Expo) — Phase 3 착수 예정, 아직 미착수
+apps/member-app/   React Native(Expo) — **개발 범위 제외(2026-09-30, 2-1 D37)**. 폴더는 README만 있음. 웹(admin-web)에 집중
 packages/types/     클라이언트-서버 공유 타입
 docs/1.spec/             기능 설계서 — 코드 작업 전 관련 설계서를 먼저 읽을 것
   00_공통/               1-1(아키텍처·ERD·로드맵 — Branch/StaffAssignment 스키마 단일 진실 공급원)
@@ -75,7 +75,7 @@ npm run build   # tsc -b && vite build
 
 **검증 현황 (2026-09-20, DB 의존성은 2026-09-28 D26 갱신):** ESLint 10(flat config, `eslint.config.*`)이 두 앱에 설치돼 있다. api 테스트는 **도메인 핵심 규칙 3개 영역**만 다룬다 — 지점 데이터 격리(`branch-isolation`), 계약 종료 지점 차단(`contract-termination`), 인사 권한 분리(`hr-authority`) + 부팅 스모크. 그 밖의 도메인 로직(예약·결제 계산, 근태, 자산 등)과 admin-web은 테스트가 없어 **lint + 빌드(타입체크)**뿐이다. 테스트가 없는 영역은 "검증되지 않음"으로 보고할 것. D26에서 `it.skip`했던 `auth-lifecycle.spec.ts` 2건·`staff-assignment.spec.ts` 1건은 D30(직원·권한 DB 이관)으로 재활성화돼 현재 skip은 없다. `staff-write.spec.ts`가 채용·파견의 DB 반영을, `catalog-flow.spec.ts`가 카탈로그↔예약·회원 경로를 본다. D32부터 예약 정원·중복·결제 이중 승인·연동 동시성 테스트가 실제 DB 동시성 위에서 돈다(`reservation-capacity`·`member-link`). D33부터 근태의 동시 체크인·동시 연차 승인·결근 확정·업무일지 하루 1건과 지각 판정·KST 연차 연도를 `attendance-rules.spec.ts`가 본다. D34부터 문서 규칙(인사서류 대상 직원·보존기한 기산·소프트 삭제·임박 목록)을 `document-rules.spec.ts`가, D35부터 자산 규칙(동시 채번·자동 판정·수량·상태 전이 경합)을 `asset-rules.spec.ts`가, D36부터 게시판 규칙(동시 조회수·소프트 삭제·수정/삭제 권한·작성 범위)을 `post-rules.spec.ts`가 본다.
 
-**테스트 작성 규칙:** 통합 테스트는 `test/helpers/app.ts`의 `createApp()`으로 `main.ts`와 같은 전역 설정(prefix·ValidationPipe·필터)의 앱을 띄운다 — `main.ts`의 전역 설정을 바꾸면 이 헬퍼도 같이 바꿀 것. D36부터 모든 상태가 DB에 있어 테스트 간 격리는 워커 DB 재생성(`resetWorkerDb`)이 맡는다 — 같은 파일 안에서 DB 쓰기가 다음 테스트로 새면 `beforeEach`에서 `createApp()` 전에 부를 것(mock 시절엔 새 앱만 띄우면 됐던 스펙이 이 이유로 깨진 적이 있다, D36 `posts-member-visibility`). 가드 → 파이프 → 핸들러 순서라서 **거부 케이스도 유효한 요청 본문**을 보내야 400이 아니라 403이 나온다. 거부(403) 테스트에는 반드시 자기 지점 접근이 성공하는 대조군을 함께 둔다. `tsconfig.build.json`이 `test/`를 빌드에서 제외한다(없으면 `dist/main.js` 경로가 `dist/src/main.js`로 바뀐다).
+**테스트 작성 규칙:** 통합 테스트는 `test/helpers/app.ts`의 `createApp()`으로 서버와 같은 전역 설정(prefix·ValidationPipe·필터)의 앱을 띄운다 — D37부터 `main.ts`·`lambda.ts`·테스트 헬퍼가 모두 `src/app.setup.ts`의 `configureApp()`을 부르므로, 전역 설정은 그 함수에서만 바꿀 것. D36부터 모든 상태가 DB에 있어 테스트 간 격리는 워커 DB 재생성(`resetWorkerDb`)이 맡는다 — 같은 파일 안에서 DB 쓰기가 다음 테스트로 새면 `beforeEach`에서 `createApp()` 전에 부를 것(mock 시절엔 새 앱만 띄우면 됐던 스펙이 이 이유로 깨진 적이 있다, D36 `posts-member-visibility`). 가드 → 파이프 → 핸들러 순서라서 **거부 케이스도 유효한 요청 본문**을 보내야 400이 아니라 403이 나온다. 거부(403) 테스트에는 반드시 자기 지점 접근이 성공하는 대조군을 함께 둔다. `tsconfig.build.json`이 `test/`를 빌드에서 제외한다(없으면 `dist/main.js` 경로가 `dist/src/main.js`로 바뀐다).
 
 **시드 데이터의 원천은 `src/mock-data/*-fixtures.ts` 한 곳이다(D29~D36):** `prisma/seed.ts`는 이 파일들을 읽어 upsert한다. 데모 계정·히어로 데이터의 `id`(`account-haneul`, `staff-seoyeon`, `post-hq-manual` 등)는 예전 mock 값 그대로이고, 테스트·admin-web이 이 id에 기대므로 바꾸지 말 것. Supabase(배포 DB)에 시드를 넣을 때는 같은 픽스처로 upsert SQL을 만들어 빈 로컬 복제 DB에서 2회 실행·지문 비교 후 사용자 승인을 받아 적용한다(진행 로그 §44~§50 절차). `src/mock-data/` 폴더 이름은 역사적 이름이다 — `MockDataService`는 D36으로 삭제됐고 지금은 응답 형식 타입(`mock-data.types.ts`)·시드 원천(`*-fixtures.ts`)·데모 비밀번호(`demo-password.ts`)만 있다. 테스트에서 DB 상태는 `test/helpers/app.ts`의 `db(app)`(PrismaService)로 읽고 쓴다.
 
@@ -86,6 +86,8 @@ npm run build   # tsc -b && vite build
 **커밋 전 검증 hook:** `.claude/hooks/pre-commit-check.js`가 Claude의 `git commit` 직전에 `apps/`·`packages/` 변경이 있으면 양쪽 앱 lint(수정 없이 검사만)·빌드와 jest를 실행하고 실패 시 차단한다(문서만 바뀐 커밋은 생략, 약 30초 소요, lint warning은 통과). GitHub Desktop 등 Claude 밖의 커밋에는 적용되지 않는다.
 
 **CI:** `.github/workflows/ci.yml`이 `main` push와 모든 PR에서 api(lint·빌드·jest)와 admin-web(lint·빌드)을 Node 버전은 `.nvmrc`(20)로 돌린다. Claude 밖의 커밋도 여기서 잡힌다. 첫 실행(4c019b0)은 두 잡 모두 통과했다.
+
+**배포(D37, 2026-09-30):** api는 AWS Lambda(서울, Function URL, 별칭 `live`)로 옮기는 중이다. 진입점은 `apps/api/src/lambda.ts`, 묶음은 `bash apps/api/scripts/package-lambda.sh`, 자동 배포는 `.github/workflows/deploy-api-lambda.yml`(`main-5x9td9` push)이다. 앞단은 Cloudflare Worker(UI + 프록시 + rate limit, 비밀 헤더 `X-Origin-Secret`)이고, DB는 Supabase(서울) 그대로다. AWS 콘솔 설정 절차와 현재 진행 상태는 `aws-lambda/README.md`를 볼 것. 배포 환경에서는 `JWT_ACCESS_SECRET`·`JWT_REFRESH_SECRET`·`ORIGIN_SECRET`이 없으면 부팅이 실패한다(`src/common/config/secrets.ts`). 동시 실행 상한 10과 풀러 `connection_limit=1`은 D37 결정 1의 요청량 설계이므로, 바꾸려면 D37을 먼저 볼 것.
 
 **새로 clone한 환경 주의:** api 빌드 전에 `npm run prisma:generate`가 필요하다. 생성된 Prisma Client가 없으면 `@prisma/client`에서 `Role` 등을 찾지 못해 `nest build`가 실패한다(CI에는 이미 이 단계가 있음).
 

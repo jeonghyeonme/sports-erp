@@ -1,24 +1,20 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
-import { AllExceptionsFilter } from '../../src/common/filters/all-exceptions.filter';
+import { configureApp } from '../../src/app.setup';
 import { MOCK_DEMO_PASSWORD } from '../../src/mock-data/demo-password';
 import { PrismaService } from '../../src/prisma/prisma.service';
 
 /**
- * 실제 서버(main.ts)와 같은 전역 설정으로 앱을 띄운다. main.ts의 bootstrap()은 listen까지 하므로
- * 재사용할 수 없어 설정을 여기에 복제했다 — main.ts의 전역 prefix/pipe/filter를 바꾸면 같이 바꿀 것.
+ * 실제 서버(main.ts)·Lambda(lambda.ts)와 같은 전역 설정으로 앱을 띄운다 — 셋 다 configureApp()을 부른다(D37 결정 5).
  *
  * D36부터 모든 도메인의 원천이 DB라(MockDataService 제거) 테스트 간 격리는 워커 DB 재생성(resetWorkerDb)이 맡는다.
  * 앱은 여전히 스위트(또는 테스트)마다 새로 띄운다 — 인증 토큰 등 앱 인스턴스 상태를 섞지 않기 위해서다.
  */
 export async function createApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  const app = moduleRef.createNestApplication();
-  app.setGlobalPrefix('api/v1');
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-  app.useGlobalFilters(new AllExceptionsFilter());
+  const app = configureApp(moduleRef.createNestApplication());
   await app.init();
   return app;
 }

@@ -6,6 +6,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AuthService } from '../auth.service';
 import { AppException } from '../../../common/exceptions/app.exception';
 import { AccessTokenPayload } from '../types/jwt-payload.interface';
+import { secretFromEnv } from '../../../common/config/secrets';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -16,7 +17,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_ACCESS_SECRET ?? 'change-me',
+      secretOrKey: secretFromEnv('JWT_ACCESS_SECRET', 'change-me'),
     });
   }
 

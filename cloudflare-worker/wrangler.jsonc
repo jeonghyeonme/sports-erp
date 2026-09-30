@@ -4,6 +4,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-27",
   // 커스텀 도메인 없이 <name>.<계정 서브도메인>.workers.dev 로 바로 배포된다(D24 참고).
+  // D37 — Lambda 전환 시 API_ORIGIN을 Lambda Function URL(별칭 live, 끝 "/" 없이)로 바꾸고
+  // `wrangler secret put ORIGIN_SECRET`을 넣는다(aws-lambda/README.md 4번). 그 전까지는 Render를 그대로 가리킨다.
   "vars": {
     "API_ORIGIN": "https://sports-erp-api.onrender.com"
   },
