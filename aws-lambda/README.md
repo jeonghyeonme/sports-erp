@@ -8,11 +8,13 @@
 
 **이 세션(Claude)에서는 AWS·Cloudflare에 접속할 수 없다.** 아래 AWS 콘솔·Cloudflare·GitHub 설정은 직접 해야 한다. 코드 쪽(핸들러·패키징·배포 워크플로·Worker 변경)은 저장소에 이미 있다.
 
+**순서**: 0 확인 → 1 비밀값 → 2 함수(빈 껍데기) → 3 Function URL·상한 → 4 OIDC·첫 배포(여기서 코드가 처음 올라간다) → 5 Worker 전환 → 6 워밍·관측·비용 → 7 검증 → 8 정리. 로컬에서 zip을 만들어 올리지 않는다. 첫 업로드부터 GitHub Actions에 맡긴다(2번 참고).
+
 | 구성 요소 | 위치 |
 |---|---|
 | Lambda 핸들러 | `apps/api/src/lambda.ts` → `dist/lambda.handler` |
 | 전역 설정 공용 함수 | `apps/api/src/app.setup.ts`(`configureApp`) |
-| 배포 묶음 만들기 | `bash apps/api/scripts/package-lambda.sh` → `apps/api/.lambda/lambda.zip` |
+| 배포 묶음 만들기 | `bash apps/api/scripts/package-lambda.sh` → `apps/api/.lambda/lambda.zip`(워크플로가 실행 — 로컬은 확인용) |
 | 자동 배포 | `.github/workflows/deploy-api-lambda.yml`(`main-5x9td9` push 시) |
 | Worker 변경 | `cloudflare-worker/src/index.ts`(비밀 헤더, 429 → 503) |
 | 부하 검증 | `loadtest/k6-lambda.js`(D37 §4 S1~S3) |
@@ -38,26 +40,27 @@
 - JWT 비밀값을 새로 만들면 기존 로그인 토큰은 무효가 된다. 데모 사용자는 다시 로그인하면 된다.
 - `DIRECT_URL`은 마이그레이션 전용이라 Lambda에는 필요 없다.
 
-## 2. Lambda 함수 만들기
+## 2. Lambda 함수 만들기(빈 껍데기)
 
-**함수 생성**: 콘솔 → Lambda → 함수 생성 → "새로 작성".
+**코드는 여기서 올리지 않는다.** 첫 업로드부터 4번의 GitHub Actions가 한다.
+- 워크플로는 운영 의존성을 Lambda 공식 이미지(Amazon Linux 2023) 안에서 설치한다.
+- 로컬(특히 macOS)에서 만든 zip은 `bcrypt` 네이티브 바이너리가 Lambda와 맞지 않을 수 있다.
+- 여기서는 설정만 갖춘 함수를 만든다.
+
+**함수 생성**: 콘솔 → Lambda → 함수 생성 → "새로 작성". 기본 예제 코드 그대로 만든다.
 - [ ] 이름 `sports-erp-api`, 런타임 **Node.js 22.x**, 아키텍처 **x86_64**
   - Prisma 엔진이 `rhel-openssl-3.0.x`(x86_64)만 들어 있다(D27). arm64는 안 된다.
 - [ ] 실행 역할: "기본 Lambda 권한으로 새 역할 생성"(CloudWatch Logs 쓰기만)
 
-**코드 업로드**:
-- [ ] 로컬 리포 루트에서 `npm ci && bash apps/api/scripts/package-lambda.sh`를 실행한다.
-- [ ] 콘솔 "코드 소스 → 업로드 대상 → .zip 파일"로 `apps/api/.lambda/lambda.zip`을 올린다.
-- 로컬이 Linux x86_64가 아니면(macOS 등) bcrypt 네이티브 바이너리가 맞지 않을 수 있다. 그때는 먼저 5번(GitHub OIDC)을 설정하고 워크플로의 수동 실행(workflow_dispatch)으로 올린다.
-
 **구성**:
 - [ ] 런타임 설정 → 핸들러 `dist/lambda.handler`
+  - 지금 들어 있는 예제 코드와는 맞지 않아 호출하면 실패한다. 4번에서 실제 코드가 올라가면 맞는다.
 - [ ] 일반 구성 → 메모리 **1024MB**, 제한 시간 **10초**
 - [ ] 환경 변수: `NODE_ENV=production`, 그리고 1번의 `DATABASE_URL`·`JWT_ACCESS_SECRET`·`JWT_REFRESH_SECRET`·`ORIGIN_SECRET`
   - 하나라도 빠지면 init에서 바로 실패한다(의도된 동작, D37 결정 5). 로그에 어떤 변수가 없는지 나온다.
 
 **버전과 별칭**:
-- [ ] 버전 → "새 버전 발행"(버전 1)
+- [ ] 버전 → "새 버전 발행"(버전 1, 예제 코드 상태)
 - [ ] 별칭 → 이름 **`live`** → 버전 1
 - 이후 배포는 워크플로가 새 버전을 발행하고 `live`를 옮긴다. 롤백은 `live`를 이전 버전으로 되돌리면 된다.
 
@@ -67,25 +70,14 @@
 - [ ] 인증 유형 `NONE`, CORS 끔
   - UI와 API가 Worker 오리진 하나로 묶여 있어서 CORS가 필요 없다(D25).
 - [ ] 발급된 URL(`https://<id>.lambda-url.ap-northeast-2.on.aws/`)을 적어 둔다. 4·5번에서 쓴다.
-- [ ] 확인: `curl <URL>api/v1/health`가 **403 `FORBIDDEN_ORIGIN`**이어야 한다. 비밀 헤더가 없는 직접 호출은 막힌다.
-- [ ] 확인: `curl -H "X-Origin-Secret: <ORIGIN_SECRET>" <URL>api/v1/health`는 200이어야 한다.
+  - 공개 주소라 세션에 알려줘도 된다. 알려주면 5번의 `wrangler.jsonc` 수정은 Claude가 커밋한다.
+  - 비밀값 4개는 대화에 붙여넣지 않는다.
 
 **동시 실행 상한** — 0번 결과에 따라:
 - [ ] 계정 한도가 1,000 이상이면 별칭이 아니라 **함수**의 구성 → 동시성 → 예약된 동시성 **10**
 - [ ] 계정 한도가 10이면 설정하지 않는다(계정 한도가 상한)
 
-## 4. Cloudflare Worker 전환
-
-```bash
-cd cloudflare-worker
-npx wrangler secret put ORIGIN_SECRET      # 1번 값 붙여넣기
-```
-
-- [ ] `wrangler.jsonc`의 `vars.API_ORIGIN`을 3번의 Function URL(끝 `/` 없이)로 바꾼다.
-- [ ] 리포 루트에서 `npm run build --workspace=apps/admin-web`(UI도 최신으로), 이어서 `cd cloudflare-worker && npx wrangler deploy`
-- [ ] Worker 주소에서 화면이 뜨고 로그인이 되는지 확인한다(데모 계정 `kim.minsu@spoism.example` / `demo-password-1234`).
-
-## 5. GitHub 자동 배포(OIDC)
+## 4. GitHub 자동 배포(OIDC)와 첫 배포
 
 **IAM 자격 증명 공급자**: 유형 OpenID Connect, 공급자 URL `https://token.actions.githubusercontent.com`, 대상 `sts.amazonaws.com`.
 
@@ -130,8 +122,28 @@ npx wrangler secret put ORIGIN_SECRET      # 1번 값 붙여넣기
 **GitHub 저장소 설정** — Settings → Secrets and variables → Actions:
 - [ ] Variables: `AWS_LAMBDA_DEPLOY_ROLE_ARN`(위 역할 ARN), `LAMBDA_FUNCTION_NAME`(`sports-erp-api`), `LAMBDA_FUNCTION_URL`(3번 URL)
 - [ ] Secrets: `ORIGIN_SECRET`(1번 값)
-- [ ] Actions 탭 → "Deploy api (AWS Lambda)" → Run workflow로 한 번 실행해 health 확인까지 초록인지 본다.
   - `AWS_LAMBDA_DEPLOY_ROLE_ARN`이 비어 있으면 배포 잡은 건너뛴다.
+
+**첫 배포**:
+- [ ] Actions 탭 → "Deploy api (AWS Lambda)" → **Run workflow**(브랜치 `main-5x9td9`)로 수동 실행한다.
+  - 워크플로가 하는 일: 코드 업로드 → 버전 발행 → `live` 이동 → health 확인
+  - **health 확인까지 초록이면 Lambda 쪽은 성공이다.** 실패하면 `live`는 이전 버전으로 자동으로 돌아간다. Actions 로그의 에러 부분을 세션에 붙여주면 된다.
+  - 이후에는 `main-5x9td9`에 api 변경이 병합될 때마다 자동으로 돈다.
+
+**직접 확인**:
+- [ ] `curl <URL>api/v1/health` → **403 `FORBIDDEN_ORIGIN`**이어야 한다. 비밀 헤더 없는 직접 호출은 막힌다.
+- [ ] `curl -H "X-Origin-Secret: <ORIGIN_SECRET>" <URL>api/v1/health` → 200이어야 한다.
+
+## 5. Cloudflare Worker 전환
+
+```bash
+cd cloudflare-worker
+npx wrangler secret put ORIGIN_SECRET      # 1번 값 붙여넣기
+```
+
+- [ ] `wrangler.jsonc`의 `vars.API_ORIGIN`을 3번의 Function URL(끝 `/` 없이)로 바꾼다. URL을 세션에 알려줬다면 Claude가 커밋한 것을 받으면 된다.
+- [ ] 리포 루트에서 `npm run build --workspace=apps/admin-web`(UI도 최신으로)을 실행한다. 이어서 `cd cloudflare-worker && npx wrangler deploy`
+- [ ] Worker 주소에서 화면이 뜨고 로그인이 되는지 확인한다(데모 계정 `kim.minsu@spoism.example` / `demo-password-1234`).
 
 ## 6. 워밍·관측·비용 안전장치
 
