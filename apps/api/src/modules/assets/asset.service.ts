@@ -15,7 +15,7 @@ const STATUSES: AssetStatus[] = ['NORMAL', 'REPAIRING', 'DISPOSAL_PENDING', 'DIS
 const TYPES: AssetType[] = ['FIXED_ASSET', 'CONSUMABLE'];
 const withBranch = { branch: { select: { name: true } } } as const;
 
-// 1-10문서 §4-4 "정상→수리중→폐기대상→폐기됨". 되돌림(수리 완료·폐기 보류)은 허용하되 폐기됨은 종결(RES-T02).
+// 자원문서관리 A-4 "정상→수리중→폐기대상→폐기됨". 되돌림(수리 완료·폐기 보류)은 허용하되 폐기됨은 종결(RES-T02).
 const STATUS_TRANSITIONS: Record<AssetStatus, AssetStatus[]> = {
   NORMAL: ['REPAIRING', 'DISPOSAL_PENDING'],
   REPAIRING: ['NORMAL', 'DISPOSAL_PENDING'],
@@ -39,7 +39,7 @@ export type CreateAssetInput = {
 export type UpdateAssetInput = Partial<{ name: string; location: string; quantity: number; note: string; usefulLifeYears: number }>;
 
 /**
- * 자산(1-10문서 §4) — D35(2-1_기술결정사항.md). 원천은 DB다. 규칙(자동 판정 RES-T01, 고정자산 수량 1 RES-T03,
+ * 자산(자원문서관리 부록 A) — D35. 원천은 DB다. 규칙(자동 판정 RES-T01, 고정자산 수량 1 RES-T03,
  * 상태 전이 RES-T02, 계약 종료 차단 ADR-RES-01)은 mock 구현 그대로 옮겼다. 권한·지점 강제는 컨트롤러가 한다.
  */
 @Injectable()
@@ -142,7 +142,7 @@ export class AssetService {
   }
 }
 
-// 1-10문서 §4-6 — 취득가액 100만원 초과면 고정자산, 이하면 소모품(세법상 즉시비용 처리 기준, RES-T01).
+// 자원문서관리 A-6 — 취득가액 100만원 초과면 고정자산, 이하면 소모품(세법상 즉시비용 처리 기준, RES-T01).
 function classifyAssetType(acquisitionCost: number): AssetType {
   return acquisitionCost > 1_000_000 ? 'FIXED_ASSET' : 'CONSUMABLE';
 }

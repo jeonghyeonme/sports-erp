@@ -15,7 +15,7 @@ export function configureApp(app: INestApplication): INestApplication {
       transform: true,
     }),
   );
-  // 이게 없으면 모든 에러 응답이 00문서 §4 공통 포맷({success:false, error:{code,message}}) 대신 Nest 기본 raw 포맷으로 나간다.
+  // 이게 없으면 모든 에러 응답이 architecture/system-overview.md §4 공통 포맷({success:false, error:{code,message}}) 대신 Nest 기본 raw 포맷으로 나간다.
   app.useGlobalFilters(new AllExceptionsFilter());
   return app;
 }

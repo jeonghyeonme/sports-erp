@@ -46,7 +46,7 @@ const STATUS_LABEL: Record<ProgramStatus, string> = {
   ENDED: '종료',
 };
 
-// 07문서 §3-2 전이표 — 허용되지 않은 전이를 굳이 서버까지 보내지 않고 드롭다운에서부터 막는다.
+// 강사프로그램게시 A-3 전이표 — 허용되지 않은 전이를 굳이 서버까지 보내지 않고 드롭다운에서부터 막는다.
 const STATUS_TRANSITIONS: Record<ProgramStatus, ProgramStatus[]> = {
   PREPARING: ['RUNNING', 'ENDED'],
   RUNNING: ['PAUSED', 'ENDED'],
@@ -353,7 +353,7 @@ export function ProgramsPage() {
         <div>
           <h2>프로그램</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
-            07문서 기준 더미 데이터입니다. status와 pricingType이 실제로 구분되어 내려옵니다.
+            강사프로그램게시 문서 기준 더미 데이터입니다. status와 pricingType이 실제로 구분되어 내려옵니다.
             지점별로 묶어서 보여줍니다(98개 지점 규모 대응 — 지점명으로 검색해 좁혀보세요).
           </p>
         </div>

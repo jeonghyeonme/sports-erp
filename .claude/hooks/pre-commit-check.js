@@ -1,5 +1,5 @@
 // PreToolUse(Bash) hook: `git commit` 직전에 apps/·packages/ 변경이 있으면 빌드(타입체크)와 jest를 실행한다.
-// 실패하면 exit 2로 커밋을 차단한다. 문서만 바뀐 커밋은 검사하지 않는다.
+// 실패하면 exit 2로 커밋을 차단한다. 문서만 바뀐 커밋은 문서 검사(scripts/doc-check.mjs)만 한다.
 // hook 자체의 오류(파싱 실패 등)는 통과시킨다(fail-open).
 // 테스트용: GUARD_FORCE_CHECK=1 이면 변경 파일과 무관하게 검사를 실행한다.
 const { spawnSync } = require('child_process');
@@ -25,6 +25,15 @@ process.stdin.on('end', () => {
   const listCmd = broad ? 'git status --porcelain' : 'git diff --cached --name-status';
   const out = sh(listCmd).stdout ?? '';
   const touchesCode = /(^|\s|")(apps|packages)\//.test(out);
+  // 문서 검사(D38)는 빠르므로 .md·docs/·scripts/가 바뀌면 코드 검사와 별개로 항상 돌린다.
+  const touchesDocs = /\.md"?$|(^|\s|")(docs|scripts)\//m.test(out) || touchesCode;
+  if (touchesDocs || process.env.GUARD_FORCE_CHECK === '1') {
+    const r = sh('node scripts/doc-check.mjs');
+    if (r.status !== 0) {
+      console.error(`[pre-commit-check] 문서 검사 실패: 커밋을 차단합니다.\n${`${r.stdout ?? ''}${r.stderr ?? ''}`.slice(-1500)}`);
+      process.exit(2);
+    }
+  }
   if (!touchesCode && process.env.GUARD_FORCE_CHECK !== '1') process.exit(0);
 
   // lint는 --fix 없이 실행한다(package.json의 lint 스크립트는 --fix라서 파일을 수정하므로 쓰지 않음).

@@ -19,7 +19,7 @@ const CATEGORY_LABEL: Record<DocumentCategory, string> = {
   OTHER: '기타',
 };
 
-// 1-10문서 §5-6 — 카테고리별 보존기한 정책 안내(입력 시 미리보기).
+// 자원문서관리 A-6 — 카테고리별 보존기한 정책 안내(입력 시 미리보기).
 const RETENTION_HINT: Record<DocumentCategory, string> = {
   CONTRACT: '계약 유형마다 법정 기간이 달라 직접 입력해야 합니다(필수).',
   HR_RECORD: '근로관계 종료일(없으면 업로드일)로부터 3년 — 자동 계산됩니다.',
@@ -209,7 +209,7 @@ export function DocumentsPage() {
         <div>
           <h2>문서함</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
-            1-10문서 §5 기준입니다. 본인 지점 문서와 전사 문서만 보입니다. 삭제는 본사 관리자만 할 수 있고
+            자원문서관리 부록 A 기준입니다. 본인 지점 문서와 전사 문서만 보입니다. 삭제는 본사 관리자만 할 수 있고
             (소프트 삭제), 보존기한이 지나도 자동 삭제되지 않습니다.
           </p>
         </div>

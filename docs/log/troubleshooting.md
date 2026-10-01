@@ -1,0 +1,74 @@
+# 10. 트러블슈팅 (Troubleshooting Log)
+
+> [decisions/](../decisions/README.md)가 "어떤 결정을 왜 내렸는가"를 다룬다면, 이 문서는 그 결정을 **실제로 구현하는 과정에서 부딪힌 문제와 해결 과정**을 기록합니다. 재현 가능한 원인·해결 절차·재발 방지 조치를 남겨, 같은 문제로 시간을 두 번 쓰지 않는 것이 목적입니다.
+>
+> 이 문서는 이 세션(Claude Code, 2026-09-05)에서 실제로 발생하고 해결된 문제만 다룹니다. Claude Desktop 쪽 대화(다른 로컬 디렉토리에서 진행된 작업)에서 있었을 수 있는 에러는 **이 머신에서 로컬로 확인할 방법이 없어 포함하지 못했습니다** — Claude Desktop 앱의 로컬 데이터 폴더(`%LOCALAPPDATA%\Claude\logs`)에는 앱 로그만 있고 대화 원문/에러 상세는 없기 때문입니다(2026-09-05 재확인: `main.log`에 `sports-erp`/`docker`/`prisma`/`EADDRINUSE` 관련 항목 없음). Claude Desktop 세션에서 겪은 에러가 있다면 내용을 요약해 전달해주시면 이 문서에 추가하겠습니다.
+
+---
+
+## T1. API 코드를 수정해도 브라우저에 반영되지 않음 (`nest start --watch` + 백그라운드 실행 충돌)
+
+**증상**
+- `apps/api` 소스(컨트롤러/서비스/mock 데이터)를 고치고 저장해도, 브라우저에서 예전 동작이 그대로 나옴
+- 두 가지 형태로 나타남:
+  1. **완전 다운**: 터미널 로그에 `Error: listen EADDRINUSE: address already in use :::3000`가 찍히고 API 프로세스 자체가 죽음(WEB(vite)은 별개 프로세스라 계속 떠 있어서 "서버가 살아있다"고 착각하기 쉬움)
+  2. **조용한 불일치**: 서버는 응답하지만 **옛날 코드 그대로** 응답함 — 예를 들어 `Member.assignedStaffId`를 추가하고 지점 상세 페이지를 열었을 때, 실제로는 담당 회원이 있는데도 모든 직원이 "담당 회원 0명"으로 나오고 해당 회원이 "담당 직원 없음" 목록에 잘못 표시됨
+
+**원인**
+- `npm run dev`(루트, `concurrently -k`로 API+WEB 동시 실행)를 백그라운드 Bash 도구로 띄우면서, 명령 끝에 불필요하게 `&`를 추가로 붙였다(`... > log 2>&1 &`). Bash 도구의 `run_in_background: true` 옵션이 이미 명령 전체를 백그라운드로 감싸는데, 그 안에서 다시 셸의 `&`로 한 번 더 분리 실행한 셈이 되어 프로세스 관리가 꼬였다.
+- 이 환경(Windows)에서 `nest start --watch`는 소스 변경을 감지해 재컴파일한 뒤 **새 `node dist/src/main` 프로세스**를 띄우는데, 이전 프로세스가 여전히 포트 3000을 잡고 있는 상태에서 새 프로세스가 뜨려고 하면 `EADDRINUSE`로 새 프로세스만 죽는다. 옛 프로세스는 옛 코드를 그대로 서빙하며 계속 살아있으므로, 겉보기엔 "서버가 응답은 하는데 새 코드가 하나도 안 먹힌" 상태가 된다.
+
+**해결**
+1. 어느 프로세스가 포트 3000을 물고 있는지 확인: `netstat -ano | grep ':3000' | grep LISTENING` → PID 확보
+2. (선택, 안전 확인용) 그 PID가 정말 API 서버인지 커맨드라인으로 검증: PowerShell `Get-CimInstance Win32_Process -Filter "ProcessId=<PID>" | Select-Object CommandLine` → `node ... dist\src\main`인지 확인
+3. 강제 종료: `taskkill //F //PID <PID>`
+4. 필요하면 WEB(vite) 프로세스도 같은 방식으로 정리(`netstat -ano | grep ':5173'`)한 뒤, 루트에서 `npm run dev`를 **`run_in_background: true` 하나로만, 명령 끝에 `&` 없이** 재기동
+5. 터미널 로그에 `Mapped {...} route`들이 새로 찍히고 `Nest application successfully started`가 뜨는지, `netstat`으로 새 PID가 포트를 잡았는지 확인 후 브라우저에서 재검증
+
+**재발 방지**
+- Bash 도구로 장기 실행 서버를 띄울 때는 `run_in_background: true`만 사용하고, 명령 문자열 끝에 `&`를 절대 추가하지 않는다.
+- API 소스를 고친 뒤 브라우저 동작이 이상하면(특히 "분명히 고쳤는데 그대로") 가장 먼저 `netstat -ano | grep :3000`으로 프로세스가 하나뿐인지, 그리고 그 PID의 기동 시각(`Get-CimInstance Win32_Process ... CreationDate`)이 최근 수정 시각과 맞는지부터 의심한다.
+
+---
+
+## T2. Chrome 자동화 중 `<select>` 클릭 시 스크린샷이 멎음
+
+**증상**
+- `PermissionsPage`의 권한 변경용 네이티브 `<select>` 드롭다운을 `computer` 도구로 클릭한 직후 `screenshot`을 호출하면, `CDP sendCommand "Page.captureScreenshot" timed out after 30000ms` 에러와 함께 "The renderer may be frozen or unresponsive" 메시지가 남
+
+**원인**
+- OS 네이티브 `<select>` 드롭다운 팝업은 페이지의 렌더 트리 밖(브라우저 크롬 레벨)에서 그려지는 위젯이라, 팝업이 열려 있는 동안 Chrome DevTools Protocol의 `Page.captureScreenshot`이 응답하지 못하고 타임아웃난다. 렌더러가 실제로 멈춘 것이 아니라, 네이티브 팝업이 열려 있는 정상 상태에서 생기는 CDP 캡처 도구 자체의 한계다.
+
+**해결**
+- 클릭으로 옵션을 직접 고르고 바로 스크린샷을 시도하지 말고, **키보드로 선택을 끝까지 마무리한 뒤** 스크린샷을 시도한다: `key: "Down"`/`"Up"`으로 옵션 이동 → `key: "Return"`으로 확정(대부분 이 시점에 팝업이 닫힘) → 그래도 안 닫혀 있으면 `key: "Escape"`로 명시적으로 닫은 뒤 `screenshot` 재시도
+- 한 번 타임아웃이 나도 렌더러 자체는 멀쩡한 경우가 많으므로, 팝업을 닫는 키를 보낸 다음 스크린샷을 다시 호출하면 정상적으로 캡처된다(강제 재시작 불필요)
+
+**재발 방지**
+- 네이티브 `<select>`가 있는 화면을 자동화로 조작할 때는 클릭 직후 바로 스크린샷을 시도하지 않고, 선택 확정(Enter) 또는 팝업 닫기(Escape)까지 키보드로 마친 다음에 화면을 확인하는 순서를 기본으로 삼는다.
+
+---
+
+## T3. `tsconfig.json`에 `exclude`를 추가했더니 API가 옛날 데이터를 계속 응답함 (이중 `dist/` 빌드 트리)
+
+**증상**
+- `apps/api/prisma/seed.ts`의 타입 에러(스키마와 어긋난 필드) 때문에 `nest start --watch`의 프로젝트 전체 컴파일이 막혀서, `tsconfig.json`에 `"exclude": ["node_modules", "dist", "prisma"]`를 추가해 문제를 우회했다
+- 그 직후부터 `mock-data.service.ts`에 새 필드(`Branch.contractStatus` 등)를 추가하고 API를 몇 번을 재시작해도(`taskkill`로 완전히 죽이고 `npm run dev:api`를 새로 띄워도) `curl`로 확인한 응답에 새 필드가 전혀 안 보임 — 터미널 로그는 매번 "Found 0 errors"·"Nest application successfully started"로 정상 종료됨
+
+**원인**
+- `exclude`를 추가하기 전에는 컴파일 대상에 `src/**`와 `prisma/seed.ts`가 함께 포함돼 있어 TypeScript가 공통 루트를 `apps/api/`로 추론했고, 그래서 출력이 `dist/src/**`(+ `dist/prisma/**`)에 쓰였다
+- `exclude`로 `prisma/`를 빼자 컴파일 대상이 `src/**`만 남으면서 TypeScript의 rootDir 추론이 `apps/api/src/`로 바뀌었고, 출력 경로도 `dist/src/**`에서 `dist/**`(예: `dist/mock-data/mock-data.service.js`)로 바뀌었다
+- `nest start --watch`의 증분 빌드는 rootDir이 바뀌어도 예전에 `dist/src/**`에 써둔 파일을 지우지 않는다 — 그 결과 `dist/` 아래에 **옛 트리(`dist/src/**`, 09-05 시점 코드)와 새 트리(`dist/**`, 최신 코드)가 동시에 존재**하게 됐고, 실행 중인 프로세스가 마침 옛 트리를 계속 읽고 있어서(또는 두 트리가 뒤섞여 마지막에 이긴 쪽이 옛 트리였어서) 몇 번을 재시작해도 최신 코드가 반영 안 되는 것처럼 보였다
+
+**해결**
+1. `rm -rf apps/api/dist`로 두 트리를 통째로 지운다(증분 빌드 캐시까지 확실히 없애는 것이 핵심 — 파일 몇 개만 지우는 걸로는 재현 위험이 남는다)
+2. API 프로세스를 완전히 죽인다(`netstat -ano | grep :3000 | grep LISTEN`으로 PID 확인 → `taskkill //F //PID <PID>`) — Bash 도구의 백그라운드 작업을 멈추는 것만으로는 자식 node 프로세스가 포트를 계속 물고 있을 수 있으므로, `netstat`으로 실제 리스닝 PID를 다시 확인해서 명시적으로 죽여야 한다
+3. `npm run dev:api`로 완전히 새로 기동 — 이번엔 `dist/main.js`(예전처럼 `dist/src/main.js`가 아니라) 하나만 생기는지 `find apps/api/dist -maxdepth 1 -iname main.js`로 확인
+4. `curl`로 실제 API 응답에 새 필드가 오는지 검증한 뒤에야 브라우저로 넘어간다 — 브라우저는 프런트 코드가 최신이면 API가 옛 데이터를 줘도 에러 없이 "그냥 그 값"으로 렌더링해버려서, 브라우저 화면만 봐서는 이 문제를 못 알아챌 수 있다
+
+**재발 방지**
+- `tsconfig.json`의 `include`/`exclude`나 `rootDir`에 영향을 주는 변경(새 폴더 제외, 워크스페이스 구조 변경 등)을 한 직후에는 `apps/api/dist`를 지우고 처음부터 다시 빌드하는 것을 습관화한다 — rootDir이 바뀌는 변경은 증분 빌드가 안전하게 따라가지 못한다고 가정한다
+- 코드를 고쳤는데 동작이 안 바뀌는 것 같으면, 브라우저부터 보지 말고 `curl`로 API 응답 원본을 먼저 확인해 "프런트 캐시 문제"와 "백엔드가 옛 코드를 서빙하는 문제"를 구분한다(T1과 증상이 비슷하지만 원인은 다르다 — T1은 포트 충돌로 옛 *프로세스*가 살아남는 경우, T3는 프로세스는 새로 떴지만 옛 *빌드 산출물*을 읽는 경우)
+
+---
+
+*T1·T2는 2026-09-05, T3는 2026-09-08~09 세션에서 실제로 발생한 문제입니다. 새로운 문제가 발생하면 이 형식(증상/원인/해결/재발 방지)으로 계속 추가해나갑니다.*

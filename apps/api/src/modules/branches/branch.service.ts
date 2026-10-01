@@ -6,7 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { BranchGate, branchGateFrom } from './branch-gate';
 
 /**
- * 지점(Branch) 조회 — D29(2-1_기술결정사항.md). 원천은 DB다. 지점에는 쓰기 API가 없다(계약 상태 변경은 본사의
+ * 지점(Branch) 조회 — D29. 원천은 DB다. 지점에는 쓰기 API가 없다(계약 상태 변경은 본사의
  * 수동 조치). 계약 종료(TERMINATED) 규칙이 여기 한 곳으로 모인다 — CLAUDE.md가 실DB 전환 이후로 미뤄둔
  * "공통 검사 중앙화"의 첫 조각.
  */

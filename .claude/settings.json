@@ -21,8 +21,8 @@
       "PowerShell(tsc --noEmit*)"
     ],
     "ask": [
-      "Edit(/docs/4.presentation/**)",
-      "Write(/docs/4.presentation/**)"
+      "Edit(/docs/presentation/**)",
+      "Write(/docs/presentation/**)"
     ]
   },
   "hooks": {

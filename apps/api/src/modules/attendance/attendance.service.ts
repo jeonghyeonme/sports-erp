@@ -28,8 +28,8 @@ const dateOf = (d: string) => new Date(`${d.slice(0, 10)}T00:00:00Z`);
 const day = (d: Date) => toKstDateString(d);
 
 /**
- * 근태·휴가·연차 잔여·업무일지 — D33(2-1_기술결정사항.md). 원천은 DB다.
- * 판정 규칙(지각·결근·지점 귀속·연차 차감)은 mock 구현(03문서, ADR-ATT-01~03)을 그대로 옮겼고,
+ * 근태·휴가·연차 잔여·업무일지 — D33. 원천은 DB다.
+ * 판정 규칙(지각·결근·지점 귀속·연차 차감)은 mock 구현(근태관리 문서, ADR-ATT-01~03)을 그대로 옮겼고,
  * 단일 스레드 가정에 기대던 곳은 DB 제약 + 조건부 갱신으로 바꿨다(D33 결정 1).
  */
 @Injectable()
@@ -38,7 +38,7 @@ export class AttendanceService {
 
   // ── 체크인·체크아웃 ─────────────────────────────────────
 
-  // 03문서 §6 "자동 지각 판정" — Branch.standardCheckInTime 대비 10분 초과 시 LATE.
+  // 근태관리 A-6 "자동 지각 판정" — Branch.standardCheckInTime 대비 10분 초과 시 LATE.
   // 체크인 중복 방지(불변규칙 1): 앱 검사 + (staffId, date) unique. 동시 체크인 경합은 P2002 → 409.
   async checkIn(staffId: string): Promise<MockAttendanceRecord> {
     const staff = await this.prisma.staff.findUnique({
@@ -103,7 +103,7 @@ export class AttendanceService {
     return rows.map(toMockAttendance).filter((r) => !month || r.date.startsWith(month));
   }
 
-  // 03문서 §5 GET /attendance/summary — ADR-ATT-03: 집계 기준은 "기록 자체의 branchId"다.
+  // 근태관리 A-5 GET /attendance/summary — ADR-ATT-03: 집계 기준은 "기록 자체의 branchId"다.
   // 직원 명단은 "현재 이 지점 소속" ∪ "이 달에 이 지점 기록이 있는 사람"이라, 월중 전출한 직원도 전출 전 기록만큼 남는다.
   async summary(branchId: string, month: string) {
     const records = (
@@ -220,7 +220,7 @@ export class AttendanceService {
     return toMockBalance(await tx.leaveBalance.findUniqueOrThrow({ where: key }));
   }
 
-  // 03문서 §6 — 잔여일수 초과 신청도 막지 않고 경고만 반환(관리자 재량 승인).
+  // 근태관리 A-6 — 잔여일수 초과 신청도 막지 않고 경고만 반환(관리자 재량 승인).
   async requestLeave(
     staffId: string,
     input: { type: LeaveType; startDate: string; endDate: string; reason?: string },
@@ -304,7 +304,7 @@ export class AttendanceService {
 
   // ── 업무일지 ───────────────────────────────────────────
 
-  // 하루 1건(03문서 §3) — 같은 날 다시 쓰면 덮어쓴다. WorkLog에는 (staffId, date) unique가 없어서
+  // 하루 1건(근태관리 A-3) — 같은 날 다시 쓰면 덮어쓴다. WorkLog에는 (staffId, date) unique가 없어서
   // 트랜잭션 advisory lock으로 같은 직원·날짜의 upsert를 직렬화한다(D33 결정 1 — unique 추가는 스키마 변경이라 후속).
   async upsertWorkLog(staffId: string, date: string, content: string): Promise<MockWorkLog> {
     const d = dateOf(date);
@@ -360,20 +360,20 @@ function isLate(checkInAt: Date, standardCheckInTime: string | null): boolean {
   return hours * 60 + minutes > h * 60 + m + 10;
 }
 
-// 파트타임은 근무일이 주 단위로 고정되지 않아 판정 자체를 하지 않는다(03문서 §3).
+// 파트타임은 근무일이 주 단위로 고정되지 않아 판정 자체를 하지 않는다(근태관리 A-3).
 function isWorkDay(staff: { employmentType: string | null; offDays: number[] }, dateStr: string): boolean {
   if (staff.employmentType === '파트타임') return false;
   return !staff.offDays.includes(dateOf(dateStr).getUTCDay());
 }
 
-// 03문서 §3 — 1년 미만 11일, 1년 이상 15일에서 2년마다 1일 가산(최대 25일). 입사 연도는 날짜 문자열에서(D33 결정 4).
+// 근태관리 A-3 — 1년 미만 11일, 1년 이상 15일에서 2년마다 1일 가산(최대 25일). 입사 연도는 날짜 문자열에서(D33 결정 4).
 function annualLeaveTotalDays(hireDate: Date, asOfYear: number): number {
   const yearsOfService = asOfYear - Number(day(hireDate).slice(0, 4));
   if (yearsOfService < 1) return 11;
   return Math.min(15 + Math.floor((yearsOfService - 1) / 2), 25);
 }
 
-// 03문서 §6 — 종료일 포함, 주말 제외는 Phase 2.
+// 근태관리 A-6 — 종료일 포함, 주말 제외는 Phase 2.
 function leaveDays(startDate: string, endDate: string): number {
   return Math.floor((dateOf(endDate).getTime() - dateOf(startDate).getTime()) / 86_400_000) + 1;
 }

@@ -14,7 +14,7 @@ export class CreateScheduleSlotDto {
   @Matches(TIME_PATTERN, { message: 'endTime은 HH:mm 형식이어야 합니다.' })
   endTime!: string;
 
-  // 비우면 Program.capacity를 그대로 쓴다(06문서 §3 "capacity, ScheduleSlot에서 override 가능").
+  // 비우면 Program.capacity를 그대로 쓴다(예약및결제 A-3 "capacity, ScheduleSlot에서 override 가능").
   @IsOptional()
   @IsInt()
   @Min(1)

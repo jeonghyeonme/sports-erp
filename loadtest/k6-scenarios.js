@@ -4,7 +4,7 @@
 //
 //   설치: https://k6.io/docs/get-started/installation/
 //   실행: k6 run loadtest/k6-scenarios.js
-//   결과를 다시 붙여주면 병목 해석·대응 방안을 정리한다(docs/process/06_진행_로그.md에 기록).
+//   결과를 다시 붙여주면 병목 해석·대응 방안을 정리한다(docs/log/에 기록).
 //
 // 두 시나리오로 나눈 이유: MockDataService의 GET 계열은 인메모리 배열 스캔이라
 // 원래도 빨라서 병목이 잘 안 드러난다. 반면 로그인(bcrypt.compare, cost 10)은

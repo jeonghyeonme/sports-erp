@@ -127,7 +127,7 @@ export function InstructorsPage() {
         <div>
           <h2>강사</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
-            07문서 기준 더미 데이터입니다. BRANCH_ADMIN은 본인 지점 강사만 등록·수정·비활성화할 수 있습니다.
+            강사프로그램게시 문서 기준 더미 데이터입니다. BRANCH_ADMIN은 본인 지점 강사만 등록·수정·비활성화할 수 있습니다.
           </p>
         </div>
         <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>

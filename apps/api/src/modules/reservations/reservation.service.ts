@@ -28,7 +28,7 @@ const withContext = {
 type ReservationRow = Prisma.ReservationGetPayload<{ include: typeof withContext }>;
 
 /**
- * 예약 — D32(2-1_기술결정사항.md). 원천은 DB. 정원 검사는 회차 행 락 위에서 한다(ADR-RSV-01, D28 lockScheduleSlot) —
+ * 예약 — D32. 원천은 DB. 정원 검사는 회차 행 락 위에서 한다(ADR-RSV-01, D28 lockScheduleSlot) —
  * mock 시절 "단일 스레드라 락이 필요 없다"는 가정이 여기서 끝난다.
  */
 @Injectable()
@@ -43,7 +43,7 @@ export class ReservationService {
     return row ? toView(row) : null;
   }
 
-  /** 06문서 §5·§7 — 범위(회원 본인·지점·회원 지정)는 컨트롤러가 정해서 넘긴다. */
+  /** 예약및결제 A-5·A-7 — 범위(회원 본인·지점·회원 지정)는 컨트롤러가 정해서 넘긴다. */
   async list(filter: { memberId?: string; branchId?: string; status?: string }): Promise<ReservationView[]> {
     if (filter.status && !RESERVATION_STATUSES.includes(filter.status as ReservationStatus)) return [];
     const rows = await this.prisma.reservation.findMany({
@@ -59,7 +59,7 @@ export class ReservationService {
   }
 
   /**
-   * 06문서 §5 POST /reservations. 검사 순서는 예전 mock 그대로(에러 코드 우선순위가 테스트로 고정돼 있음):
+   * 예약및결제 A-5 POST /reservations. 검사 순서는 예전 mock 그대로(에러 코드 우선순위가 테스트로 고정돼 있음):
    * 회차 → 프로그램 → 예약형 여부 → 진행중 → 회원 지점(DI-02) → 계약 종료 → 중복(ADR-RSV-02) → 정원(ADR-RSV-01).
    * 정원·중복은 회차 행을 잠근 트랜잭션 안에서 센다 — 동시 요청이 같은 마지막 좌석을 둘 다 잡지 못한다.
    */
@@ -122,7 +122,7 @@ export class ReservationService {
   }
 
   /**
-   * 06문서 §6 취소/환불 — 회차 시작 cancellationDeadlineHours(기본 24) 전 취소만 전액 환불.
+   * 예약및결제 A-6 취소/환불 — 회차 시작 cancellationDeadlineHours(기본 24) 전 취소만 전액 환불.
    * D32 결정 5 — 회차 날짜·시각은 KST라 "+09:00"을 붙여 해석한다(예전 mock은 호스트 시간대로 해석해
    * UTC 서버에서 마감을 9시간 늦게 봤다).
    */
@@ -156,7 +156,7 @@ export class ReservationService {
     return (await this.findById(id))!;
   }
 
-  // 06문서 §5 PATCH /reservations/:id/check-in — 확정된 예약만.
+  // 예약및결제 A-5 PATCH /reservations/:id/check-in — 확정된 예약만.
   async checkIn(id: string): Promise<ReservationView> {
     const { count } = await this.prisma.reservation.updateMany({
       where: { id, status: 'CONFIRMED' },
@@ -182,7 +182,7 @@ export class ReservationService {
   }
 }
 
-/** 06문서 §6 부가세 분리 — 실제 낸 금액에서 공급가액/부가세를 역산한다(세율 10%). */
+/** 예약및결제 A-6 부가세 분리 — 실제 낸 금액에서 공급가액/부가세를 역산한다(세율 10%). */
 export function splitVat(amount: number): { supplyAmount: number; vat: number } {
   const supplyAmount = Math.round(amount / 1.1);
   return { supplyAmount, vat: amount - supplyAmount };

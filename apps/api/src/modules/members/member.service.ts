@@ -37,7 +37,7 @@ type ProfileInput = {
 };
 
 /**
- * 회원·회원 계정·수강·PT — D32(2-1_기술결정사항.md). 원천은 DB이고 mock 미러는 없다
+ * 회원·회원 계정·수강·PT — D32. 원천은 DB이고 mock 미러는 없다
  * (이 데이터를 동기적으로 읽는 mock 도메인이 남지 않았다 — D32 결정 1).
  */
 @Injectable()
@@ -123,7 +123,7 @@ export class MemberService {
 
   // ── 쓰기: 회원 ─────────────────────────────────────────
 
-  // 05문서 §5 POST /members — 현장 오프라인 등록. BRANCH_ADMIN 전용(컨트롤러에서 강제).
+  // 회원관리 A-5 POST /members — 현장 오프라인 등록. BRANCH_ADMIN 전용(컨트롤러에서 강제).
   async create(branchId: string, input: ProfileInput): Promise<{ member: MemberView; warnings: string[] }> {
     const branch = await this.assertCanRegister(branchId, input);
     const warnings = await this.duplicatePhoneWarnings(branchId, input.phone);
@@ -198,7 +198,7 @@ export class MemberService {
     );
   }
 
-  // 05문서 §5 PATCH /members/:id — 지점/본인 범위 검증은 컨트롤러가 먼저 마친다.
+  // 회원관리 A-5 PATCH /members/:id — 지점/본인 범위 검증은 컨트롤러가 먼저 마친다.
   async update(
     id: string,
     input: Partial<Pick<MockMember, 'name' | 'phone' | 'birthDate' | 'gender' | 'memo' | 'assignedStaffId'>>,
@@ -219,7 +219,7 @@ export class MemberService {
     return this.view(id);
   }
 
-  // 05문서 §5 PATCH /members/:id/status, §6 "탈퇴 시 소프트 삭제 + Account.isActive=false".
+  // 회원관리 A-5 PATCH /members/:id/status, §6 "탈퇴 시 소프트 삭제 + Account.isActive=false".
   // WITHDRAWN이 아니면 다시 로그인 가능하게 푼다 — 안 풀면 탈퇴 취소 후에도 영구히 로그인 불가로 남는다.
   async updateStatus(id: string, status: MemberStatus): Promise<MemberView> {
     const member = await this.requireMember(id);
@@ -252,7 +252,7 @@ export class MemberService {
     return { ...toMockEnrollment(row), programName: program.name };
   }
 
-  // PT_PACKAGE 결제 연동은 범위 제외라 관리자가 구매 사실을 직접 등록한다(06문서 §3).
+  // PT_PACKAGE 결제 연동은 범위 제외라 관리자가 구매 사실을 직접 등록한다(예약및결제 A-3).
   async createPTSession(
     memberId: string,
     input: { programId: string; totalSessions: number; purchasedAt: string },
@@ -306,7 +306,7 @@ export class MemberService {
       throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 신규 회원을 등록할 수 없습니다.', 409);
     }
     if (input.assignedStaffId) await this.assertStaffInBranch(input.assignedStaffId, branchId);
-    // 05문서 §6 — 만 19세 미만은 법정대리인 동의 없이는 등록 자체를 막는다. birthDate가 없으면 검사 대상 아님.
+    // 회원관리 A-6 — 만 19세 미만은 법정대리인 동의 없이는 등록 자체를 막는다. birthDate가 없으면 검사 대상 아님.
     if (input.birthDate && isMinor(input.birthDate) && !input.guardianConsent) {
       throw new AppException('GUARDIAN_CONSENT_REQUIRED', '만 19세 미만 회원은 법정대리인 동의가 필요합니다.', 400);
     }
@@ -383,7 +383,7 @@ export class MemberService {
   }
 }
 
-// 05문서 §6 — 만 19세 미만 판정(생일 지남 여부까지 반영한 만 나이). "오늘"은 KST(date-time-handling.md).
+// 회원관리 A-6 — 만 19세 미만 판정(생일 지남 여부까지 반영한 만 나이). "오늘"은 KST(date-time-handling.md).
 function isMinor(birthDate: string): boolean {
   const [by, bm, bd] = birthDate.slice(0, 10).split('-').map(Number);
   const [ty, tm, td] = todayKst().split('-').map(Number);

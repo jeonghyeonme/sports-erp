@@ -1,8 +1,8 @@
 import { MockDocument } from './mock-data.types';
 
 /**
- * 문서의 시드 원천 — D34(2-1_기술결정사항.md). 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
- * 값은 예전 mock 그대로다(1-10문서 §5 — 전사 매뉴얼은 영구 보관, 서초점 위탁계약서는 보존기한 임박 목록 시연용).
+ * 문서의 시드 원천 — D34. 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
+ * 값은 예전 mock 그대로다(자원문서관리 부록 A — 전사 매뉴얼은 영구 보관, 서초점 위탁계약서는 보존기한 임박 목록 시연용).
  */
 export function documentSeed(): MockDocument[] {
   return [

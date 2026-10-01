@@ -7,7 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 export type InstructorView = MockInstructor & { branchName?: string };
 
 /**
- * 강사 — D31(2-1_기술결정사항.md). 원천은 DB다.
+ * 강사 — D31. 원천은 DB다.
  * D31에서 둔 mock 미러는 D32로 마지막 독자가 사라져 없앴다. 직원 파견이 강사 겸임을 푸는 것은
  * StaffService.assign 트랜잭션 안에서 끝난다(ADR-STF-04).
  */
@@ -29,7 +29,7 @@ export class InstructorService {
     return row ? toMockInstructor(row) : null;
   }
 
-  // 07문서 §5 POST /instructors — BRANCH_ADMIN 전용(컨트롤러에서 강제).
+  // 강사프로그램게시 A-5 POST /instructors — BRANCH_ADMIN 전용(컨트롤러에서 강제).
   async hire(
     branchId: string,
     input: { name: string; specialty?: string; bio?: string; phone?: string },
@@ -40,7 +40,7 @@ export class InstructorService {
     return this.view(row.id);
   }
 
-  // 07문서 §5 PATCH /instructors/:id. 07문서 §6 — 비활성화는 isActive=false(소프트 삭제), 연결된 프로그램은 유지.
+  // 강사프로그램게시 A-5 PATCH /instructors/:id. 강사프로그램게시 A-6 — 비활성화는 isActive=false(소프트 삭제), 연결된 프로그램은 유지.
   async update(
     id: string,
     input: Partial<Pick<MockInstructor, 'name' | 'specialty' | 'bio' | 'phone' | 'isActive'>>,

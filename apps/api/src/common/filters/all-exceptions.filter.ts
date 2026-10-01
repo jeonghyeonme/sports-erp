@@ -10,7 +10,7 @@ import { Response } from 'express';
 import { AppException } from '../exceptions/app.exception';
 
 /**
- * 모든 예외를 00문서 §4 공통 에러 envelope({success:false, error:{code,message}})으로 변환합니다.
+ * 모든 예외를 architecture/system-overview.md §4 공통 에러 envelope({success:false, error:{code,message}})으로 변환합니다.
  * - AppException: 지정한 code를 그대로 사용
  * - class-validator(ValidationPipe)의 BadRequestException: code=VALIDATION_ERROR
  * - 그 외 HttpException: code는 HTTP status 이름(예: FORBIDDEN)으로 대체

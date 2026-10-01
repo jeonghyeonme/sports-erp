@@ -1,6 +1,6 @@
 name: Deploy api (AWS Lambda)
 
-# D37(2-1_기술결정사항.md) — 배포 브랜치(main-5x9td9)에 api가 바뀌면 Lambda(서울)로 배포한다.
+# D37 — 배포 브랜치(main-5x9td9)에 api가 바뀌면 Lambda(서울)로 배포한다.
 # AWS 인증은 GitHub OIDC로 역할을 맡는다(액세스 키를 저장하지 않음). 설정 전에는 배포 잡이 건너뛰어진다.
 #
 # 저장소 설정(Settings → Secrets and variables → Actions)에 필요한 값 — aws-lambda/README.md 체크리스트 참고:
@@ -76,7 +76,7 @@ jobs:
           FN: ${{ vars.LAMBDA_FUNCTION_NAME }}
         run: aws lambda update-alias --function-name "$FN" --name "$ALIAS" --function-version "${{ steps.publish.outputs.version }}" >/dev/null
 
-      # Render 자동배포가 조용히 멈췄던 일(진행 로그 §51)을 반복하지 않도록, 배포가 실제로 응답하는지 여기서 확인한다.
+      # Render 자동배포가 조용히 멈췄던 일(docs/log/051)을 반복하지 않도록, 배포가 실제로 응답하는지 여기서 확인한다.
       # 첫 호출은 콜드 스타트라 몇 번 재시도한다.
       - name: Health check
         id: health

@@ -18,7 +18,7 @@ type NavEntry = { kind: 'link'; link: NavLinkItem } | { kind: 'group'; group: Na
 const link = (to: string, label: string): NavEntry => ({ kind: 'link', link: { to, label } });
 const group = (label: string, items: NavLinkItem[]): NavEntry => ({ kind: 'group', group: { label, items } });
 
-// 역할마다 접근 가능한 화면 구성 자체가 달라(01문서 §7 권한 매트릭스), 공유 목록을 필터링하는 대신
+// 역할마다 접근 가능한 화면 구성 자체가 달라(권한관리 A-7 권한 매트릭스), 공유 목록을 필터링하는 대신
 // 역할별로 그룹 구조를 따로 정의한다. 그룹명은 문서 카테고리가 아니라 그 역할이 "왜 이 화면을 쓰는가"
 // 기준으로 붙였다 — 화면구성도(사이드바 역할별구성 v1) 승인안을 그대로 반영.
 const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
@@ -57,7 +57,7 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
       { to: '/documents', label: '문서함' },
     ]),
   ],
-  // 03문서 §7 — SUPER_ADMIN은 현장 근태 운영에 직접 개입하지 않는 원칙이라 근태관리는 STAFF·BRANCH_ADMIN에만 있다.
+  // 근태관리 A-7 — SUPER_ADMIN은 현장 근태 운영에 직접 개입하지 않는 원칙이라 근태관리는 STAFF·BRANCH_ADMIN에만 있다.
   STAFF: [
     link('/', '대시보드'),
     link('/staff', '내 정보'),

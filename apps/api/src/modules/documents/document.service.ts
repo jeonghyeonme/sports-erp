@@ -26,7 +26,7 @@ export type CreateDocumentInput = {
 };
 
 /**
- * 문서(1-10문서 §5) — D34(2-1_기술결정사항.md). 원천은 DB다. 규칙(보존기한 계산 §5-6, ADR-RES-01·03,
+ * 문서(자원문서관리 부록 A) — D34. 원천은 DB다. 규칙(보존기한 계산 §5-6, ADR-RES-01·03,
  * 소프트 삭제 D9)은 mock 구현 그대로 옮겼다. 권한·지점 강제는 컨트롤러가 한다.
  */
 @Injectable()
@@ -165,7 +165,7 @@ export async function recalculateHrRetention(tx: Tx, staffId: string, resignDate
   return count;
 }
 
-// 1-10문서 §5-6 — HR_RECORD는 근로관계 종료일(없으면 업로드일=오늘 KST)+3년, CONTRACT는 직접 입력, 나머지는 영구 보관.
+// 자원문서관리 A-6 — HR_RECORD는 근로관계 종료일(없으면 업로드일=오늘 KST)+3년, CONTRACT는 직접 입력, 나머지는 영구 보관.
 function retentionUntil(category: DocumentCategory, resignDate: Date | null, manual?: string): Date | null {
   if (category === 'CONTRACT') return manual ? dateOf(manual) : null;
   if (category === 'HR_RECORD') {

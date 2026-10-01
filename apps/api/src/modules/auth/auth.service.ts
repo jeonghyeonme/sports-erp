@@ -9,7 +9,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { AccessTokenPayload, RefreshTokenPayload } from './types/jwt-payload.interface';
 import { secretFromEnv } from '../../common/config/secrets';
 
-// 01문서 §3 RefreshToken — access token과 별도 시크릿/수명을 쓴다(하나가 새도 다른 하나까지 위조되지 않도록).
+// 권한관리 A-3 RefreshToken — access token과 별도 시크릿/수명을 쓴다(하나가 새도 다른 하나까지 위조되지 않도록).
 const REFRESH_TOKEN_SECRET = secretFromEnv('JWT_REFRESH_SECRET', 'change-me-refresh');
 const REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN ?? '14d';
 
@@ -53,7 +53,7 @@ export class AuthService {
     return this.issuePrismaSession(account);
   }
 
-  // 01문서 §5 POST /auth/refresh, §6 "1회용(rotate)" — 기존 refresh token은 검증과 동시에 폐기하고 둘 다 새로 발급한다.
+  // 권한관리 A-5 POST /auth/refresh, §6 "1회용(rotate)" — 기존 refresh token은 검증과 동시에 폐기하고 둘 다 새로 발급한다.
   async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = this.verifyRefreshToken(refreshToken);
 
@@ -75,7 +75,7 @@ export class AuthService {
     };
   }
 
-  // 01문서 §5 POST /auth/logout — Refresh Token revoke. 이미 만료된 토큰으로도 로그아웃은 되어야 하므로 만료는 무시한다.
+  // 권한관리 A-5 POST /auth/logout — Refresh Token revoke. 이미 만료된 토큰으로도 로그아웃은 되어야 하므로 만료는 무시한다.
   async logout(refreshToken: string): Promise<void> {
     const payload = this.verifyRefreshToken(refreshToken, { ignoreExpiration: true });
     await this.prisma.refreshToken.updateMany({
@@ -84,7 +84,7 @@ export class AuthService {
     });
   }
 
-  // 01문서 §5 PATCH /auth/password.
+  // 권한관리 A-5 PATCH /auth/password.
   async changePassword(accountId: string, currentPassword: string, newPassword: string): Promise<void> {
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
     if (!account) {
@@ -95,7 +95,7 @@ export class AuthService {
     await this.prisma.account.update({ where: { id: accountId }, data: { passwordHash } });
   }
 
-  // 01문서 §6 — role/branchId를 매 요청 이 조회 결과로 새로 구성하는 단일 원천(JwtStrategy도 이걸 쓴다).
+  // 권한관리 A-6 — role/branchId를 매 요청 이 조회 결과로 새로 구성하는 단일 원천(JwtStrategy도 이걸 쓴다).
   // 실제 스키마엔 Account에 branchId가 없어 Staff/Member를 거쳐 조회한다.
   async buildRequestUser(account: AccountWithProfile): Promise<RequestUser> {
     const branchId = account.staff?.branchId ?? account.member?.branchId;
@@ -128,7 +128,7 @@ export class AuthService {
     }
   }
 
-  // 05문서 §6 — 회원 탈퇴(WITHDRAWN) 시 연결 계정이 isActive=false로 전환되며, 그 즉시 로그인이 막혀야 한다.
+  // 회원관리 A-6 — 회원 탈퇴(WITHDRAWN) 시 연결 계정이 isActive=false로 전환되며, 그 즉시 로그인이 막혀야 한다.
   private assertAccountActive(isActive: boolean | undefined): void {
     if (isActive === false) {
       throw new AppException('ACCOUNT_INACTIVE', '비활성화된 계정입니다. 관리자에게 문의하세요.', 401);
@@ -174,7 +174,7 @@ export class AuthService {
     }
   }
 
-  // 원문 대신 해시로 저장(01문서 §3 RefreshToken.tokenHash) — DB/메모리가 유출돼도 토큰 자체는 못 꺼내 쓴다.
+  // 원문 대신 해시로 저장(권한관리 A-3 RefreshToken.tokenHash) — DB/메모리가 유출돼도 토큰 자체는 못 꺼내 쓴다.
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }

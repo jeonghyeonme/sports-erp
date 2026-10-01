@@ -1,7 +1,7 @@
 import { MockPost } from './mock-data.types';
 
 /**
- * 게시글의 시드 원천 — D36(2-1_기술결정사항.md). 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
+ * 게시글의 시드 원천 — D36. 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
  * 값·id는 예전 mock 그대로다(전사 매뉴얼 공지는 회원 비노출 — ADR-BRD-01, 서초점 이벤트는 회원 노출).
  * createdAt은 목록 순서(등록순)를 mock과 같게 하려고 게시일 기준으로 넣는다.
  */

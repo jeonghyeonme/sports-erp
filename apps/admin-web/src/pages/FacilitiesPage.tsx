@@ -332,7 +332,7 @@ export function FacilitiesPage() {
         <div>
           <h2>시설 · 혼잡도</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
-            08문서 기준입니다. 실제로는 5분 주기 자동계산(Phase 2)이지만 지금은 BRANCH_ADMIN이 수동으로 보정한
+            혼잡도관리 문서 기준입니다. 실제로는 5분 주기 자동계산(Phase 2)이지만 지금은 BRANCH_ADMIN이 수동으로 보정한
             값이 그대로 노출됩니다. 지점별로 묶어서 보여줍니다(98개 지점 규모 대응 — 지점명으로 검색해 좁혀보세요).
           </p>
         </div>

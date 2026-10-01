@@ -8,7 +8,7 @@ import { BranchService } from '../branches/branch.service';
 export type FacilityView = MockFacility & { branchName?: string };
 
 /**
- * 시설·혼잡도 — D31(2-1_기술결정사항.md). 원천은 DB다.
+ * 시설·혼잡도 — D31. 원천은 DB다.
  * D31에서 둔 mock 미러는 D32로 마지막 독자가 사라져 없앴다.
  */
 @Injectable()
@@ -33,7 +33,7 @@ export class FacilityService {
     return row ? toMockFacility(row) : null;
   }
 
-  // 08문서 §6 POST /facilities — capacity 1 이상 필수(§7 나눗셈 오류 방지).
+  // 혼잡도관리 A-5 POST /facilities — capacity 1 이상 필수(§7 나눗셈 오류 방지).
   // ADR-FAC-03 — 계약종료(TERMINATED) 지점의 신규 시설 등록 차단. 기존 시설 정정(update)은 대상 아님.
   async create(branchId: string, input: { name: string; type: FacilityType; capacity: number }): Promise<FacilityView> {
     const gate = await this.branchService.loadGate();
@@ -57,7 +57,7 @@ export class FacilityService {
     return this.afterWrite(row.id);
   }
 
-  // 08문서 §6 PATCH /facilities/:id — 정원이 바뀌면 현재 인원 대비 혼잡도 단계를 즉시 재계산한다.
+  // 혼잡도관리 A-5 PATCH /facilities/:id — 정원이 바뀌면 현재 인원 대비 혼잡도 단계를 즉시 재계산한다.
   // ADR-FAC-02 — isActive 토글(비활성화·재활성화)도 이 경로로 처리한다.
   async update(
     id: string,
@@ -80,7 +80,7 @@ export class FacilityService {
     return this.afterWrite(id);
   }
 
-  // 08문서 §6 POST /facilities/:id/congestion/manual, §4 "수동 보정"(source=MANUAL) — Phase 1 범위라
+  // 혼잡도관리 A-5 POST /facilities/:id/congestion/manual, §4 "수동 보정"(source=MANUAL) — Phase 1 범위라
   // CongestionSnapshot 이력 없이 Facility.currentCount/level을 직접 덮어쓴다.
   // ADR-FAC-03 — 계약종료 지점의 신규 혼잡도 보정 차단. ADR-FAC-01 — 보정 시각을 lastUpdatedAt에 남긴다.
   async setManualCongestion(id: string, currentCount: number): Promise<FacilityView> {
@@ -117,7 +117,7 @@ export class FacilityService {
   }
 }
 
-// 08문서 §4 5단계 매핑 — 수동 보정이든 정원 변경이든 currentCount/capacity 비율이 바뀔 때마다 재계산한다.
+// 혼잡도관리 A-6 5단계 매핑 — 수동 보정이든 정원 변경이든 currentCount/capacity 비율이 바뀔 때마다 재계산한다.
 function congestionLevel(currentCount: number, capacity: number): number {
   const ratio = (currentCount / capacity) * 100;
   if (ratio <= 20) return 1;

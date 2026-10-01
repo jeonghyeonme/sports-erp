@@ -4,7 +4,7 @@ import { StaffService } from '../staff/staff.service';
 import { ok } from '../../common/http/api-response';
 import { UpdateStaffRoleDto } from './dto/update-staff-role.dto';
 
-// 01문서 §7 권한 매트릭스 — 본사(SUPER_ADMIN)만 지점 직원의 권한(STAFF/BRANCH_ADMIN)을 제어할 수 있다.
+// 권한관리 A-7 권한 매트릭스 — 본사(SUPER_ADMIN)만 지점 직원의 권한(STAFF/BRANCH_ADMIN)을 제어할 수 있다.
 @Controller('permissions')
 @Roles('SUPER_ADMIN')
 export class PermissionsController {

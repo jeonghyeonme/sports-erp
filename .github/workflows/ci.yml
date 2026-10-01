@@ -93,3 +93,19 @@ jobs:
       # tsc -b 로 타입체크 후 vite build
       - name: Build
         run: npm run build --workspace=apps/admin-web
+
+  # D38 — 문서 구조가 다시 썩지 않게 하는 신호(끊긴 링크·옛 문서 이름·ADR ID·진입 문서 크기 상한·인덱스 누락).
+  docs:
+    name: docs (doc-check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Doc check
+        run: node scripts/doc-check.mjs
+

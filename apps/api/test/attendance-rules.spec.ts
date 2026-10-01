@@ -9,7 +9,7 @@ import { resetWorkerDb } from './helpers/worker-db';
  * - 불변규칙 1: 하루 1건 체크인(동시 요청 포함)
  * - ADR-ATT-01: 연차는 승인 시점에만, 한 번만 차감(동시 승인 포함). 병가 등은 차감하지 않음(ATT-T02)
  * - ADR-ATT-02: 결근 확정 동시 호출에도 한 날짜 한 행
- * - 03문서 §6: 자동 지각 판정(ATT-T01), 연차 잔여의 "올해"는 KST(D33 결정 4)
+ * - 근태관리 A-6: 자동 지각 판정(ATT-T01), 연차 잔여의 "올해"는 KST(D33 결정 4)
  */
 describe('근태 규칙 (D33)', () => {
   let app: INestApplication;

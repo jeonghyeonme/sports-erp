@@ -2,7 +2,7 @@ import { generateLightBranches } from './branch-generator';
 import { MockFacility, MockInstructor, MockProgram, MockScheduleSlot } from './mock-data.types';
 
 /**
- * 시설·강사·프로그램·회차의 시드 원천 — D31(2-1_기술결정사항.md). 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
+ * 시설·강사·프로그램·회차의 시드 원천 — D31. 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
  * mock은 앱이 뜰 때 DB에서 미러를 채우므로(FacilityService·InstructorService·ProgramService.onModuleInit)
  * 이 파일을 직접 읽지 않는다.
  *
@@ -132,7 +132,7 @@ const HERO_PROGRAMS: readonly MockProgram[] = [
   },
 ];
 
-// 06문서 §3 — '아침 요가'(PAID_SESSION, capacity 15)에 데모용 회차 2건.
+// 예약및결제 A-3 — '아침 요가'(PAID_SESSION, capacity 15)에 데모용 회차 2건.
 // 두 번째 회차는 정원을 일부러 작게 잡아 SLOT_FULL(정원 초과) 케이스를 바로 테스트할 수 있게 한다.
 const HERO_SLOTS: readonly MockScheduleSlot[] = [
   {

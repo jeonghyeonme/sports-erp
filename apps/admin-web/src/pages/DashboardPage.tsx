@@ -15,7 +15,7 @@ const STATUS_FILTERS: Array<{ value: BranchContractStatus | 'ALL'; label: string
   { value: 'TERMINATED', label: '종료' },
 ];
 
-// 히스토리 시계열 API가 아직 없어(3-1문서 §5 예고 항목), 현재값에서 역산한 임시 추세를 스파크라인에 표시한다.
+// 히스토리 시계열 API가 아직 없어(디자인시스템 §5 예고 항목), 현재값에서 역산한 임시 추세를 스파크라인에 표시한다.
 // 실제 기간별 집계가 붙기 전까지의 디자인 확인용 자리값.
 function mockTrend(current: number): number[] {
   const shape = [0.86, 0.9, 0.83, 0.94, 0.97, 0.92, 1];
@@ -61,7 +61,7 @@ function KpiTile({ icon, label, value, current }: { icon: ReactNode; label: stri
 }
 
 // 계약 갱신 임박 — 추세가 아니라 "지금 리스크가 몇 건인가"를 보는 지표라 스파크라인 대신
-// 값이 있을 때만 경고 톤으로 강조한다(01문서 §2-1: 본사 대시보드 "갱신 임박 지점" 알림 카드).
+// 값이 있을 때만 경고 톤으로 강조한다(architecture/entities.md §2-1: 본사 대시보드 "갱신 임박 지점" 알림 카드).
 // 클릭하면 아래 지점 테이블이 갱신임박 필터로 좁혀진다.
 function AlertKpiTile({ label, value, alarmed, onClick }: { label: string; value: string; alarmed: boolean; onClick: () => void }) {
   return (

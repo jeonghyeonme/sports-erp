@@ -15,7 +15,7 @@ export type StaffView = MockStaff & { branchName: string };
 const dateOf = (d: string) => new Date(`${d}T00:00:00Z`);
 
 /**
- * 직원·파견·관리자 계정 — D30(2-1_기술결정사항.md). 원천은 DB다.
+ * 직원·파견·관리자 계정 — D30. 원천은 DB다.
  * D30~D35 동안 아직 mock인 도메인을 위해 mock에 직원·파견·계정 "미러"를 채웠지만, D36(게시판 이관)으로
  * 마지막 독자가 사라져 미러와 MockDataService를 모두 없앴다.
  */
@@ -25,7 +25,7 @@ export class StaffService {
 
   // ── 조회 ──────────────────────────────────────────────
 
-  /** 02문서 §5 — 퇴사자는 기본적으로 숨기고(status!=RESIGNED), status를 명시하면 그 값만(§6). */
+  /** 인사정보관리 A-5 — 퇴사자는 기본적으로 숨기고(status!=RESIGNED), status를 명시하면 그 값만(§6). */
   async list(filter: { branchId?: string; status?: string; position?: string }): Promise<StaffView[]> {
     const rows = await this.prisma.staff.findMany({
       where: {
@@ -44,7 +44,7 @@ export class StaffService {
     return row ? toView(row) : null;
   }
 
-  /** 02문서 §5 GET /staff/:id/assignments — 최신 파견이 먼저. */
+  /** 인사정보관리 A-5 GET /staff/:id/assignments — 최신 파견이 먼저. */
   async history(staffId: string): Promise<MockStaffAssignment[]> {
     const rows = await this.prisma.staffAssignment.findMany({
       where: { staffId },
@@ -56,7 +56,7 @@ export class StaffService {
   // ── 쓰기 ──────────────────────────────────────────────
 
   /**
-   * 신규 채용 — SUPER_ADMIN 전용(컨트롤러). 계정 + 직원 + 최초 파견을 한 트랜잭션으로 만들고(02문서 §3),
+   * 신규 채용 — SUPER_ADMIN 전용(컨트롤러). 계정 + 직원 + 최초 파견을 한 트랜잭션으로 만들고(인사정보관리 A-3),
    * 직원번호는 지점별 시퀀스로 채번한다(ADR-STF-02, integrity.ts). 이메일은 활성 계정끼리 유일(ADR-MEM-02 부분 unique).
    */
   async hire(
@@ -120,7 +120,7 @@ export class StaffService {
     return this.afterWrite(staffId);
   }
 
-  /** 02문서 §5 PATCH /staff/:id — 지점은 파견 발령으로만 바꾼다. 파트타임은 휴무 요일을 쓰지 않는다(ATT-T05). */
+  /** 인사정보관리 A-5 PATCH /staff/:id — 지점은 파견 발령으로만 바꾼다. 파트타임은 휴무 요일을 쓰지 않는다(ATT-T05). */
   async update(
     id: string,
     input: Partial<Pick<MockStaff, 'name' | 'phone' | 'position' | 'employmentType' | 'offDays'>>,
@@ -210,7 +210,7 @@ export class StaffService {
     return { ...(await this.afterWrite(id)), unassignedMembers };
   }
 
-  // ── 권한(01문서 §7) — 본사만 STAFF ↔ BRANCH_ADMIN 전환 ────────────────
+  // ── 권한(권한관리 A-7) — 본사만 STAFF ↔ BRANCH_ADMIN 전환 ────────────────
 
   async listWithRole() {
     const rows = await this.prisma.staff.findMany({

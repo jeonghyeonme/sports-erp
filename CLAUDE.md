@@ -2,7 +2,8 @@
 
 스포이즘 ERP — npm workspaces 모노레포. 포트폴리오/졸업작품 프로젝트, 원본 제안요청서(RFP) 기반.
 
-> 공통 작업 원칙(승인 프로토콜·검증·안전·Git 규칙)은 사용자 전역 `~/.claude/CLAUDE.md`에 있다. 이 파일은 그것을 **보완**할 뿐 완화하지 않는다. 아래 "프로젝트 가드레일"은 이 프로젝트 고유의 규칙이다.
+> 공통 작업 원칙(승인 프로토콜·검증·안전·Git 규칙)은 사용자 전역 `~/.claude/CLAUDE.md`에 있다. 이 파일은 그것을 **보완**할 뿐 완화하지 않는다.
+> 이 파일은 매 턴 컨텍스트에 들어간다 — **변하지 않는 규칙과 "어디를 읽나"만** 둔다. 이력·현황은 [docs/STATUS.md](docs/STATUS.md)·`docs/log/`·`docs/decisions/`에 둔다(D38, 130줄 상한을 `scripts/doc-check.mjs`가 강제).
 
 ## 사업 구조 (코드/문서 작업 전에 먼저 이해할 것)
 
@@ -12,136 +13,87 @@
   └────────── 운영 데이터(회원수·매출·프로그램 실적)가 다시 올라와 계약 판단 근거가 됨 ──────┘
 ```
 
-두 개의 서로 다른 관계가 이 시스템을 이룬다:
+1. **본사 ↔ 위탁센터 = 계약 관계.** 스포이즘은 헬스장 체인이 아니라 아파트·오피스텔 커뮤니티 시설 위탁운영사다. `Branch`는 소유 매장이 아니라 **"OO아파트와 맺은 위탁운영 계약 현장"**이고 계약상대방·기간·상태(정상/갱신임박/만료/종료)를 갖는다([entities.md](docs/architecture/entities.md) §2-1). "시스템 불안정 → 민원 → 계약 해지"가 RFP가 명시한 리스크라, 안정성은 품질이 아니라 **본사 매출(계약 개수)** 문제다. 이 시스템은 신규 수주 입찰(PT) 영업 도구이기도 하다([차별화전략](docs/reference/차별화전략.md)).
+2. **위탁센터 ↔ 직원 ↔ 이용자 = 운영 관계.** 직원은 지점이 아니라 **본사가 채용해 현장에 파견**한다(`StaffAssignment`, §2-2). 채용·재배치는 SUPER_ADMIN만, BRANCH_ADMIN은 파견된 인력의 일상 관리만 한다. 이용자는 등록 지점의 프로그램만 이용하고, 지점 관리자는 **자기 지점 데이터만** 본다(RFP 핵심 요구).
 
-1. **본사 ↔ 위탁센터 = 계약 관계.** 스포이즘은 헬스장 체인 본사가 아니라 아파트·오피스텔 단지의 커뮤니티 시설(헬스장·수영장 등)을 위탁운영해주는 회사다. `Branch`(지점)는 스포이즘이 소유한 매장이 아니라 **"OO아파트와 맺은 위탁운영 계약 현장"**이고, 계약상대방·계약기간·계약상태(정상/갱신임박/만료/종료) 데이터를 갖는다(`docs/1.spec/00_공통/1-1_공통설계서.md` §2-1). "시스템 불안정 → 민원 → 계약 해지"가 원본 RFP가 명시한 리스크 구조라, 이 시스템에서 안정성은 품질이 아니라 **본사 매출(계약 개수)이 걸린 문제**다. 이 시스템 자체가 신규 위탁계약 수주 입찰(PT) 발표용 영업 도구이기도 함(`docs/2.decisions/60_분석및제안/2-4_차별화전략.md`).
-2. **위탁센터 ↔ 직원 ↔ 이용자 = 운영 관계.** 직원(Staff)은 지점이 채용하는 게 아니라 **본사가 채용해서 각 현장에 파견**한다(`StaffAssignment`, §2-2) — 채용·재배치는 본사(SUPER_ADMIN)만 결정하고, 지점 관리자(BRANCH_ADMIN)는 "현재 파견되어 있는 인력"의 일상 관리만 한다. 이용자(Member)는 자신이 등록된 지점의 프로그램만 예약·이용하고, 지점 관리자는 **자기 지점 데이터만** 볼 수 있다(타 지점 조회 불가가 원본 요구사항 핵심).
-
-1번(계약)이 2번(운영)의 전제조건이고(계약 종료 지점은 신규 활동 차단), 2번에서 쌓인 운영 데이터가 다시 1번의 계약 갱신·영업 근거로 순환한다.
+1번(계약)이 2번(운영)의 전제조건이고(계약 종료 지점은 신규 활동 차단), 2번의 운영 데이터가 1번의 갱신·영업 근거로 순환한다.
 
 ## 구조
 
 ```
-apps/api/         NestJS + TypeScript + Prisma(Supabase Postgres) — D36(2026-09-29)으로 전 도메인 실DB 전환 완료, 아래 "현재 상태" 참고
-apps/admin-web/    React + Vite — 본사/지점 관리자 웹
-apps/member-app/   React Native(Expo) — **개발 범위 제외(2026-09-30, 2-1 D37)**. 폴더는 README만 있음. 웹(admin-web)에 집중
-packages/types/     클라이언트-서버 공유 타입
-docs/1.spec/             기능 설계서 — 코드 작업 전 관련 설계서를 먼저 읽을 것
-  00_공통/               1-1(아키텍처·ERD·로드맵 — Branch/StaffAssignment 스키마 단일 진실 공급원)
-  10_인사조직/           1-2(권한관리) · 1-3(인사정보관리) · 1-4(근태관리)
-  20_이용자서비스/       1-6(회원관리) · 1-7(예약및결제) · 1-8(강사프로그램게시)
-  30_운영지원/           1-5(게시판_공지사항) · 1-9(혼잡도관리)
-  40_자원문서관리/       1-10(기업구조및자원관리분석 — 자산·비품관리/문서관리 신규 설계)
-docs/2.decisions/
-  50_결정및이슈기록/     2-1(ADR: 왜 이 기술을 선택했는지) · 2-2(트러블슈팅)
-  60_분석및제안/         2-3(원본 RFP↔설계↔코드 추적표) · 2-4(차별화 전략)
-docs/3.design/           디자인 시스템(토큰·레이아웃 원칙) — admin-web 화면 작업 전 반드시 먼저 읽을 것
-docs/4.presentation/     4-0(발표자료 공통 지침 — 주간 발표 제작 시 먼저 읽을 것) · 4-1(발표 핸드오프) · 4-2/4-3(주차별 구성안) — 발표자료 준비 요청이 아닌 한 절대 건드리지 말 것
-docs/5.deliverables/     원본 RFP "산출물" 실제 제출본(HTML, 자기완결형) — 5-1(기업 분석 자료) · 5-2(개발 작업계획서). 내용은 각각 1-10문서·1-1문서 §7을 기반으로 작성되었지만, 이 폴더 자체는 산출물 보관용이라 1.spec처럼 서로 상대링크로 얽지 않음(README에서 직접 링크)
+apps/api/          NestJS + Prisma(Supabase Postgres) — 전 도메인 실DB(D36). 작업 규칙은 apps/api/CLAUDE.md
+apps/admin-web/    React + Vite — 본사/지점 관리자 웹. 작업 규칙은 apps/admin-web/CLAUDE.md
+apps/member-app/   개발 범위 제외(2026-09-30, D37) — README만 있음
+packages/types/    클라이언트-서버 공유 타입
+scripts/           doc-check.mjs(문서 검사기)
+docs/              지도는 docs/README.md — STATUS · domains · architecture · decisions · process · log · reference · design · presentation · deliverables
 ```
 
-**문서 구조 이전 진행 중(2026-09-22 착수):** 위 `1.spec/`·`2.decisions/` 체계를 `docs/domains/`(도메인당 파일 1개 — 요구사항→Driver→ADR→검증까지)·`docs/architecture/`(도메인에 안 걸리는 공용 값·횡단 규칙)·`docs/process/`(RFP 분류·도메인 우선순위·작업 방법론·**진행 로그**)로 재편 중이다. 지금까지 상 우선순위 4개 도메인(권한관리·회원관리·인사정보관리·예약및결제)이 `docs/domains/`로 이전 완료됐고, 해당 옛 `1.spec/*.md`는 대체 배너만 붙은 채 삭제 대기 상태다(inbound 링크 정리 후 삭제 — 진행 상황은 `docs/process/05_문서_마이그레이션_추적.md`). **이 프로젝트의 현재 상태·맥락을 파악할 때는 이 문단이 아니라 [docs/process/06_진행_로그.md](docs/process/06_진행_로그.md)를 먼저 읽을 것** — 이 CLAUDE.md 트리 설명은 이전이 끝나야 갱신된다.
+## 무엇을 할 때 어디를 읽나
 
-번호 체계: 3단계 계층이다 — **1차**는 최상위 폴더(`1.spec`/`2.decisions`/`3.design`/`4.presentation`/`5.deliverables`), **2차**는 그 안의 기능군별 하위 폴더(예: `1.spec/10_인사조직/`, `2.decisions/60_분석및제안/` — `5.deliverables`는 파일이 2개뿐이라 하위 폴더 없이 바로 `5-1`/`5-2`), **3차**는 개별 문서 파일이다. 파일명 자체(`1-1`, `2-3` 등)는 어느 하위 폴더로 옮겨도 바뀌지 않으므로 "1-1문서", "2-3문서" 지칭 방식은 그대로 유효하다 — 정확한 경로는 위 트리나 README 문서 표를 참고할 것.
+| 상황 | 읽을 것 (이 순서로, 필요한 만큼만) |
+|---|---|
+| 세션 시작·이어하기 | [docs/STATUS.md](docs/STATUS.md) |
+| 도메인 기능 구현·수정 | `docs/domains/<도메인>.md` 맨 위 **요약 카드** → 필요하면 해당 ADR 절 → 부록 A-n |
+| 코드 주석의 근거 따라가기 | `예약및결제 A-6` = 그 도메인 문서 부록 A-6 · `ADR-RSV-01` = 도메인 문서 ADR 절 · `D37` = `docs/decisions/D37.md` · `docs/log/051` = 진행 기록 |
+| 공유 엔티티·스키마 | [entities.md](docs/architecture/entities.md)(단일 진실 공급원) → `apps/api/prisma/schema.prisma` |
+| 횡단 규칙(정합성·날짜·상수) | `docs/architecture/` 해당 파일 |
+| 도메인에 안 걸리는 결정의 경위 | [docs/decisions/README.md](docs/decisions/README.md) 요약표 → 해당 `D<번호>.md` |
+| 새 도메인 사이클 | [docs/process/03_도메인_사이클_템플릿.md](docs/process/03_도메인_사이클_템플릿.md) (스킬: `architecture-driver`) |
+| admin-web 화면 | [docs/design/디자인시스템.md](docs/design/디자인시스템.md) 먼저 |
+| 발표자료 | [docs/presentation/4-0_발표자료_공통지침.md](docs/presentation/4-0_발표자료_공통지침.md) 먼저 |
+| 세션 마무리(기록) | `.claude/skills/wrap-up/SKILL.md` |
+
+`docs/log/`는 "왜 그렇게 됐나"를 따라갈 때만 연다. 세션 시작 때 읽지 않는다.
 
 ## 명령어
 
 ```bash
 npm install                    # 루트에서 전체 워크스페이스 설치
-npm run dev:api                # apps/api 개발 서버 (localhost:3000/api/v1)
-npm run dev:web                # apps/admin-web 개발 서버 (localhost:5173)
+npm run dev:api / dev:web      # api(localhost:3000/api/v1) / admin-web(localhost:5173)
 npm run db:up / db:down        # PostgreSQL (Docker)
-npm run prisma:generate / prisma:migrate
-
-# apps/api 안에서
-npm run lint    # eslint --fix (파일을 직접 수정하므로 실행 후 git diff 확인. 수정 없이 검사만 하려면 `npm exec -- eslint .`)
-npm run test    # jest — HTTP 통합 테스트(`apps/api/test/`), 실제 AppModule + supertest.
-                # D26(2026-09-28)부터 인증 모듈이 PrismaService로 이관돼 로컬 Postgres(DATABASE_URL)가 필요하다.
-                # `npm run db:up` → `npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma`
-                # → `npm run prisma:seed --workspace=apps/api` 순으로 준비할 것(CI도 동일 순서, `.github/workflows/ci.yml` 참고).
-                # D27(2026-09-29)부터 마이그레이션에 `DIRECT_URL`도 필요하다(로컬은 DATABASE_URL과 같은 값, `.env.example` 참고).
-                # 부분 unique 인덱스 3종·CHECK 제약 18개·지점 일치 트리거 7개(D28)는 schema.prisma가 아니라 마이그레이션 SQL에만 있다 — schema.prisma 상단 주석 참고.
-                # 도메인을 Prisma로 옮길 때는 docs/architecture/data-integrity.md §6 정합성 체크리스트(채번·회차 락 헬퍼 포함)를 따를 것.
-                # D29(2026-09-29)부터 jest가 워커마다 기준 DB를 템플릿으로 복제해 쓴다(test/setup/). 기준 DB 계정에 CREATEDB 권한이 필요하고,
-                # 테스트가 DB 상태를 바꿔도 기준 DB는 오염되지 않는다. 지점 계약 상태는 mockData가 아니라 test/helpers/branch-status.ts의 setBranchStatus로 바꿀 것.
-                # D30부터 워커 DB는 파일마다 기준 템플릿에서 다시 만든다(test/helpers/worker-db.ts의 resetWorkerDb, after-env beforeAll).
-                # 같은 파일 안에서 테스트끼리 DB 쓰기(채용·퇴사·파견 등)가 새면 beforeEach에서 resetWorkerDb()를 createApp() 전에 부를 것.
-npm run build   # nest build
-
-# apps/admin-web 안에서
-npm run lint    # eslint .
-npm run build   # tsc -b && vite build
+npm run prisma:generate / prisma:migrate   # 새로 clone한 환경은 api 빌드 전에 generate 필수
+node scripts/doc-check.mjs     # 문서 검사(링크·옛 이름·ADR ID·크기 상한·인덱스)
 ```
 
-**검증 현황 (2026-09-20, DB 의존성은 2026-09-28 D26 갱신):** ESLint 10(flat config, `eslint.config.*`)이 두 앱에 설치돼 있다. api 테스트는 **도메인 핵심 규칙 3개 영역**만 다룬다 — 지점 데이터 격리(`branch-isolation`), 계약 종료 지점 차단(`contract-termination`), 인사 권한 분리(`hr-authority`) + 부팅 스모크. 그 밖의 도메인 로직(예약·결제 계산, 근태, 자산 등)과 admin-web은 테스트가 없어 **lint + 빌드(타입체크)**뿐이다. 테스트가 없는 영역은 "검증되지 않음"으로 보고할 것. D26에서 `it.skip`했던 `auth-lifecycle.spec.ts` 2건·`staff-assignment.spec.ts` 1건은 D30(직원·권한 DB 이관)으로 재활성화돼 현재 skip은 없다. `staff-write.spec.ts`가 채용·파견의 DB 반영을, `catalog-flow.spec.ts`가 카탈로그↔예약·회원 경로를 본다. D32부터 예약 정원·중복·결제 이중 승인·연동 동시성 테스트가 실제 DB 동시성 위에서 돈다(`reservation-capacity`·`member-link`). D33부터 근태의 동시 체크인·동시 연차 승인·결근 확정·업무일지 하루 1건과 지각 판정·KST 연차 연도를 `attendance-rules.spec.ts`가 본다. D34부터 문서 규칙(인사서류 대상 직원·보존기한 기산·소프트 삭제·임박 목록)을 `document-rules.spec.ts`가, D35부터 자산 규칙(동시 채번·자동 판정·수량·상태 전이 경합)을 `asset-rules.spec.ts`가, D36부터 게시판 규칙(동시 조회수·소프트 삭제·수정/삭제 권한·작성 범위)을 `post-rules.spec.ts`가 본다.
+앱별 lint·build·test와 테스트 DB 준비는 각 앱의 CLAUDE.md에 있다.
 
-**테스트 작성 규칙:** 통합 테스트는 `test/helpers/app.ts`의 `createApp()`으로 서버와 같은 전역 설정(prefix·ValidationPipe·필터)의 앱을 띄운다 — D37부터 `main.ts`·`lambda.ts`·테스트 헬퍼가 모두 `src/app.setup.ts`의 `configureApp()`을 부르므로, 전역 설정은 그 함수에서만 바꿀 것. D36부터 모든 상태가 DB에 있어 테스트 간 격리는 워커 DB 재생성(`resetWorkerDb`)이 맡는다 — 같은 파일 안에서 DB 쓰기가 다음 테스트로 새면 `beforeEach`에서 `createApp()` 전에 부를 것(mock 시절엔 새 앱만 띄우면 됐던 스펙이 이 이유로 깨진 적이 있다, D36 `posts-member-visibility`). 가드 → 파이프 → 핸들러 순서라서 **거부 케이스도 유효한 요청 본문**을 보내야 400이 아니라 403이 나온다. 거부(403) 테스트에는 반드시 자기 지점 접근이 성공하는 대조군을 함께 둔다. `tsconfig.build.json`이 `test/`를 빌드에서 제외한다(없으면 `dist/main.js` 경로가 `dist/src/main.js`로 바뀐다).
-
-**시드 데이터의 원천은 `src/mock-data/*-fixtures.ts` 한 곳이다(D29~D36):** `prisma/seed.ts`는 이 파일들을 읽어 upsert한다. 데모 계정·히어로 데이터의 `id`(`account-haneul`, `staff-seoyeon`, `post-hq-manual` 등)는 예전 mock 값 그대로이고, 테스트·admin-web이 이 id에 기대므로 바꾸지 말 것. Supabase(배포 DB)에 시드를 넣을 때는 같은 픽스처로 upsert SQL을 만들어 빈 로컬 복제 DB에서 2회 실행·지문 비교 후 사용자 승인을 받아 적용한다(진행 로그 §44~§50 절차). `src/mock-data/` 폴더 이름은 역사적 이름이다 — `MockDataService`는 D36으로 삭제됐고 지금은 응답 형식 타입(`mock-data.types.ts`)·시드 원천(`*-fixtures.ts`)·데모 비밀번호(`demo-password.ts`)만 있다. 테스트에서 DB 상태는 `test/helpers/app.ts`의 `db(app)`(PrismaService)로 읽고 쓴다.
-
-**날짜 계산은 반드시 `apps/api/src/common/date/kst-date.ts`를 쓸 것(2026-09-23).** `new Date().toISOString().slice(0, 10)`로 "오늘 날짜"를 직접 구하지 말 것 — `toISOString()`은 서버 시간대와 무관하게 항상 UTC라, 매일 00:00~08:59 KST 사이 이벤트가 하루 전 날짜로 기록되는 구조적 버그가 5개 도메인 10곳에서 실제로 있었다(`docs/architecture/date-time-handling.md`). "오늘"은 `todayKst()`, 임의 시각의 KST 날짜는 `toKstDateString(date)`, 시:분 비교는 `kstHoursMinutes(date)`를 쓸 것.
-
-**admin-web lint는 규칙 예외가 없다(2026-09-21 부채 정리 완료).** `react-hooks/set-state-in-effect`·`react-refresh/only-export-components`를 포함해 기본 severity 그대로이며 경고 0건이다 — 새 경고를 만들지 말고 규칙을 낮춰서 통과시키지 말 것. 이 규칙들 때문에 지킬 패턴: ① prop·조회 데이터를 effect로 state에 복사하지 않는다(편집 폼은 "편집 시작" 클릭 시점에 채우고, prop 변경에 따른 state 보정은 렌더 중 이전 값 비교로 한다 — `CollapsibleBranchSection`, `MemberDetailPage` 참고). ② 컴포넌트 파일에서 훅·상수를 함께 export하지 않는다 — `useAuth`·`AuthContext`는 `lib/use-auth.ts`, `AuthProvider`는 `lib/auth-context.tsx`에 있다.
-
-**커밋 전 검증 hook:** `.claude/hooks/pre-commit-check.js`가 Claude의 `git commit` 직전에 `apps/`·`packages/` 변경이 있으면 양쪽 앱 lint(수정 없이 검사만)·빌드와 jest를 실행하고 실패 시 차단한다(문서만 바뀐 커밋은 생략, 약 30초 소요, lint warning은 통과). GitHub Desktop 등 Claude 밖의 커밋에는 적용되지 않는다.
-
-**CI:** `.github/workflows/ci.yml`이 `main` push와 모든 PR에서 api(lint·빌드·jest)와 admin-web(lint·빌드)을 Node 버전은 `.nvmrc`(20)로 돌린다. Claude 밖의 커밋도 여기서 잡힌다. 첫 실행(4c019b0)은 두 잡 모두 통과했다.
-
-**배포(D37, 2026-09-30):** api는 AWS Lambda(서울, Function URL, 별칭 `live`)로 옮기는 중이다. 진입점은 `apps/api/src/lambda.ts`, 묶음은 `bash apps/api/scripts/package-lambda.sh`, 자동 배포는 `.github/workflows/deploy-api-lambda.yml`(`main-5x9td9` push)이다. 앞단은 Cloudflare Worker(UI + 프록시 + rate limit, 비밀 헤더 `X-Origin-Secret`)이고, DB는 Supabase(서울) 그대로다. AWS 콘솔 설정 절차와 현재 진행 상태는 `aws-lambda/README.md`를 볼 것. 배포 환경에서는 `JWT_ACCESS_SECRET`·`JWT_REFRESH_SECRET`·`ORIGIN_SECRET`이 없으면 부팅이 실패한다(`src/common/config/secrets.ts`). 동시 실행 상한 10과 풀러 `connection_limit=1`은 D37 결정 1의 요청량 설계이므로, 바꾸려면 D37을 먼저 볼 것.
-
-**새로 clone한 환경 주의:** api 빌드 전에 `npm run prisma:generate`가 필요하다. 생성된 Prisma Client가 없으면 `@prisma/client`에서 `Role` 등을 찾지 못해 `nest build`가 실패한다(CI에는 이미 이 단계가 있음).
-
-## 현재 구현 상태 (착각하기 쉬운 부분)
-
-- **API 전체가 `PrismaService`(Supabase Postgres)로 동작한다(2026-09-29 D36으로 실DB 전환 완료).** D29 순서(지점 → 직원·파견 → 시설·강사·프로그램·회차 → 회원)로 인증(D26)·지점(D29)·직원·파견·권한(D30)·시설·강사·프로그램·회차(D31)·회원·수강·PT·예약·결제(D32)를, 이어서 근태·휴가·업무일지(D33)·문서(D34)·자산(D35)·게시판(D36)을 옮겼다. **`MockDataService`·`MockDataModule`과 과도기 미러(카탈로그·파견 이력·직원·계정)는 모두 삭제됐다** — 인메모리 저장소를 새로 만들지 말 것. 계약 종료 판정은 `BranchService.loadGate()`로 받은 gate(`src/modules/branches/branch-gate.ts`)로 한다. 예약 생성은 회차 행 락(`lockScheduleSlot`) 위에서 정원을 센다(ADR-RSV-01). "Prisma 스키마에 있으니 동작한다"고 가정하지 말 것 — 실제 동작 여부는 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2를 확인.
-- Write API는 권한관리(로그인/토큰갱신/로그아웃/비밀번호변경/Role전환)·인사정보관리(채용/파견/퇴사)·회원관리(등록/수정/상태전환)·근태관리(체크인/휴가/업무일지)·강사프로그램게시(강사 CRUD·프로그램 등록/수정/종료/상태전이·회차 등록)·게시판(작성/수정/삭제)·혼잡도관리(시설 등록/수정·수동 보정)·예약및결제(예약 생성/취소/체크인·모의결제)·자원문서관리(자산 CRUD·문서 CRUD)에 있다. 전 도메인이 최소 Phase 1 수준의 Write API를 갖췄다 — 정확한 도메인별 현황은 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2-2를 확인.
-- **admin-web 프론트엔드가 API를 못 따라간 경우가 있다.** 예: 인사정보관리(1-3)는 채용/파견/퇴사 API가 다 있는데 `StaffPage.tsx`가 조회 전용이라 화면에서는 할 수 없다(2-3문서 §2-2). "API가 있으니 화면도 있다"고 가정하지 말 것. (강사프로그램게시의 지점 현황판은 2026-09-18에 `BranchDetailPage.tsx`가 연결해 해소됨 — 아래 줄 참고.)
-- 모든 도메인에 코드가 있다. 1-4(근태관리)·1-5(게시판)·1-7(예약및결제, Phase 1+2 핵심만)·1-8(강사프로그램게시)·1-9(혼잡도관리, Phase 1만)는 2026-09-18에, 1-10(자원문서관리, Phase 1만 — 재물조사·감가상각·파일 업로드 없음)은 2026-09-19에 API+화면 모두 구현 완료.
-- **일부 설계 항목은 의도적으로 범위 제외됐다(2026-09-20)** — 강사 정산, 혼잡도 QR 체크인·자동계산, 노쇼/결근 자동 배치, 감가상각 등. 각 설계 문서 §8/§9 상단의 "범위 제외" 인용과 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md` §2-4를 볼 것. 설계 문서에 있다고 해서 만들 대상으로 가정하지 말 것.
-- `wip/real-db-auth-phase1` 브랜치는 삭제됐지만, 그 브랜치의 커밋(`eb79377`, 실DB 기반 인증/회원 모듈)은 `main`의 병합 조상 커밋이라 여전히 히스토리에서 도달 가능하다 — 실DB 전환 시 `git show eb79377:apps/api/src/modules/<path>`로 꺼내올 것.
-- `Branch`는 단순 매장이 아니라 **위탁계약 현장**이고(`docs/1.spec/00_공통/1-1_공통설계서.md` §2-1), `Staff`는 지점 소속이 아니라 **본사 소속으로 현장에 파견**되는 구조다(§2-2, `StaffAssignment`). 이 재해석을 모르고 "지점이 직원을 고용한다"는 가정으로 코드를 작성하지 말 것.
+**검증 수단:** CI(`.github/workflows/ci.yml` — PR과 `main` push에서 api lint·빌드·jest, admin-web lint·빌드, doc-check)와 커밋 전 hook(`.claude/hooks/pre-commit-check.js` — `apps/`·`packages/` 변경 시 양쪽 lint·빌드·jest, 문서 변경 시 doc-check). jest는 도메인 핵심 규칙(지점 격리·계약 종료 차단·인사 권한 분리)과 실DB 동시성·도메인 규칙을 본다 — 도메인별 범위는 각 도메인 문서 §11. admin-web은 테스트가 없어 lint+빌드(타입체크)뿐이다.
 
 ## 프로젝트 가드레일
 
-전역 가드레일에 더해, 이 프로젝트에서만 성립하는 규칙이다. 위 "사업 구조"에서 도출된다.
-
 **도메인 불변식 — 코드를 바꿀 때 깨뜨리면 안 되는 것**
-- **지점 데이터 격리**: BRANCH_ADMIN은 자기 지점 데이터만 조회·수정한다(원본 RFP 핵심 요구사항). 지점 단위 데이터를 다루는 라우트를 추가·수정할 때는 **`apps/api/test/branch-isolation.spec.ts`의 공격 케이스 표에 그 라우트를 함께 추가**하고 다른 지점 ID로 접근했을 때 403/404가 나오는지 확인한다. 격리는 `BranchScopeGuard`(`branchId` 파라미터·쿼리만 검사)와 컨트롤러별 `assert*` 수작업의 조합이라 `:id` 라우트는 컨트롤러가 직접 검사해야 한다.
-  - **검사의 공통 가드 중앙화는 실DB 전환(MockDataService → PrismaService) 이후에 한다**(2026-09-20 결정, 2-3문서 §3 6번). 이 전제조건은 D36(2026-09-29)으로 충족됐다 — 착수는 별도 결정(사용자 승인) 대상이고, 착수 전까지는 위 테스트가 누락을 잡는 안전망이다.
-- **계약 종료 지점 차단**: 계약 상태가 **`TERMINATED`**인 지점은 신규 회원 등록·예약 생성·게시글 신규 작성이 409(`BRANCH_TERMINATED`)로 막혀야 하고, 과거 데이터 조회는 유지한다(1-1문서 §2-1). `EXPIRED`·`RENEWAL_DUE`는 차단하지 않는다. TERMINATED 시 파견 직원의 파견 종료·재배치 대상 등록은 설계에 있으나 아직 미구현이다.
-- **인사 권한 분리**: 채용·재배치는 본사(SUPER_ADMIN)만 한다. BRANCH_ADMIN은 파견된 인력의 일상 관리만 한다.
-- `Branch`는 매장이 아니라 위탁계약 현장이고 `Staff`는 지점 소속이 아니라 본사 소속 파견 인력이다. "지점이 직원을 고용한다"는 전제로 코드·문서를 쓰지 않는다.
+- **지점 데이터 격리**: BRANCH_ADMIN은 자기 지점 데이터만 조회·수정한다. 지점 단위 라우트를 추가·수정하면 **`apps/api/test/branch-isolation.spec.ts` 공격 케이스 표에 함께 추가**하고 다른 지점 ID로 403/404를 확인한다. 격리는 `BranchScopeGuard`(`branchId` 파라미터·쿼리만 검사)와 컨트롤러별 `assert*`의 조합이라 `:id` 라우트는 컨트롤러가 직접 검사해야 한다. 공통 가드 중앙화는 전제조건(실DB 전환)이 충족됐지만 착수는 사용자 승인 대상이다.
+- **계약 종료 지점 차단**: `TERMINATED` 지점은 신규 회원 등록·예약 생성·게시글 작성이 409(`BRANCH_TERMINATED`), 과거 조회는 유지. `EXPIRED`·`RENEWAL_DUE`는 차단하지 않는다. 판정은 `BranchService.loadGate()`의 gate로 한다. TERMINATED 시 파견 종료·재배치 등록은 설계만 있고 미구현.
+- **인사 권한 분리**: 채용·재배치는 SUPER_ADMIN만. BRANCH_ADMIN은 파견된 인력의 일상 관리만.
+- "지점이 직원을 고용한다"는 전제로 코드·문서를 쓰지 않는다.
 
-**이 프로젝트에서 사용자 승인이 필요한 결정** (전역 가드레일 §2에 추가)
-- Prisma 스키마 필드·엔티티 변경 (`Branch`, `StaffAssignment` 등 공유 엔티티는 1-1문서가 기준)
-- MockDataService에서 실제 DB로의 전환, 인증 방식 변경 (ADR 작성 대상)
-- 의도적으로 범위 제외한 항목(강사 정산, 혼잡도 QR·자동계산, 노쇼 자동 배치, 감가상각 등)을 구현하는 것 — 설계 문서에 있다고 만들지 않는다.
+**사용자 승인이 필요한 결정** (전역 가드레일 §2에 추가)
+- Prisma 스키마 필드·엔티티 변경(공유 엔티티는 entities.md가 기준), 인증 방식 변경, DB 역할·설정 변경
+- 의도적 범위 제외 항목(강사 정산, 혼잡도 QR·자동계산, 노쇼 자동 배치, 감가상각 등 — 각 도메인 문서 부록 A-8 "범위 제외")의 구현 — 설계 문서에 있다고 만들지 않는다
+- 배포 DB(Supabase)에 대한 쓰기
 
-**구현 작업 원칙 (2026-09-22 확립)** — 2026-09-23 `architecture-driver` 스킬(`.claude/skills/architecture-driver/`)로 일반화되어 역이식됨. 이 프로젝트의 방법론이 원본이다: 스킬은 `architecture-driver-skill @ 7bca3fa`(2026-09-23, 근태관리 사이클에서 나온 "시간경계·우회·인간실수 체크"와 "결정 재검토" 가이드까지 반영된 버전)를 프로젝트 종속 없이 복사한 것이며, 앞으로 이 섹션과 `docs/process/03_도메인_사이클_템플릿.md`를 고칠 때는 원본이 이 프로젝트라는 걸 기억할 것 — 스킬 쪽 개선을 역으로 반영하고 싶으면 스킬 저장소의 CHANGELOG.md를 먼저 확인.
-
-바이브 코딩(대화로 AI에게 구현을 맡기는 방식)에서 사용자가 매 순간 diff를 직접 검토하지 않고도 실시간으로 프로젝트 현황·맥락을 파악하고 방향을 잡을 수 있으려면, 코드 변경이 즉흥적으로 일어나면 안 된다. 코드를 구현·수정할 때는:
-1. **구현 전에 아키텍처 근거를 먼저 밝힌다.** 이 변경이 어느 도메인(`docs/domains/<도메인>.md`)의 어느 Driver/ADR에 근거하는지 인용한다. 해당하는 결정이 없으면(새로 발견한 문제 등), 정식 ADR 표 전체는 아니어도 **대안·트레이드오프·결정 이유**를 최소한 문장으로 먼저 남긴 뒤 구현한다 — "일단 짜고 나중에 설명"은 하지 않는다.
-2. **구현 후에는 그 근거를 기록에 남긴다.** [docs/process/06_진행_로그.md](docs/process/06_진행_로그.md)에 "무엇을 했다"가 아니라 "왜 이게 이 프로젝트 아키텍처 맥락에서 맞는 선택이었는지"를 남긴다. 해당 도메인 문서의 ADR·검증현황도 함께 갱신한다.
-3. **커밋 메시지에도 근거를 담는다** — 관련 Driver/ADR ID를 인용해 `git log`만 봐도 "왜"가 보이게 한다.
-4. 도메인 사이클(`docs/process/03_도메인_사이클_템플릿.md`)을 아직 안 돈 영역(중/하 우선순위 도메인)을 구현해야 할 때는, 정식 사이클을 다 돌리기 전이라도 최소한 "이 변경의 Driver가 무엇이고 대안이 무엇이었는지"는 남긴다 — 문서화 순서를 기다리느라 근거 없는 구현을 하지 않는다.
+**구현 작업 원칙 (2026-09-22 확립, `architecture-driver` 스킬의 원본)** — 대화로 구현을 맡기는 방식에서 사용자가 diff를 매번 보지 않고도 방향을 잡을 수 있게:
+1. **구현 전에 근거를 밝힌다** — 어느 도메인 문서의 어느 Driver/ADR, 또는 `D<번호>`에 근거하는지 인용한다. 해당 결정이 없으면 대안·트레이드오프·결정 이유를 최소한 문장으로 먼저 남긴다.
+2. **구현 후 기록한다** — 마무리는 `wrap-up` 스킬 절차(STATUS 갱신 + `docs/log/NNN.md` 한 건 + 도메인 ADR·검증현황·요약 카드).
+3. **커밋 메시지에 근거 ID를 담는다**(한국어, ADR·D 번호 인용).
+4. 스킬 쪽 개선을 역으로 반영하려면 스킬 저장소 CHANGELOG.md를 먼저 확인한다.
 
 **보고할 때 지킬 것**
-- 검증 수단이 lint·빌드와 위 3개 영역의 테스트뿐이라는 현실을 그대로 말한다. 테스트를 돌리지 않았거나 테스트가 없는 영역은 "검증되지 않음"으로 보고한다.
-- 격리·계약·인사 권한 테스트가 실패하면 기대값을 바꾸지 말고 코드의 규칙 위반으로 보고한다(기대값은 원본 요구사항과 설계 문서에서 나왔다).
-- 기능을 구현·변경하면 관련 설계 문서와 `docs/2.decisions/60_분석및제안/2-3_요구사항추적표.md`의 상태를 함께 갱신할 것을 제안한다. 문서와 코드가 어긋나면 알린다.
+- 테스트를 돌리지 않았거나 테스트가 없는 영역은 "검증되지 않음"으로 보고한다.
+- 격리·계약·인사 권한 테스트가 실패하면 기대값을 바꾸지 말고 코드의 규칙 위반으로 보고한다.
+- 문서와 코드가 어긋나면 알린다.
 
-**보호 영역**
-- `docs/4.presentation/`은 발표자료 작업을 명시적으로 요청받았을 때만 수정한다(수정 시 확인 프롬프트가 뜨도록 설정돼 있음).
-- `docs/5.deliverables/`는 자기완결형 제출본이다. 다른 문서를 링크로 얽지 않는다.
-- admin-web 화면 작업 전에는 `docs/3.design/`을 먼저 읽는다.
+**보호 영역**: `docs/presentation/`은 발표자료 작업을 요청받았을 때만 수정한다(수정 시 확인 프롬프트). `docs/deliverables/`는 자기완결형 제출본이라 다른 문서를 링크로 얽지 않는다.
 
-## 문서 작업 규칙
+## 문서 작업 규칙 (D38)
 
-- `docs/1.spec/`(00_공통·10_인사조직·20_이용자서비스·30_운영지원·40_자원문서관리)은 기능 설계, `docs/2.decisions/`(50_결정및이슈기록·60_분석및제안)는 의사결정·분석 기록, `docs/3.design/`은 UI 디자인 시스템, `docs/5.deliverables/`는 원본 RFP 산출물의 실제 제출본(자기완결형 HTML, 다른 문서를 참조하지 않고 그 자체로 완결) — 성격에 맞는 폴더에 쓸 것. 새 문서를 추가할 때는 어느 2차 카테고리(하위 폴더)에 속하는지부터 정하고 그 안에 넣을 것.
-- `Branch`, `StaffAssignment` 같은 공유 엔티티의 스키마는 `docs/1.spec/00_공통/1-1_공통설계서.md`가 단일 진실 공급원이다. 다른 문서에서 필드를 새로 정의하지 말고 1-1문서를 참조할 것.
-- 문서 간 상대링크를 쓸 때 실제 파일 위치 기준으로 경로를 맞출 것 — `1.spec/`↔`2.decisions/`↔`3.design/`↔`4.presentation/`는 서로 `../`가 필요하고, `1.spec/`·`2.decisions/` 내부라도 2차 하위 폴더가 다르면(예: `00_공통/`→`10_인사조직/`) `../<하위폴더>/`가 추가로 필요하다. 헷갈리면 README 문서 표에서 정확한 경로를 확인할 것.
-- `docs/4.presentation/4-1_발표자료_핸드오프.md`는 발표자료 작업을 명시적으로 요청받았을 때만 수정한다.
+- **한 사실은 한 곳에만.** 현재 상태 → STATUS.md(덮어쓰기, 80줄 상한), 도메인 결정·검증 → 도메인 문서, 횡단 결정 → `decisions/D<번호>.md`(결정 하나에 파일 하나, 고치지 않고 새 번호로 대체), 경위 → `log/NNN.md`(한 건에 파일 하나, append-only).
+- **위치가 아니라 ID로 인용한다.** 코드 주석은 `예약및결제 A-6`, `ADR-RSV-01`, `D37`처럼 쓴다 — 경로·절 번호가 바뀌어도 깨지지 않는다. 재편 전의 문서 번호 인용 형식(두 자리 번호·`1-n` 번호 + "문서")은 쓰지 않는다(doc-check가 막는다).
+- 새 로그·결정 파일은 기존 파일을 읽지 않고 새로 만든 뒤 해당 README 인덱스에 한 줄만 추가한다.
+- 상대링크는 실제 파일 위치 기준으로 맞추고, 커밋 전 `node scripts/doc-check.mjs`를 통과시킨다.
 
 ## 작업 환경 유의사항
 
-- 이 저장소는 GitHub Desktop과 동시에 열려있을 수 있다 — 브랜치 전환 등으로 **커밋 안 된 변경사항이 자동으로 stash될 수 있다.** 큰 작업 전후로 `git status`/`git stash list`를 확인하고, 사용자가 커밋을 원하면 미루지 말고 바로 진행할 것.
+- **브랜치**: 배포·기준 브랜치는 `main-5x9td9`(Render·Lambda 배포 대상). 코드 변경은 작업 브랜치 → `main-5x9td9` 대상 PR → CI 확인 → rebase 병합.
+- GitHub Desktop과 동시에 열려 있을 수 있어 **커밋 안 된 변경이 자동 stash될 수 있다.** 큰 작업 전후로 `git status`/`git stash list`를 확인한다.

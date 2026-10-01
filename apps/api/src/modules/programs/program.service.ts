@@ -22,7 +22,7 @@ type ProgramInput = {
   endDate?: string;
 };
 
-// 07문서 §3-2 상태 전이표. ENDED는 종결 상태라 다음 상태가 없다.
+// 강사프로그램게시 A-3 상태 전이표. ENDED는 종결 상태라 다음 상태가 없다.
 const PROGRAM_STATUS_TRANSITIONS: Record<MockProgram['status'], MockProgram['status'][]> = {
   PREPARING: ['RUNNING', 'ENDED'],
   RUNNING: ['PAUSED', 'ENDED'],
@@ -39,7 +39,7 @@ const withNames = { branch: { select: { name: true } }, instructor: { select: { 
 const ACTIVE = [...ACTIVE_RESERVATION_STATUSES] as Array<'REQUESTED' | 'CONFIRMED'>;
 
 /**
- * 프로그램·회차 — D31(2-1_기술결정사항.md). 원천은 DB다.
+ * 프로그램·회차 — D31. 원천은 DB다.
  * D31에서 둔 mock 미러는 D32(예약·회원 이관)로 마지막 독자가 사라져 없앴다 — 예약 집계도 DB에서 센다.
  */
 @Injectable()
@@ -69,7 +69,7 @@ export class ProgramService {
     return row ? toMockProgram(row) : null;
   }
 
-  /** 06문서 §5 GET /programs/:id/slots?date= — bookedCount는 캐시 없이 유효 예약(REQUESTED/CONFIRMED)을 센다(06문서 §3). */
+  /** 예약및결제 A-5 GET /programs/:id/slots?date= — bookedCount는 캐시 없이 유효 예약(REQUESTED/CONFIRMED)을 센다(예약및결제 A-3). */
   async listSlots(programId: string, date?: string): Promise<Array<MockScheduleSlot & { bookedCount: number }>> {
     if (date !== undefined && !DATE_RE.test(date)) return [];
     const rows = await this.prisma.scheduleSlot.findMany({
@@ -109,7 +109,7 @@ export class ProgramService {
 
   // ── 쓰기 ──────────────────────────────────────────────
 
-  // 07문서 §5 POST /programs — BRANCH_ADMIN 전용(컨트롤러에서 강제). 새 프로그램은 PREPARING으로 시작한다.
+  // 강사프로그램게시 A-5 POST /programs — BRANCH_ADMIN 전용(컨트롤러에서 강제). 새 프로그램은 PREPARING으로 시작한다.
   async create(branchId: string, input: ProgramInput): Promise<ProgramView> {
     if (input.instructorId) await this.assertInstructorInBranch(input.instructorId, branchId);
     if (input.facilityId) await this.assertFacilityInBranch(input.facilityId, branchId);
@@ -135,7 +135,7 @@ export class ProgramService {
     return this.afterWrite(row.id);
   }
 
-  // 07문서 §5 PATCH /programs/:id — 상태는 여기서 바꿀 수 없다(상태 전이 API 전용).
+  // 강사프로그램게시 A-5 PATCH /programs/:id — 상태는 여기서 바꿀 수 없다(상태 전이 API 전용).
   // 검증을 전부 끝낸 뒤 한 번의 update로 반영한다 — 중간 실패로 반쪽 수정이 남지 않게(예전 mock과 같은 원칙).
   async update(id: string, input: Partial<ProgramInput>): Promise<ProgramView> {
     const program = await this.requireProgram(id);
@@ -165,8 +165,8 @@ export class ProgramService {
     return this.afterWrite(id);
   }
 
-  // 07문서 §5 PATCH /programs/:id/status, §3-2 전이표. 표에 없는 전이(자기 자신 포함)는 409.
-  // DELETE /programs/:id "삭제(소프트)"도 ENDED 전이로 이 메서드를 쓴다(1-1문서 D9 소프트 삭제 원칙).
+  // 강사프로그램게시 A-5 PATCH /programs/:id/status, §3-2 전이표. 표에 없는 전이(자기 자신 포함)는 409.
+  // DELETE /programs/:id "삭제(소프트)"도 ENDED 전이로 이 메서드를 쓴다(architecture/entities.md D9 소프트 삭제 원칙).
   async updateStatus(id: string, status: MockProgram['status']): Promise<ProgramView> {
     const program = await this.requireProgram(id);
     if (!PROGRAM_STATUS_TRANSITIONS[program.status].includes(status)) {
@@ -184,7 +184,7 @@ export class ProgramService {
     return this.afterWrite(id);
   }
 
-  // 06문서 §5 POST /programs/:id/slots — PAID_SESSION만. 정원을 비우면 프로그램 정원을 쓴다.
+  // 예약및결제 A-5 POST /programs/:id/slots — PAID_SESSION만. 정원을 비우면 프로그램 정원을 쓴다.
   async createSlot(
     programId: string,
     input: { date: string; startTime: string; endTime: string; capacity?: number },
@@ -254,7 +254,7 @@ function assertCapacityForPricingType(pricingType: MockProgram['pricingType'], c
   }
 }
 
-// 07문서 §6 — FREE_ACCESS는 예약 개념이 없어 price·capacity를 서버에서 강제로 비운다(클라이언트 값 무시).
+// 강사프로그램게시 A-6 — FREE_ACCESS는 예약 개념이 없어 price·capacity를 서버에서 강제로 비운다(클라이언트 값 무시).
 function normalizePricing(input: { pricingType: MockProgram['pricingType']; price: number; capacity?: number }) {
   if (input.pricingType === 'FREE_ACCESS') return { price: 0, capacity: undefined };
   return { price: input.price, capacity: input.capacity };

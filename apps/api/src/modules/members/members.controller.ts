@@ -19,7 +19,7 @@ import { LinkMemberDto } from './dto/link-member.dto';
 import { RegisterMemberDto } from './dto/register-member.dto';
 import { AuthService } from '../auth/auth.service';
 
-// 05문서 §7 — STAFF는 회원 관리 API 접근 불가(403). MEMBER는 본인 레코드만 GET/PATCH 가능.
+// 회원관리 A-7 — STAFF는 회원 관리 API 접근 불가(403). MEMBER는 본인 레코드만 GET/PATCH 가능.
 // D32 — 원천은 DB(MemberService). 범위 검사(지점·본인)는 예전처럼 컨트롤러가 먼저 한다.
 @Controller('members')
 @UseGuards(BranchScopeGuard)
@@ -171,7 +171,7 @@ export class MembersController {
     return member;
   }
 
-  // 05문서 §7: BRANCH_ADMIN(본인 지점)/SUPER_ADMIN(전체)/MEMBER(본인)만 조회 가능.
+  // 회원관리 A-7: BRANCH_ADMIN(본인 지점)/SUPER_ADMIN(전체)/MEMBER(본인)만 조회 가능.
   private assertReadable(member: MockMember, user: RequestUser): void {
     if (user.role === 'SUPER_ADMIN') return;
     if (user.role === 'MEMBER') {
@@ -182,7 +182,7 @@ export class MembersController {
     throw new AppException('MEMBER_SCOPE_VIOLATION', '이 회원 정보에 접근할 권한이 없습니다.', 403);
   }
 
-  // 쓰기 권한은 조회보다 좁다 — SUPER_ADMIN은 기술적으로 허용(05문서 §7 "예외 상황 대응"),
+  // 쓰기 권한은 조회보다 좁다 — SUPER_ADMIN은 기술적으로 허용(회원관리 A-7 "예외 상황 대응"),
   // BRANCH_ADMIN은 본인 지점만, MEMBER는 본인 레코드만.
   private assertWritable(member: MockMember, user: RequestUser): void {
     this.assertReadable(member, user);

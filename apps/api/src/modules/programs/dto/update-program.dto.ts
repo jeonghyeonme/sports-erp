@@ -4,7 +4,7 @@ import { AgeGroup, PricingType } from '../../../mock-data/mock-data.types';
 const AGE_GROUPS: AgeGroup[] = ['ALL', 'CHILD', 'TEEN', 'ADULT', 'SENIOR'];
 const PRICING_TYPES: PricingType[] = ['FREE_ACCESS', 'PAID_SESSION', 'PT_PACKAGE'];
 
-// status는 이 DTO로 바꿀 수 없다 — 전용 UpdateProgramStatusDto/엔드포인트를 쓴다(07문서 §5).
+// status는 이 DTO로 바꿀 수 없다 — 전용 UpdateProgramStatusDto/엔드포인트를 쓴다(강사프로그램게시 A-5).
 export class UpdateProgramDto {
   @IsOptional()
   @IsString()

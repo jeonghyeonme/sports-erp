@@ -9,7 +9,7 @@ import { ok } from '../../common/http/api-response';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
 
-// 06문서 §5·§7 — 회원은 본인 예약만, BRANCH_ADMIN은 본인 지점 프로그램에 연결된 예약만.
+// 예약및결제 A-5·A-7 — 회원은 본인 예약만, BRANCH_ADMIN은 본인 지점 프로그램에 연결된 예약만.
 @Controller('reservations')
 export class ReservationsController {
   constructor(

@@ -4,7 +4,7 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
 import { RequestUser } from '../interfaces/request-user.interface';
 
 // @Roles() 데코레이터가 없는 라우트는 통과(로그인만 되어 있으면 접근 가능).
-// AppModule에 APP_GUARD로 전역 등록 — 00문서 §3.3.
+// AppModule에 APP_GUARD로 전역 등록 — architecture/system-overview.md §3.3.
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}

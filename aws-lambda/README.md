@@ -1,6 +1,6 @@
 # api → AWS Lambda(서울) 전환 체크리스트
 
-근거: `docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md` **D37**. 요약하면 다음과 같다.
+근거: docs/decisions/D37.md. 요약하면 다음과 같다.
 - API는 Lambda(ap-northeast-2, Function URL)에서 돈다.
 - DB는 Supabase(서울) 그대로다.
 - 앞단은 기존 Cloudflare Worker(UI + `/api/*` 프록시 + 로그인 rate limit)다.
@@ -166,7 +166,7 @@ npx wrangler secret put ORIGIN_SECRET      # 1번 값 붙여넣기
   - thresholds가 곧 통과 기준이다(S1 로그인 p95<500ms, S2 50 rps p95<300ms·거절 0, S3 300 rps 거절 p95<100ms·성공 p95<500ms).
   - 결과 요약을 세션에 붙여주면 D37·진행 로그에 기록한다. 로그인 기준을 못 넘으면 메모리를 1769MB로 올리고 다시 잰다.
 - [ ] S4 콜드 스타트: 30분 이상 쉬게 한 뒤(워밍 일정은 잠시 끔) 요청을 보낸다. CloudWatch 로그 `REPORT` 줄의 `Init Duration`이 1.5초 미만인지 본다.
-  - 로컬 Amazon Linux 2023 컨테이너 측정값은 1.2초였다(진행 로그 §52).
+  - 로컬 Amazon Linux 2023 컨테이너 측정값은 1.2초였다(docs/log/052).
 - [ ] S3를 Worker 주소로도 짧게 돌려 넘친 요청이 503 `SERVER_BUSY`로 오는지 본다(선택). Workers 무료 일일 한도 안에서.
 
 ## 8. 전환 후 정리

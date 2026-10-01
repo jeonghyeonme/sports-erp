@@ -23,7 +23,7 @@ export class BranchesController {
     return ok(branches.map((b) => ({ ...BranchService.toContractView(b), ...counts.get(b.id)! })));
   }
 
-  // 07문서 §5 — 지점별 진행중 프로그램 현황판
+  // 강사프로그램게시 A-5 — 지점별 진행중 프로그램 현황판
   @Get(':branchId/programs/summary')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   @UseGuards(BranchScopeGuard)

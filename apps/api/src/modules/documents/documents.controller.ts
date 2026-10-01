@@ -7,7 +7,7 @@ import { ok } from '../../common/http/api-response';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { DocumentService } from './document.service';
 
-// 1-10문서 §5-5·§5-7 — SUPER_ADMIN 전체, BRANCH_ADMIN은 본인 지점+전사 문서. STAFF 본인 인사서류 조회는 범위 제외.
+// 자원문서관리 A-5·A-7 — SUPER_ADMIN 전체, BRANCH_ADMIN은 본인 지점+전사 문서. STAFF 본인 인사서류 조회는 범위 제외.
 // D34 — 원천은 DB(DocumentService).
 @Controller('documents')
 export class DocumentsController {

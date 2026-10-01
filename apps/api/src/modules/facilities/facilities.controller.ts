@@ -11,7 +11,7 @@ import { CreateFacilityDto } from './dto/create-facility.dto';
 import { UpdateFacilityDto } from './dto/update-facility.dto';
 import { ManualCongestionDto } from './dto/manual-congestion.dto';
 
-// 08문서 §8 — 회원 포함 모든 역할이 조회 가능, 등록/수정/수동 보정은 BRANCH_ADMIN 본인 지점만.
+// 혼잡도관리 A-7 — 회원 포함 모든 역할이 조회 가능, 등록/수정/수동 보정은 BRANCH_ADMIN 본인 지점만.
 @Controller('facilities')
 @UseGuards(BranchScopeGuard)
 export class FacilitiesController {
@@ -40,7 +40,7 @@ export class FacilitiesController {
     return ok(await this.facilityService.update(id, dto));
   }
 
-  // 08문서 §4·§6 "수동 보정"(source=MANUAL) — Phase 2 자동계산 스케줄러가 생기기 전까지는
+  // 혼잡도관리 A-6·A-5 "수동 보정"(source=MANUAL) — Phase 2 자동계산 스케줄러가 생기기 전까지는
   // 이 값이 조회 API의 최신값으로 그대로 노출된다.
   @Post(':id/congestion/manual')
   @Roles('BRANCH_ADMIN')
