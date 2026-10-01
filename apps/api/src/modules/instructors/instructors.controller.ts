@@ -37,7 +37,7 @@ export class InstructorsController {
     return ok(await this.instructorService.update(id, dto));
   }
 
-  // 강사프로그램게시 A-5 "수정/비활성화" — 물리 삭제 대신 isActive=false로 소프트 비활성화한다(§6 소프트 삭제 원칙).
+  // 강사프로그램게시 A-5 "수정/비활성화" — 물리 삭제 대신 isActive=false로 소프트 비활성화한다(강사프로그램게시 A-6 소프트 삭제 원칙).
   @Delete(':id')
   @Roles('BRANCH_ADMIN')
   async deactivate(@Param('id') id: string, @CurrentUser() user: RequestUser) {

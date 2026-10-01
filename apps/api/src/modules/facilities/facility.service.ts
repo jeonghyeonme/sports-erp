@@ -33,7 +33,7 @@ export class FacilityService {
     return row ? toMockFacility(row) : null;
   }
 
-  // 혼잡도관리 A-5 POST /facilities — capacity 1 이상 필수(§7 나눗셈 오류 방지).
+  // 혼잡도관리 A-5 POST /facilities — capacity 1 이상 필수(혼잡도관리 A-6 나눗셈 오류 방지).
   // ADR-FAC-03 — 계약종료(TERMINATED) 지점의 신규 시설 등록 차단. 기존 시설 정정(update)은 대상 아님.
   async create(branchId: string, input: { name: string; type: FacilityType; capacity: number }): Promise<FacilityView> {
     const gate = await this.branchService.loadGate();
@@ -80,7 +80,7 @@ export class FacilityService {
     return this.afterWrite(id);
   }
 
-  // 혼잡도관리 A-5 POST /facilities/:id/congestion/manual, §4 "수동 보정"(source=MANUAL) — Phase 1 범위라
+  // 혼잡도관리 A-5 POST /facilities/:id/congestion/manual, 혼잡도관리 A-6 "수동 보정"(source=MANUAL) — Phase 1 범위라
   // CongestionSnapshot 이력 없이 Facility.currentCount/level을 직접 덮어쓴다.
   // ADR-FAC-03 — 계약종료 지점의 신규 혼잡도 보정 차단. ADR-FAC-01 — 보정 시각을 lastUpdatedAt에 남긴다.
   async setManualCongestion(id: string, currentCount: number): Promise<FacilityView> {

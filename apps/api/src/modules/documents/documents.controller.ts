@@ -36,7 +36,7 @@ export class DocumentsController {
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   async detail(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     const document = await this.documents.findById(id);
-    // 권한 없는 문서는 존재 여부를 숨기지 않고 403(§5-9 체크리스트).
+    // 권한 없는 문서는 존재 여부를 숨기지 않고 403(자원문서관리 A-9 체크리스트).
     if (user.role === 'BRANCH_ADMIN' && document.branchId && document.branchId !== user.branchId) {
       throw new AppException('DOCUMENT_SCOPE_VIOLATION', '다른 지점의 문서는 조회할 수 없습니다.', 403);
     }

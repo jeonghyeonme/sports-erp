@@ -45,7 +45,7 @@ export class MembersController {
     return ok(await this.authService.issueSessionFor(accountId));
   }
 
-  // ADR-MEM-02 — 앱 회원가입. Account+Member를 동시에 만들고 바로 로그인시킨다(§9 사용자 스토리).
+  // ADR-MEM-02 — 앱 회원가입. Account+Member를 동시에 만들고 바로 로그인시킨다(회원관리 §0 사용자 스토리).
   @Public()
   @HttpCode(HttpStatus.CREATED)
   @Post('register')

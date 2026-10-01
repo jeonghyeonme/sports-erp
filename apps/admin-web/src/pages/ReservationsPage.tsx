@@ -147,7 +147,7 @@ function CheckInButton({ reservationId }: { reservationId: string }) {
   );
 }
 
-// 예약및결제 A-5 POST /programs/:id/slots — BRANCH_ADMIN 본인 지점 PAID_SESSION 프로그램에 회차 개별 추가.
+// 강사프로그램게시 A-5 POST /programs/:id/slots — BRANCH_ADMIN 본인 지점 PAID_SESSION 프로그램에 회차 개별 추가.
 function SlotManager({ programs }: { programs: ProgramRow[] }) {
   const queryClient = useQueryClient();
   const reservablePrograms = programs.filter((p) => p.pricingType === 'PAID_SESSION');

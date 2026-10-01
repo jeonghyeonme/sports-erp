@@ -165,7 +165,7 @@ export class ProgramService {
     return this.afterWrite(id);
   }
 
-  // 강사프로그램게시 A-5 PATCH /programs/:id/status, §3-2 전이표. 표에 없는 전이(자기 자신 포함)는 409.
+  // 강사프로그램게시 A-5 PATCH /programs/:id/status, A-3 §3-2 전이표. 표에 없는 전이(자기 자신 포함)는 409.
   // DELETE /programs/:id "삭제(소프트)"도 ENDED 전이로 이 메서드를 쓴다(architecture/entities.md D9 소프트 삭제 원칙).
   async updateStatus(id: string, status: MockProgram['status']): Promise<ProgramView> {
     const program = await this.requireProgram(id);
@@ -184,7 +184,7 @@ export class ProgramService {
     return this.afterWrite(id);
   }
 
-  // 예약및결제 A-5 POST /programs/:id/slots — PAID_SESSION만. 정원을 비우면 프로그램 정원을 쓴다.
+  // 강사프로그램게시 A-5 POST /programs/:id/slots — PAID_SESSION만. 정원을 비우면 프로그램 정원을 쓴다.
   async createSlot(
     programId: string,
     input: { date: string; startTime: string; endTime: string; capacity?: number },

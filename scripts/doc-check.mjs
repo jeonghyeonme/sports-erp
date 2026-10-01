@@ -19,7 +19,7 @@ const files = execSync('git -c core.quotepath=off ls-files --cached --others --e
 
 // 검사에서 빼는 곳: 끝난 과정 기록(원문 보존), 이미 적용된 마이그레이션 SQL(체크섬), 다른 저장소에서 복사한 스킬, 자기완결형 제출본
 const SKIP = [/^docs\/log\/archive\//, /^apps\/api\/prisma\/migrations\//, /^\.claude\/skills\//, /^docs\/deliverables\//, /node_modules\//, /package-lock\.json$/, /^scripts\/doc-check\.mjs$/];
-const TEXT = /\.(md|ts|tsx|js|mjs|cjs|yml|yaml|json|prisma|sh|toml)$/;
+const TEXT = /\.(md|ts|tsx|js|mjs|cjs|css|yml|yaml|json|prisma|sh|toml)$/;
 const targets = files.filter((f) => TEXT.test(f) && !SKIP.some((r) => r.test(f)));
 
 const LIMITS = { 'CLAUDE.md': 130, 'apps/api/CLAUDE.md': 80, 'apps/admin-web/CLAUDE.md': 60, 'docs/STATUS.md': 80 };
@@ -32,6 +32,7 @@ const lineOf = (text, idx) => text.slice(0, idx).split('\n').length;
 const LEGACY = [
   [/(?<![\d-])(0[0-8]|1-\d{1,2}|2-[1-4]|3-1)문서/g, '옛 문서 번호 인용 — 도메인명 + 부록 번호(예: `예약및결제 A-6`)나 새 경로로 쓸 것'],
   [/\b[1-5]\.(spec|decisions|design|presentation|deliverables)\//g, '옛 폴더 경로'],
+  [/(?<![\d.-])(설계 )?1-(10|[1-9]) §/g, '옛 설계서 번호 + 절 — 도메인명 + 부록 번호나 architecture/entities.md §n으로 쓸 것'],
   [/06_진행_로그|2-1_기술결정사항|2-2_트러블슈팅|2-3_요구사항추적표|2-4_차별화전략|3-1_디자인시스템|1-1_공통설계서/g, '옛 파일명'],
 ];
 

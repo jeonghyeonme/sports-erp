@@ -53,7 +53,7 @@ export class AuthService {
     return this.issuePrismaSession(account);
   }
 
-  // 권한관리 A-5 POST /auth/refresh, §6 "1회용(rotate)" — 기존 refresh token은 검증과 동시에 폐기하고 둘 다 새로 발급한다.
+  // 권한관리 A-5 POST /auth/refresh, 권한관리 A-6 "1회용(rotate)" — 기존 refresh token은 검증과 동시에 폐기하고 둘 다 새로 발급한다.
   async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = this.verifyRefreshToken(refreshToken);
 
@@ -135,7 +135,7 @@ export class AuthService {
     }
   }
 
-  // access token엔 sub만 담는다 — role/branchId는 매 요청 JwtStrategy가 최신 Account에서 새로 읽는다(§6).
+  // access token엔 sub만 담는다 — role/branchId는 매 요청 JwtStrategy가 최신 Account에서 새로 읽는다(권한관리 A-6, ADR-AUTH-01).
   private signAccessToken(accountId: string): string {
     const payload: AccessTokenPayload = { sub: accountId };
     return this.jwtService.sign(payload);

@@ -229,7 +229,7 @@ export interface MockScheduleSlot {
 }
 
 // 예약및결제 A-3 Reservation. bookedCount는 캐시 필드를 두지 않고 매번
-// Reservation(scheduleSlotId, status IN REQUESTED/CONFIRMED) 카운트로 계산한다(§6).
+// Reservation(scheduleSlotId, status IN REQUESTED/CONFIRMED) 카운트로 계산한다(예약및결제 A-6).
 export interface MockReservation {
   id: string;
   memberId: string;

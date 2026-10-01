@@ -25,7 +25,7 @@ export class StaffService {
 
   // ── 조회 ──────────────────────────────────────────────
 
-  /** 인사정보관리 A-5 — 퇴사자는 기본적으로 숨기고(status!=RESIGNED), status를 명시하면 그 값만(§6). */
+  /** 인사정보관리 A-5 — 퇴사자는 기본적으로 숨기고(status!=RESIGNED), status를 명시하면 그 값만(인사정보관리 A-6). */
   async list(filter: { branchId?: string; status?: string; position?: string }): Promise<StaffView[]> {
     const rows = await this.prisma.staff.findMany({
       where: {

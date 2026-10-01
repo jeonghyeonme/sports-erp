@@ -29,7 +29,7 @@ export interface Env {
 }
 
 // bcrypt.compare/hash가 걸리는 CPU 바운드 경로만 골랐다 — 나머지(조회 등)는 원래도
-// 가볍고(§31에서 MockDataService 인메모리 스캔 자체는 문제가 아니었음 확인됨) 막을 이유가 없다.
+// 가볍고(docs/log/031에서 MockDataService 인메모리 스캔 자체는 문제가 아니었음 확인됨) 막을 이유가 없다.
 const RATE_LIMITED_PATHS = new Set([
   '/api/v1/auth/login',
   '/api/v1/members/register',
