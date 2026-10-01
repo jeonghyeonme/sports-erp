@@ -25,7 +25,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // 권한관리 A-6 — 매 요청마다 Account를 다시 조회해 isActive를 확인하는 것은 물론,
     // role/branchId도 이 조회 결과로 새로 구성해야 한다. 로그인 시점 JWT에 role/branchId를
     // 그대로 실어 보냈다가 여기서 그 값을 그대로 돌려주면, 파견발령·Role전환·퇴사 처리가
-    // "재로그인 없이 다음 요청부터 즉시 반영"된다는 §6의 원칙이 깨진다(access token엔 sub만 담는다).
+    // "재로그인 없이 다음 요청부터 즉시 반영"된다는 권한관리 A-6의 원칙이 깨진다(access token엔 sub만 담는다).
     const account = await this.prisma.account.findUnique({
       where: { id: payload.sub },
       include: { staff: true, member: true },

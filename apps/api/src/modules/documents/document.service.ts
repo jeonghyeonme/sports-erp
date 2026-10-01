@@ -26,7 +26,7 @@ export type CreateDocumentInput = {
 };
 
 /**
- * 문서(자원문서관리 부록 A) — D34. 원천은 DB다. 규칙(보존기한 계산 §5-6, ADR-RES-01·03,
+ * 문서(자원문서관리 부록 A) — D34. 원천은 DB다. 규칙(보존기한 계산 A-6 문서, ADR-RES-01·03,
  * 소프트 삭제 D9)은 mock 구현 그대로 옮겼다. 권한·지점 강제는 컨트롤러가 한다.
  */
 @Injectable()
@@ -38,7 +38,7 @@ export class DocumentService {
 
   // ── 조회 ──────────────────────────────────────────────
 
-  // BRANCH_ADMIN은 본인 지점 + 전사 문서(branchId null)만(§5-7).
+  // BRANCH_ADMIN은 본인 지점 + 전사 문서(branchId null)만(자원문서관리 A-7).
   async list(filter: { scopeBranchId?: string; branchId?: string; category?: string }): Promise<DocumentView[]> {
     // 예전 mock은 모르는 카테고리로 거르면 빈 목록이었다 — enum 밖 값을 DB로 보내 500이 나지 않게 유지.
     if (filter.category && !CATEGORIES.includes(filter.category as DocumentCategory)) return [];
@@ -63,7 +63,7 @@ export class DocumentService {
     return (await this.toViews([row]))[0];
   }
 
-  // §5-6 — 보존기한이 지난 문서도 자동 삭제하지 않고 경고 대상으로 남긴다(법정 의무는 "최소" 보존기간).
+  // 자원문서관리 A-6(문서) — 보존기한이 지난 문서도 자동 삭제하지 않고 경고 대상으로 남긴다(법정 의무는 "최소" 보존기간).
   // 임박 기준일(오늘 KST + withinDays) 이하만 조건으로 읽는다 — mock의 전체 스캔·정렬을 없앴다(D34 결정 1).
   async retentionAlerts(withinDays = 30): Promise<DocumentView[]> {
     const limit = toKstDateString(new Date(Date.now() + withinDays * 24 * 60 * 60 * 1000));

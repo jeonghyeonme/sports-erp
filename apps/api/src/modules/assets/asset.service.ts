@@ -106,7 +106,7 @@ export class AssetService {
     return toView(row);
   }
 
-  // 이름·위치·수량·메모·내용연수만 — 상태 전이는 별도 메서드(§5). 고정자산 수량 1은 앱 검사 + D28 CHECK.
+  // 이름·위치·수량·메모·내용연수만 — 상태 전이는 별도 메서드(자원문서관리 A-5). 고정자산 수량 1은 앱 검사 + D28 CHECK.
   async update(id: string, input: UpdateAssetInput): Promise<AssetView> {
     const asset = await this.prisma.asset.findUnique({ where: { id } });
     if (!asset) throw assetNotFound();

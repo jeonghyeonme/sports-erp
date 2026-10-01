@@ -168,7 +168,7 @@ export class MemberService {
     if (recentFailures >= LINK_MAX_ATTEMPTS_PER_HOUR) {
       throw new AppException('LINK_ATTEMPTS_EXCEEDED', '연동 시도 횟수를 초과했습니다. 1시간 후 다시 시도하세요.', 429);
     }
-    // 회원번호 불일치·전화번호 불일치·탈퇴 회원을 같은 메시지로 묶는다 — 부분 정보를 주지 않기 위함(§8 질문1).
+    // 회원번호 불일치·전화번호 불일치·탈퇴 회원을 같은 메시지로 묶는다 — 부분 정보를 주지 않기 위함(회원관리 §8 질문 1).
     const member = await this.prisma.member.findFirst({
       where: { memberNo: input.memberNo, phone: input.phone, status: { not: 'WITHDRAWN' } },
     });
@@ -219,7 +219,7 @@ export class MemberService {
     return this.view(id);
   }
 
-  // 회원관리 A-5 PATCH /members/:id/status, §6 "탈퇴 시 소프트 삭제 + Account.isActive=false".
+  // 회원관리 A-5 PATCH /members/:id/status, 회원관리 A-6 "탈퇴 시 소프트 삭제 + Account.isActive=false".
   // WITHDRAWN이 아니면 다시 로그인 가능하게 푼다 — 안 풀면 탈퇴 취소 후에도 영구히 로그인 불가로 남는다.
   async updateStatus(id: string, status: MemberStatus): Promise<MemberView> {
     const member = await this.requireMember(id);

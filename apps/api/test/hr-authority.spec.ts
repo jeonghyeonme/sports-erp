@@ -3,7 +3,7 @@ import request from 'supertest';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
 
 /**
- * 인사 권한 분리 — 직원은 본사가 채용해서 각 현장에 파견한다(CLAUDE.md "사업 구조", 설계 1-1 §2-2).
+ * 인사 권한 분리 — 직원은 본사가 채용해서 각 현장에 파견한다(CLAUDE.md "사업 구조", entities.md §2-2).
  * 채용·재배치·권한(Role) 변경은 본사(SUPER_ADMIN)만 하고, 지점 관리자(BRANCH_ADMIN)는 파견된 인력의 일상 관리만 한다.
  * 역할 검사(@Roles)는 요청 본문 검증(ValidationPipe)보다 먼저 실행되므로, 거부 케이스도 유효한 본문을 보낸다
  * (본문이 유효해야 "권한 때문에 403"임이 분명해진다).

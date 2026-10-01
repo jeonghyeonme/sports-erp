@@ -100,7 +100,7 @@ export class ReservationService {
           data: { memberId, scheduleSlotId, status: paid ? 'REQUESTED' : 'CONFIRMED' },
         });
         if (paid) {
-          // 서버가 Program 가격을 재조회해 결제금액을 결정한다(클라이언트 금액 신뢰 안 함, §7).
+          // 서버가 Program 가격을 재조회해 결제금액을 결정한다(클라이언트 금액 신뢰 안 함, 예약및결제 A-7).
           // 공급가액·부가세도 생성 시점에 나눈다 — mock은 PENDING 동안 0/0으로 뒀는데, D28 CHECK
           // (Payment_amount_split_ck: supplyAmount + vat = amount)가 그 상태를 거부해 D32에서 드러났다.
           await tx.payment.create({
@@ -150,7 +150,7 @@ export class ReservationService {
         if (slotStart.getTime() - Date.now() >= deadlineHours * 60 * 60 * 1000) {
           await tx.payment.update({ where: { id: payment.id }, data: { status: 'REFUNDED', refundedAt: new Date() } });
         }
-        // 마감 이내 취소는 환불 없이 Payment.status=APPROVED가 그대로 남는다(§6 "환불 불가").
+        // 마감 이내 취소는 환불 없이 Payment.status=APPROVED가 그대로 남는다(예약및결제 A-6 "환불 불가").
       }
     });
     return (await this.findById(id))!;

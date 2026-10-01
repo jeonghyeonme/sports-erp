@@ -16,7 +16,7 @@ export class StaffController {
   // D30 — 원천은 DB(StaffService). 응답 형식은 이관 전(mock 직원 + branchName)과 같다.
   constructor(private readonly staffService: StaffService) {}
 
-  // 인사정보관리 A-5 — 퇴사자는 기본적으로 숨기고(status!=RESIGNED), status를 명시하면 그 값만 조회(§6).
+  // 인사정보관리 A-5 — 퇴사자는 기본적으로 숨기고(status!=RESIGNED), status를 명시하면 그 값만 조회(인사정보관리 A-6).
   @Get()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   async list(
@@ -47,7 +47,7 @@ export class StaffController {
     return ok(staff);
   }
 
-  // 신규 채용 등록 — SUPER_ADMIN 전용(§1, §5·§7). Staff는 Account와 1:1이라 로그인 계정도 같이 만든다.
+  // 신규 채용 등록 — SUPER_ADMIN 전용(인사정보관리 §0, A-5·A-7). Staff는 Account와 1:1이라 로그인 계정도 같이 만든다.
   @Post()
   @Roles('SUPER_ADMIN')
   async hire(@Body() dto: CreateStaffDto, @CurrentUser() user: RequestUser) {
@@ -70,7 +70,7 @@ export class StaffController {
     return ok(await this.staffService.resign(id));
   }
 
-  // 파견 발령(재배치) — SUPER_ADMIN 전용(§5·§7, 본사의 인력 배치 결정). 지점 범위 제한 없음.
+  // 파견 발령(재배치) — SUPER_ADMIN 전용(인사정보관리 A-5·A-7, 본사의 인력 배치 결정). 지점 범위 제한 없음.
   @Post(':id/assignments')
   @Roles('SUPER_ADMIN')
   async assign(@Param('id') id: string, @Body() dto: AssignStaffDto, @CurrentUser() user: RequestUser) {
@@ -79,7 +79,7 @@ export class StaffController {
     return ok(await this.staffService.assign(id, dto.branchId, user.accountId, dto.note));
   }
 
-  // 파견 이력 조회 — "해당 지점 권한자 또는 SUPER_ADMIN"(§5). 현재 파견 지점 기준으로 판단.
+  // 파견 이력 조회 — "해당 지점 권한자 또는 SUPER_ADMIN"(인사정보관리 A-5). 현재 파견 지점 기준으로 판단.
   @Get(':id/assignments')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   async assignmentHistory(@Param('id') id: string, @CurrentUser() user: RequestUser) {
@@ -96,7 +96,7 @@ export class StaffController {
     return staff;
   }
 
-  // 조회 범위(§7): SUPER_ADMIN 전체 / BRANCH_ADMIN 현재 파견 지점만 / STAFF 본인만.
+  // 조회 범위(인사정보관리 A-7): SUPER_ADMIN 전체 / BRANCH_ADMIN 현재 파견 지점만 / STAFF 본인만.
   private assertReadable(staff: StaffView, user: RequestUser): void {
     if (user.role === 'SUPER_ADMIN') return;
     if (user.role === 'STAFF') {

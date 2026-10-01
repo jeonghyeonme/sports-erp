@@ -78,7 +78,7 @@ export class AttendanceController {
     return ok(request, warning ? { warning } : undefined);
   }
 
-  // 근태관리 A-4 "휴가 승인함" 화면이 필요로 하는 목록 조회 — §5 API 표에 빠져 있던 엔드포인트를 채운다.
+  // 근태관리 A-4 "휴가 승인함" 화면이 필요로 하는 목록 조회 — A-5 API 표에 빠져 있던 엔드포인트를 채운다.
   @Get('leave-requests')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
   async listLeaveRequests(
@@ -129,7 +129,7 @@ export class AttendanceController {
     return ok(await this.attendance.upsertWorkLog(this.requireStaffId(user), dto.date, dto.content));
   }
 
-  // 근태관리 A-5 GET /work-logs?staffId=&date= — "관리자는 본인 지점 전 직원 업무일지 열람 가능"(§6).
+  // 근태관리 A-5 GET /work-logs?staffId=&date= — "관리자는 본인 지점 전 직원 업무일지 열람 가능"(근태관리 A-6).
   @Get('work-logs')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
   async listWorkLogs(

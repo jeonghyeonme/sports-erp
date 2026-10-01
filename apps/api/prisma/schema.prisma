@@ -493,7 +493,7 @@ model Program {
   price        Int           @default(0)
   pricingType  PricingType
   capacity     Int?
-  status       ProgramStatus @default(PREPARING) // 지점별 "진행중" 파악의 핵심 필드 — §3-2 참고
+  status       ProgramStatus @default(PREPARING) // 지점별 "진행중" 파악의 핵심 필드 — 강사프로그램게시 A-3 §3-2 참고
   startDate    DateTime      @db.Date // 모집/개강일
   endDate      DateTime?     @db.Date // 종료 예정일(상시 운영이면 null)
   createdAt    DateTime      @default(now())

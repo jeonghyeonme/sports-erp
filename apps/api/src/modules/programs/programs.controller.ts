@@ -44,7 +44,7 @@ export class ProgramsController {
     return ok(await this.programService.update(id, dto));
   }
 
-  // 강사프로그램게시 A-5 상태 전이(§3-2 표의 허용 전이만 통과, 위반 시 409) — BRANCH_ADMIN 본인 지점만(§7).
+  // 강사프로그램게시 A-5 상태 전이(A-3 §3-2 표의 허용 전이만 통과, 위반 시 409) — BRANCH_ADMIN 본인 지점만(A-7).
   // ADR-PRG-02 — 응답에 이 프로그램의 오늘 이후 유효 예약 건수·목록을 포함해, 알림 인프라 없이도
   // 관리자가 "몇 명에게 영향이 가는지"를 전이 즉시 알 수 있게 한다. 예약도 D32부터 DB에서 센다.
   @Patch(':id/status')
@@ -79,7 +79,7 @@ export class ProgramsController {
     return ok(await this.programService.listSlots(id, date));
   }
 
-  // 예약및결제 A-5(강사프로그램게시 A-5 소관) POST /programs/:id/slots — 회차 개별 추가, BRANCH_ADMIN 본인 지점만.
+  // 강사프로그램게시 A-5 POST /programs/:id/slots — 회차 개별 추가, BRANCH_ADMIN 본인 지점만.
   @Post(':id/slots')
   @Roles('BRANCH_ADMIN')
   async createSlot(@Param('id') id: string, @Body() dto: CreateScheduleSlotDto, @CurrentUser() user: RequestUser) {
