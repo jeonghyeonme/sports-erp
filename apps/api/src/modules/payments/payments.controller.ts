@@ -7,7 +7,7 @@ import { ReservationService } from '../reservations/reservation.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { ok } from '../../common/http/api-response';
 
-// 06문서 §5·§7 — 결제 승인은 예약 당사자 본인만, 결제(매출) 내역 조회는 BRANCH_ADMIN/SUPER_ADMIN 전용.
+// 예약및결제 A-5·A-7 — 결제 승인은 예약 당사자 본인만, 결제(매출) 내역 조회는 BRANCH_ADMIN/SUPER_ADMIN 전용.
 @Controller('payments')
 export class PaymentsController {
   constructor(

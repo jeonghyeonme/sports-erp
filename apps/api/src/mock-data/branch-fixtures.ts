@@ -2,7 +2,7 @@ import { generateLightBranches } from './branch-generator';
 import { BranchRecord, MockBranch } from './mock-data.types';
 
 /**
- * 지점 원천 레코드 — D29(2-1_기술결정사항.md). 원래 prisma/seed.ts(DB 원천)와 MockDataService(이름표 사본)가
+ * 지점 원천 레코드 — D29. 원래 prisma/seed.ts(DB 원천)와 MockDataService(이름표 사본)가
  * **같은 목록**에서 만들어지도록 한 곳에 뒀다. D36으로 mock이 사라져 지금은 시드와 test/branch-parity.spec.ts만 쓴다. 예전에는 seed.ts가 서초·강남을 따로 적어
  * 계약 종료일 등이 mock과 달랐다.
  *

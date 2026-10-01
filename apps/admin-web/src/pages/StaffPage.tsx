@@ -47,7 +47,7 @@ export function StaffPage() {
   const isSelfServiceOnly = user?.role === 'STAFF';
   const [search, setSearch] = useState('');
 
-  // 02문서 §7 — STAFF는 목록(/staff) 대신 본인 레코드(/staff/me)만 조회 가능하므로
+  // 인사정보관리 A-7 — STAFF는 목록(/staff) 대신 본인 레코드(/staff/me)만 조회 가능하므로
   // 응답 모양(단일 객체 vs 배열)이 갈려 두 쿼리를 분리해서 처리한다.
   const listQuery = useQuery<StaffRow[], AxiosError<ApiErrorBody>>({
     queryKey: ['staff', 'list'],
@@ -83,8 +83,8 @@ export function StaffPage() {
       <h2>직원</h2>
       <p className="page-desc">
         {isSelfServiceOnly
-          ? '02문서 §7 — STAFF는 본인 레코드만 조회할 수 있습니다(동료 직원 정보는 노출되지 않습니다).'
-          : '02문서 기준 더미 데이터입니다. 지점 관리자는 본인 지점 직원만 조회됩니다. 지점별로 묶어서 보여줍니다(98개 지점 규모 대응 — 지점명으로 검색해 좁혀보세요).'}
+          ? '인사정보관리 A-7 — STAFF는 본인 레코드만 조회할 수 있습니다(동료 직원 정보는 노출되지 않습니다).'
+          : '인사정보관리 문서 기준 더미 데이터입니다. 지점 관리자는 본인 지점 직원만 조회됩니다. 지점별로 묶어서 보여줍니다(98개 지점 규모 대응 — 지점명으로 검색해 좁혀보세요).'}
       </p>
 
       {isError && <div className="forbidden-note">{apiErrorMessage(error ?? null)}</div>}

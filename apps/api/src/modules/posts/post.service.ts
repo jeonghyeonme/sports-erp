@@ -14,8 +14,8 @@ const SCOPES: PostScope[] = ['HQ_TO_BRANCH', 'BRANCH_TO_MEMBER'];
 const withBranch = { branch: { select: { name: true } } } as const;
 
 /**
- * 게시판(04문서) — D36(2-1_기술결정사항.md). 원천은 DB다. 가시성(ADR-BRD-01)·페이지네이션(ADR-BRD-02)·
- * 작성 범위(§5)·계약 종료 차단(1-1문서 §2-1)은 mock 구현 그대로 옮겼고, 가시성은 where 조건으로 내렸다(D36 결정 1).
+ * 게시판(게시판 문서) — D36. 원천은 DB다. 가시성(ADR-BRD-01)·페이지네이션(ADR-BRD-02)·
+ * 작성 범위(§5)·계약 종료 차단(architecture/entities.md §2-1)은 mock 구현 그대로 옮겼고, 가시성은 where 조건으로 내렸다(D36 결정 1).
  */
 @Injectable()
 export class PostService {
@@ -56,7 +56,7 @@ export class PostService {
     return { items: await this.toViews(rows), total };
   }
 
-  /** 보이지 않거나 없거나 삭제된 글은 모두 404(존재 여부를 드러내지 않는다 — 04문서 §7). */
+  /** 보이지 않거나 없거나 삭제된 글은 모두 404(존재 여부를 드러내지 않는다 — 게시판 A-7). */
   async findVisible(id: string, user: RequestUser): Promise<PostRow> {
     const row = await this.prisma.post.findFirst({
       where: { AND: [{ id, deletedAt: null }, this.visibleWhere(user)] },
@@ -77,7 +77,7 @@ export class PostService {
     return (await this.toViews([row]))[0];
   }
 
-  // 04문서 §5 — 본사는 HQ_TO_BRANCH(전체 또는 특정 지점 지정), 지점장은 BRANCH_TO_MEMBER만(범위·지점은 서버가 강제).
+  // 게시판 A-5 — 본사는 HQ_TO_BRANCH(전체 또는 특정 지점 지정), 지점장은 BRANCH_TO_MEMBER만(범위·지점은 서버가 강제).
   async create(
     author: { accountId: string; role: RequestUser['role']; branchId?: string },
     input: { title: string; content: string; category: PostCategory; branchId?: string; visibleToMember?: boolean },
@@ -128,7 +128,7 @@ export class PostService {
     return (await this.toViews([row]))[0];
   }
 
-  // 04문서 §6 — 물리 삭제 대신 소프트 삭제. 두 번째 삭제는 404.
+  // 게시판 A-6 — 물리 삭제 대신 소프트 삭제. 두 번째 삭제는 404.
   async softDelete(id: string): Promise<void> {
     const { count } = await this.prisma.post.updateMany({ where: { id, deletedAt: null }, data: { deletedAt: new Date() } });
     if (count === 0) throw postNotFound();

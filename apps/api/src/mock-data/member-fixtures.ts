@@ -2,7 +2,7 @@ import { generateLightBranches } from './branch-generator';
 import { MockCourseEnrollment, MockMember, MockPTSession, MockPTSessionLog } from './mock-data.types';
 
 /**
- * 회원·회원 계정·수강·PT의 시드 원천 — D32(2-1_기술결정사항.md). 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
+ * 회원·회원 계정·수강·PT의 시드 원천 — D32. 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
  * D30·D31과 달리 mock 미러가 없다 — 이 데이터를 동기적으로 읽는 mock 도메인이 남지 않았다(D32 결정 1).
  *
  * 히어로 id·값은 예전 mock 그대로다(member-sujin, pt-session-sujin 등).

@@ -2,7 +2,7 @@ import { generateLightBranches } from './branch-generator';
 import { MockStaff, MockStaffAssignment, Role } from './mock-data.types';
 
 /**
- * 직원·파견·관리자 계정의 시드 원천 — D30(2-1_기술결정사항.md). 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
+ * 직원·파견·관리자 계정의 시드 원천 — D30. 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
  * mock은 앱이 뜰 때 DB에서 미러를 채우므로(StaffService.onModuleInit) 이 파일을 직접 읽지 않는다.
  *
  * 히어로 계정·직원 id는 예전 mock 값 그대로다(`account-minsu`, `staff-seoyeon` 등). 아직 mock인 도메인의
@@ -85,7 +85,7 @@ export function staffSeed(): StaffSeed {
       name: s.name,
     })),
   ];
-  // 02문서 §3 "신규 등록 시 최초 StaffAssignment 자동 생성"을 시드에도 적용 — 모든 직원이 활성 파견 1건으로 시작한다.
+  // 인사정보관리 A-3 "신규 등록 시 최초 StaffAssignment 자동 생성"을 시드에도 적용 — 모든 직원이 활성 파견 1건으로 시작한다.
   const assignments = staff.map<MockStaffAssignment>((s) => ({
     id: `assignment-${s.id}`,
     staffId: s.id,

@@ -11,7 +11,7 @@ export class CreateFacilityDto {
   @IsIn(TYPES)
   type!: FacilityType;
 
-  // 08문서 §7 — capacity=0이면 이용률 계산에서 나눗셈 오류가 나므로 1 이상 필수.
+  // 혼잡도관리 A-6 — capacity=0이면 이용률 계산에서 나눗셈 오류가 나므로 1 이상 필수.
   @IsInt()
   @Min(1)
   capacity!: number;

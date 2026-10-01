@@ -10,7 +10,7 @@ import { ok } from '../../common/http/api-response';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
 
-// 07문서 §7 — 회원 포함 모든 역할이 조회 가능, 등록/수정/비활성화는 BRANCH_ADMIN 본인 지점만.
+// 강사프로그램게시 A-7 — 회원 포함 모든 역할이 조회 가능, 등록/수정/비활성화는 BRANCH_ADMIN 본인 지점만.
 @Controller('instructors')
 @UseGuards(BranchScopeGuard)
 export class InstructorsController {
@@ -37,7 +37,7 @@ export class InstructorsController {
     return ok(await this.instructorService.update(id, dto));
   }
 
-  // 07문서 §5 "수정/비활성화" — 물리 삭제 대신 isActive=false로 소프트 비활성화한다(§6 소프트 삭제 원칙).
+  // 강사프로그램게시 A-5 "수정/비활성화" — 물리 삭제 대신 isActive=false로 소프트 비활성화한다(§6 소프트 삭제 원칙).
   @Delete(':id')
   @Roles('BRANCH_ADMIN')
   async deactivate(@Param('id') id: string, @CurrentUser() user: RequestUser) {

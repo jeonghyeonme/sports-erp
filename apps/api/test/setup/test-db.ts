@@ -1,5 +1,5 @@
 /**
- * 테스트 DB 주소 — D29 결정 3(2-1_기술결정사항.md): jest 워커마다 별도 DB.
+ * 테스트 DB 주소 — D29 결정 3: jest 워커마다 별도 DB.
  *
  * 기준 DB(DATABASE_URL)는 CI·로컬 모두 `prisma migrate deploy` → `prisma:seed`가 끝난 상태여야 한다(CLAUDE.md 명령어 절).
  * globalSetup이 기준 DB를 템플릿으로 워커 수만큼 복제하고(`CREATE DATABASE … TEMPLATE`), 각 워커는 자기 DB만 쓴다.

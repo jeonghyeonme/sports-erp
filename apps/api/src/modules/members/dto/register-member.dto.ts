@@ -29,7 +29,7 @@ export class RegisterMemberDto {
   @IsString()
   gender?: string;
 
-  // 05문서 §3, §6 — 만 19세 미만 회원 등록 시 필수(미전달/false면 400).
+  // 회원관리 A-3, A-6 — 만 19세 미만 회원 등록 시 필수(미전달/false면 400).
   @IsOptional()
   @IsBoolean()
   guardianConsent?: boolean;

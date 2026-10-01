@@ -1,5 +1,5 @@
 /**
- * 계약 종료(TERMINATED) 지점 판정 — D29(2-1_기술결정사항.md) 결정 2.
+ * 계약 종료(TERMINATED) 지점 판정 — D29 결정 2.
  *
  * 계약 상태의 원천은 DB(Prisma Branch) 하나뿐이다. 아직 mock인 도메인의 쓰기 메서드는 동기라 DB를 직접 못 읽으므로,
  * 컨트롤러가 요청마다 BranchService.loadGate()로 종료 지점 집합을 한 번 읽어 이 객체를 넘긴다. mock 메서드는

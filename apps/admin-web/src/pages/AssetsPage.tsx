@@ -33,7 +33,7 @@ const STATUS_LABEL: Record<AssetStatus, string> = {
   DISPOSED: '폐기됨',
 };
 
-// 1-10문서 §4-6 전이표 — 허용되지 않은 전이는 드롭다운에서부터 막는다.
+// 자원문서관리 A-6 전이표 — 허용되지 않은 전이는 드롭다운에서부터 막는다.
 const STATUS_TRANSITIONS: Record<AssetStatus, AssetStatus[]> = {
   NORMAL: ['REPAIRING', 'DISPOSAL_PENDING'],
   REPAIRING: ['NORMAL', 'DISPOSAL_PENDING'],
@@ -255,7 +255,7 @@ export function AssetsPage() {
         <div>
           <h2>자산·비품</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
-            1-10문서 §4 기준입니다. 취득가액 100만원 초과는 고정자산, 이하는 소모품으로 자동 분류됩니다.
+            자원문서관리 부록 A 기준입니다. 취득가액 100만원 초과는 고정자산, 이하는 소모품으로 자동 분류됩니다.
             재물조사·감가상각(Phase 2)은 아직 없습니다.
           </p>
         </div>

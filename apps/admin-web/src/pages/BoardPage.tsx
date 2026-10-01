@@ -182,7 +182,7 @@ export function BoardPage() {
         <div>
           <h2>게시판</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
-            04문서 기준입니다. 전체 공지 + 본인 지점 공지만 보입니다.
+            게시판 문서 기준입니다. 전체 공지 + 본인 지점 공지만 보입니다.
           </p>
         </div>
         {canWrite && (

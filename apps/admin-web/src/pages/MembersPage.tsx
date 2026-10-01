@@ -35,7 +35,7 @@ const EMPTY_FORM: CreateMemberForm = {
   guardianConsent: false,
 };
 
-// 05문서 §6 — 만 19세 미만이면 등록 폼에 보호자 동의 체크박스를 조건부로 노출한다(상시 노출 아님).
+// 회원관리 A-6 — 만 19세 미만이면 등록 폼에 보호자 동의 체크박스를 조건부로 노출한다(상시 노출 아님).
 function isMinor(birthDate: string): boolean {
   if (!birthDate) return false;
   const dob = new Date(birthDate);
@@ -166,7 +166,7 @@ export function MembersPage() {
         <div>
           <h2>회원</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
-            05문서 기준 더미 데이터입니다. BRANCH_ADMIN은 본인 지점 회원만, STAFF는 접근 시 403이 표시됩니다.
+            회원관리 문서 기준 더미 데이터입니다. BRANCH_ADMIN은 본인 지점 회원만, STAFF는 접근 시 403이 표시됩니다.
             지점별로 묶어서 보여줍니다(98개 지점 규모 대응 — 지점명으로 검색해 좁혀보세요).
           </p>
         </div>

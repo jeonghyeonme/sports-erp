@@ -1,8 +1,8 @@
 import { MockAsset } from './mock-data.types';
 
 /**
- * 자산의 시드 원천 — D35(2-1_기술결정사항.md). 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
- * 값은 예전 mock 그대로다(1-10문서 §4 — 서초점 데모 자산. 러닝머신은 100만원 초과라 FIXED_ASSET, 소독제는 CONSUMABLE).
+ * 자산의 시드 원천 — D35. 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
+ * 값은 예전 mock 그대로다(자원문서관리 부록 A — 서초점 데모 자산. 러닝머신은 100만원 초과라 FIXED_ASSET, 소독제는 CONSUMABLE).
  * 자산번호 시퀀스(CodeSequence ASSET)는 seed.ts가 이 목록의 prefix별 최대 순번으로 맞춘다.
  */
 export function assetSeed(): MockAsset[] {

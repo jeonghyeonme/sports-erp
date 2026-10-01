@@ -28,7 +28,7 @@ function slotLabel(slot?: ScheduleSlotRow): string {
   return `${slot.date} ${slot.startTime}~${slot.endTime}`;
 }
 
-// 06문서 §5 GET /programs/:id/slots — 프로그램 하나의 회차 목록 + 예약하기 버튼(회원 전용).
+// 예약및결제 A-5 GET /programs/:id/slots — 프로그램 하나의 회차 목록 + 예약하기 버튼(회원 전용).
 function ProgramSlotsCard({ program }: { program: ProgramRow }) {
   const queryClient = useQueryClient();
   const slotsQuery = useQuery<ScheduleSlotRow[], AxiosError<ApiErrorBody>>({
@@ -96,7 +96,7 @@ function ProgramSlotsCard({ program }: { program: ProgramRow }) {
   );
 }
 
-// 06문서 §5 결제 대기(REQUESTED) 예약에 붙는 모의결제 버튼.
+// 예약및결제 A-5 결제 대기(REQUESTED) 예약에 붙는 모의결제 버튼.
 function MockPayButton({ reservationId }: { reservationId: string }) {
   const queryClient = useQueryClient();
   const payMutation = useMutation<unknown, AxiosError<ApiErrorBody>, void>({
@@ -147,7 +147,7 @@ function CheckInButton({ reservationId }: { reservationId: string }) {
   );
 }
 
-// 06문서 §5 POST /programs/:id/slots — BRANCH_ADMIN 본인 지점 PAID_SESSION 프로그램에 회차 개별 추가.
+// 예약및결제 A-5 POST /programs/:id/slots — BRANCH_ADMIN 본인 지점 PAID_SESSION 프로그램에 회차 개별 추가.
 function SlotManager({ programs }: { programs: ProgramRow[] }) {
   const queryClient = useQueryClient();
   const reservablePrograms = programs.filter((p) => p.pricingType === 'PAID_SESSION');
@@ -283,7 +283,7 @@ export function ReservationsPage() {
       <div className="page-header">
         <h2>예약{isMember ? '' : ' 관리'}</h2>
         <p className="page-desc">
-          06문서 기준입니다. 회차 예약형(PAID_SESSION) 프로그램만 대상이며, 결제는 모의결제(Mock Payment)로
+          예약및결제 문서 기준입니다. 회차 예약형(PAID_SESSION) 프로그램만 대상이며, 결제는 모의결제(Mock Payment)로
           처리됩니다.
         </p>
       </div>

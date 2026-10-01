@@ -1,5 +1,5 @@
 // 스포이즘 ERP — 전체 스키마
-// 1-2~1-9 기능 문서의 데이터 모델을 그대로 반영합니다. 문서 번호는 각 모델 위 주석 참고(docs/1.spec/ 하위 폴더는 README 문서 표 참고).
+// 각 도메인 문서(docs/domains/<도메인>.md) 부록 A-3 데이터 모델을 반영합니다. 모델 위 주석의 "<도메인> A-n"이 그 부록 번호입니다.
 
 generator client {
   provider      = "prisma-client-js"
@@ -41,7 +41,7 @@ datasource db {
 enum Role {
   SUPER_ADMIN
   BRANCH_ADMIN
-  STAFF // 지점 소속 일반 직원(트레이너 등) — 관리 권한 없이 본인 근태/휴가/업무일지만 셀프서비스 (1-2문서 §7)
+  STAFF // 지점 소속 일반 직원(트레이너 등) — 관리 권한 없이 본인 근태/휴가/업무일지만 셀프서비스 (권한관리 A-7)
   MEMBER
 }
 
@@ -90,10 +90,10 @@ model Branch {
   address                   String?
   region                    String // 광역 단위(예: "서울", "경기") — address(상세 주소)와 별개로 대시보드 지역별 그룹핑에 사용
   phone                     String?
-  standardCheckInTime       String? // "HH:mm" — 1-4문서 지각 판정 기준
-  cancellationDeadlineHours Int? // 예약 무료취소 기준 시간(예: 24) — nullable이면 전역 기본값 사용, 1-7문서 §6 참고. 1-1문서 §2-1의 cancellationPolicy를 단순 컬럼으로 구현
+  standardCheckInTime       String? // "HH:mm" — 근태관리 문서 지각 판정 기준
+  cancellationDeadlineHours Int? // 예약 무료취소 기준 시간(예: 24) — nullable이면 전역 기본값 사용, 예약및결제 A-6 참고. architecture/entities.md §2-1의 cancellationPolicy를 단순 컬럼으로 구현
   isActive                  Boolean              @default(true)
-  // 위탁계약 필드 — 1-1문서 §2-1. Branch는 매장이 아니라 위탁운영 계약 현장이라는 재해석의 핵심 데이터.
+  // 위탁계약 필드 — architecture/entities.md §2-1. Branch는 매장이 아니라 위탁운영 계약 현장이라는 재해석의 핵심 데이터.
   contractPartner           String // 위탁계약 상대방(예: "서초 OO아파트 입주자대표회의") — 관리자 전용 정보
   contractStartAt           DateTime             @db.Date
   contractEndAt             DateTime?            @db.Date
@@ -160,13 +160,13 @@ model Staff {
   workLogs          WorkLog[]
   instructorProfile Instructor?
   assignedMembers   Member[]                    @relation("StaffAssignedMembers")
-  assignments       StaffAssignment[] // 파견 이력 — 1-1문서 §2-2
+  assignments       StaffAssignment[] // 파견 이력 — architecture/entities.md §2-2
 
   @@index([branchId])
   @@index([status])
 }
 
-// 파견 이력 — 1-1문서 §2-2, 1-3문서 §3~§7. Staff.branchId는 이 중 endDate=null인 레코드의
+// 파견 이력 — architecture/entities.md §2-2, 인사정보관리 A-3~A-7. Staff.branchId는 이 중 endDate=null인 레코드의
 // branchId와 항상 동기화되는 비정규화 캐시(원천은 이 테이블). 한 직원당 endDate=null 레코드는
 // 최대 1건이어야 한다는 불변식은 애플리케이션 레벨(트랜잭션)에서 보장한다.
 model StaffAssignment {
@@ -374,7 +374,7 @@ model Member {
   gender          String?
   joinedAt        DateTime     @db.Date // 앱이 todayKst()로 채움(파일 상단 날짜 규칙)
   status          MemberStatus @default(ACTIVE)
-  guardianConsent Boolean      @default(false) // 미성년 회원 법정대리인 동의 (05문서 §3·§6)
+  guardianConsent Boolean      @default(false) // 미성년 회원 법정대리인 동의 (회원관리 A-3·A-6)
   memo            String?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -469,9 +469,9 @@ enum AgeGroup {
 }
 
 enum PricingType {
-  FREE_ACCESS // 자유이용형 — 예약/결제 대상 아님 (1-9문서 FacilityCheckIn만 사용)
+  FREE_ACCESS // 자유이용형 — 예약/결제 대상 아님 (혼잡도관리 문서 FacilityCheckIn만 사용)
   PAID_SESSION // 회차 예약형 — price=0이면 무료 회차
-  PT_PACKAGE // 세션 차감형(PT) — 1-6문서 PTSession으로 관리
+  PT_PACKAGE // 세션 차감형(PT) — 회원관리 문서 PTSession으로 관리
 }
 
 enum ProgramStatus {

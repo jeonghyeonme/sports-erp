@@ -148,7 +148,7 @@ describe('지점 데이터 격리', () => {
       expect((await call(tok.superAdmin, 'get', `/members/${ctx.seocho.memberId}`)).status).toBe(200);
       expect((await call(tok.superAdmin, 'get', `/members/${ctx.gangnam.memberId}`)).status).toBe(200);
     });
-    // 프로그램 회차 조회(1-8문서 §7 "본인 지점만 노출")의 대조군 — 자기 지점·본사는 조회되고 회원도 본인 지점은 조회된다.
+    // 프로그램 회차 조회(강사프로그램게시 A-7 "본인 지점만 노출")의 대조군 — 자기 지점·본사는 조회되고 회원도 본인 지점은 조회된다.
     it('서초 관리자·서초 회원은 서초점 프로그램 회차를 조회한다', async () => {
       const path = `/programs/${ctx.seocho.programId}/slots`;
       expect((await call(tok.seochoAdmin, 'get', path)).status).toBe(200);

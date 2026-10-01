@@ -8,7 +8,7 @@ import { secretFromEnv } from './common/config/secrets';
 import { PrismaService } from './prisma/prisma.service';
 
 /**
- * AWS Lambda 진입점 — D37(2-1_기술결정사항.md). Function URL(페이로드 2.0) 이벤트를 Nest(Express)로 넘긴다.
+ * AWS Lambda 진입점 — D37. Function URL(페이로드 2.0) 이벤트를 Nest(Express)로 넘긴다.
  * - Nest 앱은 모듈을 불러올 때(init 단계) 한 번만 만들고, 따뜻한 호출에서 재사용한다(결정 3).
  * - Worker가 붙인 비밀 헤더가 없으면 Nest까지 가지 않고 403 — Function URL 직접 호출로 Worker rate limit을 우회하지 못하게 한다(결정 4).
  * - EventBridge Scheduler의 워밍 이벤트({"warmup":true})는 HTTP 처리 없이 끝내고, 1시간에 한 번 DB에 `SELECT 1`을 보낸다

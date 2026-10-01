@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
-// 모든 요청의 JWT를 검증하고 req.user를 주입한다 (00문서 §3.3). AppModule에 APP_GUARD로 전역 등록.
+// 모든 요청의 JWT를 검증하고 req.user를 주입한다 (architecture/system-overview.md §3.3). AppModule에 APP_GUARD로 전역 등록.
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(private readonly reflector: Reflector) {

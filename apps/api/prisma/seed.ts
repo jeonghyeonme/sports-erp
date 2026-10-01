@@ -1,5 +1,5 @@
 /**
- * 시드 스크립트 — docs/00_공통설계서.md SHEET 04(가상 회사 시나리오) 데이터를 그대로 재현합니다.
+ * 시드 스크립트 — src/mock-data/*-fixtures.ts(시드 원천, 가상 회사 시나리오)를 그대로 재현합니다.
  * 등장인물: 정하늘(본사) · 김민수(서초점장) · 박서연(트레이너/강사) · 이수진(회원)
  *
  * 실행: npm run prisma:seed --workspace=apps/api  (package.json의 prisma.seed 설정 참고)

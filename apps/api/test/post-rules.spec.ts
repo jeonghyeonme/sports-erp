@@ -8,8 +8,8 @@ import { resetWorkerDb } from './helpers/worker-db';
  * 가시성(ADR-BRD-01)·페이지네이션(ADR-BRD-02)은 posts-member-visibility.spec.ts, 계약 종료 차단은
  * contract-termination.spec.ts, 타 지점 격리는 branch-isolation.spec.ts가 본다.
  * - 조회수: 동시 조회에도 증가분을 잃지 않는다(원자적 증가, D36 결정 2)
- * - 소프트 삭제(04문서 §6): 행은 남고 상세·목록에서 빠지며, 두 번째 삭제·삭제된 글 수정은 404
- * - 수정은 작성자 본인만, 삭제는 작성자 또는 본사(04문서 §5)
+ * - 소프트 삭제(게시판 A-6): 행은 남고 상세·목록에서 빠지며, 두 번째 삭제·삭제된 글 수정은 404
+ * - 수정은 작성자 본인만, 삭제는 작성자 또는 본사(게시판 A-5)
  */
 describe('게시판 규칙 (D36)', () => {
   let app: INestApplication;

@@ -1,6 +1,6 @@
 # api 게이트웨이 + admin-web 정적 자산 (Cloudflare Worker)
 
-D24(`docs/2.decisions/50_결정및이슈기록/2-1_기술결정사항.md`) 1.5단계 — 도메인 없이 `*.workers.dev`로 Render api 앞에 엣지 프록시를 세워, 로그인·회원가입·연동 경로만 Cloudflare Rate Limiting으로 막는다. 나머지 `/api/*` 경로는 그대로 Render로 흘려보낸다.
+D24(`docs/decisions/D24.md`) 1.5단계 — 도메인 없이 `*.workers.dev`로 Render api 앞에 엣지 프록시를 세워, 로그인·회원가입·연동 경로만 Cloudflare Rate Limiting으로 막는다. 나머지 `/api/*` 경로는 그대로 Render로 흘려보낸다.
 
 **D25(2026-09-27)로 admin-web(UI)도 이 Worker의 정적 자산으로 흡수됐다** — Render의 `sports-erp-web` Static Site는 더 이상 쓰지 않는다. `wrangler.jsonc`의 `assets.run_worker_first`가 `/api/*`로만 한정돼 있어서, UI 요청은 `src/index.ts`를 거치지 않고 Cloudflare가 바로 정적 자산으로 서빙하고, `not_found_handling: single-page-application`이 새로고침 시 `index.html` 폴백을 보장한다. 결과적으로 UI와 API가 같은 오리진이 되어 CORS 자체가 성립하지 않는다.
 

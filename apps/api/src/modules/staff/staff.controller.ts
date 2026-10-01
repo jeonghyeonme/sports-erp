@@ -16,7 +16,7 @@ export class StaffController {
   // D30 — 원천은 DB(StaffService). 응답 형식은 이관 전(mock 직원 + branchName)과 같다.
   constructor(private readonly staffService: StaffService) {}
 
-  // 02문서 §5 — 퇴사자는 기본적으로 숨기고(status!=RESIGNED), status를 명시하면 그 값만 조회(§6).
+  // 인사정보관리 A-5 — 퇴사자는 기본적으로 숨기고(status!=RESIGNED), status를 명시하면 그 값만 조회(§6).
   @Get()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   async list(
@@ -27,7 +27,7 @@ export class StaffController {
     return ok(await this.staffService.list({ branchId, status, position }));
   }
 
-  // STAFF 본인 레코드만 셀프서비스로 조회(02문서 §7) — 동료 직원 정보는 노출하지 않는다.
+  // STAFF 본인 레코드만 셀프서비스로 조회(인사정보관리 A-7) — 동료 직원 정보는 노출하지 않는다.
   @Get('me')
   async me(@CurrentUser() user: RequestUser) {
     const staff = user.staffId ? await this.staffService.findById(user.staffId) : null;

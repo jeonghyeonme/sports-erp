@@ -4,7 +4,7 @@
 >
 > **계기**: 사용자가 "최근 커밋에서 데이터 정합성 측면의 ADR을 뽑아 실DB로 전환하기 전에 적용하고 싶다"고 요청했다(2026-09-29). 9개 도메인 문서의 ADR 22개와 Tier2 규칙표에서 정합성 규칙을 모았고, 규칙마다 **"DB가 강제할 수 있는가, 있다면 어떤 수단으로"**를 기준으로 나눴다. 지금은 모든 규칙이 `MockDataService`의 앱 로직 한 겹으로만 지켜진다. 단일 Node 프로세스에서는 그걸로 충분했지만, Lambda 병렬 인스턴스(D26)에서는 "검사 후 쓰기" 사이 경합과 새 코드 경로의 검증 누락을 앱 한 겹으로 막을 수 없다.
 >
-> **관련**: [2-1_기술결정사항.md](../2.decisions/50_결정및이슈기록/2-1_기술결정사항.md) D26(실DB 전환 1단계)·D27(부분 unique·날짜)·D28(이 문서), [date-time-handling.md](./date-time-handling.md), [traffic-infra-review.md](./traffic-infra-review.md)(성능 관점 — 이 문서는 정확성 관점).
+> **관련**: [decisions/](../decisions/README.md) D26(실DB 전환 1단계)·D27(부분 unique·날짜)·D28(이 문서), [date-time-handling.md](date-time-handling.md), [traffic-infra-review.md](traffic-infra-review.md)(성능 관점 — 이 문서는 정확성 관점).
 
 ## 1. 규칙 인벤토리
 
@@ -14,14 +14,14 @@
 | 직원당 진행 중 파견 1건 | ADR-STF-03 | 부분 unique 인덱스 | **DB 적용**(D27) |
 | 같은 회원·회차 활성 예약 1건 | ADR-RSV-02 | 부분 unique 인덱스 | **DB 적용**(D27) |
 | 하루 1건 근태, 결근 확정 멱등 | 근태 불변규칙 1, ADR-ATT-02 | unique(staffId, date) | **DB 적용**(D26 이전부터) |
-| 예약당 결제 1건 | 1-7문서 | unique(reservationId) | **DB 적용**(D26 이전부터) |
+| 예약당 결제 1건 | 예약및결제 문서 | unique(reservationId) | **DB 적용**(D26 이전부터) |
 | PAID_SESSION 정원 ≥ 1, 정원·가격 ≥ 0 | ADR-PRG-01 | CHECK | **DB 적용**(D28) |
 | 회차 정원 ≥ 1 | ADR-RSV-01 전제 | CHECK | **DB 적용**(D28) |
 | 공급가액 + 부가세 = 결제금액 | 예약 불변규칙 4 | CHECK | **DB 적용**(D28) |
 | PT 사용 0 ≤ used ≤ total | ADR-MEM-03 | CHECK | **DB 적용**(D28) |
 | 지점 공지는 항상 회원 공개·지점 필수 | ADR-BRD-01 | CHECK | **DB 적용**(D28) |
 | 혼잡도 단계 1~5, 인원 ≥ 0, 정원 ≥ 1 | ADR-FAC-01 | CHECK(Facility·CongestionSnapshot) | **DB 적용**(D28) |
-| 고정자산 수량 1, 수량·취득가 ≥ 0 | 1-10문서 §4, RES-T01 | CHECK | **DB 적용**(D28) |
+| 고정자산 수량 1, 수량·취득가 ≥ 0 | 자원문서관리 부록 A, RES-T01 | CHECK | **DB 적용**(D28) |
 | CONTRACT 문서 보존기한 필수 | ADR-RES-03 | CHECK | **DB 적용**(D28) |
 | HR_RECORD 문서 대상 직원 필수 | RES-T05 | CHECK | **DB 적용**(D28) |
 | 휴무 요일 0~6, 파트타임 휴무 없음 | ATT-T05/STF-T04 | CHECK | **DB 적용**(D28) |
@@ -37,7 +37,7 @@
 | 퇴사 = 계정 비활성화 + 파견 종료 + HR_RECORD 보존기한 재계산 | ADR-STF-01, ADR-RES-02 | 단일 트랜잭션 | 인사정보관리 이관 때 구현(체크리스트 §5) |
 | 연차 승인과 잔여일수 차감을 함께 | ADR-ATT-01 | 단일 트랜잭션 | 근태관리 이관 때 구현 |
 | 프로그램 수정은 전부 검증 후 한 번에 반영 | ADR-PRG-01(부분수정 결함) | 단일 `update` 호출 | 강사프로그램 이관 때 구현 |
-| Staff.branchId = 진행 중 파견의 branchId | 1-1문서 §2-2(비정규화 캐시) | 단일 트랜잭션(ADR-STF-01) | 인사정보관리 이관 때 구현 |
+| Staff.branchId = 진행 중 파견의 branchId | architecture/entities.md §2-2(비정규화 캐시) | 단일 트랜잭션(ADR-STF-01) | 인사정보관리 이관 때 구현 |
 | 근태 branchId = 그날 소속 지점 | ADR-ATT-03 | 앱(`branchIdForStaffOnDate`) | 이관 때 로직 그대로 이식 — DB로 표현하기엔 구간 조인이 필요해 앱 유지 |
 
 ## 2. DI-01: 한 행 규칙은 DB CHECK로 이중화하되, 앱이 이미 검증하는 규칙만
@@ -95,7 +95,7 @@ DI-01 원칙상 이번 CHECK에서 뺐다. 각 도메인을 이관할 때 앱 �
 
 ## 6. 도메인 이관 체크리스트 (정합성)
 
-도메인을 Prisma로 옮길 때 [traffic-infra-review.md](./traffic-infra-review.md)(성능)와 함께 이 목록을 확인한다.
+도메인을 Prisma로 옮길 때 [traffic-infra-review.md](traffic-infra-review.md)(성능)와 함께 이 목록을 확인한다.
 
 - [ ] 채번은 `allocateBranchCode`로(인사 STAFF·회원 MEMBER·자산 ASSET). 그 도메인의 기존 데이터를 이관한다면 `CodeSequence`부터 초기화.
 - [ ] 예약 생성은 `$transaction` 안에서 `lockScheduleSlot` → 활성 예약 COUNT → 삽입. 부분 unique 위반(P2002)은 `ALREADY_RESERVED` 409로 변환.

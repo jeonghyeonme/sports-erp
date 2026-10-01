@@ -119,7 +119,7 @@ describe('결근 미리보기·확정 (ADR-ATT-02)', () => {
     expect(res.status).toBe(403);
   });
 
-  it('SUPER_ADMIN도 결근을 확정할 수 없다(현장 운영 비개입 원칙, 03문서 §7)', async () => {
+  it('SUPER_ADMIN도 결근을 확정할 수 없다(현장 운영 비개입 원칙, 근태관리 A-7)', async () => {
     const superToken = await login(app, ACCOUNTS.superAdmin);
     const res = await confirm(undefined, superToken);
     expect(res.status).toBe(403);

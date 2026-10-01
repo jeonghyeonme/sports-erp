@@ -59,7 +59,7 @@ export function AttendancePage() {
   const [leaveForm, setLeaveForm] = useState({ type: 'ANNUAL' as LeaveType, startDate: todayStr(), endDate: todayStr(), reason: '' });
   const [workLogForm, setWorkLogForm] = useState({ date: todayStr(), content: '' });
 
-  // 03문서 §5 GET /attendance — staffId 생략 시 API가 본인 기준으로 응답한다.
+  // 근태관리 A-5 GET /attendance — staffId 생략 시 API가 본인 기준으로 응답한다.
   const myAttendance = useApiList<AttendanceRecordRow>(['attendance', 'mine', month], `/attendance?month=${month}`);
   const todayRecord = myAttendance.data?.find((r) => r.date === todayStr());
 
@@ -76,7 +76,7 @@ export function AttendancePage() {
 
   const myWorkLogs = useApiList<WorkLogRow>(['work-logs', 'mine', staffId], `/work-logs?staffId=${staffId}`);
 
-  // 관리 영역 — BRANCH_ADMIN만 조회(03문서 §7 "본인 지점 조회 + 휴가 승인").
+  // 관리 영역 — BRANCH_ADMIN만 조회(근태관리 A-7 "본인 지점 조회 + 휴가 승인").
   const summaryQuery = useApiList<AttendanceSummaryRow>(['attendance-summary', month], `/attendance/summary?month=${month}`);
   const pendingLeaveQuery = useApiList<LeaveRequestRow>(['leave-requests', 'pending'], '/leave-requests?status=PENDING');
 
@@ -141,7 +141,7 @@ export function AttendancePage() {
       <div className="page-header">
         <h2>근태관리</h2>
         <p className="page-desc">
-          03문서 기준 — 체크인/아웃, 휴가 신청·승인, 업무일지를 본인 레코드 기준으로 셀프서비스합니다.
+          근태관리 문서 기준 — 체크인/아웃, 휴가 신청·승인, 업무일지를 본인 레코드 기준으로 셀프서비스합니다.
           {isAdmin && ' 지점 관리자는 아래에서 지점 전체 근태 요약과 휴가 승인함도 함께 볼 수 있습니다.'}
         </p>
       </div>

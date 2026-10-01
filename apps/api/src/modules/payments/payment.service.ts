@@ -8,7 +8,7 @@ import { ReservationService, ReservationView, splitVat, toMockPayment } from '..
 
 export type PaymentView = MockPayment & { memberName?: string; programName?: string; branchName?: string };
 
-/** 결제(모의) — D32(2-1_기술결정사항.md). 원천은 DB. */
+/** 결제(모의) — D32. 원천은 DB. */
 @Injectable()
 export class PaymentService {
   constructor(
@@ -17,14 +17,14 @@ export class PaymentService {
   ) {}
 
   /**
-   * 06문서 §5 POST /payments/:reservationId/mock-pay — 예약 당사자 본인만(컨트롤러가 먼저 확인).
+   * 예약및결제 A-5 POST /payments/:reservationId/mock-pay — 예약 당사자 본인만(컨트롤러가 먼저 확인).
    * 결제 승인과 예약 확정을 한 트랜잭션에서, "PENDING일 때만" 바꿔 두 번 눌러도 한 번만 승인된다.
    */
   async mockPay(reservationId: string): Promise<{ reservation: ReservationView; payment: MockPayment }> {
     await this.prisma.$transaction(async (tx) => {
       const payment = await tx.payment.findUnique({ where: { reservationId } });
       if (!payment || payment.status !== 'PENDING') throw notPending();
-      // 06문서 §6 부가세 분리 — 생성 시점에 이미 나눴지만 승인 시점 금액으로 다시 확정한다(같은 계산).
+      // 예약및결제 A-6 부가세 분리 — 생성 시점에 이미 나눴지만 승인 시점 금액으로 다시 확정한다(같은 계산).
       const { count } = await tx.payment.updateMany({
         where: { id: payment.id, status: 'PENDING' },
         data: {
@@ -42,7 +42,7 @@ export class PaymentService {
   }
 
   /**
-   * 06문서 §5 GET /payments — 지점 범위는 컨트롤러가 정한다. 날짜 필터는 KST 날짜로 비교한다(D32 결정 5 —
+   * 예약및결제 A-5 GET /payments — 지점 범위는 컨트롤러가 정한다. 날짜 필터는 KST 날짜로 비교한다(D32 결정 5 —
    * 예전 mock은 approvedAt ISO 문자열 앞 10자리, 즉 UTC 날짜로 비교했다). 미승인 건은 날짜 필터에서 빠지지 않는다.
    */
   async list(filter: { branchId?: string; dateFrom?: string; dateTo?: string }): Promise<PaymentView[]> {

@@ -70,7 +70,7 @@ export function BranchDetailPage() {
   const staffQuery = useApiList<StaffRow>(['staff', branchId], `/staff?branchId=${branchId}`);
   const membersQuery = useApiList<MemberRow>(['members', branchId], `/members?branchId=${branchId}`);
   const programsQuery = useApiList<ProgramRow>(['programs', branchId], `/programs?branchId=${branchId}`);
-  // 07문서 §5 지점 현황판 API — 이미 완성돼 있었지만 화면 어디서도 호출하지 않던 것을 여기서 연결한다.
+  // 강사프로그램게시 A-5 지점 현황판 API — 이미 완성돼 있었지만 화면 어디서도 호출하지 않던 것을 여기서 연결한다.
   const programSummaryQuery = useQuery<ProgramStatusSummary | undefined>({
     queryKey: ['programs-summary', branchId],
     queryFn: async () =>
@@ -87,7 +87,7 @@ export function BranchDetailPage() {
   const programs = programsQuery.data ?? [];
   const facilities = facilitiesQuery.data ?? [];
   const unassignedMembers = members.filter((m) => !m.assignedStaffId);
-  // ADR-RES-01 — 계약종료 지점의 잔여 자산은 자동 처리하지 않고 경고만 노출한다(1-10문서 §4-6).
+  // ADR-RES-01 — 계약종료 지점의 잔여 자산은 자동 처리하지 않고 경고만 노출한다(자원문서관리 A-6).
   const unprocessedAssetCount = (assetsQuery.data ?? []).filter((a) => a.status !== 'DISPOSED').length;
 
   return (
@@ -135,7 +135,7 @@ export function BranchDetailPage() {
           </div>
         )}
         <p className="page-desc">
-          계약서 스캔본을 업로드하면 OCR·AI가 이 필드들을 자동으로 채우는 기능은 설계돼 있습니다(2-4문서 §1-1,
+          계약서 스캔본을 업로드하면 OCR·AI가 이 필드들을 자동으로 채우는 기능은 설계돼 있습니다(차별화전략 §1-1,
           Phase 2~3 예정) — 지금은 mock 값을 그대로 보여줍니다.
         </p>
       </section>

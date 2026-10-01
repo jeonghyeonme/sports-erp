@@ -9,7 +9,7 @@ import { UpdateAssetDto } from './dto/update-asset.dto';
 import { UpdateAssetStatusDto } from './dto/update-asset-status.dto';
 import { AssetService, AssetView } from './asset.service';
 
-// 1-10문서 §4-5·§4-7 — SUPER_ADMIN은 전체, BRANCH_ADMIN은 본인 지점만. MEMBER·STAFF는 접근 불가.
+// 자원문서관리 A-5·A-7 — SUPER_ADMIN은 전체, BRANCH_ADMIN은 본인 지점만. MEMBER·STAFF는 접근 불가.
 // D35 — 원천은 DB(AssetService).
 @Controller('assets')
 @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
