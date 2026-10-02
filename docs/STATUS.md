@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-01 · [log/053](log/053.md)(문서 구조 재편)
+> 마지막 갱신: 2026-10-02 · [log/054](log/054.md)(Function URL 비공개화)
 
 ## 현재 상태
 
@@ -16,7 +16,8 @@
 
 ## 다음 할 일 (우선순위순)
 
-1. **Lambda 전환(D37) — 아직 AWS 쪽은 아무것도 만들지 않음.** 진행 방식: 사용자 PC에서 `aws login --region ap-southeast-2 --profile sports-erp`("새로운 AWS 경험" 프로젝트가 시드니라 로그인만 시드니, 리소스는 서울) → 로컬 Claude Code가 [aws-lambda/CLI-RUNBOOK.md](../aws-lambda/CLI-RUNBOOK.md)를 따라 실행 → k6 결과를 D37 §4에 기록 → Render 일시정지.
+1. **Lambda 전환(D37) — 아직 AWS 쪽은 아무것도 만들지 않음.** "새로운 AWS 경험" 계정은 AWS 관리 SCP가 서울 Lambda와 GitHub OIDC를 막아서 해지했다([log/054](log/054.md)). 사용자가 **클래식 계정(유료 플랜 — 이전 가입 이력 때문에 Free plan 불가)**을 만드는 중이다. 그다음 `aws login --region ap-northeast-2 --profile sports-erp` → 로컬 Claude Code가 [aws-lambda/CLI-RUNBOOK.md](../aws-lambda/CLI-RUNBOOK.md)를 실행 → k6 결과를 D37 §4에 기록 → Render 일시정지. 재개 전에 사용자에게 받을 답: 비밀값 처리 방식(런북의 `.env` source는 전역 가드레일·guard-bash hook과 충돌 → 비밀값 단계는 사용자가 `!`로 실행하는 안), 리소스 생성 승인, GitHub 등록 방식(`gh` 미설치), 비용 자동 차단 장치 여부(알림만 / 자동 차단).
+   - Worker의 `API_ORIGIN`이 이제 secret이다 — **다음 Worker 배포는 `--secrets-file`로 origin을 함께 넣어야 한다**([cloudflare-worker/README.md](../cloudflare-worker/README.md)).
 2. **Worker rate limit 429 실동작 확인** — [cloudflare-worker/README.md](../cloudflare-worker/README.md)의 curl 테스트([log/033](log/033.md)부터 미확인).
 3. **트래픽·인프라 후보 이슈를 ADR로 승격** — [traffic-infra-review.md](architecture/traffic-infra-review.md)를 체크리스트로, 대안 비교 후 각 도메인 문서에 정식 ADR로([log/039](log/039.md)). 권한관리·인사정보관리·예약및결제도 같은 관점으로 스캔.
 4. 폐기 자산 누적 대응(페이지네이션·아카이빙) — 화면 설계와 함께(traffic-infra-review 자원문서관리).
@@ -33,3 +34,4 @@
 
 - 실제 AWS 위의 Lambda 동작(Function URL·풀러·동시성 상한·스로틀 응답 형식)은 **검증되지 않음** — 로컬 Amazon Linux 컨테이너에서만 확인했다([log/052](log/052.md)).
 - admin-web은 테스트가 없어 lint·빌드만 검증된다.
+- AWS 클래식 계정은 유료 플랜이라 지출 한도가 없다 — 공개 Function URL로 들어오는 대량 요청이 비용 위험이다. 예산 경보($1/$5/$20)를 먼저 걸 것([log/054](log/054.md)).

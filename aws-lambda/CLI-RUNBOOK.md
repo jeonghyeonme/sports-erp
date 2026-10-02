@@ -106,12 +106,13 @@ aws iam create-role --role-name sports-erp-github-deploy --assume-role-policy-do
 aws iam put-role-policy --role-name sports-erp-github-deploy --policy-name deploy-sports-erp-api --policy-document file:///tmp/deploy.json
 ```
 
-GitHub Variables 3개와 Secret 1개를 등록한다. `gh`가 있으면 Claude가 하고, 없으면 사용자가 Settings → Secrets and variables → Actions에서 한다.
+GitHub Variables 2개와 Secrets 2개를 등록한다. `gh`가 있으면 Claude가 하고, 없으면 사용자가 Settings → Secrets and variables → Actions에서 한다.
+Function URL은 Variable이 아니라 **Secret**이다. 공개 저장소의 Actions 로그에 주소가 찍히지 않게 하려는 것이다([README.md](README.md) 4번).
 
 ```bash
 gh variable set AWS_LAMBDA_DEPLOY_ROLE_ARN --body "arn:aws:iam::$ACCOUNT:role/sports-erp-github-deploy"
 gh variable set LAMBDA_FUNCTION_NAME --body "$FN"
-gh variable set LAMBDA_FUNCTION_URL --body "<3번 URL>"
+gh secret set LAMBDA_FUNCTION_URL --body "<3번 URL>"
 gh secret set ORIGIN_SECRET --body "$ORIGIN_SECRET"
 gh workflow run deploy-api-lambda.yml --ref main-5x9td9 && sleep 5 && gh run watch
 ```
@@ -127,13 +128,18 @@ gh workflow run deploy-api-lambda.yml --ref main-5x9td9 && sleep 5 && gh run wat
 
 ## 5. Cloudflare Worker 전환
 
+`API_ORIGIN`도 Worker secret이다. `wrangler.jsonc`는 고치지 않는다. 코드와 secret 두 개를 한 번에 올려서 origin이 비는 순간을 없앤다.
+
 ```bash
-# wrangler.jsonc의 vars.API_ORIGIN을 Function URL(끝 "/" 없이)로 바꿔 커밋(PR)
-cd cloudflare-worker && printf %s "$ORIGIN_SECRET" | npx wrangler secret put ORIGIN_SECRET
-cd .. && npm run build --workspace=apps/admin-web && cd cloudflare-worker && npx wrangler deploy
+FURL="<3번 URL>"   # 끝 "/"는 아래에서 뗀다
+npm run build --workspace=apps/admin-web
+node -e 'console.log(JSON.stringify({API_ORIGIN:process.argv[1].replace(/\/$/,""),ORIGIN_SECRET:process.env.ORIGIN_SECRET}))' "$FURL" > ~/worker-secrets.json
+(cd cloudflare-worker && npx wrangler deploy --secrets-file ~/worker-secrets.json); rm -f ~/worker-secrets.json
 ```
 
-Worker 주소에서 로그인을 확인한다(`kim.minsu@spoism.example` / `demo-password-1234`). 문제가 있으면 `API_ORIGIN`을 Render 주소로 되돌려 다시 배포한다.
+Worker 주소에서 로그인을 확인한다(`kim.minsu@spoism.example` / `demo-password-1234`). 문제가 있으면 `API_ORIGIN`만 Render 주소로 바꿔 같은 방법으로 다시 배포한다.
+- 기존 배포에 남은 일반 변수 `API_ORIGIN`과 이름이 충돌한다는 에러가 나면, 대시보드 → Worker → Settings → Variables and Secrets에서 그 변수를 지우고 다시 실행한다(아직 확인되지 않음).
+- Function URL은 STATUS·log·D37·발표자료 등 문서에 적지 않는다. "Function URL(별칭 live)"로만 쓴다.
 
 ## 6. 워밍·관측
 

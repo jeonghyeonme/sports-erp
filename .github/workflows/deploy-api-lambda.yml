@@ -4,8 +4,9 @@ name: Deploy api (AWS Lambda)
 # AWS 인증은 GitHub OIDC로 역할을 맡는다(액세스 키를 저장하지 않음). 설정 전에는 배포 잡이 건너뛰어진다.
 #
 # 저장소 설정(Settings → Secrets and variables → Actions)에 필요한 값 — aws-lambda/README.md 체크리스트 참고:
-#   variables: AWS_LAMBDA_DEPLOY_ROLE_ARN, LAMBDA_FUNCTION_NAME, LAMBDA_FUNCTION_URL
+#   variables: AWS_LAMBDA_DEPLOY_ROLE_ARN, LAMBDA_FUNCTION_NAME
 #   secrets:   ORIGIN_SECRET (Lambda 환경변수·Worker secret과 같은 값 — 배포 후 health 확인에 쓴다)
+#              LAMBDA_FUNCTION_URL (공개 저장소의 Actions 로그에 주소가 찍히지 않게 variable이 아니라 secret으로 둔다)
 on:
   push:
     branches: [main-5x9td9]
@@ -81,7 +82,7 @@ jobs:
       - name: Health check
         id: health
         env:
-          URL: ${{ vars.LAMBDA_FUNCTION_URL }}
+          URL: ${{ secrets.LAMBDA_FUNCTION_URL }}
           ORIGIN_SECRET: ${{ secrets.ORIGIN_SECRET }}
         run: |
           set -uo pipefail

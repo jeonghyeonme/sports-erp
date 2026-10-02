@@ -27,6 +27,16 @@ npx wrangler login       # 처음 한 번만 — 브라우저가 열리고 Cloud
 npx wrangler deploy
 ```
 
+origin 주소 `API_ORIGIN`은 저장소가 아니라 Worker secret에 있다(D37 — 공개 저장소에 Lambda Function URL을 남기지 않는다). `wrangler.jsonc`의 `secrets.required`에 올라 있어서, secret이 없으면 `wrangler deploy`가 실패한다. secret은 배포해도 지워지지 않으므로 한 번 넣은 뒤로는 위 명령 그대로 배포하면 된다.
+
+**처음 한 번(또는 origin을 바꿀 때)** — 코드와 secret을 한 번에 올려서 origin이 비는 순간이 없게 한다:
+
+```bash
+# 값은 Render 주소(전환 전) 또는 Lambda Function URL(전환 후, 끝 "/" 없이). 파일은 저장소 밖에 두고 바로 지운다.
+printf '{"API_ORIGIN":"%s"}' "<origin 주소>" > ~/worker-secrets.json
+npx wrangler deploy --secrets-file ~/worker-secrets.json; rm ~/worker-secrets.json
+```
+
 성공하면 마지막에 이런 줄이 나온다:
 
 ```
