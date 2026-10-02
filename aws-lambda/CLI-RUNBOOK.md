@@ -3,13 +3,14 @@
 > 콘솔 대신 **사용자 PC의 AWS CLI 자격 증명**으로 [README.md](README.md)의 0~8번을 실행하는 순서다. 근거는 [D37](../docs/decisions/D37.md).
 > 로컬 Claude Code 세션은 이 파일을 위에서부터 따라가면 된다. 리소스를 만들기 전에 사용자에게 아래 "만들 것" 목록을 보여주고 확인받는다.
 > 클라우드 세션에서는 자격 증명 취득이 권한 정책으로 막혀서 이 경로를 택했다(2026-10-02).
+> **어디까지 했는지는 [STATUS](../docs/STATUS.md)를 본다.** 2026-10-03에 0~4번과 6번의 리소스를 만들었다([log/055](../docs/log/055.md)).
 
 ## 전제 (사용자가 먼저 해 둘 것)
 
-1. AWS CLI v2 설치 후 로그인한다. 이 계정은 "새로운 AWS 경험"이고 프로젝트가 시드니에 있어서, **로그인만 시드니**로 한다. 리소스는 모두 **서울**에 만든다.
+1. AWS CLI v2 설치 후 로그인한다. 계정은 **클래식 가입 계정**이고, CLI는 관리자 권한 IAM 사용자로 로그인한다. "새로운 AWS 경험" 계정은 AWS 관리 SCP가 서울 Lambda와 OIDC를 막아서 쓰지 않는다([log/054](../docs/log/054.md)).
    ```bash
    aws configure set region ap-northeast-2 --profile sports-erp
-   aws login --region ap-southeast-2 --profile sports-erp
+   aws login --region ap-northeast-2 --profile sports-erp   # 별도 터미널에서 — 프로필 덮어쓰기 y/n 질문은 `!`로는 답할 수 없다
    ```
    - 자격 증명은 12시간 유효하고, 90일까지는 브라우저 재로그인 없이 갱신된다.
 2. 비밀값 파일 `aws-lambda/.env`를 만든다. `.gitignore`의 `.env` 규칙에 걸려 커밋되지 않는다.
@@ -21,7 +22,9 @@
    - 비밀번호에 특수문자가 있으면 URL 인코딩한다.
 3. (선택) `gh auth login`을 해 두면 GitHub Variables 등록과 워크플로 실행도 Claude가 한다.
 
-**비밀값은 대화창에 붙여넣지 않는다.** Claude는 파일에서 읽어 명령에 넘기고, 값을 출력하지 않는다.
+**비밀값은 대화창에 붙여넣지 않는다.** Claude는 `.env`를 읽지 않는다(전역 가드레일·guard-bash hook). 비밀값이 필요한 명령은 사용자가 `!`로 실행한다 — 함수 환경 변수는 [set-lambda-env.sh](set-lambda-env.sh), health 확인·Worker 전환은 아래 4·5번 명령. 그래서 1~2번의 함수는 `NODE_ENV`만 넣어 만들고, 비밀값은 스크립트로 나중에 넣는다.
+
+Windows Git Bash 주의: `/aws/lambda/...` 같은 인자는 `MSYS_NO_PATHCONV=1`이 없으면 Windows 경로로 바뀐다. 자리표시 zip은 PowerShell `Compress-Archive`(역슬래시 경로가 들어감) 대신 python `zipfile`로 만든다.
 
 ## 공통 변수
 
@@ -59,8 +62,9 @@ aws iam attach-role-policy --role-name sports-erp-api-exec \
 sleep 10   # 역할 전파 대기
 
 # create-function은 코드가 필요하다 — 자리표시 zip(실제 코드는 4번에서 GitHub Actions가 올린다)
-mkdir -p /tmp/ph && echo 'exports.handler=async()=>({statusCode:503,body:"not deployed"})' > /tmp/ph/index.js
-(cd /tmp/ph && zip -q ph.zip index.js)
+# 핸들러(dist/lambda.handler)와 같은 위치에 둔다 — index.js로 두면 워밍 호출이 "핸들러 없음" 오류를 내 Errors 경보가 울린다
+mkdir -p /tmp/ph/dist && echo 'exports.handler=async()=>({statusCode:503,body:"not deployed"})' > /tmp/ph/dist/lambda.js
+(cd /tmp/ph && zip -q ph.zip dist/lambda.js)
 
 ENVJSON=$(node -e 'const c=require("crypto");console.log(JSON.stringify({Variables:{NODE_ENV:"production",
   DATABASE_URL:process.env.LAMBDA_DATABASE_URL,ORIGIN_SECRET:process.env.ORIGIN_SECRET,
@@ -84,10 +88,10 @@ aws lambda create-function-url-config --function-name $FN --qualifier live --aut
 # 공개 호출 허용(인증 NONE URL)
 aws lambda add-permission --function-name $FN --qualifier live --statement-id url-public \
   --action lambda:InvokeFunctionUrl --principal '*' --function-url-auth-type NONE
-# 4번 확인에서 AWS가 {"Message":"Forbidden"}을 돌려주면, 최근 계정은 URL 호출에 lambda:InvokeFunction 권한도 요구하는 것이다.
-# 이때는 콘솔(함수 URL 생성 화면)이 자동으로 넣는 것과 같은 문장을 추가한다 — 조건 lambda:InvokedViaFunctionUrl=true로
-# "URL을 통한 호출만" 허용해야 한다(principal '*'에 조건 없이 InvokeFunction을 열지 말 것). `aws lambda add-permission help`에서
-# 해당 옵션 이름을 확인해 쓴다.
+# 최근 계정은 URL 호출에 lambda:InvokeFunction 권한도 요구한다(2026-10-03 실제로 이것 없이 {"Message":"Forbidden"}).
+# 조건 lambda:InvokedViaFunctionUrl=true로 "URL을 통한 호출만" 허용한다 — principal '*'에 조건 없이 열지 말 것.
+aws lambda add-permission --function-name $FN --qualifier live --statement-id url-invoke-via-url \
+  --action lambda:InvokeFunction --principal '*' --invoked-via-function-url
 # 0번에서 한도가 1000 이상이었을 때만:
 # aws lambda put-function-concurrency --function-name $FN --reserved-concurrent-executions 10
 ```
