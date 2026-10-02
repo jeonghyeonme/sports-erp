@@ -4,10 +4,12 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-27",
   // 커스텀 도메인 없이 <name>.<계정 서브도메인>.workers.dev 로 바로 배포된다(D24 참고).
-  // D37 — Lambda 전환 시 API_ORIGIN을 Lambda Function URL(별칭 live, 끝 "/" 없이)로 바꾸고
-  // `wrangler secret put ORIGIN_SECRET`을 넣는다(aws-lambda/README.md 5번). 그 전까지는 Render를 그대로 가리킨다.
-  "vars": {
-    "API_ORIGIN": "https://sports-erp-api.onrender.com"
+  // D37 — API_ORIGIN(origin 주소)은 vars가 아니라 Worker secret으로 둔다. 공개 저장소에 Lambda Function URL이
+  // 남으면 403 요청만으로도 호출 과금이 생기기 때문이다. 값은 Function URL(별칭 live, 끝 "/" 없이), 전환 전에는
+  // Render 주소. 넣는 방법은 aws-lambda/README.md 5번(`wrangler deploy --secrets-file`).
+  // required에 있으면 secret이 없을 때 wrangler deploy가 실패한다 — origin 없이 배포되는 것을 막는다.
+  "secrets": {
+    "required": ["API_ORIGIN"]
   },
   // D25 — admin-web(Render Static Site)을 이 Worker의 정적 자산으로 흡수한다.
   // run_worker_first를 /api/*로만 한정해서, UI 요청(/,/members 등)은 index.ts를 아예

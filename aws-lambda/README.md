@@ -122,8 +122,9 @@
 ```
 
 **GitHub 저장소 설정** — Settings → Secrets and variables → Actions:
-- [ ] Variables: `AWS_LAMBDA_DEPLOY_ROLE_ARN`(위 역할 ARN), `LAMBDA_FUNCTION_NAME`(`sports-erp-api`), `LAMBDA_FUNCTION_URL`(3번 URL)
-- [ ] Secrets: `ORIGIN_SECRET`(1번 값)
+- [ ] Variables: `AWS_LAMBDA_DEPLOY_ROLE_ARN`(위 역할 ARN), `LAMBDA_FUNCTION_NAME`(`sports-erp-api`)
+- [ ] Secrets: `ORIGIN_SECRET`(1번 값), `LAMBDA_FUNCTION_URL`(3번 URL)
+  - Function URL은 공개 주소지만 저장소·Actions 로그·문서에 남기지 않는다. 저장소가 공개라서, 수집된 주소로 오는 403 요청도 Lambda 호출로 과금되기 때문이다. Secret은 로그에서 `***`로 가려진다.
   - `AWS_LAMBDA_DEPLOY_ROLE_ARN`이 비어 있으면 배포 잡은 건너뛴다.
 
 **첫 배포**:
@@ -138,13 +139,16 @@
 
 ## 5. Cloudflare Worker 전환
 
-```bash
-cd cloudflare-worker
-npx wrangler secret put ORIGIN_SECRET      # 1번 값 붙여넣기
-```
+`API_ORIGIN`과 `ORIGIN_SECRET`은 둘 다 Worker secret이다. 저장소(`wrangler.jsonc`)에는 Function URL을 적지 않는다.
 
-- [ ] `wrangler.jsonc`의 `vars.API_ORIGIN`을 3번의 Function URL(끝 `/` 없이)로 바꾼다. URL을 세션에 알려줬다면 Claude가 커밋한 것을 받으면 된다.
-- [ ] 리포 루트에서 `npm run build --workspace=apps/admin-web`(UI도 최신으로)을 실행한다. 이어서 `cd cloudflare-worker && npx wrangler deploy`
+- [ ] 리포 루트에서 `npm run build --workspace=apps/admin-web`(UI도 최신으로)을 실행한다.
+- [ ] 저장소 밖에 secret 파일을 만들고 코드와 함께 한 번에 배포한 뒤 파일을 지운다:
+  ```bash
+  # 내용: {"API_ORIGIN":"<3번 Function URL, 끝 / 없이>","ORIGIN_SECRET":"<1번 값>"}
+  cd cloudflare-worker && npx wrangler deploy --secrets-file ~/worker-secrets.json; rm ~/worker-secrets.json
+  ```
+  - 기존 배포에 `API_ORIGIN`이 secret이 아닌 일반 변수로 남아 있어 충돌 에러가 나면, Cloudflare 대시보드 → Worker → Settings → Variables and Secrets에서 그 변수를 지우고 다시 실행한다(이 경우는 아직 확인되지 않았다).
+  - 되돌릴 때는 `API_ORIGIN`만 Render 주소로 바꿔 같은 방법으로 다시 배포한다.
 - [ ] Worker 주소에서 화면이 뜨고 로그인이 되는지 확인한다(데모 계정 `kim.minsu@spoism.example` / `demo-password-1234`).
 
 ## 6. 워밍·관측·비용 안전장치
