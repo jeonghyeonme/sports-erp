@@ -9,8 +9,10 @@
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+// URL.pathname은 Windows에서 "/C:/..."가 되어 chdir이 실패한다 — fileURLToPath로 OS 경로를 만든다.
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 process.chdir(root);
 
 const files = execSync('git -c core.quotepath=off ls-files --cached --others --exclude-standard', { encoding: 'utf8' })
