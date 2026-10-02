@@ -16,7 +16,7 @@
 
 ## 다음 할 일 (우선순위순)
 
-1. **Lambda 전환 마무리(D37)** — 사용자 작업: [aws-lambda/README.md](../aws-lambda/README.md) 0~4번(첫 배포는 GitHub Actions 수동 실행) → 5번 Worker 전환 → 6번 운영 설정 → k6 S1~S4 실측 결과를 D37 §4에 기록 → Render 일시정지.
+1. **Lambda 전환(D37) — 아직 AWS 쪽은 아무것도 만들지 않음.** 진행 방식: 사용자 PC에서 `aws login --region ap-southeast-2 --profile sports-erp`("새로운 AWS 경험" 프로젝트가 시드니라 로그인만 시드니, 리소스는 서울) → 로컬 Claude Code가 [aws-lambda/CLI-RUNBOOK.md](../aws-lambda/CLI-RUNBOOK.md)를 따라 실행 → k6 결과를 D37 §4에 기록 → Render 일시정지.
 2. **Worker rate limit 429 실동작 확인** — [cloudflare-worker/README.md](../cloudflare-worker/README.md)의 curl 테스트([log/033](log/033.md)부터 미확인).
 3. **트래픽·인프라 후보 이슈를 ADR로 승격** — [traffic-infra-review.md](architecture/traffic-infra-review.md)를 체크리스트로, 대안 비교 후 각 도메인 문서에 정식 ADR로([log/039](log/039.md)). 권한관리·인사정보관리·예약및결제도 같은 관점으로 스캔.
 4. 폐기 자산 누적 대응(페이지네이션·아카이빙) — 화면 설계와 함께(traffic-infra-review 자원문서관리).

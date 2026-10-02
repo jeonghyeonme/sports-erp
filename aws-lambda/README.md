@@ -6,6 +6,8 @@
 - 앞단은 기존 Cloudflare Worker(UI + `/api/*` 프록시 + 로그인 rate limit)다.
 - 동시 실행 상한 10을 넘는 요청은 입구에서 바로 거절한다(Lambda 429 → Worker 503 `SERVER_BUSY`).
 
+**CLI로 진행하려면 [CLI-RUNBOOK.md](CLI-RUNBOOK.md)** — 사용자 PC에서 `aws login`한 로컬 Claude Code가 아래 0~6번을 명령으로 실행한다(2026-10-02, 클라우드 세션은 자격 증명 취득이 권한 정책으로 막혀 이 경로를 택함).
+
 **이 세션(Claude)에서는 AWS·Cloudflare에 접속할 수 없다.** 아래 AWS 콘솔·Cloudflare·GitHub 설정은 직접 해야 한다. 코드 쪽(핸들러·패키징·배포 워크플로·Worker 변경)은 저장소에 이미 있다.
 
 **순서**: 0 확인 → 1 비밀값 → 2 함수(빈 껍데기) → 3 Function URL·상한 → 4 OIDC·첫 배포(여기서 코드가 처음 올라간다) → 5 Worker 전환 → 6 워밍·관측·비용 → 7 검증 → 8 정리. 로컬에서 zip을 만들어 올리지 않는다. 첫 업로드부터 GitHub Actions에 맡긴다(2번 참고).
