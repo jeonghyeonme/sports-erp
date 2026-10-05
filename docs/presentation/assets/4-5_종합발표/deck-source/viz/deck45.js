@@ -191,17 +191,16 @@ section('req-trace', { notes: 'RFP Ⅳ 2. 세부 과업 내용 표의 기능 요
   ]))) +
   foot('근거: 제안요청서 Ⅳ 2. 세부 과업 내용 · 요구사항추적표 §1'));
 
-const adj = (from, to, d) => `<div style="display:flex; align-items:center; gap:20px; padding:22px 28px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:12px"><p style="font-size:30px; color:${SOFT}; width:420px">${from}</p>${icon('PaperPlane', NAVY)}<p style="font-family:${DISPLAY}; font-size:32px; font-weight:700; color:${INK}; width:640px">${to}</p><p style="font-family:${MONO}; font-size:24px; font-weight:600; color:${NAVY}">${d}</p></div>`;
+const adj = (from, to) => `<div style="display:flex; align-items:center; gap:20px; padding:22px 28px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:12px"><p style="font-size:30px; color:${SOFT}; width:420px">${from}</p>${icon('PaperPlane', NAVY)}<p style="font-family:${DISPLAY}; font-size:32px; font-weight:700; color:${INK}; width:720px">${to}</p></div>`;
 section('req-adjust', { notes: '공통 원칙: 원본 요구사항의 표면적 형태가 아니라 실질적 의도를 파악해, 1인 개발이 가능한 범위 안에서 그 의도를 가장 잘 구현한다. 단, 줄인 영역에서도 핵심 안전장치(지점 격리, 예약 동시성)는 타협하지 않았다. 모의 결제는 상태 전이(대기→승인→환불)를 실물처럼 구현했다. 혼잡도는 체크인 데이터 자동계산 + 관리자 수동 보정 하이브리드(RFP의 30분 반영 요건보다 짧은 5분 주기 설계).' },
   head('요구사항 조정', '원문의 형태가 아니라, 원문의 의도를 구현했습니다') +
   fill(`<div style="display:flex; flex-direction:column; gap:14px">` +
-    adj('세부 권한 목록(입력·수정·삭제…)', '역할 4개 고정 + 지점 격리', 'D1') +
-    adj('다단계 결재', '본인 신청 + 관리자 1단계 승인', 'D11') +
-    adj('모바일 PG 결제', '모의 결제 — 상태 전이는 실물처럼', 'D5') +
-    adj('IoT 인원 계측', '체크인 자동계산 + 수동 보정', 'D10') +
+    adj('세부 권한 목록(입력·수정·삭제…)', '역할 4개 고정 + 지점 격리') +
+    adj('다단계 결재', '본인 신청 + 관리자 1단계 승인') +
+    adj('모바일 PG 결제', '모의 결제 — 상태 전이는 실물처럼') +
+    adj('IoT 인원 계측', '체크인 자동계산 + 수동 보정') +
     `</div>` + `<div style="height:20px"></div>` +
-    ptxt('줄인 곳에서도 <b>지점 격리와 예약 동시성</b>은 타협하지 않았습니다.', 30, INK, 600)) +
-  foot('근거: docs/decisions D1 · D5 · D10 · D11'));
+    ptxt('줄인 곳에서도 <b>지점 격리와 예약 동시성</b>은 타협하지 않았습니다.', 30, INK, 600)));
 
 const roleCard = (name, who, items, c, soft) => card(`<div style="display:flex">${pill(name, soft, c)}</div>` + ptxt(who, 26) + bullets(items, 26, 'Check', c), 'flex:1');
 section('req-roles', { notes: '역할 4개(D1·D12). 채용·재배치는 본사 관리자만(인사 권한 분리 불변식). 주의: 채용·재배치·퇴사 처리는 API로 구현됐지만 직원 화면은 조회 전용이라 "API로 구현, 화면은 후속 과제"라고 말할 것. 회원 기능은 회원 앱이 아니라 회원 계정으로 로그인한 관리자 웹 화면에서 쓴다.' },
@@ -275,8 +274,7 @@ section('data-integrity', { notes: '앱 코드의 검사는 사람이 새 쿼리
     bigNum('7', '개', '지점 일치 트리거 — 연결된 데이터는 같은 지점') +
     bigNum('3', '종', '부분 unique — 같은 회차 중복 예약 등') +
     `</div>` + `<div style="height:24px"></div>` +
-    `<div style="display:flex; align-items:center; gap:20px; padding:24px 32px; background:${RED_SOFT}; border:2px solid ${RED}; border-radius:14px">${icon('Warning', RED)}<p style="font-size:30px; font-weight:600; line-height:1.4; color:${INK}">만드는 과정에서 실제 결함 발견 — 회차 ID만 알면 <b>다른 지점 예약이 됐습니다.</b> 지금은 403 + 트리거로 막습니다.</p></div>` +
-    `<div style="height:20px"></div>` + bridge('다음 질문: 그럼 요청은 실제로 어떻게 흐르나')) +
+    `<div style="display:flex; align-items:center; gap:20px; padding:24px 32px; background:${RED_SOFT}; border:2px solid ${RED}; border-radius:14px">${icon('Warning', RED)}<p style="font-size:30px; font-weight:600; line-height:1.4; color:${INK}">만드는 과정에서 실제 결함 발견 — 회차 ID만 알면 <b>다른 지점 예약이 됐습니다.</b> 지금은 403 + 트리거로 막습니다.</p></div>`) +
   foot('근거: D27 · D28 · docs/log/042 · architecture/data-integrity.md'));
 
 // ════════════════════════════════════════════════════════════════════════
@@ -284,12 +282,13 @@ section('data-integrity', { notes: '앱 코드의 검사는 사람이 새 쿼리
 // ════════════════════════════════════════════════════════════════════════
 partSlide('p4', '04', '설계 Diagram', '실제로 어떻게 돌아가나', '파트 4. 구성도 → 지점 격리 흐름 → 예약 흐름 → 배포 구조가 바뀐 이유.');
 
-section('arch-system', { notes: '지금 운영 경로: 브라우저 → Cloudflare Worker(관리자 웹 정적 파일 + /api 프록시 + 로그인 요청 제한) → API(NestJS, Render 싱가포르) → Supabase Postgres(서울). 화면과 API를 같은 주소로 묶어 쿠키·CORS 문제를 없앴다(D25). Lambda(서울)는 10/4 GitHub Actions로 첫 배포에 성공했고 헬스체크 200을 받았다. 단 헬스체크는 DB를 거치지 않아 Lambda→DB 연결은 아직 확인 전이고, Worker는 아직 Render를 가리킨다. "Lambda로 운영 중"이라고 말하지 말 것.' },
+section('arch-system', { notes: '지금 운영 경로: 브라우저 → Cloudflare Worker(관리자 웹 정적 파일 + /api 프록시 + 로그인 요청 제한) → AWS Lambda(서울, NestJS API) → Supabase Postgres(서울). 화면과 API를 같은 주소로 묶어 쿠키·CORS 문제를 없앴다. Worker 경유로 로그인과 데이터 조회까지 확인했다. API와 DB가 같은 서울 리전이라 요청마다 쌓이던 리전 간 왕복이 사라졌다. 이전에 쓰던 Render(싱가포르)는 더 이상 운영 경로가 아니다. 참고: 배포 워크플로의 헬스체크는 DB를 거치지 않는 고정 응답이라, DB 연결은 실제 로그인·조회로 확인한 것이다. Lambda 위 부하 실측(k6)은 아직이다.' },
   head('시스템 구성도', '하나의 주소 뒤에 화면·API·DB가 있습니다') +
   diagramSide(F.sysArch,
     label('구성') +
-    bullets(['<b>Worker</b>가 화면과 API를 한 주소로 — 로그인 요청 제한도 여기서', '<b>DB</b>는 Supabase(서울)', '<b>Lambda</b>는 첫 배포 성공, 아직 트래픽 없음'], 28)) +
-  foot('근거: D25(오리진 통합) · D37(Lambda 전환) · docs/log/056'));
+    bullets(['<b>Worker</b>가 화면과 API를 한 주소로 — 로그인 요청 제한도 여기서', '<b>API</b>는 AWS Lambda(서울)', '<b>DB</b>는 Supabase(서울) — API와 같은 리전'], 28) +
+    ptxt('Worker 경유 로그인·데이터 조회까지 확인', 26)) +
+  foot('이전 운영 경로(Render, 싱가포르)는 Lambda 전환 후 쓰지 않습니다'));
 
 section('arch-isolation', { notes: '지점 격리는 두 겹이다. ③ 공통 가드는 경로·쿼리에 지점 ID가 있으면 내 지점인지 본다. 하지만 /members/:id 같은 단건 라우트는 지점 ID가 경로에 없으므로 ④ 컨트롤러가 꺼낸 데이터의 지점을 직접 확인한다. 존재 자체를 숨겨야 할 때는 404. 지점 단위 라우트를 추가하면 격리 테스트(branch-isolation.spec)의 공격 케이스 표에도 함께 추가하는 것이 규칙이다. 공통 가드로 중앙화하는 안은 사용자 승인 대기.' },
   head('지점 격리 흐름', '요청 하나가 네 관문을 통과해야 처리됩니다') +
@@ -309,14 +308,14 @@ section('arch-reservation', { notes: '예약 흐름(ADR-RSV-01·02, D32). ① �
   foot('근거: 예약및결제 ADR-RSV-01·02 · 검증: reservation-capacity · contract-termination 테스트'));
 
 const evo = (when, name, d, k) => { const m = { red: [RED_SOFT, RED], done: [GREEN_SOFT, GREEN], part: [AMBER_SOFT, AMBER], plan: [NAVY_SOFT, NAVY] }[k]; return `<div style="flex:1; display:flex; flex-direction:column; gap:12px; padding:28px; background:${m[0]}; border:2px solid ${m[1]}; border-radius:14px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${m[1]}">${when}</p><p style="font-family:${DISPLAY}; font-size:34px; font-weight:800; line-height:1.2; color:${INK}">${name}</p><p style="font-size:26px; line-height:1.4; color:${INK}">${d}</p></div>`; };
-section('arch-evolution', { notes: '배포 구조가 바뀐 이유를 원인→결정으로. 9/27 Render 무료 티어에서 k6 실측: 동시 로그인 40명에 로그인 p95 15.16초, 조회 API p95 1.18초(로컬 정상 처리는 65ms). 원인은 공유 CPU 1대에서 "지연→동시 요청 누적→CPU 경합→더 큰 지연" 자기강화 루프(design-constants ⑨). 서버를 늘리려면 메모리 상태(인메모리 mock)를 없애야 해서 실DB 전환(D26~D36)을 먼저 끝냈다. 그 위에서 Lambda: 요청마다 CPU가 따로라 루프의 CPU 고리가 끊기고, 남는 공유 자원인 DB 커넥션은 동시 실행 상한 10으로 보호한다(넘치면 대기열 대신 즉시 거절). Lambda 위 k6는 아직 안 쟀다.' },
+section('arch-evolution', { notes: '배포 구조가 바뀐 이유를 원인→결정으로. 9/27 Render 무료 티어에서 k6 실측: 동시 로그인 40명에 로그인 p95 15.16초, 조회 API p95 1.18초(로컬 정상 처리는 65ms). 원인은 공유 CPU 1대에서 "지연→동시 요청 누적→CPU 경합→더 큰 지연" 자기강화 루프(design-constants ⑨). 서버를 늘리려면 메모리 상태(인메모리 mock)를 없애야 해서 실DB 전환(D26~D36)을 먼저 끝냈다. 그 위에서 Lambda: 요청마다 CPU가 따로라 루프의 CPU 고리가 끊기고, 남는 공유 자원인 DB 커넥션은 동시 실행 상한 10으로 보호한다(넘치면 대기열 대신 즉시 거절). Lambda로 운영 전환은 끝났고(Worker 경유 로그인·조회 확인), Lambda 위 k6 재측정은 아직이다.' },
   head('배포 구조가 바뀐 이유', '실측 → 원인 → 실DB → Lambda') +
   fill(`<div style="display:flex; gap:14px; align-items:stretch">` +
     evo('9/27 · 실측', '로그인 p95 15초', 'Render 무료 티어, 동시 40명. 로컬 정상 처리는 65ms', 'red') +
     evo('원인', '공유 CPU 경합', '지연이 요청을 쌓고, 쌓인 요청이 지연을 키우는 루프', 'red') +
     evo('9/28~29 · D26~D36', '실DB 전환', '메모리 상태를 없애야 서버를 늘릴 수 있다', 'done') +
-    evo('9/30~10/4 · D37', 'Lambda(서울)', '요청마다 CPU 분리 + 동시 실행 상한 10으로 DB 보호', 'part') +
-    `</div>` + `<div style="height:24px"></div>` + bridge('다음 질문: 이걸 무엇으로, 어떻게 만들었나')) +
+    evo('9/30 이후 · D37', 'Lambda(서울) 운영', '요청마다 CPU 분리 + 동시 실행 상한 10으로 DB 보호', 'done') +
+    `</div>`) +
   foot('근거: D24(k6 실측) · D26~D36 · D37 · design-constants ⑨'));
 
 // ════════════════════════════════════════════════════════════════════════
@@ -332,7 +331,7 @@ section('stack', { notes: '스택 선택 근거: 모노레포로 클라이언트
     ['<b>웹</b>', 'React · Vite · React Query', '역할별 화면, 서버 상태 캐시'],
     ['<b>DB</b>', 'Supabase Postgres(서울)', '무료 · 트랜잭션 풀러 · 이전 쉬움'],
     ['<b>엣지</b>', 'Cloudflare Worker', '화면+API 한 주소, 요청 제한'],
-    ['<b>호스팅</b>', 'Render → AWS Lambda(서울)', '요청별 CPU 격리(D37)'],
+    ['<b>호스팅</b>', 'AWS Lambda(서울) · 이전 Render', '요청별 CPU 격리, DB와 같은 리전'],
     ['<b>CI·배포·측정</b>', 'GitHub Actions(OIDC) · k6', '검증 후 배포, 실패 시 롤백'],
   ]))) +
   foot('검증 범위: API는 jest 자동 테스트 · 관리자 웹은 lint·빌드까지(테스트 없음)'));
@@ -353,22 +352,30 @@ section('ai-verify', { notes: 'AI 결과물을 믿지 않고 기계로 검증한
     card(icon('Verified', NAVY) + h3('테스트 파일 27개', 34) + ptxt('불변식 3개 + 실DB 동시성'), 'flex:1') +
     card(icon('Book', NAVY) + h3('결정 38 · 로그 57', 34) + ptxt('왜 그렇게 됐는지 따라갈 수 있게'), 'flex:1') +
     `</div>` + `<div style="height:24px"></div>` +
-    `<div style="display:flex; align-items:center; gap:20px; padding:24px 32px; background:${AMBER_SOFT}; border:2px solid ${AMBER}; border-radius:14px">${icon('Warning', AMBER)}<p style="font-size:28px; line-height:1.4; color:${INK}"><b>한계:</b> 관리자 웹은 자동 테스트가 없어 lint·빌드(타입체크)까지만 검증됩니다.</p></div>` +
-    `<div style="height:20px"></div>` + bridge('다음: 지난 4주차 발표 이후 무엇이 바뀌었나')) +
+    `<div style="display:flex; align-items:center; gap:20px; padding:24px 32px; background:${AMBER_SOFT}; border:2px solid ${AMBER}; border-radius:14px">${icon('Warning', AMBER)}<p style="font-size:28px; line-height:1.4; color:${INK}"><b>한계:</b> 관리자 웹은 자동 테스트가 없어 lint·빌드(타입체크)까지만 검증됩니다.</p></div>`) +
   foot('기준: 커밋 2665ed8 · .claude/hooks/pre-commit-check.js · .github/workflows/ci.yml'));
 
 // ════════════════════════════════════════════════════════════════════════
 // ⑥ 4주차 발표 이후
 // ════════════════════════════════════════════════════════════════════════
-partSlide('p6', '06', '4주차 발표 이후', '지난 발표 이후 무엇이 바뀌었나', '파트 6. 범위: 4주차 덱 마지막 커밋 c20306d(9/28) 다음부터 8c953ec(10/3)까지 커밋 29개(병합 제외) + 10/4 Actions 배포 기록. 서사: 약속 → 실행 → 결정 → 남은 것.');
+section('ai-docs', { notes: '전체 문서 구조. AI는 세션이 바뀌면 기억이 없으므로, 매번 읽어야 하는 양을 줄이고 같은 사실을 한 곳에만 두도록 문서를 읽는 시점별 세 층으로 나눴다(10/1 재편). ① 매 세션: CLAUDE.md(바뀌지 않는 규칙과 "무엇을 할 때 어디를 읽나" 표, 루트·앱별)와 STATUS.md(지금 상태만, 세션 끝마다 덮어씀, 80줄 상한). ② 작업할 때: 도메인 문서 9개의 맨 위 요약 카드(40줄 상한)부터 읽고 필요하면 결정 절·부록으로 내려간다, 아키텍처 문서는 공유 엔티티(단일 기준)와 날짜·정합성 같은 횡단 규칙. ③ 왜 그렇게 됐는지 따라갈 때만: 결정 기록(결정 하나에 파일 하나, 고치지 않고 새 번호로 대체 — 38건), 진행 로그(작업 한 건에 파일 하나, 추가만 — 59건), 참고 자료(RFP 원본·요구사항 추적표·기업 분석). 코드 주석은 경로가 아니라 결정 번호로 문서를 가리켜, 문서를 옮겨도 깨지지 않는다. 문서 검사기(doc-check)가 커밋 전에 링크·옛 이름·크기 상한·인덱스를 검사한다. 작업을 마칠 때는 wrap-up 스킬이 STATUS 덮어쓰기 + 로그 1건 + 결정 기록을 남긴다.' },
+  head('문서 구조', 'AI가 매 세션 이어서 일할 수 있게, 읽는 시점별로 나눴습니다') +
+  diagramSide(F.docTiers,
+    label('왜 이렇게') +
+    ptxt('AI는 세션이 바뀌면 기억이 없습니다. 매번 읽을 양은 줄이고, 필요한 만큼만 더 깊이 들어갑니다.', 28, INK) +
+    label('원칙') +
+    bullets(['한 사실은 <b>한 곳에만</b>', '지금 상태는 <b>덮어쓰고</b>, 경위는 <b>쌓는다</b>', '코드 주석은 위치가 아니라 <b>번호로</b> 문서를 가리킨다'], 28)) +
+  foot('결정 기록 38건 · 진행 로그 59건 · 도메인 문서 9개'));
 
-section('week-promise', { notes: '4주차 발표의 결론을 다시 짚고 시작한다. 그때 Lambda는 "계획"이었고 실DB 전환은 인증 모듈 하나만 끝난 상태였다. 이번 한 주는 그 약속을 실행한 기록이다.' },
-  head('지난 발표의 약속', '"실DB로 먼저 바꾸고, Lambda로 테스트합니다"') +
+partSlide('p6', '06', '4주차 발표 이후', '지난 발표 이후 무엇이 바뀌었나', '파트 6. 범위: 4주차 덱 마지막 커밋 c20306d(9/28) 다음부터 8c953ec(10/3)까지 커밋 29개(병합 제외) + Lambda 배포·운영 전환. 서사: 약속 → 실행 → 결정 → 남은 것.');
+
+section('week-promise', { notes: '4주차 발표의 결론을 다시 짚고 시작한다. Render의 한계(공유 CPU, 서울 리전 없음)와 Lambda 전환 방침은 지난 발표에서 이미 말했다. 그때 실DB 전환은 인증 모듈 하나만 끝난 상태였고 Lambda는 계획이었다. 이번 한 주는 그 약속을 실행한 기록이다.' },
+  head('지난 발표의 약속', '"실DB로 먼저 바꾸고, Lambda로 옮깁니다"') +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(label('4주차 발표 시점 · 9/28') + bullets(['실DB 전환은 <b>인증 모듈만</b>', '나머지 도메인은 인메모리 mock', 'Lambda는 <b>계획</b>'], 30, 'Clock', AMBER), 'flex:1') +
-    card(label('지금 · 10/5', GREEN) + bullets(['실DB 전환 <b>전 도메인 완료</b>', 'mock 코드 삭제', 'Lambda <b>첫 배포 성공</b>'], 30, 'Check', GREEN), `flex:1; border:2px solid ${GREEN}`) +
+    card(label('지금 · 10/5', GREEN) + bullets(['실DB 전환 <b>전 도메인 완료</b>', 'mock 코드 삭제', 'Lambda로 <b>운영 전환</b>'], 30, 'Check', GREEN), `flex:1; border:2px solid ${GREEN}`) +
     `</div>`) +
-  foot('범위: 커밋 c20306d 이후 ~ 8c953ec(29개, 병합 제외) + 10/4 Actions 배포'));
+  foot('범위: 4주차 발표 이후 커밋 29개(병합 제외)와 Lambda 배포·전환'));
 
 const chip = (t, k = 'done') => { const m = { done: [GREEN_SOFT, GREEN], plan: [NAVY_SOFT, NAVY], red: [RED_SOFT, RED] }[k]; return `<p style="font-size:28px; font-weight:700; color:${m[1]}; background:${m[0]}; border:1px solid ${m[1]}; border-radius:10px; padding:12px 20px; white-space:nowrap">${t}</p>`; };
 const arr = `<x-icon name="PaperPlane" style="color:${SOFT}; width:26px; height:26px"></x-icon>`;
@@ -394,35 +401,28 @@ section('week-found', { notes: '실DB로 옮겨야 보이는 문제들이었다.
     ptxt('API 테스트 파일 <b>18개 → 27개</b> — 실DB에서 진짜 동시성을 검증합니다', 30, INK, 600)) +
   foot('근거: docs/log/042 · 045 · 047'));
 
-section('week-deploycheck', { notes: '9/30 배포 사이트 점검(log/051). Render 자동배포는 켜져 있었는데 PR 병합 후 빌드가 한 번도 시작되지 않아 9/28 D26 커밋에 멈춰 있었다 — 실DB 전환분이 운영에 하나도 안 올라간 상태. 또 API는 싱가포르, DB는 서울. 요청 하나가 쿼리 4~8개를 순차로 보내 리전 간 왕복이 쌓인다(왕복 70ms 안팎은 추정). Render에는 서울 리전이 없다.' },
-  head('실행 ② · 9/30', '배포 점검에서 두 가지를 발견했습니다') +
-  fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
-    card(label('발견 1', RED) + h3('Render가 9/28에 멈춰 있었다', 36) + ptxt('자동배포가 켜져 있었지만 빌드가 시작되지 않았습니다. 실DB 전환분이 운영에 없었습니다.', 28, INK), 'flex:1') +
-    card(label('발견 2', RED) + h3('API는 싱가포르, DB는 서울', 36) + ptxt('요청 하나가 쿼리 4~8개를 보냅니다. 리전 간 왕복이 쌓이고, Render에는 서울 리전이 없습니다.', 28, INK), 'flex:1') +
-    `</div>`) +
-  foot('근거: docs/log/051 · D37 컨텍스트'));
-
 const rej = (n, d) => `<div style="flex:1; display:flex; flex-direction:column; gap:6px; background:${GRAY_SOFT}; border:1px solid ${LINE_STRONG}; border-radius:10px; padding:16px 20px"><p style="font-size:26px; font-weight:700; color:${SOFT}">${n}</p><p style="font-size:24px; line-height:1.3; color:${SOFT}">${d}</p></div>`;
-section('week-lambda', { notes: 'D37 결정. 원인: 공유 CPU 경합 루프(D24) + 리전 불일치. 기각: Render 유지(루프 그대로, 서울 없음), Render 유료(인스턴스 1대라 고리 남음, 서울 없음), Lambda 상한 없음(DB 커넥션 앞에서 루프 재발, 비용 상한 없음). 채택: Lambda 서울 + Function URL + 동시 실행 상한 10 — 요청마다 CPU가 따로라 CPU 고리가 끊기고, 공유 자원인 DB 커넥션은 상한으로 보호, 넘치면 대기열 대신 즉시 거절(503). 계산상 필요한 동시 실행 약 1.3건, 처리 한계 약 200 rps(계산, 실측 아님). DB는 Supabase 유지 — RDS로 옮기는 조건 4개를 정해 둠.' },
-  head('결정 ① · D37', 'API를 AWS Lambda(서울)로 옮깁니다') +
-  fill(`<div style="display:flex; flex-direction:column; gap:18px">` +
-    `<div style="display:flex; flex-direction:column; gap:10px">${label('원인')}${ptxt('공유 CPU 경합 루프 + API·DB 리전 불일치', 32, INK, 600)}</div>` +
-    `<div style="display:flex; flex-direction:column; gap:8px">${label('기각한 대안')}<div style="display:flex; gap:14px">${rej('Render 유지', '루프 그대로, 서울 리전 없음')}${rej('Render 유료', '여전히 1대, 서울 리전 없음')}${rej('Lambda 상한 없음', 'DB 앞에서 루프 재발')}</div></div>` +
-    `<div style="display:flex; flex-direction:column; gap:12px; background:${GREEN_SOFT}; border:2px solid ${GREEN}; border-radius:14px; padding:28px 36px"><div style="display:flex; align-items:center; gap:16px">${pill('채택', SURFACE, GREEN)}<p style="font-family:${DISPLAY}; font-size:36px; font-weight:800; color:${INK}">Lambda 서울 + 동시 실행 상한 10</p></div><p style="font-size:30px; font-weight:600; line-height:1.4; color:${INK}">요청마다 CPU가 따로라 루프가 끊기고, DB가 감당하는 만큼만 받고 넘치면 입구에서 바로 거절합니다.</p></div>` +
-    `</div>`) +
-  foot('처리 한계 약 200 rps는 계산값 · DB는 Supabase 유지(이전 조건 4개 — D37 §5)'));
+section('week-lambda', { notes: '지난 발표에서 예고한 Lambda 전환을 어떻게 설계했는지(D37, 9/30). Lambda는 실행 환경 하나가 요청 하나만 처리하므로 요청마다 CPU가 따로다 — 4주차에 본 "지연→요청 누적→CPU 경합" 루프의 CPU 고리가 구조적으로 끊긴다. 남는 공유 자원은 DB 커넥션이라, 동시 실행 상한을 10으로 묶어 DB가 감당하는 만큼만 받고, 넘치는 요청은 대기열에 쌓지 않고 입구에서 바로 거절(503)한다. API를 DB와 같은 서울 리전에 둬서 요청당 쿼리 4~8개의 리전 간 왕복도 없앴다. 계산상 필요한 동시 실행은 약 1.3건, 상한 10의 처리 한계는 약 200 rps(계산, 실측 아님). DB는 Supabase를 유지하고, 옮길 조건 4개(용량 80%, 백업 요구, 풀 대기 반복, 회원 앱 재개)를 정해 뒀다.' },
+  head('실행 ② · 9/30', '지난 발표에서 예고한 Lambda 전환, 이렇게 설계했습니다') +
+  fill(`<div style="display:flex; gap:16px; align-items:stretch">` +
+    card(icon('Activity', GREEN) + h3('요청마다 CPU 분리', 34) + ptxt('요청끼리 CPU를 나눠 쓰지 않아, 몰려도 서로를 느리게 만들지 않습니다'), 'flex:1') +
+    card(icon('Database', NAVY) + h3('동시 실행 상한 10', 34) + ptxt('DB 커넥션이 감당하는 만큼만 받고, 넘치면 기다리게 하지 않고 바로 거절합니다'), 'flex:1') +
+    card(icon('Globe', NAVY) + h3('DB와 같은 서울', 34) + ptxt('요청마다 쿼리 4~8개가 오가던 싱가포르↔서울 왕복이 사라집니다'), 'flex:1') +
+    `</div>` + `<div style="height:24px"></div>` +
+    ptxt('DB는 Supabase를 유지합니다 — 옮길 조건(용량·백업·풀 대기·회원 앱)을 미리 정해 뒀습니다.', 28, INK, 600)) +
+  foot('처리 한계 약 200 rps는 계산값 — Lambda 위 실측은 다음 과제'));
 
 section('week-memberapp', { notes: '같은 날(9/30) 회원 앱 보류를 결정했다. 파트 1 범위 슬라이드에서 이미 설명했으므로 여기서는 시간순 위치만 짚는다. Lambda로 처리 성능 문제는 풀었지만 요청 개수 한도(무료 티어)는 별개 문제였다 — 회원 앱을 받으려면 유료 전환이나 인프라 추가 구성이 필요하고 범위가 과하게 넓어진다(log/057). 결과: 범위 안 요청량은 하루 1만 건 수준(추정)이라 무료 한도 안에 든다.' },
   head('결정 ② · 9/30', '같은 날, 회원 앱을 보류했습니다') +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
-    card(label('Lambda가 푼 것', GREEN) + h3('처리 성능', 36) + ptxt('요청마다 CPU가 따로라, 몰려도 느려지지 않는 구조', 28, INK), 'flex:1') +
+    card(label('Lambda가 푼 것', GREEN) + h3('처리 성능', 36) + ptxt('요청마다 CPU가 따로라, 몰려도 서로를 느리게 만들지 않는 구조', 28, INK), 'flex:1') +
     card(label('Lambda로 안 풀리는 것', RED) + h3('무료 요청 개수 한도', 36) + ptxt('회원 앱을 받으면 하루 19.6만 건 — 엣지 무료 한도 10만 건 초과(계산)', 28, INK), `flex:1; border:2px solid ${RED}`) +
     `</div>` + `<div style="height:24px"></div>` +
     `<div style="display:flex; align-items:center; gap:20px; padding:24px 32px; background:${NAVY_SOFT}; border-left:6px solid ${NAVY}; border-radius:10px">${icon('Lightbulb', NAVY)}<p style="font-size:30px; font-weight:600; line-height:1.4; color:${INK}">인프라를 더 붙이면 범위가 너무 넓어집니다 → <b>관리자 웹 완성에 집중</b></p></div>`) +
   foot('근거: D37 §5 · docs/log/052 · 057'));
 
 section('week-docs', { notes: '10/1 문서 구조 재편(D38). 계기: 이전 세션의 작업이 멈췄던 이유가 "기계 신호가 없어서"였다 — 문서가 커지고 같은 사실이 여러 곳에 있어 어디가 최신인지 알 수 없었다. 바꾼 것: 매 세션 읽는 것(CLAUDE.md·STATUS·요약 카드)과 필요할 때만 여는 것(로그·결정·부록)을 나눈 로딩 계층, 경로가 아니라 ID로 인용(예: ADR-RSV-01, D37), doc-check가 링크·옛 이름·크기 상한을 커밋 전에 검사. AI와 장기 작업을 이어가기 위한 인프라라는 점을 강조.' },
-  head('실행 ③ · 10/1 · D38', 'AI가 이어서 일할 수 있게 문서를 재편했습니다') +
+  head('실행 ③ · 10/1', '앞에서 본 문서 구조는 이때 만들었습니다') +
   fill(`<div style="display:flex; gap:16px; align-items:stretch">` +
     card(icon('Book', NAVY) + h3('로딩 계층', 34) + ptxt('매번 읽는 것(STATUS·요약 카드)과 필요할 때만 여는 것(로그·결정)을 나눴습니다'), 'flex:1') +
     card(icon('Link', NAVY) + h3('ID로 인용', 34) + ptxt('경로가 아니라 ADR-RSV-01, D37 같은 ID로 — 옮겨도 안 깨집니다'), 'flex:1') +
@@ -431,40 +431,29 @@ section('week-docs', { notes: '10/1 문서 구조 재편(D38). 계기: 이전 �
   foot('근거: D38 · docs/log/053'));
 
 const step = (when, t, k) => { const m = { done: [GREEN_SOFT, GREEN], part: [AMBER_SOFT, AMBER] }[k]; return `<div style="display:flex; align-items:center; gap:24px; padding:20px 28px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:12px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${NAVY}; width:150px">${when}</p><p style="flex:1; font-size:30px; color:${INK}">${t}</p>${pill(k === 'done' ? '완료' : '확인 전', m[0], m[1])}</div>`; };
-section('week-infra', { notes: '10/2~10/4 Lambda 인프라 구축. Function URL을 저장소·Actions 로그에서 뺐다(log/054) — 공개 저장소에 주소가 남으면 앱이 403으로 거절한 요청도 Lambda 호출로 과금되기 때문. 클래식 AWS 계정(유료 플랜)에 함수·URL·OIDC 배포 역할·5분 워밍·경보·예산 경보($1/$5/$20)를 만들었다(log/055). 비밀값은 사용자가 직접 스크립트로 넣었다(Claude가 비밀값 파일을 읽지 않도록). 10/4 Actions 첫 실행은 AWS 인증 단계에서 실패, 이후 2회 성공 — 패키징→업로드→버전 발행→별칭 이동→헬스체크 200. 주의: 헬스체크는 DB를 조회하지 않으므로 Lambda→Supabase 연결은 아직 확인 전이다.' },
-  head('실행 ④ · 10/2~10/4', 'Lambda 인프라를 만들고 첫 배포에 성공했습니다') +
+section('week-infra', { notes: 'Lambda 인프라 구축과 전환. Function URL을 저장소·Actions 로그에서 뺐다(log/054) — 공개 저장소에 주소가 남으면 앱이 거절한 요청도 Lambda 호출로 과금되기 때문. AWS 계정에 함수·URL·OIDC 배포 역할·5분 워밍·경보·예산 경보($1/$5/$20)를 만들었다(log/055). 비밀값은 사용자가 직접 스크립트로 넣었다. 10/4 GitHub Actions 배포: 첫 실행은 AWS 인증 단계에서 실패, 이후 2회 성공(패키징→업로드→버전 발행→별칭 이동→헬스체크). 그다음 Worker가 Lambda를 가리키도록 전환했고, Worker 경유로 로그인과 데이터 조회까지 확인했다. 배포 헬스체크는 DB를 거치지 않는 고정 응답이라 DB 연결 확인은 실제 로그인·조회로 한 것이다.' },
+  head('실행 ④ · 10/2~', 'Lambda를 만들고, 운영을 옮겼습니다') +
   fill(`<div style="display:flex; flex-direction:column; gap:12px">` +
     step('10/2', 'Function URL을 저장소·로그에서 제거 — 거절된 요청도 과금되기 때문', 'done') +
-    step('10/3', 'AWS 리소스 · 배포 역할(OIDC) · 워밍 · 예산 경보 생성', 'done') +
-    step('10/4', 'GitHub Actions 첫 배포 — 헬스체크 200', 'done') +
-    step('다음', 'Lambda → DB 연결 확인(헬스체크는 DB를 거치지 않음)', 'part') +
+    step('10/3', 'AWS 리소스 · 배포 역할 · 워밍 · 예산 경보 생성', 'done') +
+    step('10/4', 'GitHub Actions 자동 배포 — 검증 후 배포, 실패 시 롤백', 'done') +
+    step('전환', 'Worker → Lambda 연결, 로그인·데이터 조회 확인', 'done') +
     `</div>`) +
   foot('근거: docs/log/054 · 055 · 056'));
 
-section('week-numbers', { notes: '4주차 발표 이후 숫자. 커밋 29개(c20306d..8c953ec, 병합 제외). 코드 변경량은 apps·packages 기준 137개 파일 +6,219/−3,740줄. 테스트 파일 18→27. 결정 D27~D38(12건), 진행 로그 040~057.' },
-  head('숫자로 본 한 주', '4주차 발표 이후') +
-  fill(`<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px">` +
-    bigNum('29', '개', '커밋(병합 제외)') + bigNum('12', '건', '결정 기록 D27~D38') + bigNum('18→27', '', 'API 테스트 파일') +
-    bigNum('2,288', '줄', 'mock 삭제') + bigNum('+6,219', '', '코드 추가(apps·packages)') + bigNum('−3,740', '', '코드 삭제') +
-    `</div>`) +
-  foot('기준: git c20306d..8c953ec · apps/packages 디렉터리'));
-
 const nx = (k, t, d) => card(`<div style="display:flex">${statePill(k, k === 'done' ? '완료' : k === 'part' ? '다음' : '보류')}</div>` + h3(t, 34) + ptxt(d, 26), 'flex:1');
-section('week-next', { notes: '남은 것. 순서: ① Lambda→DB 연결 확인(로그인 등 DB 경로 + 헤더 없는 직접 호출 403) ② Worker가 Lambda를 가리키도록 전환 ③ k6로 D37 §4 기준(로그인 p95<500ms, 과부하 시 넘친 요청만 빠르게 거절) 측정 ④ Render 일시정지. 숫자가 나오면 4주차의 15초와 나란히 비교하는 것이 다음 발표의 핵심이 될 것.' },
-  head('남은 것', '이제 트래픽을 옮기고, 다시 잽니다') +
+section('week-next', { notes: '남은 것. ① k6로 Lambda 위에서 다시 잰다 — 통과 기준(D37 §4): 로그인 p95 500ms 미만, 과부하 시 넘친 요청만 빠르게 거절되고 성공한 요청은 빠르게 유지. 결과를 4주차의 15.16초와 나란히 비교하는 것이 다음 발표의 핵심이 될 것. ② Render 정리(일시정지) — 롤백은 Render가 아니라 Lambda 별칭으로 한다. 회원 앱은 보류 상태 그대로.' },
+  head('남은 것', '이제 Lambda 위에서 다시 잽니다') +
   fill(`<div style="display:flex; gap:16px; align-items:stretch">` +
-    nx('done', '완료', '실DB 전환 · 문서 재편 · Lambda 첫 배포') +
-    nx('part', '다음', 'DB 연결 확인 → Worker 전환 → k6 재측정 → Render 정지') +
+    nx('done', '완료', '실DB 전환 · 문서 재편 · Lambda 운영 전환') +
+    nx('part', '다음', 'k6로 Lambda 위에서 재측정 → Render 정리') +
     nx('out', '보류', '회원 앱 — 유료 전환·인프라 추가가 필요해질 때 다시') +
-    `</div>` + `<div style="height:28px"></div>` +
-    `<div style="display:flex; align-items:center; gap:20px; padding:28px 36px; background:${AMBER_SOFT}; border:2px solid ${AMBER}; border-radius:14px">${icon('Activity', AMBER)}<p style="font-family:${DISPLAY}; font-size:36px; font-weight:800; color:${INK}">다음 발표: 4주차의 <span style="color:${RED}">15초</span>를 Lambda 위에서 다시 잰 숫자</p></div>`) +
+    `</div>`) +
   foot('통과 기준(D37 §4): 로그인 p95 500ms 미만 · 과부하 시 넘친 요청만 빠르게 거절'));
 
 // ── 마무리 ───────────────────────────────────────────────────────────────
-section('closing', { pad: '128px 176px', gap: 24, notes: '맺음 한 줄: "지난주 약속한 실DB 전환을 끝내고 Lambda에 첫 배포까지 올렸습니다. 다음은 실제 트래픽을 옮기고 다시 재는 일입니다." Q&A 대비: Lambda는 운영 중이 아니다(첫 배포·헬스체크까지), 19.6만/일은 계산값, 관리자 웹은 테스트 없음, 회원 화면은 관리자 웹 대용, 기업 분석은 내부 자료가 아니라 조사·재구성.' },
+section('closing', { pad: '128px 176px', gap: 24, notes: '맺음 한 줄(말로): "지난주 약속한 실DB 전환과 Lambda 전환을 끝냈습니다. 다음은 Lambda 위에서 다시 재는 일입니다." Q&A 대비: Lambda 위 부하 실측은 아직(Worker 경유 로그인·조회까지 확인), 배포 헬스체크는 DB를 거치지 않음, 19.6만/일은 계산값, 관리자 웹은 테스트 없음, 회원 화면은 관리자 웹 대용, 기업 분석은 내부 자료가 아니라 조사·재구성.' },
   dots(400, 780, 700, 460) + `<div style="flex:1"></div>` +
-  `<p style="font-size:40px; font-weight:600; line-height:1.4; color:${INK}">약속한 실DB 전환을 끝내고, Lambda에 첫 배포까지 올렸습니다.<br>다음은 트래픽을 옮기고 다시 재는 일입니다.</p>` +
-  `<div style="height:24px"></div>` +
   `<h1 style="font-family:${DISPLAY}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:${INK}">감사합니다</h1><p style="font-size:44px; color:${SOFT}">질문 환영합니다.</p><div style="flex:1"></div>`);
 
 // ── 린트 ──────────────────────────────────────────────────────────────────
@@ -495,8 +484,8 @@ const deck = {
     req: { description: '02 요구사항 — RFP 추적, 의도 중심 조정, 역할, 불변식 3개, 구현 화면', start: 'p2' },
     data: { description: '03 데이터 — 핵심 엔티티, 지점=계약, 직원=파견, DB가 지키는 규칙', start: 'p3' },
     design: { description: '04 설계 — 구성도, 지점 격리, 예약 흐름, 배포 구조 변화', start: 'p4' },
-    stack: { description: '05 기술스택·AI — 스택, AI 협업 방식, 결과물 검증', start: 'p5' },
-    week: { description: '06 4주차 발표 이후 — 실DB 전환, Lambda 결정·첫 배포, 회원 앱 보류, 남은 것', start: 'p6' },
+    stack: { description: '05 기술스택·AI — 스택, AI 협업 방식, 결과물 검증, 문서 구조', start: 'p5' },
+    week: { description: '06 4주차 발표 이후 — 실DB 전환, Lambda 설계·운영 전환, 회원 앱 보류, 남은 것', start: 'p6' },
     wrap: { description: '마무리', start: 'closing' },
   },
   faces: {

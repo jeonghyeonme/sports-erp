@@ -64,18 +64,18 @@ function dataCore() {
 
 // ── 시스템 구성: 운영 경로(실선) + Lambda 전환 경로(점선) ────────────────────
 function sysArch() {
-  return svg('arch', 1000, 700, '브라우저가 Cloudflare Worker를 거쳐 API와 Supabase로 가고, Lambda 경로는 첫 배포까지만 됐다', () => {
+  return svg('arch', 1000, 700, '브라우저가 Cloudflare Worker를 거쳐 Lambda(서울)의 API와 Supabase(서울)로 간다. 이전 Render 경로는 더 쓰지 않는다', () => {
     let s = box(0, 120, 170, 140, B('브라우저', '관리자 웹'), { sw: 2 });
     s += box(230, 120, 240, 140, [{ t: 'Cloudflare', s: 26, w: 700 }, { t: 'Worker', s: 26, w: 700 }, { t: '화면 · 요청 제한', s: 24, w: 400, c: 'ink' }], { kind: 'blue', sw: 2 });
-    s += box(530, 120, 220, 140, B('API (NestJS)', '운영: Render'), { kind: 'plain', sw: 2 });
+    s += box(530, 120, 220, 140, [{ t: 'AWS Lambda', s: 26, w: 700 }, { t: 'API (NestJS)', s: 24, w: 400, c: 'ink' }, { t: '서울', s: 24, w: 400, c: 'ink' }], { kind: 'green', sw: 2 });
     s += box(810, 120, 190, 140, [{ t: 'Supabase', s: 26, w: 700 }, { t: 'Postgres', s: 24, w: 400, c: 'ink' }, { t: '서울', s: 24, w: 400, c: 'ink' }], { kind: 'green', sw: 2 });
-    s += box(530, 420, 220, 140, B('AWS Lambda', '서울 · 첫 배포'), { kind: 'amber', sw: 2, dash: true });
+    s += box(530, 420, 220, 140, B('Render', '이전 경로'), { kind: 'gray', sw: 2, dash: true });
     s += arrow([[170, 190], [230, 190]], { color: 'ink', sw: 2.5 });
     s += arrow([[470, 190], [530, 190]], { color: 'ink', sw: 2.5 });
     s += arrow([[750, 190], [810, 190]], { color: 'ink', sw: 2.5 });
-    s += arrow([[350, 260], [350, 490], [530, 490]], { color: 'amber', sw: 2.5, dash: true, label: { x: 362, y: 380, t: '전환 예정', s: 24, a: 'start', c: 'amber', w: 700 } });
-    s += arrow([[750, 490], [905, 490], [905, 260]], { color: 'amber', sw: 2.5, dash: true, label: { x: 893, y: 380, t: '풀러 경유', s: 24, a: 'end', c: 'amber', w: 700 } });
-    s += txt(500, 650, '실선 = 지금 운영 경로   ·   점선 = 첫 배포까지 완료, 전환 전', { size: 24, w: 500, fill: 'muted', anchor: 'middle' });
+    s += arrow([[350, 260], [350, 490], [530, 490]], { color: 'gray', sw: 2, dash: true, noHead: true, label: { x: 362, y: 380, t: '전환 전 경로', s: 24, a: 'start', c: 'gray' } });
+    s += txt(765, 310, '같은 서울 리전', { size: 24, w: 700, fill: 'green', anchor: 'middle' });
+    s += txt(500, 650, '실선 = 지금 운영 경로   ·   회색 점선 = 전환 전에 쓰던 경로', { size: 24, w: 500, fill: 'muted', anchor: 'middle' });
     return s;
   });
 }
@@ -147,4 +147,25 @@ function methodCycle() {
   });
 }
 
-module.exports = { bizCycle, memberAppBar, dataCore, sysArch, isolationFlow, reservationFlow, methodCycle };
+// ── 문서 구조: 읽는 시점별 3계층(D38) ──────────────────────────────────────
+function docTiers() {
+  return svg('docs', 1000, 700, '매 세션 읽는 문서, 작업할 때 여는 문서, 왜를 따라갈 때만 여는 문서의 세 층으로 나뉜다', () => {
+    const band = (y, t, c) => txt(0, y, t, { size: 26, w: 800, fill: c });
+    let s = band(30, '① 매 세션 읽는다', 'blue');
+    s += box(0, 50, 490, 120, B('CLAUDE.md', '지켜야 할 규칙 · 어디를 읽나'), { kind: 'blue', sw: 2 });
+    s += box(510, 50, 490, 120, B('STATUS.md', '지금 상태 · 다음 할 일(80줄)'), { kind: 'blue', sw: 2 });
+    s += band(262, '② 작업할 때 연다', 'ink');
+    s += box(0, 282, 490, 120, B('도메인 문서 9개', '요약 카드 → 결정 → 부록'), { sw: 2 });
+    s += box(510, 282, 490, 120, B('아키텍처 문서', '공유 엔티티 · 횡단 규칙'), { sw: 2 });
+    s += band(494, "③ '왜?'를 따라갈 때만", 'gray');
+    s += box(0, 514, 320, 120, B('결정 기록', '결정마다 파일 1개'), { kind: 'gray', sw: 2 });
+    s += box(340, 514, 320, 120, B('진행 로그', '경위를 쌓기만'), { kind: 'gray', sw: 2 });
+    s += box(680, 514, 320, 120, B('참고 자료', 'RFP · 요구사항 추적'), { kind: 'gray', sw: 2 });
+    s += arrow([[500, 172], [500, 236]], { color: 'amber', sw: 2.5, dash: true, label: { x: 516, y: 214, t: '필요하면 더 깊이', s: 24, a: 'start', c: 'amber' } });
+    s += arrow([[500, 404], [500, 468]], { color: 'amber', sw: 2.5, dash: true, label: { x: 516, y: 446, t: '필요하면 더 깊이', s: 24, a: 'start', c: 'amber' } });
+    s += txt(500, 682, '문서 검사기가 링크·크기 상한·인덱스를 커밋 전에 검사', { size: 24, w: 500, fill: 'muted', anchor: 'middle' });
+    return s;
+  });
+}
+
+module.exports = { docTiers, bizCycle, memberAppBar, dataCore, sysArch, isolationFlow, reservationFlow, methodCycle };

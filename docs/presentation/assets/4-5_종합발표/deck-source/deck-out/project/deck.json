@@ -1,11 +1,26 @@
 {
   "v": 4,
+  "attachments": {},
   "createdOnFiles": {
-    "v": 1,
-    "at": "2026-10-05T00:00:00Z"
+    "at": "2026-10-05T00:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    }
   },
   "lists": "css",
-  "title": "스포이즘 ERP 프로젝트 발표",
   "order": [
     "cover",
     "agenda",
@@ -35,16 +50,15 @@
     "stack",
     "ai-workflow",
     "ai-verify",
+    "ai-docs",
     "p6",
     "week-promise",
     "week-realdb",
     "week-found",
-    "week-deploycheck",
     "week-lambda",
     "week-memberapp",
     "week-docs",
     "week-infra",
-    "week-numbers",
     "week-next",
     "closing"
   ],
@@ -70,11 +84,11 @@
       "start": "p4"
     },
     "stack": {
-      "description": "05 기술스택·AI — 스택, AI 협업 방식, 결과물 검증",
+      "description": "05 기술스택·AI — 스택, AI 협업 방식, 결과물 검증, 문서 구조",
       "start": "p5"
     },
     "week": {
-      "description": "06 4주차 발표 이후 — 실DB 전환, Lambda 결정·첫 배포, 회원 앱 보류, 남은 것",
+      "description": "06 4주차 발표 이후 — 실DB 전환, Lambda 설계·운영 전환, 회원 앱 보류, 남은 것",
       "start": "p6"
     },
     "wrap": {
@@ -82,19 +96,5 @@
       "start": "closing"
     }
   },
-  "faces": {
-    "gothic-a1": {
-      "family": "Gothic A1",
-      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
-    },
-    "noto-sans-kr": {
-      "family": "Noto Sans KR",
-      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
-    },
-    "jetbrains-mono": {
-      "family": "JetBrains Mono",
-      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-    }
-  },
-  "designSystems": []
+  "title": "스포이즘 ERP 프로젝트 발표"
 }
