@@ -86,6 +86,7 @@ docs/
 | 4-2 | [2주차 발표 슬라이드 구성](docs/presentation/4-2_2주차발표_슬라이드구성.md) | [배포된 발표자료 보기](https://claude.ai/code/artifact/cea04fa5-eabc-4b78-a55b-838a5da1a402) |
 | 4-3 | [3주차 발표 슬라이드 구성](docs/presentation/4-3_3주차발표_슬라이드구성.md) | 덱 제작 완료본(29장) — 산출물 3종과 도메인 9개별 구조·구현 화면. 덱 소스는 `docs/presentation/assets/4-3_3주차발표/deck-source/` |
 | 4-4 | [4주차 발표 슬라이드 구성](docs/presentation/4-4_4주차발표_슬라이드구성.md) | 트래픽·인프라 관점 재검토 후보 이슈 + D23→D24→D26 결정 타임라인 — [배포된 발표자료 보기](https://claude.ai/artifact/HGeWH6auvL1k9TjjCo31Hk) |
+| 4-5 | [종합 발표 슬라이드 구성](docs/presentation/4-5_종합발표_슬라이드구성.md) | Proposal·요구사항·데이터·설계·기술스택(AI) + 4주차 이후 진행 내역(40장) — [배포된 발표자료 보기](https://claude.ai/artifact/M6jdRHTH54pfGy884PiyxG) |
 
 ### 원본 RFP 산출물 제출본 (deliverables/)
 
