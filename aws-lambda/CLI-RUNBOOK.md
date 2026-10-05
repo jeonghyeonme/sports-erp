@@ -16,13 +16,17 @@
 2. 비밀값 파일 `aws-lambda/.env`를 만든다. `.gitignore`의 `.env` 규칙에 걸려 커밋되지 않는다.
    ```bash
    ORIGIN_SECRET=<openssl rand -hex 32 결과>
-   LAMBDA_DATABASE_URL=<Supabase Transaction pooler(6543) URI>?pgbouncer=true&connection_limit=1&pool_timeout=5
+   LAMBDA_DATABASE_URL='<Supabase Transaction pooler(6543) URI>?pgbouncer=true&connection_limit=1&pool_timeout=5'
    ```
+   - URL은 **작은따옴표로 감싼다.** 스크립트가 이 파일을 bash로 `source`해서, 따옴표가 없으면 `&`가 백그라운드 기호로 읽힌다.
+   - `?pgbouncer=true...`가 빠지면 부하 중에 `42P05 prepared statement "sN" already exists`로 로그인·조회가 500이 된다. 실제로 이 값이 빠진 채 배포돼 장애가 났다([log/056](../docs/log/056.md)). `set-lambda-env.sh`가 경고를 내면 진행하지 말고 `.env`를 고친다.
    - `ORIGIN_SECRET`은 GitHub 저장소 Secrets(`ORIGIN_SECRET`)에도 같은 값으로 넣는다.
    - 비밀번호에 특수문자가 있으면 URL 인코딩한다.
 3. (선택) `gh auth login`을 해 두면 GitHub Variables 등록과 워크플로 실행도 Claude가 한다.
 
 **비밀값은 대화창에 붙여넣지 않는다.** Claude는 `.env`를 읽지 않는다(전역 가드레일·guard-bash hook). 비밀값이 필요한 명령은 사용자가 `!`로 실행한다 — 함수 환경 변수는 [set-lambda-env.sh](set-lambda-env.sh), health 확인·Worker 전환은 아래 4·5번 명령. 그래서 1~2번의 함수는 `NODE_ENV`만 넣어 만들고, 비밀값은 스크립트로 나중에 넣는다.
+
+Windows PowerShell 주의: PowerShell에서 `bash`를 치면 Git Bash가 아니라 **WSL bash**가 떠서 `aws: command not found`가 난다. `& "C:\Program Files\Git\bin\bash.exe" aws-lambda/set-lambda-env.sh`처럼 Git Bash를 지정한다. PowerShell 5.1은 `&&`를 모르고, JSON 인자의 따옴표를 깨뜨리므로 정책 JSON은 파일로 저장해 `file://`로 넘긴다.
 
 Windows Git Bash 주의: `/aws/lambda/...` 같은 인자는 `MSYS_NO_PATHCONV=1`이 없으면 Windows 경로로 바뀐다. 자리표시 zip은 PowerShell `Compress-Archive`(역슬래시 경로가 들어감) 대신 python `zipfile`로 만든다.
 

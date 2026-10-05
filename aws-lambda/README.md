@@ -95,12 +95,15 @@
     "Condition": {
       "StringEquals": {
         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-        "token.actions.githubusercontent.com:sub": "repo:jeonghyeonme/sports-erp:ref:refs/heads/main-5x9td9"
+        "token.actions.githubusercontent.com:sub": "repo:jeonghyeonme@96642864/sports-erp@1353168182:ref:refs/heads/main-5x9td9"
       }
     }
   }]
 }
 ```
+
+- `sub`는 GitHub가 실제로 보내는 형식(소유자·저장소 이름 뒤에 고유 ID `@숫자`)과 **글자 그대로** 같아야 한다. 옛 형식 `repo:jeonghyeonme/sports-erp:ref:...`로는 `Not authorized to perform sts:AssumeRoleWithWebIdentity`로 실패했다([log/056](../docs/log/056.md)).
+- 실제 값은 실패한 실행 직후 CloudTrail(서울) `AssumeRoleWithWebIdentity` 이벤트의 `userIdentity`에서 확인한다.
 
 권한 정책(이 함수만):
 
@@ -129,6 +132,7 @@
 
 **첫 배포**:
 - [ ] Actions 탭 → "Deploy api (AWS Lambda)" → **Run workflow**(브랜치 `main-5x9td9`)로 수동 실행한다.
+  - Run workflow 버튼은 **기본 브랜치에 있는 워크플로에만** 보인다. 2026-10-04에 저장소 기본 브랜치를 `main`에서 `main-5x9td9`로 바꿨다([log/056](../docs/log/056.md)).
   - 워크플로가 하는 일: 코드 업로드 → 버전 발행 → `live` 이동 → health 확인
   - **health 확인까지 초록이면 Lambda 쪽은 성공이다.** 실패하면 `live`는 이전 버전으로 자동으로 돌아간다. Actions 로그의 에러 부분을 세션에 붙여주면 된다.
   - 이후에는 `main-5x9td9`에 api 변경이 병합될 때마다 자동으로 돈다.

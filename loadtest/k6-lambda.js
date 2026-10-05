@@ -10,7 +10,7 @@
 //   거절(Lambda 429, Worker 경유 시 503 SERVER_BUSY)되고 성공한 요청은 빠르면 통과다.
 
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 import { Counter, Trend } from 'k6/metrics';
 
 const BASE_URL = __ENV.BASE_URL;
@@ -80,10 +80,13 @@ export function setup() {
   return { token: res.json('data.accessToken') };
 }
 
+// 사용자 하나가 로그인 후 1초 쉬는 패턴(최대 40 VU ≈ 초당 40회). 쉬지 않으면 거절 응답(수 ms)마다 즉시 재시도해
+// 분당 13만 건을 두드려, 로그인 성능이 아니라 재시도 폭주를 재게 된다(2026-10-04 첫 실측).
 export function login() {
   const res = http.post(`${BASE_URL}/auth/login`, JSON.stringify({ email: EMAIL, password: PASSWORD }), { headers: baseHeaders });
   loginDuration.add(res.timings.duration);
   if (!check(res, { '로그인 200': (r) => r.status === 200 })) loginErrors.add(1);
+  sleep(1);
 }
 
 // 관리자 화면 흐름의 조회 4종 중 하나를 돌아가며 부른다(요청 하나 = 도착 하나).

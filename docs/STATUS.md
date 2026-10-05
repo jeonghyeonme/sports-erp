@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-03 · [log/055](log/055.md)(클래식 계정에 Lambda 리소스 생성)
+> 마지막 갱신: 2026-10-04 · [log/056](log/056.md)(api 운영을 Lambda로 전환, k6 실측)
 
 ## 현재 상태
 
@@ -9,35 +9,37 @@
 |---|---|---|
 | 도메인 9개 | 문서화·핵심 ADR 구현 완료. 도메인별 검증 범위는 각 도메인 문서 §11 | `domains/` |
 | 데이터 | 전 도메인 Prisma(Supabase Postgres) — `MockDataService` 삭제 | [D36](decisions/D36.md) |
-| api 호스팅 | **Render → AWS Lambda(서울) 전환 중.** 클래식 계정(유료 플랜)에 함수·URL·OIDC·워밍·경보·예산까지 만들었다. 함수는 아직 자리표시 코드이고 비밀값 env·첫 배포·Worker 전환이 남았다. 운영은 여전히 Render | [D37](decisions/D37.md), [log/055](log/055.md) |
-| admin-web·엣지 | Cloudflare Worker(정적 자산 + 프록시 + rate limit) | [D25](decisions/D25.md) |
+| api 호스팅 | **AWS Lambda(서울) 운영 중** — Worker origin을 Function URL(별칭 `live` = v3)로 전환했다. 배포는 `main-5x9td9` push 또는 Actions 수동 실행(OIDC). Render는 아직 켜져 있다(롤백용, 트래픽 없음) | [D37](decisions/D37.md), [log/056](log/056.md) |
+| admin-web·엣지 | Cloudflare Worker(정적 자산 + 프록시 + rate limit). `API_ORIGIN`·`ORIGIN_SECRET`은 Worker secret | [D25](decisions/D25.md), [D37](decisions/D37.md) |
+| 저장소 | 기본 브랜치를 `main-5x9td9`로 바꿨다(2026-10-04, Run workflow 버튼 때문). `main`은 16커밋 뒤처져 있다 | [log/056](log/056.md) |
 | 회원 앱 | 개발 범위 제외(2026-09-30) | [D37](decisions/D37.md) |
-| 문서 구조 | 2026-10-01 재편 완료 — 옛 번호 체계 설계서·결정 폴더 삭제, 로딩 계층·doc-check 도입 | [D38](decisions/D38.md) |
+| 문서 구조 | 2026-10-01 재편 완료 — 로딩 계층·doc-check 도입 | [D38](decisions/D38.md) |
 
 ## 다음 할 일 (우선순위순)
 
-1. **Lambda 전환(D37) 마무리** — 로컬 PC 세션에서 [CLI-RUNBOOK](../aws-lambda/CLI-RUNBOOK.md) 순서로. 0~4번 리소스·6번은 완료([log/055](log/055.md)). 남은 순서:
-   1. 사용자: SNS 구독 확인 메일의 링크 클릭, `aws-lambda/.env` 작성(`ORIGIN_SECRET`, `LAMBDA_DATABASE_URL` — Supabase Transaction pooler 6543. **DB 비밀번호 재설정 금지**: Render가 끊긴다).
-   2. 사용자: `! bash aws-lambda/set-lambda-env.sh` — 함수 env(DB·ORIGIN_SECRET·JWT)를 넣는다. Claude는 `.env`를 읽지 않는다.
-   3. PR #14(Function URL 비공개화) 병합 — 첫 배포 워크플로가 `secrets.LAMBDA_FUNCTION_URL`을 쓴다.
-   4. 사용자(웹, `gh` 미설치): GitHub Actions Variables `AWS_LAMBDA_DEPLOY_ROLE_ARN`·`LAMBDA_FUNCTION_NAME`, Secrets `ORIGIN_SECRET`·`LAMBDA_FUNCTION_URL`. 값은 `aws lambda get-function-url-config --function-name sports-erp-api --qualifier live`로 얻는다. **Function URL은 저장소·문서·대화에 남기지 않는다.**
-   5. Actions "Deploy api (AWS Lambda)" 수동 실행(`main-5x9td9`) → health 200·직접 호출 403 확인 → 5번 Worker 전환(`--secrets-file`) → 7번 k6 → D37 §4 기록 → Render 일시정지.
-   - 비용 차단은 "알림만"(예산 경보 + SNS)으로 정했다. 자동 차단 장치는 만들지 않았다.
-   - Worker의 `API_ORIGIN`은 PR #14 병합 후 secret이 된다 — **다음 Worker 배포는 `--secrets-file`로 origin을 함께 넣어야 한다**([cloudflare-worker/README.md](../cloudflare-worker/README.md)).
+1. **Lambda 전환(D37) 마무리**
+   1. 사용자: Render `sports-erp-api` 일시정지(롤백이 더 필요 없다고 판단되면). 롤백 방법은 Worker `API_ORIGIN`만 Render 주소로 `--secrets-file` 재배포([CLI-RUNBOOK](../aws-lambda/CLI-RUNBOOK.md) 5번).
+   2. k6 실측([log/056](log/056.md) 근거 표)을 D37에 어떻게 남길지 정한다 — D37 §4를 채울지, 새 결정 파일로 둘지(D38: 결정 파일은 고치지 않고 새 번호로).
+   3. 이번 변경 커밋(아직 안 함) — `loadtest/k6-lambda.js`, `aws-lambda/README.md`·`CLI-RUNBOOK.md`, 이 파일, log/056. 작업 브랜치 → PR로 할지 `main-5x9td9` 직접 커밋할지 사용자 결정.
+   4. 남은 `main` 브랜치를 어떻게 할지(방치 / `main-5x9td9` 병합 / 삭제).
 2. **Worker rate limit 429 실동작 확인** — [cloudflare-worker/README.md](../cloudflare-worker/README.md)의 curl 테스트([log/033](log/033.md)부터 미확인).
-3. **트래픽·인프라 후보 이슈를 ADR로 승격** — [traffic-infra-review.md](architecture/traffic-infra-review.md)를 체크리스트로, 대안 비교 후 각 도메인 문서에 정식 ADR로([log/039](log/039.md)). 권한관리·인사정보관리·예약및결제도 같은 관점으로 스캔.
+3. **트래픽·인프라 후보 이슈를 ADR로 승격** — [traffic-infra-review.md](architecture/traffic-infra-review.md)를 체크리스트로([log/039](log/039.md)).
 4. 폐기 자산 누적 대응(페이지네이션·아카이빙) — 화면 설계와 함께(traffic-infra-review 자원문서관리).
 5. `src/mock-data/` 폴더 이름 정리(응답 타입·시드 원천만 남음).
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 
-- DB 제약 보강(스키마 변경): `Document.relatedStaffId`·`uploadedBy` 외래키([D34](decisions/D34.md) — 지금은 앱 검증), `Post.authorId`, `WorkLog(staffId, date)` unique([D33](decisions/D33.md) — 지금은 advisory lock).
+- **보조 스크립트 처리 — 미정.** 선택지 A(`set-lambda-env.sh` 경고를 중단으로) / B(Worker 전환·k6 실행·진단 스크립트를 `aws-lambda/`로) / C(두지 않음). 내용·비용은 [log/056](log/056.md) "미정" 표.
+- 처리 여유 확대 여부: AWS 계정 동시 실행 한도 상향 요청(무료, 상한↑ = DB 커넥션↑·비용 차단 약화) / 요청당 쿼리 수 줄이기(코드) / 50 rps로 충분하다고 보고 기록만.
+- DB 제약 보강(스키마 변경): `Document.relatedStaffId`·`uploadedBy` 외래키([D34](decisions/D34.md)), `Post.authorId`, `WorkLog(staffId, date)` unique([D33](decisions/D33.md)).
 - 지점 격리 검사의 공통 가드 중앙화 — 전제조건(실DB 전환) 충족([요구사항추적표](reference/요구사항추적표.md) §3 6번).
 - Lambda용 DB 역할 `statement_timeout` 설정(DB 변경, D37).
 - 회원 앱을 다시 넣을 경우: D37 결정 2(Workers 유료)·§5(DB 이전 조건)부터 재검토.
 
 ## 열린 위험
 
-- 실제 AWS 위의 Lambda 동작(Function URL·풀러·동시성 상한·스로틀 응답 형식)은 **검증되지 않음** — 로컬 Amazon Linux 컨테이너에서만 확인했다([log/052](log/052.md)).
-- admin-web은 테스트가 없어 lint·빌드만 검증된다.
-- AWS 클래식 계정은 유료 플랜이라 지출 한도가 없다 — 공개 Function URL로 들어오는 대량 요청이 비용 위험이다. 예산 경보($1/$5/$20)·Lambda 경보는 걸었고 대응은 수동이다([log/055](log/055.md)).
+- **처리 한계가 설계 가정보다 작다**: 요청당 Lambda 처리 p50 약 110ms(가정 50ms) → 상한 10에서 실질 약 50~55 rps. S2(50 rps)가 경계에서 통과했고 S1 정점에서 거절 1건([log/056](log/056.md)). 원인은 추정만 했다.
+- `ORIGIN_SECRET`·DB 비밀번호가 대화에 노출됐다(사용자가 교체 보류). Render 정지 후 DB 비밀번호를 바꾸면 영향 없이 교체된다 — 바꾸면 `.env` → `set-lambda-env.sh` → Actions 재배포.
+- 배포 DB에 데모 계정 refreshToken 약 1.2만 행이 k6로 쌓였다(정리하지 않기로 함).
+- AWS 클래식 계정은 유료 플랜이라 지출 한도가 없다. 예산 경보($1/$5/$20)·Lambda 경보(SNS 이메일, 2026-10-04 재구독)는 있고 대응은 수동이다. 경보 메일의 unsubscribe 링크를 누르면 구독이 지워진다.
+- admin-web은 테스트가 없어 lint·빌드만 검증된다. 전환 후 화면은 로그인만 확인했다.
