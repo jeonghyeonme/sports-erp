@@ -1,0 +1,100 @@
+{
+  "v": 4,
+  "attachments": {},
+  "createdOnFiles": {
+    "at": "2026-10-05T00:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    }
+  },
+  "lists": "css",
+  "order": [
+    "cover",
+    "agenda",
+    "p1",
+    "prop-business",
+    "prop-problem",
+    "prop-goal",
+    "prop-scope",
+    "prop-memberapp",
+    "p2",
+    "req-trace",
+    "req-adjust",
+    "req-roles",
+    "req-invariants",
+    "req-shot",
+    "p3",
+    "data-core",
+    "data-branch",
+    "data-staff",
+    "data-integrity",
+    "p4",
+    "arch-system",
+    "arch-isolation",
+    "arch-reservation",
+    "arch-evolution",
+    "p5",
+    "stack",
+    "ai-workflow",
+    "ai-verify",
+    "ai-docs",
+    "p6",
+    "week-promise",
+    "week-realdb",
+    "week-found",
+    "week-lambda",
+    "week-memberapp",
+    "week-docs",
+    "week-infra",
+    "week-next",
+    "closing"
+  ],
+  "sections": {
+    "intro": {
+      "description": "표지와 오늘의 질문 여섯 개",
+      "start": "cover"
+    },
+    "proposal": {
+      "description": "01 Proposal — 위탁운영 계약 사업, 자체 개발 이유, 목표와 범위(회원 앱 보류)",
+      "start": "p1"
+    },
+    "req": {
+      "description": "02 요구사항 — RFP 추적, 의도 중심 조정, 역할, 불변식 3개, 구현 화면",
+      "start": "p2"
+    },
+    "data": {
+      "description": "03 데이터 — 핵심 엔티티, 지점=계약, 직원=파견, DB가 지키는 규칙",
+      "start": "p3"
+    },
+    "design": {
+      "description": "04 설계 — 구성도, 지점 격리, 예약 흐름, 배포 구조 변화",
+      "start": "p4"
+    },
+    "stack": {
+      "description": "05 기술스택·AI — 스택, AI 협업 방식, 결과물 검증, 문서 구조",
+      "start": "p5"
+    },
+    "week": {
+      "description": "06 4주차 발표 이후 — 실DB 전환, Lambda 설계·운영 전환, 회원 앱 보류, 남은 것",
+      "start": "p6"
+    },
+    "wrap": {
+      "description": "마무리",
+      "start": "closing"
+    }
+  },
+  "title": "스포이즘 ERP 프로젝트 발표"
+}

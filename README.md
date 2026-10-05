@@ -11,7 +11,7 @@
 
 **📊 [2주차 진행상황 발표 자료 보기](https://claude.ai/code/artifact/cea04fa5-eabc-4b78-a55b-838a5da1a402)** — 화살표키/버튼으로 슬라이드를 넘기며 볼 수 있는 웹 발표자료입니다.
 
-**📄 산출물(원본 RFP 대응)** — [기업 분석 자료](docs/deliverables/5-1_기업분석자료.html)(산출물2) · [개발 작업계획서](docs/deliverables/5-2_개발작업계획서.html)(산출물3) — 저장소 보관본, 보기 좋은 버전은 [문서 목차 §5.deliverables](#5deliverables--원본-rfp-산출물-제출본) 참고
+**📄 산출물(원본 RFP 대응)** — [기업 분석 및 프로젝트 제안서](docs/deliverables/기업분석및제안서.docx) · [요구사항 정의서](docs/deliverables/요구사항정의서.xlsx) · [데이터 정의서](docs/deliverables/데이터정의서.xlsx) · [아키텍처 설계서](docs/deliverables/아키텍처설계서.docx) — 목록은 [원본 RFP 산출물 제출본](#원본-rfp-산출물-제출본-deliverables) 참고
 
 ---
 
@@ -29,12 +29,12 @@
 | 영역 | 스택 |
 |---|---|
 | 관리자 웹 | React + TypeScript + Vite |
-| 회원 앱 | React Native (Expo) — Phase 3 착수 예정 |
+| 회원 앱 | 개발 범위 제외(2026-09-30, D37) — 회원 기능은 API로 구현, 회원 계정으로 관리자 웹에서 사용 |
 | API | NestJS + TypeScript |
-| DB / ORM | PostgreSQL + Prisma |
+| DB / ORM | PostgreSQL(Supabase, 서울) + Prisma |
 | 인증 | JWT(Access/Refresh) + RBAC |
 | 로컬 인프라 | Docker Compose(PostgreSQL) |
-| 배포 | Cloudflare Pages(admin-web) · Render(api) · Supabase(예정, 실 DB 전환 시) |
+| 배포 | Cloudflare Worker(admin-web 정적 자산 + /api 프록시) · AWS Lambda 서울(api) · Supabase(DB) |
 
 ## 폴더 구조
 
@@ -55,7 +55,7 @@ docs/
   reference/      원본 RFP·요구사항추적표·차별화전략·기업 분석
   design/         admin-web 디자인 시스템
   presentation/   주간 발표 자료(지침·구성안·덱 소스)
-  deliverables/   원본 RFP 산출물 제출본(자기완결형 HTML)
+  deliverables/   원본 RFP 산출물 제출본(Word·Excel — scripts/deliverables/로 재생성)
 ```
 
 ## 문서
@@ -86,15 +86,18 @@ docs/
 | 4-2 | [2주차 발표 슬라이드 구성](docs/presentation/4-2_2주차발표_슬라이드구성.md) | [배포된 발표자료 보기](https://claude.ai/code/artifact/cea04fa5-eabc-4b78-a55b-838a5da1a402) |
 | 4-3 | [3주차 발표 슬라이드 구성](docs/presentation/4-3_3주차발표_슬라이드구성.md) | 덱 제작 완료본(29장) — 산출물 3종과 도메인 9개별 구조·구현 화면. 덱 소스는 `docs/presentation/assets/4-3_3주차발표/deck-source/` |
 | 4-4 | [4주차 발표 슬라이드 구성](docs/presentation/4-4_4주차발표_슬라이드구성.md) | 트래픽·인프라 관점 재검토 후보 이슈 + D23→D24→D26 결정 타임라인 — [배포된 발표자료 보기](https://claude.ai/artifact/HGeWH6auvL1k9TjjCo31Hk) |
+| 4-5 | [종합 발표 슬라이드 구성](docs/presentation/4-5_종합발표_슬라이드구성.md) | Proposal·요구사항·데이터·설계·기술스택(AI) + 4주차 이후 진행 내역(39장) — [배포된 발표자료 보기](https://claude.ai/artifact/M6jdRHTH54pfGy884PiyxG) |
 
 ### 원본 RFP 산출물 제출본 (deliverables/)
 
-다른 문서를 참조하지 않는 자기완결형 HTML입니다 — 근거는 "기반 문서"에 있지만 산출물 자체는 별개로 완결되어 있습니다.
+다른 문서를 참조하지 않는 자기완결형 Word·Excel 문서입니다. 근거는 "기반 문서"에 있고, 산출물은 `scripts/deliverables/`의 스크립트가 저장소에서 생성합니다(손으로 고치지 않음). 옛 HTML 산출물 두 개(기업 분석 자료·개발 작업계획서)는 2026-10-05 아래 Word 문서로 대체했습니다(git 이력 `9c154ec`).
 
 | # | 산출물 | 내용 | 기반 문서 |
 |---|---|---|---|
-| 5-1 | [기업 분석 자료](docs/deliverables/5-1_기업분석자료.html) ([보기 좋은 버전](https://claude.ai/code/artifact/460e474f-2ded-4031-ae5b-07cf1efa3731)) | 산출물2 — 사업구조 재해석, 지점·계약 현황, 인적/물적자원 관리 현황 | [기업 구조 분석](docs/reference/기업구조및관리시스템분석.md) |
-| 5-2 | [개발 작업계획서](docs/deliverables/5-2_개발작업계획서.html) ([보기 좋은 버전](https://claude.ai/code/artifact/05918b0b-f045-42c8-928e-bdf0f44133b7)) | 산출물3 — 개발 단계(Phase 0~6) 흐름과 단계별 범위·데모 산출물 | [시스템 개요 §7](docs/architecture/system-overview.md) |
+| — | [기업 분석 및 프로젝트 제안서](docs/deliverables/기업분석및제안서.docx) (Word) | 제안 개요 · 기업 분석(사업 구조·위탁계약·인력·예약결제·자산·문서) · 제안 내용(범위·회원 앱 보류·차별화) · 추진 현황 · 미구현 | [기업 구조 분석](docs/reference/기업구조및관리시스템분석.md), [차별화전략](docs/reference/차별화전략.md) — `scripts/deliverables/proposal.js`로 생성 |
+| — | [아키텍처 설계서](docs/deliverables/아키텍처설계서.docx) (Word) | 시스템 구성 · 소프트웨어 구조 · 인증·인가 · 데이터 · 핵심 흐름 · 배포·운영 · 성능·용량 · 결정 이력 · 남은 과제 | [시스템 개요](docs/architecture/system-overview.md), [D37](docs/decisions/D37.md) — `scripts/deliverables/architecture.js`로 생성 |
+| — | [요구사항 정의서](docs/deliverables/요구사항정의서.xlsx) (Excel) | 요구사항 총괄 · RFP 추적 · 도메인 9개 탭(사용자 스토리·원문 요구·불변규칙·기능 명세·설계 결정) · 미구현 · 범위 제외 | `scripts/deliverables/requirements.py`가 도메인 문서·[요구사항추적표](docs/reference/요구사항추적표.md)·실제 API 라우트에서 생성 |
+| — | [데이터 정의서](docs/deliverables/데이터정의서.xlsx) (Excel) | 테이블 목록 · 컬럼 정의 · 관계 · 코드 정의 · 인덱스 · DB 규칙(CHECK·트리거) | `scripts/deliverables/data_definition.py`가 `schema.prisma`·마이그레이션 SQL에서 생성 |
 
 ## 시작하기
 
