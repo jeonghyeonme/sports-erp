@@ -58,7 +58,7 @@ node scripts/doc-check.mjs     # 문서 검사(링크·옛 이름·ADR ID·크�
 
 앱별 lint·build·test와 테스트 DB 준비는 각 앱의 CLAUDE.md에 있다.
 
-**검증 수단:** CI(`.github/workflows/ci.yml` — PR과 `main` push에서 api lint·빌드·jest, admin-web lint·빌드, doc-check)와 커밋 전 hook(`.claude/hooks/pre-commit-check.js` — `apps/`·`packages/` 변경 시 양쪽 lint·빌드·jest, 문서 변경 시 doc-check). jest는 도메인 핵심 규칙(지점 격리·계약 종료 차단·인사 권한 분리)과 실DB 동시성·도메인 규칙을 본다 — 도메인별 범위는 각 도메인 문서 §11. admin-web은 테스트가 없어 lint+빌드(타입체크)뿐이다.
+**검증 수단:** CI(`.github/workflows/ci.yml` — PR과 `dev`·`main` push에서 api lint·빌드·jest, admin-web lint·빌드, doc-check)와 커밋 전 hook(`.claude/hooks/pre-commit-check.js` — `apps/`·`packages/` 변경 시 양쪽 lint·빌드·jest, 문서 변경 시 doc-check). jest는 도메인 핵심 규칙(지점 격리·계약 종료 차단·인사 권한 분리)과 실DB 동시성·도메인 규칙을 본다 — 도메인별 범위는 각 도메인 문서 §11. admin-web은 테스트가 없어 lint+빌드(타입체크)뿐이다.
 
 ## 프로젝트 가드레일
 
