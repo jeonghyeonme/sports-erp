@@ -1,26 +1,11 @@
 {
   "v": 4,
-  "attachments": {},
   "createdOnFiles": {
-    "at": "2026-10-05T00:00:00Z",
-    "v": 1
-  },
-  "designSystems": [],
-  "faces": {
-    "gothic-a1": {
-      "family": "Gothic A1",
-      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
-    },
-    "jetbrains-mono": {
-      "family": "JetBrains Mono",
-      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-    },
-    "noto-sans-kr": {
-      "family": "Noto Sans KR",
-      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
-    }
+    "v": 1,
+    "at": "2026-10-05T00:00:00Z"
   },
   "lists": "css",
+  "title": "스포이즘 ERP 프로젝트 발표",
   "order": [
     "cover",
     "agenda",
@@ -68,7 +53,7 @@
       "start": "cover"
     },
     "proposal": {
-      "description": "01 Proposal — 위탁운영 계약 사업, 자체 개발 이유, 목표와 범위(회원 앱 보류)",
+      "description": "01 Proposal — 위탁운영 계약 사업, 자체 개발 이유, 목표와 범위(수도권 83곳 · 회원 모바일 웹)",
       "start": "p1"
     },
     "req": {
@@ -88,7 +73,7 @@
       "start": "p5"
     },
     "week": {
-      "description": "06 4주차 발표 이후 — 실DB 전환, Lambda 설계·운영 전환, 회원 앱 보류, 남은 것",
+      "description": "06 4주차 발표 이후 — 실DB 전환, Lambda 설계·운영 전환, 범위 결정, 남은 것",
       "start": "p6"
     },
     "wrap": {
@@ -96,5 +81,19 @@
       "start": "closing"
     }
   },
-  "title": "스포이즘 ERP 프로젝트 발표"
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
 }

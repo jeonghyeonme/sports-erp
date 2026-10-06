@@ -21,20 +21,20 @@ function bizCycle() {
   });
 }
 
-// ── 회원 앱 포함 시 하루 API 요청 vs Workers 무료 한도 ───────────────────────
+// ── 회원 모바일 웹 대상 지점 수별 하루 API 요청 vs Workers 무료 한도 ─────────────
 function memberAppBar() {
-  return svg('mab', 1000, 700, '웹만이면 하루 1만 건으로 무료 한도 10만 건 아래지만, 회원 앱을 포함하면 19.6만 건으로 한도를 넘는다', () => {
-    const base = 600, k = 2.4; // 1만 건 = 24px
+  return svg('mab', 1000, 700, '지점당 하루 100명 기준으로 98개 지점 전체는 하루 약 10.8만 건으로 무료 한도 10만 건을 넘고, 수도권 83개 지점은 약 9.3만 건으로 한도 안에 든다', () => {
+    const base = 600, k = 4; // 1천 건 = 4px(1만 건 = 40px)
     let s = line(80, base, 960, base, { c: 'line', sw: 2 });
-    s += rect(190, base - 1 * k * 10, 240, 1 * k * 10, { fill: 'green', r: 4 });
-    s += rect(570, base - 19.6 * k * 10, 240, 19.6 * k * 10, { fill: 'amber', r: 4 });
-    s += line(80, base - 10 * k * 10, 960, base - 10 * k * 10, { c: 'red', sw: 3, dash: true });
-    s += txt(90, base - 10 * k * 10 - 14, '무료 한도 10만/일', { size: 26, w: 700, fill: 'red' });
-    s += txt(310, base - 1 * k * 10 - 16, '약 1만', { size: 30, w: 800, anchor: 'middle' });
-    s += txt(690, base - 19.6 * k * 10 - 16, '약 19.6만', { size: 30, w: 800, anchor: 'middle' });
-    s += txt(310, base + 44, '관리자 웹만', { size: 26, w: 700, anchor: 'middle' });
-    s += txt(690, base + 44, '회원 앱 포함', { size: 26, w: 700, anchor: 'middle' });
-    s += txt(970, base + 90, '하루 API 요청 수(98개 지점 기준 계산값)', { size: 24, fill: 'muted', anchor: 'end' });
+    s += rect(190, base - 108 * k, 240, 108 * k, { fill: 'amber', r: 4 });
+    s += rect(570, base - 93 * k, 240, 93 * k, { fill: 'green', r: 4 });
+    s += line(80, base - 100 * k, 960, base - 100 * k, { c: 'red', sw: 3, dash: true });
+    s += txt(960, base - 100 * k - 14, '무료 한도 10만/일', { size: 26, w: 700, fill: 'red', anchor: 'end' });
+    s += txt(310, base - 108 * k + 84, '약 10.8만', { size: 30, w: 800, fill: '#FFFFFF', anchor: 'middle' });
+    s += txt(690, base - 93 * k + 84, '약 9.3만', { size: 30, w: 800, fill: '#FFFFFF', anchor: 'middle' });
+    s += txt(310, base + 44, '98개 전체', { size: 26, w: 700, anchor: 'middle' });
+    s += txt(690, base + 44, '수도권 83개', { size: 26, w: 700, anchor: 'middle' });
+    s += txt(970, base + 90, '하루 API 요청 수(관리자 웹 약 1만 건 포함, 계산값)', { size: 24, fill: 'muted', anchor: 'end' });
     return s;
   });
 }
