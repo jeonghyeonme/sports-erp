@@ -161,15 +161,15 @@ section('prop-scope', { notes: '범위 밖 항목은 요구사항추적표 §2-4
     `</div>`) +
   foot('범위 제외 근거: 요구사항추적표 §2-4 · 각 도메인 문서 부록 A-8'));
 
-section('prop-memberapp', { notes: '회원 앱 보류 이유(사용자 확인, docs/log/057, D37 §5). 19.6만/일은 실측이 아니라 계산값이다: 98개 지점 × 지점당 일 이용 200명(design-constants ③) × 세션당 요청 10건(⑩, 약한 가정). 처리 성능은 문제가 아니었다 — Lambda 동시 실행 상한 10이면 처리 한계 약 200 rps, 회원 앱 포함 피크는 약 19 rps(계산). 막히는 건 요청 "개수" 한도: Workers 무료 10만/일을 넘으면 그날 나머지 요청이 실패한다. Lambda도 월 약 590만 건으로 무료 100만/월을 넘는다. 감당하려면 유료 전환(월 약 $6)이나 인프라를 더 구성해 지금 인프라와 연결해야 하는데, 그러면 개발 범위가 너무 넓어져서 보류했다. "실측"이라고 말하지 말 것. Lambda 위 k6 실측은 아직 없다(스크립트·통과 기준만 준비).' },
+section('prop-memberapp', { notes: '회원 앱 보류 이유(사용자 확인, docs/log/057, D37 §5). 19.6만/일은 실측이 아니라 계산값이다: 98개 지점 × 지점당 일 이용 200명(design-constants ③) × 세션당 요청 10건(⑩, 약한 가정). 처리 성능은 막히는 이유가 아니었다 — 10/4 k6 실측으로 Lambda 동시 실행 상한 10의 실질 처리 한계는 약 50 rps(설계 계산 200 rps는 요청당 50ms 가정이었는데 실측 p50이 약 110ms), 회원 앱 포함 피크는 약 19 rps(계산)라 받을 수는 있다. 다만 여유가 2.5배 남짓이라 회원 앱을 다시 넣으면 처리 한계도 함께 봐야 한다. 막히는 건 요청 "개수" 한도: Workers 무료 10만/일을 넘으면 그날 나머지 요청이 실패한다. Lambda도 월 약 590만 건으로 무료 100만/월을 넘는다. 감당하려면 유료 전환(월 약 $6)이나 인프라를 더 구성해 지금 인프라와 연결해야 하는데, 그러면 개발 범위가 너무 넓어져서 보류했다. 19.6만/일·19 rps는 "계산값", 처리 한계 약 50 rps는 "실측"(docs/log/056)으로 구분해서 말할 것.' },
   head('범위 결정 · 회원 앱 보류', '회원 앱까지 받으면 무료 한도를 넘습니다') +
   diagramSide(F.memberAppBar,
     label('보류한 이유') +
     ptxt('회원 앱을 붙이면 하루 요청이 무료 한도의 두 배가 됩니다. 넘는 순간 그날의 나머지 요청이 <b>실패</b>합니다.', 28, INK) +
     ptxt('감당하려면 유료 전환이나 인프라를 더 구성해 연결해야 하고, <b>개발 범위가 너무 넓어집니다.</b>', 28, INK) +
     label('대신') +
-    ptxt('처리 성능은 충분합니다(한계 약 200 rps). RFP 핵심인 관리자 쪽에 집중하고, 회원 기능은 API로 남겼습니다.', 26)) +
-  foot('계산값(실측 아님) — 98개 지점 × 하루 200명 × 세션당 10건 · 근거: D37 §1·§5, design-constants ⑬'));
+    ptxt('처리량은 실측 한계 약 50 rps로 회원 앱 피크(약 19 rps)를 받을 수 있습니다. 막히는 건 요청 개수입니다. RFP 핵심인 관리자 쪽에 집중하고, 회원 기능은 API로 남겼습니다.', 26)) +
+  foot('요청 수는 계산값 — 98개 지점 × 하루 200명 × 세션당 10건 · 처리 한계는 10/4 k6 실측 · 근거: D37 §1·§5, design-constants ⑬'));
 
 // ════════════════════════════════════════════════════════════════════════
 // ② 요구사항
@@ -282,7 +282,7 @@ section('data-integrity', { notes: '앱 코드의 검사는 사람이 새 쿼리
 // ════════════════════════════════════════════════════════════════════════
 partSlide('p4', '04', '설계 Diagram', '실제로 어떻게 돌아가나', '파트 4. 구성도 → 지점 격리 흐름 → 예약 흐름 → 배포 구조가 바뀐 이유.');
 
-section('arch-system', { notes: '지금 운영 경로: 브라우저 → Cloudflare Worker(관리자 웹 정적 파일 + /api 프록시 + 로그인 요청 제한) → AWS Lambda(서울, NestJS API) → Supabase Postgres(서울). 화면과 API를 같은 주소로 묶어 쿠키·CORS 문제를 없앴다. Worker 경유로 로그인과 데이터 조회까지 확인했다. API와 DB가 같은 서울 리전이라 요청마다 쌓이던 리전 간 왕복이 사라졌다. 이전에 쓰던 Render(싱가포르)는 더 이상 운영 경로가 아니다. 참고: 배포 워크플로의 헬스체크는 DB를 거치지 않는 고정 응답이라, DB 연결은 실제 로그인·조회로 확인한 것이다. Lambda 위 부하 실측(k6)은 아직이다.' },
+section('arch-system', { notes: '지금 운영 경로: 브라우저 → Cloudflare Worker(관리자 웹 정적 파일 + /api 프록시 + 로그인 요청 제한) → AWS Lambda(서울, NestJS API) → Supabase Postgres(서울). 화면과 API를 같은 주소로 묶어 쿠키·CORS 문제를 없앴다. Worker 경유로 로그인과 데이터 조회까지 확인했다. API와 DB가 같은 서울 리전이라 요청마다 쌓이던 리전 간 왕복이 사라졌다. 이전에 쓰던 Render(싱가포르)는 더 이상 운영 경로가 아니다. 참고: 배포 워크플로의 헬스체크는 DB를 거치지 않는 고정 응답이라, DB 연결은 실제 로그인·조회로 확인한 것이다. 10/4 Lambda 위 k6 실측: 로그인 p95 237ms, 50 rps에서 p95 178ms, 넘친 요청은 13ms 안에 거절(docs/log/056). 실질 처리 한계는 약 50 rps.' },
   head('시스템 구성도', '하나의 주소 뒤에 화면·API·DB가 있습니다') +
   diagramSide(F.sysArch,
     label('구성') +
@@ -308,15 +308,16 @@ section('arch-reservation', { notes: '예약 흐름(ADR-RSV-01·02, D32). ① �
   foot('근거: 예약및결제 ADR-RSV-01·02 · 검증: reservation-capacity · contract-termination 테스트'));
 
 const evo = (when, name, d, k) => { const m = { red: [RED_SOFT, RED], done: [GREEN_SOFT, GREEN], part: [AMBER_SOFT, AMBER], plan: [NAVY_SOFT, NAVY] }[k]; return `<div style="flex:1; display:flex; flex-direction:column; gap:12px; padding:28px; background:${m[0]}; border:2px solid ${m[1]}; border-radius:14px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${m[1]}">${when}</p><p style="font-family:${DISPLAY}; font-size:34px; font-weight:800; line-height:1.2; color:${INK}">${name}</p><p style="font-size:26px; line-height:1.4; color:${INK}">${d}</p></div>`; };
-section('arch-evolution', { notes: '배포 구조가 바뀐 이유를 원인→결정으로. 9/27 Render 무료 티어에서 k6 실측: 동시 로그인 40명에 로그인 p95 15.16초, 조회 API p95 1.18초(로컬 정상 처리는 65ms). 원인은 공유 CPU 1대에서 "지연→동시 요청 누적→CPU 경합→더 큰 지연" 자기강화 루프(design-constants ⑨). 서버를 늘리려면 메모리 상태(인메모리 mock)를 없애야 해서 실DB 전환(D26~D36)을 먼저 끝냈다. 그 위에서 Lambda: 요청마다 CPU가 따로라 루프의 CPU 고리가 끊기고, 남는 공유 자원인 DB 커넥션은 동시 실행 상한 10으로 보호한다(넘치면 대기열 대신 즉시 거절). Lambda로 운영 전환은 끝났고(Worker 경유 로그인·조회 확인), Lambda 위 k6 재측정은 아직이다.' },
-  head('배포 구조가 바뀐 이유', '실측 → 원인 → 실DB → Lambda') +
+section('arch-evolution', { notes: '배포 구조가 바뀐 이유를 원인→결정으로. 9/27 Render 무료 티어에서 k6 실측: 동시 로그인 40명에 로그인 p95 15.16초, 조회 API p95 1.18초(로컬 정상 처리는 65ms). 원인은 공유 CPU 1대에서 "지연→동시 요청 누적→CPU 경합→더 큰 지연" 자기강화 루프(design-constants ⑨). 서버를 늘리려면 메모리 상태(인메모리 mock)를 없애야 해서 실DB 전환(D26~D36)을 먼저 끝냈다. 그 위에서 Lambda: 요청마다 CPU가 따로라 루프의 CPU 고리가 끊기고, 남는 공유 자원인 DB 커넥션은 동시 실행 상한 10으로 보호한다(넘치면 대기열 대신 즉시 거절). Lambda로 운영 전환을 끝내고(Worker 경유 로그인·조회 확인) 10/4에 k6로 다시 쟀다: 동시 로그인 0→40명(1초 간격)에서 로그인 p95 237ms — 9/27의 15.16초 대비 약 1/60. 조건 차이: 이번엔 Function URL에 직접(Worker 로그인 rate limit 때문), 정점에서 상한 10에 닿아 거절 1건(에러 0 기준은 미달). 남은 위험: 요청당 처리 p50 약 110ms(가정 50ms)라 실질 처리 한계 약 50 rps.' },
+  head('배포 구조가 바뀐 이유', '실측 → 원인 → 실DB → Lambda → 재측정') +
   fill(`<div style="display:flex; gap:14px; align-items:stretch">` +
     evo('9/27 · 실측', '로그인 p95 15초', 'Render 무료 티어, 동시 40명. 로컬 정상 처리는 65ms', 'red') +
     evo('원인', '공유 CPU 경합', '지연이 요청을 쌓고, 쌓인 요청이 지연을 키우는 루프', 'red') +
     evo('9/28~29 · D26~D36', '실DB 전환', '메모리 상태를 없애야 서버를 늘릴 수 있다', 'done') +
-    evo('9/30 이후 · D37', 'Lambda(서울) 운영', '요청마다 CPU 분리 + 동시 실행 상한 10으로 DB 보호', 'done') +
+    evo('9/30 이후 · D37', 'Lambda 운영', '서울 리전. 요청마다 CPU 분리 + 동시 실행 상한 10으로 DB 보호', 'done') +
+    evo('10/4 · 재측정', '로그인 0.24초', 'p95, 같은 동시 40명. 실질 처리 한계는 약 50 rps', 'done') +
     `</div>`) +
-  foot('근거: D24(k6 실측) · D26~D36 · D37 · design-constants ⑨'));
+  foot('근거: D24(k6 실측) · D26~D36 · D37 · docs/log/056(Lambda 위 k6) · design-constants ⑨'));
 
 // ════════════════════════════════════════════════════════════════════════
 // ⑤ 기술스택 · AI
@@ -402,7 +403,7 @@ section('week-found', { notes: '실DB로 옮겨야 보이는 문제들이었다.
   foot('근거: docs/log/042 · 045 · 047'));
 
 const rej = (n, d) => `<div style="flex:1; display:flex; flex-direction:column; gap:6px; background:${GRAY_SOFT}; border:1px solid ${LINE_STRONG}; border-radius:10px; padding:16px 20px"><p style="font-size:26px; font-weight:700; color:${SOFT}">${n}</p><p style="font-size:24px; line-height:1.3; color:${SOFT}">${d}</p></div>`;
-section('week-lambda', { notes: '지난 발표에서 예고한 Lambda 전환을 어떻게 설계했는지(D37, 9/30). Lambda는 실행 환경 하나가 요청 하나만 처리하므로 요청마다 CPU가 따로다 — 4주차에 본 "지연→요청 누적→CPU 경합" 루프의 CPU 고리가 구조적으로 끊긴다. 남는 공유 자원은 DB 커넥션이라, 동시 실행 상한을 10으로 묶어 DB가 감당하는 만큼만 받고, 넘치는 요청은 대기열에 쌓지 않고 입구에서 바로 거절(503)한다. API를 DB와 같은 서울 리전에 둬서 요청당 쿼리 4~8개의 리전 간 왕복도 없앴다. 계산상 필요한 동시 실행은 약 1.3건, 상한 10의 처리 한계는 약 200 rps(계산, 실측 아님). DB는 Supabase를 유지하고, 옮길 조건 4개(용량 80%, 백업 요구, 풀 대기 반복, 회원 앱 재개)를 정해 뒀다.' },
+section('week-lambda', { notes: '지난 발표에서 예고한 Lambda 전환을 어떻게 설계했는지(D37, 9/30). Lambda는 실행 환경 하나가 요청 하나만 처리하므로 요청마다 CPU가 따로다 — 4주차에 본 "지연→요청 누적→CPU 경합" 루프의 CPU 고리가 구조적으로 끊긴다. 남는 공유 자원은 DB 커넥션이라, 동시 실행 상한을 10으로 묶어 DB가 감당하는 만큼만 받고, 넘치는 요청은 대기열에 쌓지 않고 입구에서 바로 거절(503)한다. API를 DB와 같은 서울 리전에 둬서 요청당 쿼리 4~8개의 리전 간 왕복도 없앴다. 계산상 필요한 동시 실행은 약 1.3건, 상한 10의 처리 한계는 약 200 rps로 잡았다(요청당 50ms 가정). 10/4 실측에서는 요청당 처리 p50이 약 110ms라 실질 한계가 약 50~55 rps였다 — 원인(Lambda↔풀러 왕복 × 요청당 쿼리 수)은 추정이고 확인 전. DB는 Supabase를 유지하고, 옮길 조건 4개(용량 80%, 백업 요구, 풀 대기 반복, 회원 앱 재개)를 정해 뒀다.' },
   head('실행 ② · 9/30', '지난 발표에서 예고한 Lambda 전환, 이렇게 설계했습니다') +
   fill(`<div style="display:flex; gap:16px; align-items:stretch">` +
     card(icon('Activity', GREEN) + h3('요청마다 CPU 분리', 34) + ptxt('요청끼리 CPU를 나눠 쓰지 않아, 몰려도 서로를 느리게 만들지 않습니다'), 'flex:1') +
@@ -410,7 +411,7 @@ section('week-lambda', { notes: '지난 발표에서 예고한 Lambda 전환을 
     card(icon('Globe', NAVY) + h3('DB와 같은 서울', 34) + ptxt('요청마다 쿼리 4~8개가 오가던 싱가포르↔서울 왕복이 사라집니다'), 'flex:1') +
     `</div>` + `<div style="height:24px"></div>` +
     ptxt('DB는 Supabase를 유지합니다 — 옮길 조건(용량·백업·풀 대기·회원 앱)을 미리 정해 뒀습니다.', 28, INK, 600)) +
-  foot('처리 한계 약 200 rps는 계산값 — Lambda 위 실측은 다음 과제'));
+  foot('처리 한계: 설계 계산 약 200 rps(요청당 50ms 가정) → 10/4 실측 약 50 rps(요청당 약 110ms)'));
 
 section('week-memberapp', { notes: '같은 날(9/30) 회원 앱 보류를 결정했다. 파트 1 범위 슬라이드에서 이미 설명했으므로 여기서는 시간순 위치만 짚는다. Lambda로 처리 성능 문제는 풀었지만 요청 개수 한도(무료 티어)는 별개 문제였다 — 회원 앱을 받으려면 유료 전환이나 인프라 추가 구성이 필요하고 범위가 과하게 넓어진다(log/057). 결과: 범위 안 요청량은 하루 1만 건 수준(추정)이라 무료 한도 안에 든다.' },
   head('결정 ② · 9/30', '같은 날, 회원 앱을 보류했습니다') +
@@ -431,28 +432,29 @@ section('week-docs', { notes: '10/1 문서 구조 재편(D38). 계기: 이전 �
   foot('근거: D38 · docs/log/053'));
 
 const step = (when, t, k) => { const m = { done: [GREEN_SOFT, GREEN], part: [AMBER_SOFT, AMBER] }[k]; return `<div style="display:flex; align-items:center; gap:24px; padding:20px 28px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:12px"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${NAVY}; width:150px">${when}</p><p style="flex:1; font-size:30px; color:${INK}">${t}</p>${pill(k === 'done' ? '완료' : '확인 전', m[0], m[1])}</div>`; };
-section('week-infra', { notes: 'Lambda 인프라 구축과 전환. Function URL을 저장소·Actions 로그에서 뺐다(log/054) — 공개 저장소에 주소가 남으면 앱이 거절한 요청도 Lambda 호출로 과금되기 때문. AWS 계정에 함수·URL·OIDC 배포 역할·5분 워밍·경보·예산 경보($1/$5/$20)를 만들었다(log/055). 비밀값은 사용자가 직접 스크립트로 넣었다. 10/4 GitHub Actions 배포: 첫 실행은 AWS 인증 단계에서 실패, 이후 2회 성공(패키징→업로드→버전 발행→별칭 이동→헬스체크). 그다음 Worker가 Lambda를 가리키도록 전환했고, Worker 경유로 로그인과 데이터 조회까지 확인했다. 배포 헬스체크는 DB를 거치지 않는 고정 응답이라 DB 연결 확인은 실제 로그인·조회로 한 것이다.' },
+section('week-infra', { notes: 'Lambda 인프라 구축과 전환. Function URL을 저장소·Actions 로그에서 뺐다(log/054) — 공개 저장소에 주소가 남으면 앱이 거절한 요청도 Lambda 호출로 과금되기 때문. AWS 계정에 함수·URL·OIDC 배포 역할·5분 워밍·경보·예산 경보($1/$5/$20)를 만들었다(log/055). 비밀값은 사용자가 직접 스크립트로 넣었다. 10/4 GitHub Actions 배포: 첫 실행은 AWS 인증 단계에서 실패, 이후 2회 성공(패키징→업로드→버전 발행→별칭 이동→헬스체크). 그다음 Worker가 Lambda를 가리키도록 전환했고, Worker 경유로 로그인과 데이터 조회까지 확인했다. 같은 날 k6로 Lambda 위 성능을 쟀다(S1 로그인 p95 237ms·거절 1, S2 50 rps p95 178ms, S3 300 rps에서 거절 p95 13ms·성공 p95 182ms, 콜드 스타트 Init 1,063ms). 배포 헬스체크는 DB를 거치지 않는 고정 응답이라 DB 연결 확인은 실제 로그인·조회로 한 것이다.' },
   head('실행 ④ · 10/2~', 'Lambda를 만들고, 운영을 옮겼습니다') +
   fill(`<div style="display:flex; flex-direction:column; gap:12px">` +
     step('10/2', 'Function URL을 저장소·로그에서 제거 — 거절된 요청도 과금되기 때문', 'done') +
     step('10/3', 'AWS 리소스 · 배포 역할 · 워밍 · 예산 경보 생성', 'done') +
     step('10/4', 'GitHub Actions 자동 배포 — 검증 후 배포, 실패 시 롤백', 'done') +
     step('전환', 'Worker → Lambda 연결, 로그인·데이터 조회 확인', 'done') +
+    step('10/4 · k6', '실측 — 로그인 p95 237ms · 넘친 요청은 13ms 만에 거절', 'done') +
     `</div>`) +
   foot('근거: docs/log/054 · 055 · 056'));
 
 const nx = (k, t, d) => card(`<div style="display:flex">${statePill(k, k === 'done' ? '완료' : k === 'part' ? '다음' : '보류')}</div>` + h3(t, 34) + ptxt(d, 26), 'flex:1');
-section('week-next', { notes: '남은 것. ① k6로 Lambda 위에서 다시 잰다 — 통과 기준(D37 §4): 로그인 p95 500ms 미만, 과부하 시 넘친 요청만 빠르게 거절되고 성공한 요청은 빠르게 유지. 결과를 4주차의 15.16초와 나란히 비교하는 것이 다음 발표의 핵심이 될 것. ② Render 정리(일시정지) — 롤백은 Render가 아니라 Lambda 별칭으로 한다. 회원 앱은 보류 상태 그대로.' },
-  head('남은 것', '이제 Lambda 위에서 다시 잽니다') +
+section('week-next', { notes: 'k6 실측(10/4, docs/log/056) — 통과 기준(D37 §4)과 비교: S1 로그인 p95 237ms(기준 500ms) 통과, 다만 정점에서 상한 10에 닿아 거절 1건이라 에러 0 기준은 미달. S2 50 rps p95 178ms 통과. S3 300 rps에서 넘친 요청 거절 p95 13ms·성공 p95 182ms 통과. 콜드 스타트 Init 1,063ms. 4주차 15.16초 → 0.24초. 남은 것: ① 요청당 처리 p50 약 110ms(가정 50ms)라 실질 처리 한계가 약 50 rps — 원인 확인, 동시 실행 한도 상향이나 쿼리 수 줄이기는 결정 대기. ② Render 정리(일시정지) — 롤백은 Render가 아니라 Lambda 별칭으로 한다. 회원 앱은 보류 상태 그대로.' },
+  head('남은 것', 'Lambda 위에서 다시 쟀고, 다음 한계를 찾았습니다') +
   fill(`<div style="display:flex; gap:16px; align-items:stretch">` +
-    nx('done', '완료', '실DB 전환 · 문서 재편 · Lambda 운영 전환') +
-    nx('part', '다음', 'k6로 Lambda 위에서 재측정 → Render 정리') +
+    nx('done', '완료', '실DB 전환 · 문서 재편 · Lambda 운영 전환 · k6 재측정') +
+    nx('part', '다음', '처리 한계 약 50 rps의 원인 확인 → Render 정리') +
     nx('out', '보류', '회원 앱 — 유료 전환·인프라 추가가 필요해질 때 다시') +
     `</div>`) +
-  foot('통과 기준(D37 §4): 로그인 p95 500ms 미만 · 과부하 시 넘친 요청만 빠르게 거절'));
+  foot('10/4 실측: 로그인 p95 237ms(기준 500ms) · 50 rps p95 178ms · 넘친 요청 거절 p95 13ms'));
 
 // ── 마무리 ───────────────────────────────────────────────────────────────
-section('closing', { pad: '128px 176px', gap: 24, notes: '맺음 한 줄(말로): "지난주 약속한 실DB 전환과 Lambda 전환을 끝냈습니다. 다음은 Lambda 위에서 다시 재는 일입니다." Q&A 대비: Lambda 위 부하 실측은 아직(Worker 경유 로그인·조회까지 확인), 배포 헬스체크는 DB를 거치지 않음, 19.6만/일은 계산값, 관리자 웹은 테스트 없음, 회원 화면은 관리자 웹 대용, 기업 분석은 내부 자료가 아니라 조사·재구성.' },
+section('closing', { pad: '128px 176px', gap: 24, notes: '맺음 한 줄(말로): "지난주 약속한 실DB 전환과 Lambda 전환을 끝냈고, 다시 재 보니 로그인 15초가 0.24초가 됐습니다. 다음은 처리 한계 약 50 rps의 원인을 찾는 일입니다." Q&A 대비: k6는 Function URL에 직접 쟀음(Worker rate limit 때문), S1 정점 거절 1건, 처리 한계 원인은 추정만, 배포 헬스체크는 DB를 거치지 않음, 19.6만/일은 계산값, 관리자 웹은 테스트 없음, 회원 화면은 관리자 웹 대용, 기업 분석은 내부 자료가 아니라 조사·재구성.' },
   dots(400, 780, 700, 460) + `<div style="flex:1"></div>` +
   `<h1 style="font-family:${DISPLAY}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:${INK}">감사합니다</h1><p style="font-size:44px; color:${SOFT}">질문 환영합니다.</p><div style="flex:1"></div>`);
 
