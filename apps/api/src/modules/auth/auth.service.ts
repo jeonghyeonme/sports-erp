@@ -142,6 +142,11 @@ export class AuthService {
   }
 
   private async issuePrismaRefreshToken(accountId: string): Promise<string> {
+    // ADR-AUTH-04 — 발급(로그인·갱신·가입 직후)마다 행이 하나씩 쌓이므로, 이 계정의 만료·폐기 토큰을 여기서 지운다.
+    // 스케줄러 없이 계정당 행 수를 "살아 있는 세션 수"로 묶는다. 폐기된 토큰을 지워도 재사용은 계속 401이다(행이 없으면 거부).
+    await this.prisma.refreshToken.deleteMany({
+      where: { accountId, OR: [{ expiresAt: { lt: new Date() } }, { revokedAt: { not: null } }] },
+    });
     const jti = randomUUID();
     const payload: RefreshTokenPayload = { sub: accountId, jti };
     const token = this.jwtService.sign(payload, {
