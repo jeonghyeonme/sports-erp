@@ -21,6 +21,7 @@
     "req-roles",
     "req-invariants",
     "req-shot",
+    "req-shot-member",
     "p3",
     "data-core",
     "data-branch",
