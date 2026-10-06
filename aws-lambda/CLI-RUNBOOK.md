@@ -122,7 +122,7 @@ gh variable set AWS_LAMBDA_DEPLOY_ROLE_ARN --body "arn:aws:iam::$ACCOUNT:role/sp
 gh variable set LAMBDA_FUNCTION_NAME --body "$FN"
 gh secret set LAMBDA_FUNCTION_URL --body "<3번 URL>"
 gh secret set ORIGIN_SECRET --body "$ORIGIN_SECRET"
-gh workflow run deploy-api-lambda.yml --ref main-5x9td9 && sleep 5 && gh run watch
+gh workflow run deploy-api-lambda.yml --ref dev && sleep 5 && gh run watch
 ```
 
 **확인**:

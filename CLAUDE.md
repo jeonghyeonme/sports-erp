@@ -95,5 +95,5 @@ node scripts/doc-check.mjs     # 문서 검사(링크·옛 이름·ADR ID·크�
 
 ## 작업 환경 유의사항
 
-- **브랜치**: 배포·기준 브랜치는 `main-5x9td9`(Render·Lambda 배포 대상). 코드 변경은 작업 브랜치 → `main-5x9td9` 대상 PR → CI 확인 → rebase 병합.
+- **브랜치**([D39](docs/decisions/D39.md)): `dev` = **주 개발 브랜치**이자 Lambda 배포 대상(저장소 기본 브랜치). `main` = 완성본 — 프로젝트 완료 시 `dev`를 병합하며, 그 전에는 직접 push·PR 하지 않는다. 모든 변경은 임시 작업 브랜치(세션의 `claude/*` 등) → `dev` 대상 PR → CI 확인 → rebase 병합 → 작업 브랜치 삭제.
 - GitHub Desktop과 동시에 열려 있을 수 있어 **커밋 안 된 변경이 자동 stash될 수 있다.** 큰 작업 전후로 `git status`/`git stash list`를 확인한다.

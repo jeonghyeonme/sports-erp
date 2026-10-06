@@ -35,4 +35,4 @@ npm run test    # jest — HTTP 통합 테스트(test/), 실제 AppModule + supe
 
 ## 배포 (D37 — 진행 상태는 docs/STATUS.md)
 
-진입점 `src/lambda.ts`, 묶음 `bash scripts/package-lambda.sh`, 자동 배포 `.github/workflows/deploy-api-lambda.yml`(`main-5x9td9` push). 배포 환경에서 `JWT_ACCESS_SECRET`·`JWT_REFRESH_SECRET`·`ORIGIN_SECRET`이 없으면 부팅이 실패한다(`src/common/config/secrets.ts`). 동시 실행 상한 10과 풀러 `connection_limit=1`은 D37 결정 1의 요청량 설계이므로 바꾸려면 D37을 먼저 본다. 콘솔 절차는 `aws-lambda/README.md`.
+진입점 `src/lambda.ts`, 묶음 `bash scripts/package-lambda.sh`, 자동 배포 `.github/workflows/deploy-api-lambda.yml`(`dev` push, D39). 배포 환경에서 `JWT_ACCESS_SECRET`·`JWT_REFRESH_SECRET`·`ORIGIN_SECRET`이 없으면 부팅이 실패한다(`src/common/config/secrets.ts`). 동시 실행 상한 10과 풀러 `connection_limit=1`은 D37 결정 1의 요청량 설계이므로 바꾸려면 D37을 먼저 본다. 콘솔 절차는 `aws-lambda/README.md`.

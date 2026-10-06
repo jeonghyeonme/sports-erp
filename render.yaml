@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     region: singapore
-    branch: main-5x9td9
+    branch: dev
     # NPM_CONFIG_PRODUCTION=false가 없으면 npm install이 devDependencies(@nestjs/cli)를
     # 건너뛰어 `nest: not found`로 빌드가 실패한다(2026-09-27 실제로 겪은 문제).
     buildCommand: npm install && npm run prisma:generate --workspace=apps/api && npm run build --workspace=apps/api

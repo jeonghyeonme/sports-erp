@@ -1,6 +1,6 @@
 name: Deploy api (AWS Lambda)
 
-# D37 — 배포 브랜치(main-5x9td9)에 api가 바뀌면 Lambda(서울)로 배포한다.
+# D37 — 주 개발·배포 브랜치(dev, D39)에 api가 바뀌면 Lambda(서울)로 배포한다.
 # AWS 인증은 GitHub OIDC로 역할을 맡는다(액세스 키를 저장하지 않음). 설정 전에는 배포 잡이 건너뛰어진다.
 #
 # 저장소 설정(Settings → Secrets and variables → Actions)에 필요한 값 — aws-lambda/README.md 체크리스트 참고:
@@ -9,7 +9,7 @@ name: Deploy api (AWS Lambda)
 #              LAMBDA_FUNCTION_URL (공개 저장소의 Actions 로그에 주소가 찍히지 않게 variable이 아니라 secret으로 둔다)
 on:
   push:
-    branches: [main-5x9td9]
+    branches: [dev]
     paths:
       - 'apps/api/**'
       - 'package-lock.json'

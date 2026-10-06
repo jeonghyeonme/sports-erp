@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-06 · [log/065](log/065.md)(발표 덱 문구를 k6 실측으로 고침)
+> 마지막 갱신: 2026-10-06 · [log/066](log/066.md)(주 개발 브랜치를 `dev`로 — 이름 변경 준비)
 
 ## 현재 상태
 
@@ -9,9 +9,9 @@
 |---|---|---|
 | 도메인 9개 | 문서화·핵심 ADR 구현 완료. 도메인별 검증 범위는 각 도메인 문서 §11 | `domains/` |
 | 데이터 | 전 도메인 Prisma(Supabase Postgres) — `MockDataService` 삭제 | [D36](decisions/D36.md) |
-| api 호스팅 | **AWS Lambda(서울) 운영 중** — Worker origin을 Function URL(별칭 `live`)로 전환했다. 배포는 `main-5x9td9` push 또는 Actions 수동 실행(OIDC). k6 실측 완료(2026-10-04): 로그인 p95 237ms, 실질 처리 한계 약 50 rps. Render는 아직 켜져 있다(롤백용, 트래픽 없음) | [D37](decisions/D37.md), [log/056](log/056.md) |
+| api 호스팅 | **AWS Lambda(서울) 운영 중** — Worker origin을 Function URL(별칭 `live`)로 전환했다. 배포는 `dev` push 또는 Actions 수동 실행(OIDC). k6 실측 완료(2026-10-04): 로그인 p95 237ms, 실질 처리 한계 약 50 rps. Render는 아직 켜져 있다(롤백용, 트래픽 없음) | [D37](decisions/D37.md), [log/056](log/056.md) |
 | admin-web·엣지 | Cloudflare Worker(정적 자산 + 프록시 + rate limit). `API_ORIGIN`·`ORIGIN_SECRET`은 Worker secret | [D25](decisions/D25.md), [D37](decisions/D37.md) |
-| 저장소 | 기본 브랜치를 `main-5x9td9`로 바꿨다(2026-10-04, Run workflow 버튼 때문). `main`은 16커밋 뒤처져 있다 | [log/056](log/056.md) |
+| 저장소 | 주 개발·배포 브랜치 = `dev`(기본 브랜치), `main` = 완성본(완료 시 병합). 작업은 임시 브랜치 → `dev` PR. **저장소 설정은 반영됐고 GitHub 이름 변경(`main-5x9td9` → `dev`)은 사용자 작업 대기** | [D39](decisions/D39.md), [log/066](log/066.md) |
 | 산출물 | 요구사항 정의서·데이터 정의서(Excel), 기업 분석·제안서·아키텍처 설계서(Word) — `scripts/deliverables/`로 재생성 | [log/061](log/061.md), [log/062](log/062.md) |
 | 회원 앱 | 개발 범위 제외(2026-09-30) — 무료 한도 초과로 인프라 확장이 필요해 보류 | [D37](decisions/D37.md), [log/057](log/057.md) |
 | 문서 구조 | 2026-10-01 재편 완료 — 로딩 계층·doc-check 도입 | [D38](decisions/D38.md) |
@@ -21,7 +21,7 @@
 1. **Lambda 전환(D37) 마무리**
    1. 사용자: Render `sports-erp-api` 일시정지(롤백이 더 필요 없다고 판단되면). 롤백 방법은 Worker `API_ORIGIN`만 Render 주소로 `--secrets-file` 재배포([CLI-RUNBOOK](../aws-lambda/CLI-RUNBOOK.md) 5번).
    2. k6 실측([log/056](log/056.md) 근거 표)을 D37에 어떻게 남길지 정한다 — D37 §4를 채울지, 새 결정 파일로 둘지(D38: 결정 파일은 고치지 않고 새 번호로).
-   3. 남은 `main` 브랜치와 이미 병합된 옛 작업 브랜치 4개(lambda-cli-runbook·restructure·lambda-url-not-public·local/lambda-k6 — 모두 내용이 이미 반영됨)를 어떻게 할지(방치 / 삭제).
+   3. **`dev` 전환(D39, 순서대로)** — 사용자: AWS 신뢰 정책 `sub`에 dev 추가 → GitHub에서 `main-5x9td9`를 `dev`로 이름 변경 → Actions 수동 배포로 확인 → 신뢰 정책에서 옛 값 제거 → 로컬 브랜치 이름 변경. 그다음 병합 끝난 작업 브랜치 7개 삭제([log/066](log/066.md) 목록). 전환 전에는 api 변경을 병합하지 않는다.
 2. **Worker rate limit 429 실동작 확인** — [cloudflare-worker/README.md](../cloudflare-worker/README.md)의 curl 테스트([log/033](log/033.md)부터 미확인).
 3. **트래픽·인프라 후보 이슈를 ADR로 승격** — [traffic-infra-review.md](architecture/traffic-infra-review.md)를 체크리스트로([log/039](log/039.md)).
 4. **RFP 미구현 중 비용이 작은 것** — AuditLog 기록, 응답 마스킹, 공통 Toast([요구사항추적표](reference/요구사항추적표.md) §2-3·§3).

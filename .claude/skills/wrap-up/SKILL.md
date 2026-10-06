@@ -54,4 +54,4 @@ description: 이 저장소(스포이즘 ERP)에서 작업 한 단위를 마칠 �
 1. `node scripts/doc-check.mjs` 통과
 2. 코드가 바뀌었으면 커밋 전 hook이 lint·빌드·jest를 돌린다(실패하면 커밋이 막힌다)
 3. 커밋 메시지는 한국어, 근거 ID(ADR·D·log 번호)를 인용한다
-4. 코드 변경은 작업 브랜치 → `main-5x9td9` 대상 PR
+4. 코드 변경은 작업 브랜치 → `dev` 대상 PR(D39)
