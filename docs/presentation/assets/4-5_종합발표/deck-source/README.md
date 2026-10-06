@@ -23,5 +23,6 @@ node viz/deck45.js deck-out    # deck-out/project/ 아래를 다시 쓴다. 끝�
 
 ## 알려진 한계
 
+- **편집기에서 직접 고친 슬라이드 5장**(`prop-goal`·`req-adjust`·`req-invariants`·`data-integrity`·`ai-verify`)은 `deck-out/`에만 반영돼 있고 `deck45.js`에는 없다. `node viz/deck45.js deck-out`을 다시 돌리면 이 5장이 덮어써지므로, 재생성 후에는 이 5장을 게시하지 않거나 게시본에서 다시 받아온다([log/065](../../../../log/065.md)).
 - 게시 후 렌더 결과를 눈으로 확인하지 않았다(4-0 §7 마지막 확인 항목은 발표자가 덱을 열어 확인).
 - 캡처는 실DB 전환 이전 화면이다. 두 화면 구성은 이후 바뀌지 않았지만 데이터는 mock 시절 값이다.
