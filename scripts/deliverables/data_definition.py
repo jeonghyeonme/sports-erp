@@ -257,7 +257,7 @@ def main():
         ('문서', '데이터 정의서'),
         ('DBMS', 'PostgreSQL(Supabase, 서울 리전) · ORM: Prisma 5'),
         ('작성일', date.today().isoformat()),
-        ('기준', f'저장소 커밋 {commit} — apps/api/prisma/schema.prisma, migrations/*.sql에서 자동 생성'),
+        ('기준', f'{date.today().isoformat()} 저장소(dev 브랜치) — apps/api/prisma/schema.prisma, migrations/*.sql에서 자동 생성'),
         ('규모', f'테이블 {len(models)}개 · 컬럼 {len(cols)}개 · 코드(enum) {len(enums)}종 · CHECK {len(checks)}개 · 트리거 {len(trigs)}개'),
         ('미사용 테이블', ', '.join(f'{TABLES[n][0]}({n})' for n in models if not used[n]) + ' — 스키마에만 있고 코드가 읽거나 쓰지 않는다(요구사항 정의서 "미구현" 탭 참고)'),
     ])

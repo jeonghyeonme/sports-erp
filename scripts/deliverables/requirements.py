@@ -213,7 +213,8 @@ def has_screen(method, path, web):
 
 
 def tests():
-    return sorted(p.stem.replace('.spec', '') for p in TESTS.glob('*.spec.ts'))
+    # API 통합 테스트(test/) + 단위 테스트(src/**/*.spec.ts)
+    return sorted(p.stem.replace('.spec', '') for p in list(TESTS.glob('*.spec.ts')) + list((ROOT / 'apps/api/src').rglob('*.spec.ts')))
 
 
 # ── 문서 파싱 ──────────────────────────────────────────────────────────────
@@ -276,7 +277,7 @@ def main():
         d = parse_domain(fname)
         sh = wb.create_sheet(name)
         domain_sheets.append(name)
-        r = X.title(sh, f'{name} — 요구사항', f'원천: docs/domains/{fname} · 기능 명세는 코드 실측(커밋 {commit})')
+        r = X.title(sh, f'{name} — 요구사항', f'원천: docs/domains/{fname} · 기능 명세는 코드 실측({date.today().isoformat()} 저장소 기준)')
         if d['stories']:
             r = X.section(sh, r, '사용자 스토리', 6)
             for st in d['stories']:
@@ -444,7 +445,7 @@ def main():
         ('프로젝트', '스포이즘 ERP — 아파트·오피스텔 커뮤니티 시설 위탁운영 관리 시스템'),
         ('문서', '요구사항 정의서'),
         ('작성일', date.today().isoformat()),
-        ('기준', f'저장소 커밋 {commit} — 도메인 문서·요구사항추적표·실제 API 라우트에서 자동 생성'),
+        ('기준', f'{date.today().isoformat()} 저장소(dev 브랜치) — 도메인 문서·요구사항추적표·실제 API 라우트에서 자동 생성'),
         ('규모', f'도메인 {len(DOMAIN_LIST)}개 · 기능(API) {n_fn}개 · 불변규칙 {sum(1 for x in all_rows if x[2]=="불변규칙")}개 · '
                f'RFP 미구현 {len(s23)}건 · 자동 테스트 파일 {len(tests())}개'),
         ('범위', '관리자 웹(본사·지점 관리자·직원) + 회원 모바일 웹(개발 예정) + REST API. 대상 지점은 수도권 83곳(지방 15곳 제외). 회원 기능 API는 구현 완료'),
