@@ -224,13 +224,24 @@ section('req-invariants', { notes: '이 프로젝트의 불변식 3개. 코드�
     `</div>` + `<div style="height:24px"></div>` + bridge('다음 질문: 이 세 규칙을 데이터로 어떻게 담나')) +
   foot('검증: branch-isolation · contract-termination · hr-authority 자동 테스트'));
 
-section('req-shot', { notes: '실제 화면 두 장. 왼쪽: 본사 관리자(정하늘)가 본 서초점 지점 상세 — 계약 상대방·기간·상태·잔여일이 맨 위에 있다(지점 = 계약). 오른쪽: 회원(이수진, 서초점)의 예약 화면 — 회원 앱이 아니라 회원 계정으로 로그인한 관리자 웹이다. 두 캡처 모두 3주차(2026-09-21) 캡처를 재사용했다 — 이후 실DB 전환이 있었지만 이 두 화면 구성은 바뀌지 않았다. 라이브 데모는 없다.' },
-  head('구현 화면', '계약이 먼저 보이는 지점 상세, 회원의 예약') +
-  `<div style="flex:1; display:flex; gap:24px; align-items:center">` +
-  `<div style="display:flex; flex-direction:column; gap:12px">${browser(IMG.branch, '본사 관리자 · /branches/서초점', 1040, 585, '서초점 지점 상세 — 계약 상대방, 계약 기간, 계약 상태, 잔여일과 소속 직원·프로그램')}</div>` +
-  `<div style="flex:1; display:flex; flex-direction:column; gap:20px">${browser(IMG.reserve, '회원 · /reservations', 664, 220, '회원 예약 화면 — 예약 가능한 회차와 확정된 내 예약')}` +
-  bullets(['지점 상세 맨 위에 <b>계약 정보</b>', '회원은 <b>등록 지점 회차만</b> 예약', '결제 후 상태가 <b>확정</b>으로'], 28) + `</div></div>` +
-  foot('2026-09-21 캡처 · 회원 화면은 회원 계정으로 로그인한 관리자 웹(회원 앱 아님)'));
+section('req-shot', { notes: '실제 화면 ① 본사 관리자(정하늘)가 본 서초점 지점 상세. 계약 상대방·기간·상태·잔여일이 맨 위에 있다 — 지점은 소유 매장이 아니라 계약 현장이라는 설계가 화면 순서로 드러난다. 그 아래가 파견 직원·담당 회원·프로그램. 본사 관리자는 전 현장을, 지점 관리자는 자기 현장만 본다. 3주차(2026-09-21) 캡처를 재사용했다 — 이후 실DB 전환이 있었지만 화면 구성은 바뀌지 않았다. 라이브 데모는 없다.' },
+  head('구현 화면 ① · 본사 관리자', '지점 상세는 계약 정보가 맨 위에 있습니다') +
+  `<div style="flex:1; display:flex; gap:40px; align-items:center">` +
+  browser(IMG.branch, '본사 관리자 · /branches/서초점', 1220, 686, '서초점 지점 상세 — 계약 상대방, 계약 기간, 계약 상태, 잔여일과 소속 직원·프로그램') +
+  `<div style="flex:1; display:flex; flex-direction:column; gap:28px">` +
+  bullets(['맨 위에 <b>계약 정보</b> — 상대방·기간·상태·잔여일', '그 아래 <b>파견 직원</b>·회원·프로그램', '본사는 전 현장, 지점 관리자는 <b>자기 현장만</b>'], 28) +
+  `</div></div>` +
+  foot('2026-09-21 캡처 · 서초점(계약 정상, 잔여 160일)'));
+
+const shotPoint = (t) => `<div style="flex:1">${bullets([t], 28)}</div>`;
+section('req-shot-member', { notes: '실제 화면 ② 회원(이수진, 서초점)의 예약 화면. 위는 예약 가능한 회차와 잔여 좌석, 아래는 내 예약 — 모의 결제가 끝나 상태가 확정이다. 회원은 등록 지점의 회차만 보고 예약한다(지점 격리). 지금은 회원 계정으로 로그인한 관리자 웹이고, 회원 모바일 웹은 같은 API로 개발 예정이다. 3주차(2026-09-21) 캡처 재사용.' },
+  head('구현 화면 ② · 회원', '회원은 등록 지점의 회차만 예약합니다') +
+  `<div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:32px">` +
+  browser(IMG.reserve, '회원 · /reservations', 1728, 572, '회원 예약 화면 — 예약 가능한 회차와 확정된 내 예약') +
+  `<div style="display:flex; gap:40px">` +
+  shotPoint('<b>등록 지점 회차만</b> 보이고 예약') + shotPoint('잔여 좌석까지 <b>정원 안에서만</b>') + shotPoint('모의 결제 후 상태가 <b>확정</b>으로') +
+  `</div></div>` +
+  foot('2026-09-21 캡처 · 회원 계정으로 로그인한 관리자 웹 — 회원 모바일 웹은 같은 API로 개발 예정'));
 
 // ════════════════════════════════════════════════════════════════════════
 // ③ 데이터
