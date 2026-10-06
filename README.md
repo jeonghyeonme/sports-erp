@@ -29,7 +29,7 @@
 | 영역 | 스택 |
 |---|---|
 | 관리자 웹 | React + TypeScript + Vite |
-| 회원 앱 | 개발 범위 제외(2026-09-30, D37) — 회원 기능은 API로 구현, 회원 계정으로 관리자 웹에서 사용 |
+| 회원 웹 | 모바일 웹으로 개발 예정(D40) — 관리자 웹과 같은 React + Vite, 같은 Cloudflare Worker. 회원 기능 API는 구현 완료 |
 | API | NestJS + TypeScript |
 | DB / ORM | PostgreSQL(Supabase, 서울) + Prisma |
 | 인증 | JWT(Access/Refresh) + RBAC |
@@ -42,7 +42,7 @@
 apps/
   api/          NestJS + Prisma + PostgreSQL — 백엔드 API
   admin-web/    React + Vite — 본사/지점 관리자 웹
-  member-app/   React Native(Expo) — 개발 범위 제외(2026-09-30, D37). README만 있음
+  member-app/   네이티브 앱은 만들지 않음 — 회원 기능은 모바일 웹으로 개발 예정(D40). README만 있음
 packages/
   types/        클라이언트-서버가 공유하는 타입
 docs/
@@ -94,7 +94,7 @@ docs/
 
 | # | 산출물 | 내용 | 기반 문서 |
 |---|---|---|---|
-| — | [기업 분석 및 프로젝트 제안서](docs/deliverables/기업분석및제안서.docx) (Word) | 제안 개요 · 기업 분석(사업 구조·위탁계약·인력·예약결제·자산·문서) · 제안 내용(범위·회원 앱 보류·차별화) · 추진 현황 · 미구현 | [기업 구조 분석](docs/reference/기업구조및관리시스템분석.md), [차별화전략](docs/reference/차별화전략.md) — `scripts/deliverables/proposal.js`로 생성 |
+| — | [기업 분석 및 프로젝트 제안서](docs/deliverables/기업분석및제안서.docx) (Word) | 제안 개요 · 기업 분석(사업 구조·위탁계약·인력·예약결제·자산·문서) · 제안 내용(범위·대상 지점·회원 모바일 웹·차별화) · 추진 현황 · 미구현 | [기업 구조 분석](docs/reference/기업구조및관리시스템분석.md), [차별화전략](docs/reference/차별화전략.md) — `scripts/deliverables/proposal.js`로 생성 |
 | — | [아키텍처 설계서](docs/deliverables/아키텍처설계서.docx) (Word) | 시스템 구성 · 소프트웨어 구조 · 인증·인가 · 데이터 · 핵심 흐름 · 배포·운영 · 성능·용량 · 결정 이력 · 남은 과제 | [시스템 개요](docs/architecture/system-overview.md), [D37](docs/decisions/D37.md) — `scripts/deliverables/architecture.js`로 생성 |
 | — | [요구사항 정의서](docs/deliverables/요구사항정의서.xlsx) (Excel) | 요구사항 총괄 · RFP 추적 · 도메인 9개 탭(사용자 스토리·원문 요구·불변규칙·기능 명세·설계 결정) · 미구현 · 범위 제외 | `scripts/deliverables/requirements.py`가 도메인 문서·[요구사항추적표](docs/reference/요구사항추적표.md)·실제 API 라우트에서 생성 |
 | — | [데이터 정의서](docs/deliverables/데이터정의서.xlsx) (Excel) | 테이블 목록 · 컬럼 정의 · 관계 · 코드 정의 · 인덱스 · DB 규칙(CHECK·트리거) | `scripts/deliverables/data_definition.py`가 `schema.prisma`·마이그레이션 SQL에서 생성 |
@@ -143,7 +143,7 @@ npm run dev:web     # http://localhost:5173
 - [x] **Phase 0 — 프로젝트 셋업**: 모노레포 구조, Git, 환경설정, Prisma 스타터 스키마
 - [ ] **Phase 1 — 권한관리 + 회원관리**: 로그인/JWT/RBAC, BranchScopeGuard, 회원 CRUD ([1-2](docs/domains/권한관리.md), [1-6](docs/domains/회원관리.md)) — 로그인·토큰갱신·Role전환과 회원 등록/수정/상태전환 API+화면 모두 완료. **수강내역·PT잔여세션·예약결제 탭만 백엔드 미구현이라 안내 문구만 노출(데모 기준 미완료)**
 - [ ] **Phase 2 — 인사정보관리 + 근태관리**: 직원 CRUD, 파견 모델, 출퇴근/휴가 ([1-3](docs/domains/인사정보관리.md), [1-4](docs/domains/근태관리.md)) — 근태관리는 API+화면 모두 완료. 인사정보관리는 API는 완료(채용/파견/퇴사)했지만 **화면이 아직 없어 데모 기준 미완료**
-- [ ] **Phase 3 — 강사·프로그램 + 예약/결제**: pricingType, 정원 동시성 처리, 모의 결제, 회원 앱 착수 ([1-8](docs/domains/강사프로그램게시.md), [1-7](docs/domains/예약및결제.md)) — 강사·프로그램게시(회차 등록 포함)와 예약/결제(모의결제·부가세분리 포함) 모두 Phase 1+2 핵심 API+화면 완료(2026-09-18). 강사 정산·노쇼 자동처리는 범위 제외(2026-09-20, 향후 확장 가능). **PT 패키지(회원 PT 잔여세션 포함)와 회원 앱(React Native)은 아직 미착수**
+- [ ] **Phase 3 — 강사·프로그램 + 예약/결제**: pricingType, 정원 동시성 처리, 모의 결제, 회원 모바일 웹 착수(D40) ([1-8](docs/domains/강사프로그램게시.md), [1-7](docs/domains/예약및결제.md)) — 강사·프로그램게시(회차 등록 포함)와 예약/결제(모의결제·부가세분리 포함) 모두 Phase 1+2 핵심 API+화면 완료(2026-09-18). 강사 정산·노쇼 자동처리는 범위 제외(2026-09-20, 향후 확장 가능). **PT 패키지(회원 PT 잔여세션 포함)와 회원 앱(React Native)은 아직 미착수**
 - [ ] **Phase 4 — 게시판 + 혼잡도관리**: 계층형 게시판, 혼잡도 자동계산 ([1-5](docs/domains/게시판.md), [1-9](docs/domains/혼잡도관리.md)) — 게시판은 API+화면 모두 완료(2026-09-18, 첨부파일·상단고정·교육 실시 기록만 미구현). 혼잡도관리도 Phase 1(시설 등록/수정, 수동 보정) API+화면 완료(2026-09-18). QR 체크인·5분 주기 자동계산은 범위 제외(향후 확장 가능). **남은 건 게시판 교육자료 첨부(URL 방식)뿐**
 - [ ] **Phase 5 — 통합·배포·발표 준비**: 통합 테스트, UI 폴리싱, 배포, 시연 시나리오
 - [ ] **Phase 6(확장) — 자산·비품관리 + 문서관리 + 매출/정산**: 원본 산출물2(기업 분석 자료) 대응 ([1-10](docs/reference/기업구조및관리시스템분석.md)) + 부가세 분리·매출 집계·강사 정산 ([1-7](docs/domains/예약및결제.md)) — 자산·비품(CRUD·자동판정·상태전이)과 문서함(CRUD·보존기한 자동계산·임박 목록) Phase 1 API+화면 완료(2026-09-19), 부가세 분리도 완료. 감가상각·강사 정산은 범위 제외(향후 확장 가능), 재물조사는 보류(선택)

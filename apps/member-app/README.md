@@ -1,9 +1,5 @@
-# member-app (회원용 모바일 앱)
+# member-app (회원용 네이티브 앱) — 만들지 않음
 
-Phase 3(강사·프로그램 게시 + 예약/결제)에서 착수합니다.
-
-착수 시:
-```
-npx create-expo-app@latest . --template blank-typescript
-```
-apps/admin-web과 동일하게 packages/types를 참조해 API 응답 타입을 공유합니다.
+회원 기능은 네이티브 앱(React Native) 대신 **모바일 웹**으로 만든다([D40](../../docs/decisions/D40.md)).
+관리자 웹과 같은 React + Vite·공유 타입(`packages/types`)을 쓰고, 같은 Cloudflare Worker로 배포한다.
+대상 지점은 수도권 83곳이다. 모바일 웹을 착수하면 이 폴더는 정리한다.

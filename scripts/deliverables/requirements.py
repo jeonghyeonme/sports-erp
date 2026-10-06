@@ -73,8 +73,8 @@ ROUTE_DESC = {
     'POST /posts': '게시글 작성 — 계약 종료 지점 차단',
     'PATCH /posts/:id': '게시글 수정(작성자)',
     'DELETE /posts/:id': '게시글 삭제(소프트, 작성자 또는 본사)',
-    'POST /members/register': '회원 앱 자체 가입(공개) — 회원 앱 범위 제외로 화면 없음',
-    'POST /members/link': '오프라인 회원 ↔ 앱 계정 연동(공개, 시도 제한) — 회원 앱 범위 제외로 화면 없음',
+    'POST /members/register': '회원 자체 가입(공개) — 회원 모바일 웹에서 화면 개발 예정',
+    'POST /members/link': '오프라인 회원 ↔ 온라인 계정 연동(공개, 시도 제한) — 회원 모바일 웹에서 화면 개발 예정',
     'GET /members': '회원 목록(지점 범위)',
     'GET /members/:id': '회원 상세 + 요약(수강·PT·예약)',
     'POST /members': '회원 등록 — 미성년 보호자 동의 확인, 계약 종료 지점 차단',
@@ -252,7 +252,7 @@ def parse_trace():
     s24 = md_table(section_lines(t, r'^### 2-4\.', r'^---'))[1:]
     api_only = next((clean(l.split('**:', 1)[1]) for l in section_lines(t, r'^### 2-3\.', r'^### 2-4\.') if l.startswith('**API는 있고')), '')
     design_only = next((clean(l.split('**:', 1)[1]) for l in section_lines(t, r'^### 2-3\.', r'^### 2-4\.') if l.startswith('**설계는 있지만')), '')
-    member_app = next((clean(l) for l in section_lines(t, r'^### 2-4\.', r'^---') if l.startswith('**회원 앱 전체')), '')
+    member_app = next((clean(l) for l in section_lines(t, r'^### 2-4\.', r'^---') if l.startswith('**대상 지점·회원 앱 형태')), '')
     return s11, s12, s13, s23, s24, api_only, design_only, member_app
 
 
@@ -325,7 +325,7 @@ def main():
             if has_screen(m, p, web):
                 st = '구현(API+화면)'
             elif '/register' in p or '/link' in p:
-                st = 'API만(회원 앱 범위 제외)'
+                st = 'API만(회원 모바일 웹 예정)'
             elif p.startswith('/auth/') and p != '/auth/login':
                 st = '구현(API, 화면 불필요)' if p in ('/auth/refresh', '/auth/logout', '/auth/me') else 'API만(화면 없음)'
             else:
@@ -428,9 +428,9 @@ def main():
     r = X.header(sh, r, ['도메인', '범위 제외 항목', '향후 확장'])
     r = X.rows(sh, r, [[clean(c) for c in row[:3]] for row in s24], status_col=None)
     r += 1
-    r = X.section(sh, r, '회원 앱', 3)
-    c = sh.cell(row=r, column=1, value=member_app + ' 보류 이유: 회원 앱을 받으면 하루 요청이 약 19.6만 건(계산값)으로 엣지 무료 한도 10만 건을 넘는다. '
-                                                  '유료 전환이나 인프라를 더 구성해 연결해야 해 개발 범위가 과하게 넓어지므로 보류했다(D37 §5, log/057).')
+    r = X.section(sh, r, '대상 지점·회원 앱 형태', 3)
+    # 제출본에는 결정 경위(D37 대체)를 빼고 지금 결정만 싣는다 — 경위는 요구사항추적표·D40에 있다.
+    c = sh.cell(row=r, column=1, value=re.sub(r' — 2026-09-30 D37의 회원 앱 제외를 대체', '', member_app))
     c.font = X.font(); c.alignment = X.Alignment(wrap_text=True, vertical='top')
     sh.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3); sh.row_dimensions[r].height = 90
     X.widths(sh, [18, 80, 50])
@@ -447,7 +447,7 @@ def main():
         ('기준', f'저장소 커밋 {commit} — 도메인 문서·요구사항추적표·실제 API 라우트에서 자동 생성'),
         ('규모', f'도메인 {len(DOMAIN_LIST)}개 · 기능(API) {n_fn}개 · 불변규칙 {sum(1 for x in all_rows if x[2]=="불변규칙")}개 · '
                f'RFP 미구현 {len(s23)}건 · 자동 테스트 파일 {len(tests())}개'),
-        ('범위', '관리자 웹(본사·지점 관리자·직원) + REST API. 회원 앱은 범위 제외(회원 기능은 API로 구현, 회원 계정으로 관리자 웹에서 사용)'),
+        ('범위', '관리자 웹(본사·지점 관리자·직원) + 회원 모바일 웹(개발 예정) + REST API. 대상 지점은 수도권 83곳(지방 15곳 제외). 회원 기능 API는 구현 완료'),
     ])
     r += 1
     r = X.section(ws, r, '요구사항 ID 규칙', 2)
