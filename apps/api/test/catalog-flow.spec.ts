@@ -28,7 +28,7 @@ describe('카탈로그 × 예약·회원 경로', () => {
   });
 
   it('시드 원천(catalog-fixtures)이 예전 mock 히어로 값 그대로 DB에 있다', async () => {
-    expect(await prisma.facility.count()).toBe(99);
+    expect(await prisma.facility.count()).toBe(84); // 히어로 3 + 생성 지점 81곳 × 1(D40 수도권 83곳)
     const pool = await prisma.facility.findUniqueOrThrow({ where: { id: 'facility-seocho-pool' } });
     expect(pool).toMatchObject({ branchId: BRANCH.seocho, name: '서초점 수영장', capacity: 30, currentCount: 26, level: 5 });
     expect(pool.lastUpdatedAt!.toISOString()).toBe('2026-09-01T09:00:00.000Z');

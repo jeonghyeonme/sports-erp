@@ -23,7 +23,7 @@ export function PermissionsPage() {
   );
   const [search, setSearch] = useState('');
 
-  // 98개 지점 규모에서는 이 화면도 "지점별로 훑어보기"가 아니라 "직원 한 명을 찾아 권한을 바꾸는"
+  // 83개 지점 규모에서는 이 화면도 "지점별로 훑어보기"가 아니라 "직원 한 명을 찾아 권한을 바꾸는"
   // 단발 작업이라, 지점 아코디언 대신 지점명/이름/직원코드 통합 검색만 얹는다.
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();

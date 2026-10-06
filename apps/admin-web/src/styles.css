@@ -906,7 +906,7 @@ tbody tr:hover td {
   cursor: default;
 }
 
-/* 지점 규모 대응(98개) — 검색/필터 툴바, 밀도 높은 지점 테이블, 검색 결과 없음 상태 */
+/* 지점 규모 대응(83개) — 검색/필터 툴바, 밀도 높은 지점 테이블, 검색 결과 없음 상태 */
 
 .list-toolbar {
   display: flex;

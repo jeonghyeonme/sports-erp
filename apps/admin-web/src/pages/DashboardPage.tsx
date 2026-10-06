@@ -96,8 +96,8 @@ function BranchStat({ icon, label, value }: { icon: ReactNode; label: string; va
   );
 }
 
-// 지점이 여럿(SUPER_ADMIN)일 때 쓰는 검색/필터 가능한 지역별 그룹 테이블 — 98개 지점 규모에서도
-// 스캔 가능하도록, 지역(서울/경기/부산 등)으로 접어두고 지역 안에서는 위험도(만료>갱신임박>정상>종료)
+// 지점이 여럿(SUPER_ADMIN)일 때 쓰는 검색/필터 가능한 지역별 그룹 테이블 — 83개 지점 규모에서도
+// 스캔 가능하도록, 지역(서울/경기/인천)으로 접어두고 지역 안에서는 위험도(만료>갱신임박>정상>종료)
 // 우선 정렬을 항상 적용한다. 검색어나 상태 필터가 걸리면 좁혀진 지역은 바로 펼쳐서 보여준다.
 function BranchTable({ branches, statusFilter, onStatusFilterChange }: {
   branches: BranchSummary[];

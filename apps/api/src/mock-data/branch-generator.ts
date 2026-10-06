@@ -1,6 +1,6 @@
-// architecture/system-overview.md §1-1이 인용하는 원본 RFP 수치("전국 98개 업장")에 맞춰, 화면이 실제 규모에서도
-// 스캔 가능한지 검증할 수 있도록 mock 지점을 96개 더 만든다(서초점·강남점 2개는 branch-fixtures.ts의
-// 히어로 데이터이고, 이 파일은 그 나머지를 채운다 — D36 이후 쓰는 곳은 시드뿐). 전부 인덱스 기반 결정적 생성이라
+// 원본 RFP 수치("전국 98개 업장") 규모에서 화면이 스캔 가능한지 보려고 96개 차례를 돌리고, D40에 따라
+// 수도권(서울·경기·인천)이 아닌 15개 차례는 건너뛰어 81개를 만든다(서초점·강남점 2개는 branch-fixtures.ts의
+// 히어로 데이터 — 합계 83곳. D36 이후 쓰는 곳은 시드뿐). 전부 인덱스 기반 결정적 생성이라
 // 서버를 몇 번을 재기동해도 같은 결과가 나온다 — Math.random은 쓰지 않는다.
 
 import { AgeGroup, BranchRecord, MockFacility, MockInstructor, MockMember, MockProgram, MockStaff } from './mock-data.types';
@@ -39,6 +39,9 @@ const AREAS: Array<{ name: string; region: string }> = [
   { name: '성남', region: '경기' },
   { name: '고양', region: '경기' },
 ];
+// D40 — 대상 지점은 수도권만. 지방 area를 AREAS에서 지우면 뒤 차례의 id·이름이 전부 밀려 배포 DB와 어긋나므로,
+// 목록은 두고 차례만 건너뛴다(남는 지점의 id·데이터는 98곳 시절과 같다).
+const TARGET_REGIONS = new Set(['서울', '경기', '인천']);
 const COMPLEX_NAMES = ['코스모스', '센트럴파크', '그린빌', '라온', '한빛', '메트로', '스카이', '리버뷰'];
 
 const STAFF_NAME_POOL = [
@@ -82,6 +85,7 @@ export interface GeneratedDataset {
   instructors: MockInstructor[];
 }
 
+// 돌리는 차례 수 — 비수도권 15개를 건너뛰어 실제로 만드는 지점은 81개다.
 const LIGHT_BRANCH_COUNT = 96;
 
 export function generateLightBranches(): GeneratedDataset {
@@ -95,12 +99,13 @@ export function generateLightBranches(): GeneratedDataset {
 
   for (let i = 0; i < LIGHT_BRANCH_COUNT; i++) {
     const area = AREAS[i % AREAS.length];
+    if (!TARGET_REGIONS.has(area.region)) continue;
     const complex = COMPLEX_NAMES[Math.floor(i / AREAS.length) % COMPLEX_NAMES.length];
     const branchId = `branch-gen-${pad(i + 1, 3)}`;
     const code = `GEN${pad(i + 1, 3)}`;
     const name = `${area.name}${complex}점`;
 
-    // 계약 상태 분포(96개 기준): ACTIVE 80 / RENEWAL_DUE 9 / EXPIRED 4 / TERMINATED 3
+    // 계약 상태 분포(차례 기준 ACTIVE 80 / RENEWAL_DUE 9 / EXPIRED 4 / TERMINATED 3) — 건너뛴 뒤 81개는 70 / 4 / 4 / 3
     let contractStatus: BranchRecord['contractStatus'];
     let contractEndAt: string;
     if (i < 80) {
