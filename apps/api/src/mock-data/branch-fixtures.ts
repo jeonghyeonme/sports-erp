@@ -6,7 +6,7 @@ import { BranchRecord, MockBranch } from './mock-data.types';
  * **같은 목록**에서 만들어지도록 한 곳에 뒀다. D36으로 mock이 사라져 지금은 시드와 test/branch-parity.spec.ts만 쓴다. 예전에는 seed.ts가 서초·강남을 따로 적어
  * 계약 종료일 등이 mock과 달랐다.
  *
- * 서초점·강남점은 손으로 채운 "히어로" 지점(데모 로그인 계정이 여기 물려 있음)이고, 나머지 96개는
+ * 서초점·강남점은 손으로 채운 "히어로" 지점(데모 로그인 계정이 여기 물려 있음)이고, 나머지 81개는
  * branch-generator.ts가 인덱스 기반으로 결정적으로 만든다(계약 날짜만 실행 시각 기준 상대값).
  */
 export const HERO_BRANCHES: readonly BranchRecord[] = [
@@ -38,7 +38,7 @@ export const HERO_BRANCHES: readonly BranchRecord[] = [
   },
 ];
 
-/** 시드가 DB에 넣는 98개 지점 전체. */
+/** 시드가 DB에 넣는 83개 지점 전체(수도권, D40). */
 export function allBranchRecords(): BranchRecord[] {
   return [...HERO_BRANCHES, ...generateLightBranches().branches];
 }

@@ -21,7 +21,7 @@ const DEMO_PASSWORD = 'demo-password-1234'; // 로컬 시연용. 실제 배포�
 async function main() {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
-  // ── 지점 — D29: mock과 같은 원천(branch-fixtures.ts)에서 98개 전부 ──────────────
+  // ── 지점 — D29: mock과 같은 원천(branch-fixtures.ts)에서 83개 전부(D40) ──────────────
   // 예전엔 서초·강남 2개를 여기 따로 적어 계약 종료일 등이 mock과 달랐다. 이제 지점의 원천은 DB이고,
   // mock에는 계약 필드를 뺀 이름표 사본만 남는다(test/branch-parity.spec.ts가 둘이 같은지 검증).
   // update에도 같은 값을 넣어 시드를 다시 돌리면 지점이 원천과 다시 맞춰지게 한다.

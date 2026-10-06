@@ -160,7 +160,7 @@ export interface CatalogSeed {
   slots: MockScheduleSlot[];
 }
 
-/** 시드가 DB에 넣는 시설·강사·프로그램·회차 전체(히어로 + 생성 96개 지점분). */
+/** 시드가 DB에 넣는 시설·강사·프로그램·회차 전체(히어로 + 생성 81개 지점분). */
 export function catalogSeed(): CatalogSeed {
   const g = generateLightBranches();
   return {

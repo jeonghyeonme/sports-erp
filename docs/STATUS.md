@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-06 · [log/073](log/073.md)(배포 DB refreshToken 기존 행 정리 — 사용자 승인 후 실행)
+> 마지막 갱신: 2026-10-06 · [log/074](log/074.md)(지점 83곳 축소 코드 반영, 배포 DB 삭제 SQL 준비)
 
 ## 현재 상태
 
@@ -13,13 +13,13 @@
 | admin-web·엣지 | Cloudflare Worker(정적 자산 + 프록시 + rate limit). `API_ORIGIN`·`ORIGIN_SECRET`은 Worker secret | [D25](decisions/D25.md), [D37](decisions/D37.md) |
 | 저장소 | 주 개발·배포 브랜치 = `dev`(기본 브랜치), `main` = 완성본(완료 시 병합). 작업은 임시 브랜치 → `dev` PR → 병합 후 삭제. 2026-10-06 전환 완료(`dev`에서 배포 성공), 원격에는 `dev`·`main`만 남김 | [D39](decisions/D39.md), [log/067](log/067.md) |
 | 산출물 | 요구사항 정의서·데이터 정의서(Excel), 기업 분석·제안서·아키텍처 설계서(Word) — `scripts/deliverables/`로 재생성 | [log/061](log/061.md), [log/062](log/062.md) |
-| 범위 | **지점 수도권 83곳 + 회원 모바일 웹으로 재설정(2026-10-06)**. 덱·문서·산출물은 반영, **데이터(시드·배포 DB)는 아직 98곳**, 회원 웹은 미착수 | [D40](decisions/D40.md), [log/068](log/068.md) |
+| 범위 | **지점 수도권 83곳 + 회원 모바일 웹으로 재설정(2026-10-06)**. 덱·문서·산출물·시드·테스트·관리자 웹은 83곳, **배포 DB는 아직 98곳**(삭제 승인 대기), 회원 웹은 미착수 | [D40](decisions/D40.md), [log/074](log/074.md) |
 | 문서 구조 | 2026-10-01 재편 완료 — 로딩 계층·doc-check 도입 | [D38](decisions/D38.md) |
 
 ## 다음 할 일 (우선순위순)
 
 0. **범위 재설정(D40) 반영 — 발표 시연 전에 덱(83곳)과 데이터를 맞춘다**
-   1. 지점 축소: 시드 생성기에서 지방 15곳 제외, `branch-parity` 98 → 83, 관리자 웹 "98개" 문구. 배포 DB 삭제는 사용자 승인 후. (문서·산출물은 이미 83곳 기준)
+   1. 배포 DB에서 지방 15곳 삭제(승인 후) — SQL은 [log/074](log/074.md). 코드·시드는 83곳 반영 완료.
    2. 회원 모바일 웹(`apps/member-web` 예정): 로그인·프로그램/회차 조회·예약·취소·모의 결제·공지·혼잡도 조회.
 1. **Lambda 전환(D37) 마무리**
    1. 사용자: Render `sports-erp-api` 일시정지(롤백이 더 필요 없다고 판단되면). 롤백 방법은 Worker `API_ORIGIN`만 Render 주소로 `--secrets-file` 재배포([CLI-RUNBOOK](../aws-lambda/CLI-RUNBOOK.md) 5번).
@@ -33,6 +33,7 @@
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 
+- **배포 DB 지방 지점 15곳과 딸린 데이터 삭제**(D40) — SQL은 [log/074](log/074.md)(로컬에서 98곳 → 83곳 시드와 일치 확인). 실행 전 딸린 행 수를 읽기 전용으로 먼저 보고.
 - **보조 스크립트 처리 — 미정.** 선택지 A(`set-lambda-env.sh` 경고를 중단으로) / B(Worker 전환·k6 실행·진단 스크립트를 `aws-lambda/`로) / C(두지 않음). 내용·비용은 [log/056](log/056.md) "미정" 표.
 - 처리 여유 확대 여부: AWS 계정 동시 실행 한도 상향 요청(무료, 상한↑ = DB 커넥션↑·비용 차단 약화) / 요청당 쿼리 수 줄이기(코드) / 50 rps로 충분하다고 보고 기록만.
 - DB 제약 보강(스키마 변경): `Document.relatedStaffId`·`uploadedBy` 외래키([D34](decisions/D34.md)), `Post.authorId`, `WorkLog(staffId, date)` unique([D33](decisions/D33.md)).

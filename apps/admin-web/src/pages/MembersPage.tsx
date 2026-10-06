@@ -167,7 +167,7 @@ export function MembersPage() {
           <h2>회원</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
             회원관리 문서 기준 더미 데이터입니다. BRANCH_ADMIN은 본인 지점 회원만, STAFF는 접근 시 403이 표시됩니다.
-            지점별로 묶어서 보여줍니다(98개 지점 규모 대응 — 지점명으로 검색해 좁혀보세요).
+            지점별로 묶어서 보여줍니다(83개 지점 규모 대응 — 지점명으로 검색해 좁혀보세요).
           </p>
         </div>
         <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
