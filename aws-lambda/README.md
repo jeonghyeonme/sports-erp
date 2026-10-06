@@ -17,7 +17,7 @@
 | Lambda 핸들러 | `apps/api/src/lambda.ts` → `dist/lambda.handler` |
 | 전역 설정 공용 함수 | `apps/api/src/app.setup.ts`(`configureApp`) |
 | 배포 묶음 만들기 | `bash apps/api/scripts/package-lambda.sh` → `apps/api/.lambda/lambda.zip`(워크플로가 실행 — 로컬은 확인용) |
-| 자동 배포 | `.github/workflows/deploy-api-lambda.yml`(`main-5x9td9` push 시) |
+| 자동 배포 | `.github/workflows/deploy-api-lambda.yml`(`dev` push 시) |
 | Worker 변경 | `cloudflare-worker/src/index.ts`(비밀 헤더, 429 → 503) |
 | 부하 검증 | `loadtest/k6-lambda.js`(D37 §4 S1~S3) |
 
@@ -95,7 +95,7 @@
     "Condition": {
       "StringEquals": {
         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-        "token.actions.githubusercontent.com:sub": "repo:jeonghyeonme@96642864/sports-erp@1353168182:ref:refs/heads/main-5x9td9"
+        "token.actions.githubusercontent.com:sub": "repo:jeonghyeonme@96642864/sports-erp@1353168182:ref:refs/heads/dev"
       }
     }
   }]
@@ -103,6 +103,7 @@
 ```
 
 - `sub`는 GitHub가 실제로 보내는 형식(소유자·저장소 이름 뒤에 고유 ID `@숫자`)과 **글자 그대로** 같아야 한다. 옛 형식 `repo:jeonghyeonme/sports-erp:ref:...`로는 `Not authorized to perform sts:AssumeRoleWithWebIdentity`로 실패했다([log/056](../docs/log/056.md)).
+- 브랜치 이름이 `sub`에 들어 있어서, 배포 브랜치 이름을 바꾸면 이 값도 같이 바꿔야 한다(2026-10-06 `main-5x9td9` → `dev`, [D39](../docs/decisions/D39.md)). 전환하는 동안에는 값을 배열로 써서 두 브랜치를 모두 허용한다.
 - 실제 값은 실패한 실행 직후 CloudTrail(서울) `AssumeRoleWithWebIdentity` 이벤트의 `userIdentity`에서 확인한다.
 
 권한 정책(이 함수만):
@@ -131,11 +132,11 @@
   - `AWS_LAMBDA_DEPLOY_ROLE_ARN`이 비어 있으면 배포 잡은 건너뛴다.
 
 **첫 배포**:
-- [ ] Actions 탭 → "Deploy api (AWS Lambda)" → **Run workflow**(브랜치 `main-5x9td9`)로 수동 실행한다.
-  - Run workflow 버튼은 **기본 브랜치에 있는 워크플로에만** 보인다. 2026-10-04에 저장소 기본 브랜치를 `main`에서 `main-5x9td9`로 바꿨다([log/056](../docs/log/056.md)).
+- [ ] Actions 탭 → "Deploy api (AWS Lambda)" → **Run workflow**(브랜치 `dev`)로 수동 실행한다.
+  - Run workflow 버튼은 **기본 브랜치에 있는 워크플로에만** 보인다. 2026-10-04에 저장소 기본 브랜치를 `main`에서 `main-5x9td9`로 바꿨고([log/056](../docs/log/056.md)), 2026-10-06에 그 이름을 `dev`로 바꿨다([D39](../docs/decisions/D39.md)).
   - 워크플로가 하는 일: 코드 업로드 → 버전 발행 → `live` 이동 → health 확인
   - **health 확인까지 초록이면 Lambda 쪽은 성공이다.** 실패하면 `live`는 이전 버전으로 자동으로 돌아간다. Actions 로그의 에러 부분을 세션에 붙여주면 된다.
-  - 이후에는 `main-5x9td9`에 api 변경이 병합될 때마다 자동으로 돈다.
+  - 이후에는 `dev`에 api 변경이 병합될 때마다 자동으로 돈다.
 
 **직접 확인**:
 - [ ] `curl <URL>api/v1/health` → **403 `FORBIDDEN_ORIGIN`**이어야 한다. 비밀 헤더 없는 직접 호출은 막힌다.

@@ -166,7 +166,7 @@ const body = [
   table(['단계', '언제', '무엇을'], [
     ['커밋 전 hook', '커밋할 때(로컬)', 'apps·packages가 바뀌면 API·웹 lint·빌드·API 테스트, 문서가 바뀌면 문서 검사'],
     ['CI', 'PR과 기준 브랜치 push', 'API: 테스트용 PostgreSQL에 마이그레이션·시드 후 lint·빌드·jest / 웹: lint·빌드 / 문서 검사'],
-    ['Lambda 배포', 'main-5x9td9에 api 변경 push 또는 수동 실행', '패키징 → OIDC로 AWS 인증(액세스 키 저장 없음) → 코드 업로드·버전 발행 → 별칭 live 이동 → 헬스체크 → 실패 시 별칭을 이전 버전으로 되돌림'],
+    ['Lambda 배포', 'dev(주 개발 브랜치)에 api 변경 push 또는 수동 실행', '패키징 → OIDC로 AWS 인증(액세스 키 저장 없음) → 코드 업로드·버전 발행 → 별칭 live 이동 → 헬스체크 → 실패 시 별칭을 이전 버전으로 되돌림'],
     ['Worker 배포', '수동(wrangler)', '관리자 웹 빌드 결과와 Worker 코드를 함께 배포. API 주소·비밀 헤더는 Worker 비밀값으로만 둔다'],
   ], [2, 2, 7]),
   gap(),

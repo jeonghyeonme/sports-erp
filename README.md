@@ -132,7 +132,7 @@ npm run dev:web     # http://localhost:5173
 
 | 구성 요소 | 위치 | 설정 문서 |
 |---|---|---|
-| api | AWS Lambda(서울, Function URL, 별칭 `live`) — `main-5x9td9` push 시 [deploy-api-lambda.yml](.github/workflows/deploy-api-lambda.yml)이 배포. 이전 완료 전까지 Render([render.yaml](render.yaml))가 병행 | [aws-lambda/README.md](aws-lambda/README.md) |
+| api | AWS Lambda(서울, Function URL, 별칭 `live`) — `dev` push 시 [deploy-api-lambda.yml](.github/workflows/deploy-api-lambda.yml)이 배포. 이전 완료 전까지 Render([render.yaml](render.yaml))가 병행 | [aws-lambda/README.md](aws-lambda/README.md) |
 | admin-web + 앞단 프록시 | Cloudflare Worker(정적 자산 + API 프록시 + rate limit, SPA 404는 `not_found_handling`으로 처리) | [cloudflare-worker/README.md](cloudflare-worker/README.md) |
 | DB | Supabase Postgres(서울) — 무료 프로젝트는 7일 미사용 시 일시정지되니 시연 전 한 번 깨워 둘 것 | `.env.example`, [진행 기록 044~050](docs/log/README.md)(시드 적용 절차) |
 

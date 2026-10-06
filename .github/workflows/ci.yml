@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # D39 — dev(주 개발·배포)와 main(완성본) push에서 돈다. 작업 브랜치는 PR에서 돈다.
+    branches: [main, dev]
   pull_request:
 
 # 같은 브랜치/PR에 새 push가 오면 진행 중인 이전 실행은 취소한다.
