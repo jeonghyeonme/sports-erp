@@ -103,7 +103,7 @@ section('cover', { pad: '128px 176px', gap: 20, notes: '종합 발표. 라이브
   `<h1 style="font-family:${DISPLAY}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:${INK}">스포이즘 ERP</h1>` +
   `<p style="font-size:52px; font-weight:500; color:${SOFT}">위탁운영 계약을 지키는 관리 시스템</p>` +
   `<div style="height:36px"></div>` +
-  `<p style="font-family:${MONO}; font-size:28px; color:${SOFT}"><b>발표자</b>&nbsp; 박정현 &nbsp;&nbsp;·&nbsp;&nbsp; <b>준비일</b>&nbsp; 2026-10-05 &nbsp;&nbsp;·&nbsp;&nbsp; <b>대상</b>&nbsp; 아파트·오피스텔 커뮤니티 시설 위탁운영 ERP</p>` +
+  `<p style="font-family:${MONO}; font-size:28px; color:${SOFT}"><b>발표자</b>&nbsp; 박정현 &nbsp;&nbsp;·&nbsp;&nbsp; <b>준비일</b>&nbsp; 2026-10-06 &nbsp;&nbsp;·&nbsp;&nbsp; <b>대상</b>&nbsp; 아파트·오피스텔 커뮤니티 시설 위탁운영 ERP</p>` +
   `<div style="flex:1"></div>`);
 
 const agendaRow = (no, name, q) => `<div style="display:flex; align-items:center; gap:28px; padding:18px 28px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:12px"><p style="font-family:${MONO}; font-size:28px; font-weight:700; color:${NAVY}; width:60px">${no}</p><p style="font-family:${DISPLAY}; font-size:34px; font-weight:700; color:${INK}; width:440px">${name}</p><p style="font-size:30px; color:${SOFT}">${q}</p></div>`;
@@ -156,7 +156,7 @@ const scopeCol = (k, t, items, c) => card(`<div style="display:flex">${statePill
 section('prop-scope', { notes: '범위 밖 항목은 요구사항추적표 §2-4와 각 도메인 부록 A-8 근거와 다르게 말하지 않는다. 대상 지점을 수도권 83곳으로 정한 이유는 다음 장에서 따로 설명한다. 회원 기능은 네이티브 앱이 아니라 모바일 웹 — 관리자 웹과 같은 React·같은 Cloudflare Worker라 인프라를 더 붙이지 않는다.' },
   head('개발 범위', '관리자 웹 + 회원 모바일 웹 + API') +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
-    scopeCol('done', '하는 것', ['관리자 웹(본사·지점 관리자·직원)', 'REST API + 실DB(Supabase Postgres)', '9개 도메인 — 권한·인사·근태·게시판·회원·예약결제·강사프로그램·혼잡도·자원문서', '회원 모바일 웹 — 예약·결제·공지·혼잡도'], GREEN) +
+    scopeCol('done', '하는 것', ['관리자 웹(본사·지점 관리자·직원)', 'REST API + 실DB(Supabase Postgres)', '9개 도메인 — 권한·인사·근태·게시판·회원·예약결제·강사프로그램·혼잡도·자원문서', '회원 모바일 웹(개발 중) — 예약·결제·공지·혼잡도'], GREEN) +
     scopeCol('out', '하지 않는 것', ['지방 위탁 현장 15곳 — 다음 장', '네이티브 앱(모바일 웹으로 대체)', '실제 PG 결제 연동(모의 결제로 대체)', '강사 정산 · 감가상각 · IoT 계측 · 노쇼 자동 처리'], GRAY) +
     `</div>`) +
   foot('범위 제외 근거: 요구사항추적표 §2-4 · 각 도메인 문서 부록 A-8'));
@@ -187,19 +187,19 @@ section('req-trace', { notes: 'RFP Ⅳ 2. 세부 과업 내용 표의 기능 요
     tr('5', '회원관리', '회원관리', '<b>다른 현장 정보 조회 불가</b>'),
     tr('6·7', '예약결제 · 강사프로그램', '예약및결제 · 강사프로그램게시', '회차 예약, 모의 결제, 프로그램 게시'),
     tr('8', '혼잡도관리', '혼잡도관리', '시설별 5단계 혼잡도'),
-    tr('9', '물적자원 관리 <span style="color:${SOFT}">(과업 1)</span>', '자원문서관리', '자산·문서·보존기한'),
+    tr('9', `물적자원 관리 <span style="color:${SOFT}">(과업 1)</span>`, '자원문서관리', '자산·문서·보존기한'),
     tr('10·11', '가용성 · 성능', '전 도메인', 'k6 실측 → 구조 개선'),
   ]))) +
   foot('# = 제안요청서 Ⅳ 2. 세부 과업 내용의 원문 번호 · 9는 원문 결번 — 과업 1에서 도출한 도메인을 이 자리에 둠 · 근거: 요구사항추적표 §1'));
 
 const adj = (from, to) => `<div style="display:flex; align-items:center; gap:20px; padding:22px 28px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:12px"><p style="font-size:30px; color:${SOFT}; width:420px">${from}</p>${icon('PaperPlane', NAVY)}<p style="font-family:${DISPLAY}; font-size:32px; font-weight:700; color:${INK}; width:720px">${to}</p></div>`;
-section('req-adjust', { notes: '공통 원칙: 원본 요구사항의 표면적 형태가 아니라 실질적 의도를 파악해, 1인 개발이 가능한 범위 안에서 그 의도를 가장 잘 구현한다. 단, 줄인 영역에서도 핵심 안전장치(지점 격리, 예약 동시성)는 타협하지 않았다. 모의 결제는 상태 전이(대기→승인→환불)를 실물처럼 구현했다. 혼잡도는 체크인 데이터 자동계산 + 관리자 수동 보정 하이브리드(RFP의 30분 반영 요건보다 짧은 5분 주기 설계).' },
+section('req-adjust', { notes: '공통 원칙: 원본 요구사항의 표면적 형태가 아니라 실질적 의도를 파악해, 1인 개발이 가능한 범위 안에서 그 의도를 가장 잘 구현한다. 단, 줄인 영역에서도 핵심 안전장치(지점 격리, 예약 동시성)는 타협하지 않았다. 모의 결제는 상태 전이(대기→승인→환불)를 실물처럼 구현했다. 혼잡도는 관리자가 현재 인원을 입력하면 정원 대비로 5단계를 바로 다시 계산한다(입력 즉시 반영이라 RFP의 "30분 이내 반영"을 충족). 체크인 기반 자동계산(QR·5분 주기)은 범위 제외.' },
   head('요구사항 조정', '원문의 형태가 아니라, 원문의 의도를 구현했습니다') +
   fill(`<div style="display:flex; flex-direction:column; gap:14px">` +
     adj('세부 권한 목록(입력·수정·삭제…)', '역할 4개 고정 + 지점 격리') +
     adj('다단계 결재', '본인 신청 + 관리자 1단계 승인') +
     adj('모바일 PG 결제', '모의 결제 — 상태 전이는 실물처럼') +
-    adj('IoT 인원 계측', '체크인 자동계산 + 수동 보정') +
+    adj('IoT 인원 계측', '수동 입력 + 정원 기준 5단계 자동 판정') +
     `</div>` + `<div style="height:20px"></div>` +
     ptxt('줄인 곳에서도 <b>지점 격리와 예약 동시성</b>은 타협하지 않았습니다.', 30, INK, 600)));
 
@@ -357,38 +357,38 @@ section('ai-workflow', { notes: '개발은 Claude Code와의 대화로 했다. �
     ptxt('도구: Claude Code + architecture-driver · wrap-up 스킬', 26)) +
   foot('사람은 방향과 승인을, AI는 근거를 인용하며 구현과 기록을 맡았습니다'));
 
-section('ai-verify', { notes: 'AI 결과물을 믿지 않고 기계로 검증한 장치. 커밋 전 hook: apps/·packages/ 변경 시 양쪽 lint·빌드·jest, 문서 변경 시 doc-check. CI: PR·main push에서 같은 검사. jest 범위는 불변식 3개(지점 격리·계약 종료 차단·인사 권한)와 실DB 동시성·도메인 규칙 — API 테스트 파일 27개. 관리자 웹은 테스트가 없다(lint·빌드만). 테스트가 실패하면 기대값을 바꾸지 말고 코드의 규칙 위반으로 보고한다는 규칙도 있다. 결정 38건(D1~D38)·진행 로그 57건은 "왜 그렇게 됐나"를 다음 세션이 따라갈 수 있게 한다.' },
+section('ai-verify', { notes: 'AI 결과물을 믿지 않고 기계로 검증한 장치. 커밋 전 hook: apps/·packages/ 변경 시 양쪽 lint·빌드·jest, 문서 변경 시 doc-check. CI: PR과 dev·main push에서 같은 검사. jest 범위는 불변식 3개(지점 격리·계약 종료 차단·인사 권한)와 실DB 동시성·도메인 규칙 — API 테스트 파일 28개. 관리자 웹은 테스트가 없다(lint·빌드만). 테스트가 실패하면 기대값을 바꾸지 말고 코드의 규칙 위반으로 보고한다는 규칙도 있다. 결정 40건(D1~D40)·진행 로그 71건은 "왜 그렇게 됐나"를 다음 세션이 따라갈 수 있게 한다.' },
   head('AI 결과물 검증', 'AI가 만든 것을 믿지 않고, 기계로 확인했습니다') +
   fill(`<div style="display:flex; gap:16px; align-items:stretch">` +
     card(icon('Lock', NAVY) + h3('커밋 전 hook', 34) + ptxt('lint · 빌드 · jest가 통과해야 커밋됩니다'), 'flex:1') +
     card(icon('CheckCircle', NAVY) + h3('CI', 34) + ptxt('PR마다 같은 검사 + 문서 검사기'), 'flex:1') +
-    card(icon('Verified', NAVY) + h3('테스트 파일 27개', 34) + ptxt('불변식 3개 + 실DB 동시성'), 'flex:1') +
-    card(icon('Book', NAVY) + h3('결정 38 · 로그 57', 34) + ptxt('왜 그렇게 됐는지 따라갈 수 있게'), 'flex:1') +
+    card(icon('Verified', NAVY) + h3('테스트 파일 28개', 34) + ptxt('불변식 3개 + 실DB 동시성'), 'flex:1') +
+    card(icon('Book', NAVY) + h3('결정 40 · 로그 71', 34) + ptxt('왜 그렇게 됐는지 따라갈 수 있게'), 'flex:1') +
     `</div>` + `<div style="height:24px"></div>` +
     `<div style="display:flex; align-items:center; gap:20px; padding:24px 32px; background:${AMBER_SOFT}; border:2px solid ${AMBER}; border-radius:14px">${icon('Warning', AMBER)}<p style="font-size:28px; line-height:1.4; color:${INK}"><b>한계:</b> 관리자 웹은 자동 테스트가 없어 lint·빌드(타입체크)까지만 검증됩니다.</p></div>`) +
-  foot('기준: 커밋 2665ed8 · .claude/hooks/pre-commit-check.js · .github/workflows/ci.yml'));
+  foot('기준: 2026-10-06 · .claude/hooks/pre-commit-check.js · .github/workflows/ci.yml'));
 
 // ════════════════════════════════════════════════════════════════════════
 // ⑥ 4주차 발표 이후
 // ════════════════════════════════════════════════════════════════════════
-section('ai-docs', { notes: '전체 문서 구조. AI는 세션이 바뀌면 기억이 없으므로, 매번 읽어야 하는 양을 줄이고 같은 사실을 한 곳에만 두도록 문서를 읽는 시점별 세 층으로 나눴다(10/1 재편). ① 매 세션: CLAUDE.md(바뀌지 않는 규칙과 "무엇을 할 때 어디를 읽나" 표, 루트·앱별)와 STATUS.md(지금 상태만, 세션 끝마다 덮어씀, 80줄 상한). ② 작업할 때: 도메인 문서 9개의 맨 위 요약 카드(40줄 상한)부터 읽고 필요하면 결정 절·부록으로 내려간다, 아키텍처 문서는 공유 엔티티(단일 기준)와 날짜·정합성 같은 횡단 규칙. ③ 왜 그렇게 됐는지 따라갈 때만: 결정 기록(결정 하나에 파일 하나, 고치지 않고 새 번호로 대체 — 38건), 진행 로그(작업 한 건에 파일 하나, 추가만 — 59건), 참고 자료(RFP 원본·요구사항 추적표·기업 분석). 코드 주석은 경로가 아니라 결정 번호로 문서를 가리켜, 문서를 옮겨도 깨지지 않는다. 문서 검사기(doc-check)가 커밋 전에 링크·옛 이름·크기 상한·인덱스를 검사한다. 작업을 마칠 때는 wrap-up 스킬이 STATUS 덮어쓰기 + 로그 1건 + 결정 기록을 남긴다.' },
+section('ai-docs', { notes: '전체 문서 구조. AI는 세션이 바뀌면 기억이 없으므로, 매번 읽어야 하는 양을 줄이고 같은 사실을 한 곳에만 두도록 문서를 읽는 시점별 세 층으로 나눴다(10/1 재편). ① 매 세션: CLAUDE.md(바뀌지 않는 규칙과 "무엇을 할 때 어디를 읽나" 표, 루트·앱별)와 STATUS.md(지금 상태만, 세션 끝마다 덮어씀, 80줄 상한). ② 작업할 때: 도메인 문서 9개의 맨 위 요약 카드(40줄 상한)부터 읽고 필요하면 결정 절·부록으로 내려간다, 아키텍처 문서는 공유 엔티티(단일 기준)와 날짜·정합성 같은 횡단 규칙. ③ 왜 그렇게 됐는지 따라갈 때만: 결정 기록(결정 하나에 파일 하나, 고치지 않고 새 번호로 대체 — 40건), 진행 로그(작업 한 건에 파일 하나, 추가만 — 71건), 참고 자료(RFP 원본·요구사항 추적표·기업 분석). 코드 주석은 경로가 아니라 결정 번호로 문서를 가리켜, 문서를 옮겨도 깨지지 않는다. 문서 검사기(doc-check)가 커밋 전에 링크·옛 이름·크기 상한·인덱스를 검사한다. 작업을 마칠 때는 wrap-up 스킬이 STATUS 덮어쓰기 + 로그 1건 + 결정 기록을 남긴다.' },
   head('문서 구조', 'AI가 매 세션 이어서 일할 수 있게, 읽는 시점별로 나눴습니다') +
   diagramSide(F.docTiers,
     label('왜 이렇게') +
     ptxt('AI는 세션이 바뀌면 기억이 없습니다. 매번 읽을 양은 줄이고, 필요한 만큼만 더 깊이 들어갑니다.', 28, INK) +
     label('원칙') +
     bullets(['한 사실은 <b>한 곳에만</b>', '지금 상태는 <b>덮어쓰고</b>, 경위는 <b>쌓는다</b>', '코드 주석은 위치가 아니라 <b>번호로</b> 문서를 가리킨다'], 28)) +
-  foot('결정 기록 38건 · 진행 로그 59건 · 도메인 문서 9개'));
+  foot('결정 기록 40건 · 진행 로그 71건 · 도메인 문서 9개'));
 
-partSlide('p6', '06', '4주차 발표 이후', '지난 발표 이후 무엇이 바뀌었나', '파트 6. 범위: 4주차 덱 마지막 커밋 c20306d(9/28) 다음부터 8c953ec(10/3)까지 커밋 29개(병합 제외) + Lambda 배포·운영 전환. 서사: 약속 → 실행 → 결정 → 남은 것.');
+partSlide('p6', '06', '4주차 발표 이후', '지난 발표 이후 무엇이 바뀌었나', '파트 6. 범위: 4주차 덱 마지막 커밋 c20306d(9/28) 다음부터 10/6까지 커밋 50여 개(병합 제외) + Lambda 배포·운영 전환 + 범위 결정. 서사: 약속 → 실행 → 결정 → 남은 것.');
 
 section('week-promise', { notes: '4주차 발표의 결론을 다시 짚고 시작한다. Render의 한계(공유 CPU, 서울 리전 없음)와 Lambda 전환 방침은 지난 발표에서 이미 말했다. 그때 실DB 전환은 인증 모듈 하나만 끝난 상태였고 Lambda는 계획이었다. 이번 한 주는 그 약속을 실행한 기록이다.' },
   head('지난 발표의 약속', '"실DB로 먼저 바꾸고, Lambda로 옮깁니다"') +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(label('4주차 발표 시점 · 9/28') + bullets(['실DB 전환은 <b>인증 모듈만</b>', '나머지 도메인은 인메모리 mock', 'Lambda는 <b>계획</b>'], 30, 'Clock', AMBER), 'flex:1') +
-    card(label('지금 · 10/5', GREEN) + bullets(['실DB 전환 <b>전 도메인 완료</b>', 'mock 코드 삭제', 'Lambda로 <b>운영 전환</b>'], 30, 'Check', GREEN), `flex:1; border:2px solid ${GREEN}`) +
+    card(label('지금 · 10/6', GREEN) + bullets(['실DB 전환 <b>전 도메인 완료</b>', 'mock 코드 삭제', 'Lambda로 <b>운영 전환</b>'], 30, 'Check', GREEN), `flex:1; border:2px solid ${GREEN}`) +
     `</div>`) +
-  foot('범위: 4주차 발표 이후 커밋 29개(병합 제외)와 Lambda 배포·전환'));
+  foot('범위: 4주차 발표 이후 커밋 50여 개(병합 제외)와 Lambda 배포·전환'));
 
 const chip = (t, k = 'done') => { const m = { done: [GREEN_SOFT, GREEN], plan: [NAVY_SOFT, NAVY], red: [RED_SOFT, RED] }[k]; return `<p style="font-size:28px; font-weight:700; color:${m[1]}; background:${m[0]}; border:1px solid ${m[1]}; border-radius:10px; padding:12px 20px; white-space:nowrap">${t}</p>`; };
 const arr = `<x-icon name="PaperPlane" style="color:${SOFT}; width:26px; height:26px"></x-icon>`;
@@ -411,11 +411,11 @@ section('week-found', { notes: '실DB로 옮겨야 보이는 문제들이었다.
     card(icon('Database', AMBER) + h3('규칙 위반 데이터', 36) + ptxt('DB 규칙이 시드 생성기의 잘못된 데이터를 잡아냈습니다', 28, INK) + label('log/045', SOFT), 'flex:1') +
     card(icon('Clock', AMBER) + h3('우연히 맞던 규칙', 36) + ptxt('단일 스레드라 맞았던 근태 규칙을 DB 락으로 다시 보장', 28, INK) + label('log/047', SOFT), 'flex:1') +
     `</div>` + `<div style="height:24px"></div>` +
-    ptxt('API 테스트 파일 <b>18개 → 27개</b> — 실DB에서 진짜 동시성을 검증합니다', 30, INK, 600)) +
+    ptxt('API 테스트 파일 <b>18개 → 28개</b> — 실DB에서 진짜 동시성을 검증합니다', 30, INK, 600)) +
   foot('근거: docs/log/042 · 045 · 047'));
 
 const rej = (n, d) => `<div style="flex:1; display:flex; flex-direction:column; gap:6px; background:${GRAY_SOFT}; border:1px solid ${LINE_STRONG}; border-radius:10px; padding:16px 20px"><p style="font-size:26px; font-weight:700; color:${SOFT}">${n}</p><p style="font-size:24px; line-height:1.3; color:${SOFT}">${d}</p></div>`;
-section('week-lambda', { notes: '지난 발표에서 예고한 Lambda 전환을 어떻게 설계했는지(D37, 9/30). Lambda는 실행 환경 하나가 요청 하나만 처리하므로 요청마다 CPU가 따로다 — 4주차에 본 "지연→요청 누적→CPU 경합" 루프의 CPU 고리가 구조적으로 끊긴다. 남는 공유 자원은 DB 커넥션이라, 동시 실행 상한을 10으로 묶어 DB가 감당하는 만큼만 받고, 넘치는 요청은 대기열에 쌓지 않고 입구에서 바로 거절(503)한다. API를 DB와 같은 서울 리전에 둬서 요청당 쿼리 4~8개의 리전 간 왕복도 없앴다. 계산상 필요한 동시 실행은 약 1.3건, 상한 10의 처리 한계는 약 200 rps로 잡았다(요청당 50ms 가정). 10/4 실측에서는 요청당 처리 p50이 약 110ms라 실질 한계가 약 50~55 rps였다 — 원인(Lambda↔풀러 왕복 × 요청당 쿼리 수)은 추정이고 확인 전. DB는 Supabase를 유지하고, 옮길 조건 4개(용량 80%, 백업 요구, 풀 대기 반복, 회원 앱 재개)를 정해 뒀다.' },
+section('week-lambda', { notes: '지난 발표에서 예고한 Lambda 전환을 어떻게 설계했는지(D37, 9/30). Lambda는 실행 환경 하나가 요청 하나만 처리하므로 요청마다 CPU가 따로다 — 4주차에 본 "지연→요청 누적→CPU 경합" 루프의 CPU 고리가 구조적으로 끊긴다. 남는 공유 자원은 DB 커넥션이라, 동시 실행 상한을 10으로 묶어 DB가 감당하는 만큼만 받고, 넘치는 요청은 대기열에 쌓지 않고 입구에서 바로 거절(503)한다. API를 DB와 같은 서울 리전에 둬서 요청당 쿼리 4~8개의 리전 간 왕복도 없앴다. 상한 10의 처리 한계는 약 200 rps로 잡았다(요청당 50ms 가정). 지금 산정(수도권 83곳·지점당 하루 100명)으로는 피크 약 3 rps, 몰림 약 8 rps라 필요한 칸은 1칸 안팎이다. 10/4 실측에서는 요청당 처리 p50이 약 110ms라 실질 한계가 약 50~55 rps였다 — 원인(Lambda↔풀러 왕복 × 요청당 쿼리 수)은 추정이고 확인 전. DB는 Supabase를 유지하고, 옮길 조건 4개(용량 80%, 백업 요구, 풀 대기 반복, 회원 앱 재개)를 정해 뒀다. 회원 모바일 웹을 하기로 해 마지막 조건을 다시 봤다 — 처리량은 실측 한계 안이고, 남는 걱정은 무료 용량(500MB, 1~1.5년 안에 닿음 — 설계서 10.2)이라 지금은 유지.' },
   head('실행 ② · 9/30', '지난 발표에서 예고한 Lambda 전환, 이렇게 설계했습니다') +
   fill(`<div style="display:flex; gap:16px; align-items:stretch">` +
     card(icon('Activity', GREEN) + h3('요청마다 CPU 분리', 34) + ptxt('요청끼리 CPU를 나눠 쓰지 않아, 몰려도 서로를 느리게 만들지 않습니다'), 'flex:1') +
