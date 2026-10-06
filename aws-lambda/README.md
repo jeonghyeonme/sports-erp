@@ -182,7 +182,7 @@
 
 ## 8. 전환 후 정리
 
-- [ ] Render `sports-erp-api` 일시정지(Suspend). Render는 D26 코드에 멈춰 있어 롤백 대상이 아니다. 롤백은 Lambda 별칭으로 한다.
+- [x] Render `sports-erp-api` 일시정지(Suspend) — 2026-10-06 완료(docs/log/075). Render는 D26 코드에 멈춰 있어 롤백 대상이 아니다. 롤백은 Lambda 별칭으로 한다.
 - [ ] Render `sports-erp-web`(이미 일시정지, D25로 폐기)은 대시보드에서 삭제해도 된다.
 
 ## 승인 대기
