@@ -9,6 +9,7 @@ import { MemberService } from './member.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MockMember } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
+import { maskPhones } from '../../common/privacy/mask-phone';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdateMemberStatusDto } from './dto/update-member-status.dto';
@@ -74,7 +75,8 @@ export class MembersController {
     @Query('status') status?: string,
     @Query('q') q?: string,
   ) {
-    return ok(await this.memberService.list({ branchId, status, q }));
+    // ADR-MEM-04 — 목록은 역할과 무관하게 전화번호를 마스킹한다. 검색(q)은 서버에서 원문으로 맞춘다.
+    return ok(maskPhones(await this.memberService.list({ branchId, status, q })));
   }
 
   // ADR-MEM-03 — 상세 진입 시 무거운 조인 대신 요약 카운트만 포함, 탭 클릭 시 아래 개별 API로 지연 로드.

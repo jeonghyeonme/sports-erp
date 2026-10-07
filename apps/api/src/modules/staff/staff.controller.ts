@@ -5,6 +5,7 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
 import { AppException } from '../../common/exceptions/app.exception';
 import { ok } from '../../common/http/api-response';
+import { maskPhones } from '../../common/privacy/mask-phone';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 import { AssignStaffDto } from './dto/assign-staff.dto';
@@ -24,7 +25,8 @@ export class StaffController {
     @Query('status') status?: string,
     @Query('position') position?: string,
   ) {
-    return ok(await this.staffService.list({ branchId, status, position }));
+    // ADR-MEM-04 — 직원 목록도 같은 규칙으로 연락처를 마스킹한다(상세·me는 원문, 인사정보관리 STF-T03).
+    return ok(maskPhones(await this.staffService.list({ branchId, status, position })));
   }
 
   // STAFF 본인 레코드만 셀프서비스로 조회(인사정보관리 A-7) — 동료 직원 정보는 노출하지 않는다.

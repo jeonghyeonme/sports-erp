@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-07 · [log/077](log/077.md)(회원 모바일 웹 형태 결정 D41 + 뼈대, B1-1)
+> 마지막 갱신: 2026-10-07 · [log/077](log/077.md)(회원 모바일 웹 형태 결정 D41 + 뼈대, B1-1), [log/078](log/078.md)(목록 응답 전화번호 마스킹, ADR-MEM-04)
 
 ## 현재 상태
 
@@ -25,7 +25,7 @@
 1. **B2 k6 실측을 결정 기록에** — D37은 고치지 않고 새 D 파일로([log/056](log/056.md) 수치).
 2. **B3 Worker rate limit 429 실동작 확인** — [log/033](log/033.md)부터 미확인. 사용자 PC에서 curl 권장.
 3. **B4 트래픽·인프라 후보 이슈를 ADR로 승격** — [traffic-infra-review.md](architecture/traffic-infra-review.md).
-4. **B5 RFP 미구현 중 비용이 작은 것** — 응답 마스킹 / AuditLog 기록 / 공통 Toast(각각 세션 1개).
+4. **B5 RFP 미구현 중 비용이 작은 것** — AuditLog 기록(상세 전화번호 열람 포함) / 공통 Toast(각각 세션 1개). 응답 마스킹은 끝났다(ADR-MEM-04, log/078).
 5. **B6** 폐기 자산 누적 대응(페이지네이션·아카이빙).
 6. **B7** `src/mock-data/` 폴더 이름 정리.
 7. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제, Supabase 커넥터 재인증(배포 DB 작업 전에 필요).
