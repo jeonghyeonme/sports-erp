@@ -43,6 +43,7 @@ apps/member-app/android/
 
 # misc
 coverage/
+.wrangler/
 *.tsbuildinfo
 
 # D37 — Lambda 배포 묶음(apps/api/scripts/package-lambda.sh 결과)

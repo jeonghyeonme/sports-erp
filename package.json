@@ -11,6 +11,8 @@
     "dev": "concurrently -k -n API,WEB -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
     "dev:api": "npm run start:dev --workspace=apps/api",
     "dev:web": "npm run dev --workspace=apps/admin-web",
+    "dev:member": "npm run dev --workspace=apps/member-web",
+    "build:web": "npm run build --workspace=apps/admin-web && npm run build --workspace=apps/member-web",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "prisma:generate": "npm run prisma:generate --workspace=apps/api",
