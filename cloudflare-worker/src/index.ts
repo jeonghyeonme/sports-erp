@@ -26,6 +26,23 @@ export interface Env {
   LOGIN_RATE_LIMITER: {
     limit: (options: { key: string }) => Promise<{ success: boolean }>;
   };
+  // D41 — 정적 자산 바인딩(wrangler.jsonc assets.binding). 회원 웹(/m/*) 화면 경로에 /m/index.html을 돌려줄 때 쓴다.
+  ASSETS: Fetcher;
+}
+
+// D41 — 회원 웹(apps/member-web, base '/m/')은 admin-web dist의 m/ 아래에 빌드된다. 자산 계층의 SPA 폴백은
+// 없는 경로에 *루트* index.html(관리자 웹)을 주므로, /m/* 화면 경로는 이 Worker가 받아 회원 웹 index.html을 준다.
+// /m/assets/*는 wrangler.jsonc의 run_worker_first에서 빼 두어(빌드 산출물) 이 함수를 거치지 않는다.
+function isMemberWebPath(pathname: string): boolean {
+  return pathname === '/m' || pathname.startsWith('/m/');
+}
+
+async function serveMemberWeb(request: Request, url: URL, env: Env): Promise<Response> {
+  const lastSegment = url.pathname.slice(url.pathname.lastIndexOf('/') + 1);
+  // 확장자가 있는 경로(/m/favicon.svg 등)는 실제 파일 요청이라 자산 계층에 그대로 넘긴다.
+  if (lastSegment.includes('.')) return env.ASSETS.fetch(request);
+  // '/m/index.html'을 직접 요청하면 html_handling이 '/m/'로 리다이렉트하므로 '/m/'를 요청한다.
+  return env.ASSETS.fetch(new Request(new URL('/m/', url), request));
 }
 
 // bcrypt.compare/hash가 걸리는 CPU 바운드 경로만 골랐다 — 나머지(조회 등)는 원래도
@@ -83,6 +100,9 @@ async function isAppFormatted(response: Response): Promise<boolean> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    if (isMemberWebPath(url.pathname)) {
+      return serveMemberWeb(request, url, env);
+    }
 
     if (RATE_LIMITED_PATHS.has(url.pathname)) {
       // CF-Connecting-IP는 Cloudflare 네트워크를 지나는 모든 요청에 자동으로 붙는다

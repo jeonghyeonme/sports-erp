@@ -10,15 +10,16 @@ D24(`docs/decisions/D24.md`) 1.5단계 — 도메인 없이 `*.workers.dev`로 R
 
 - **이 세션(Claude)은 실행할 수 없다** — 조직 egress 정책이 `api.cloudflare.com`/`workers.dev`를 막고 있다(`loadtest/README.md`와 같은 제약). 로컬 등 제약 없는 환경에서 실행할 것.
 - Cloudflare 계정이 필요하다(무료로 충분 — 커스텀 도메인 불필요).
-- **먼저 admin-web을 빌드해야 한다** — `wrangler.jsonc`의 `assets.directory`가 `../apps/admin-web/dist`를 가리킨다. 빌드 결과물이 없으면 `wrangler deploy`가 빈 자산으로 배포되거나 실패한다.
+- **먼저 admin-web·member-web을 빌드해야 한다** — `wrangler.jsonc`의 `assets.directory`가 `../apps/admin-web/dist`를 가리킨다. 빌드 결과물이 없으면 `wrangler deploy`가 빈 자산으로 배포되거나 실패한다.
+- **D41(2026-10-07) 회원 웹**: `apps/member-web`은 `apps/admin-web/dist/m/`에 빌드된다. admin-web 빌드가 `dist`를 비우므로 **반드시 admin-web → member-web 순서**로 빌드한다(루트 `npm run build:web`). `/m/*` 화면 경로는 Worker가 받아 `/m/index.html`을 주고, `/m/`·`/m/assets/*`는 자산 계층이 바로 처리한다(`run_worker_first`).
 
 ## 배포
 
 ```bash
-# 1) 리포 루트에서 admin-web 빌드 (VITE_API_BASE_URL을 지정하지 않으면 상대경로 /api/v1로
+# 1) 리포 루트에서 admin-web → member-web 빌드 (VITE_API_BASE_URL을 지정하지 않으면 상대경로 /api/v1로
 #    폴백하므로, 같은 오리진(이 Worker)에서 서빙될 때만 그대로 두면 된다)
 npm install
-npm run build --workspace=apps/admin-web
+npm run build:web
 
 # 2) Worker 배포
 cd cloudflare-worker

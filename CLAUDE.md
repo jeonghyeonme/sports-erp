@@ -23,7 +23,8 @@
 ```
 apps/api/          NestJS + Prisma(Supabase Postgres) — 전 도메인 실DB(D36). 작업 규칙은 apps/api/CLAUDE.md
 apps/admin-web/    React + Vite — 본사/지점 관리자 웹. 작업 규칙은 apps/admin-web/CLAUDE.md
-apps/member-app/   네이티브 앱은 만들지 않음 — 회원 기능은 모바일 웹으로 개발 예정(D40, 대상 수도권 83곳). README만 있음
+apps/member-web/   React + Vite — 회원 모바일 웹(/m/, D40·D41). 작업 규칙은 apps/member-web/CLAUDE.md
+apps/member-app/   네이티브 앱은 만들지 않음(D40). README만 있음
 packages/types/    클라이언트-서버 공유 타입
 scripts/           doc-check.mjs(문서 검사기)
 docs/              지도는 docs/README.md — STATUS · domains · architecture · decisions · process · log · reference · design · presentation · deliverables
