@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-06 · [log/075](log/075.md)(Render `sports-erp-api` 일시정지 — Lambda 전환 정리)
+> 마지막 갱신: 2026-10-06 · [log/076](log/076.md)(남은 작업을 세션 단위 브리프로 정리)
 
 ## 현재 상태
 
@@ -18,16 +18,16 @@
 
 ## 다음 할 일 (우선순위순)
 
-0. **범위 재설정(D40) — 남은 것**
-   1. 회원 모바일 웹(`apps/member-web` 예정): 로그인·프로그램/회차 조회·예약·취소·모의 결제·공지·혼잡도 조회.
-1. **Lambda 전환(D37) 마무리**
-   1. k6 실측([log/056](log/056.md) 근거 표)을 D37에 어떻게 남길지 정한다 — D37 §4를 채울지, 새 결정 파일로 둘지(D38: 결정 파일은 고치지 않고 새 번호로).
-   2. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제([aws-lambda/README.md](../aws-lambda/README.md) §8).
-2. **Worker rate limit 429 실동작 확인** — [cloudflare-worker/README.md](../cloudflare-worker/README.md)의 curl 테스트([log/033](log/033.md)부터 미확인).
-3. **트래픽·인프라 후보 이슈를 ADR로 승격** — [traffic-infra-review.md](architecture/traffic-infra-review.md)를 체크리스트로([log/039](log/039.md)).
-4. **RFP 미구현 중 비용이 작은 것** — AuditLog 기록, 응답 마스킹, 공통 Toast([요구사항추적표](reference/요구사항추적표.md) §2-3·§3).
-5. 폐기 자산 누적 대응(페이지네이션·아카이빙) — 화면 설계와 함께(traffic-infra-review 자원문서관리).
-6. `src/mock-data/` 폴더 이름 정리(응답 타입·시드 원천만 남음).
+> 각 항목을 새 세션에서 시작하는 방법(근거·범위·완료 기준·주의점)은 [작업 브리프](process/04_작업_브리프.md)의 B 번호를 본다.
+
+0. **B1 회원 모바일 웹(D40)** — 발표 시연 전 목표. 첫 세션에서 앱 형태·배포 경로(브리프 A/B/C안, 권장 B)를 사용자와 정해 D41로 남긴다. 세션 3~4개.
+1. **B2 k6 실측을 결정 기록에** — D37은 고치지 않고 새 D 파일로([log/056](log/056.md) 수치).
+2. **B3 Worker rate limit 429 실동작 확인** — [log/033](log/033.md)부터 미확인. 사용자 PC에서 curl 권장.
+3. **B4 트래픽·인프라 후보 이슈를 ADR로 승격** — [traffic-infra-review.md](architecture/traffic-infra-review.md).
+4. **B5 RFP 미구현 중 비용이 작은 것** — 응답 마스킹 / AuditLog 기록 / 공통 Toast(각각 세션 1개).
+5. **B6** 폐기 자산 누적 대응(페이지네이션·아카이빙).
+6. **B7** `src/mock-data/` 폴더 이름 정리.
+7. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제, Supabase 커넥터 재인증(배포 DB 작업 전에 필요).
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 
@@ -36,7 +36,6 @@
 - DB 제약 보강(스키마 변경): `Document.relatedStaffId`·`uploadedBy` 외래키([D34](decisions/D34.md)), `Post.authorId`, `WorkLog(staffId, date)` unique([D33](decisions/D33.md)).
 - 지점 격리 검사의 공통 가드 중앙화 — 전제조건(실DB 전환) 충족([요구사항추적표](reference/요구사항추적표.md) §3).
 - Lambda용 DB 역할 `statement_timeout` 설정(DB 변경, D37).
-- 회원 앱을 다시 넣을 경우: D37 결정 2(Workers 유료)·§5(DB 이전 조건)부터 재검토.
 
 ## 열린 위험
 
