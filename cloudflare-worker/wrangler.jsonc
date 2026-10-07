@@ -16,11 +16,15 @@
   // 거치지 않고 바로 정적 자산 계층에서 처리된다 — UI와 API가 같은 오리진이 되어
   // CORS가 아예 성립하지 않게 된다. not_found_handling=SPA로 새로고침 404도 해결
   // (Render의 _redirects는 동작이 미검증 상태였음, D23 참고).
+  // D41 — 회원 웹(apps/member-web)은 같은 dist의 m/ 아래에 빌드된다. SPA 폴백은 루트 index.html(관리자)만
+  // 주므로 /m/* 화면 경로는 Worker가 먼저 받아 /m/index.html을 준다. 진입 경로 /m/와 빌드 산출물 /m/assets/*는
+  // 자산 계층이 바로 처리하게 뺀다 — Worker 호출은 깊은 경로를 새로고침할 때만 생긴다(design-constants ⑬,
+  // 방문마다 1회씩 더하면 하루 약 0.8만 건이 늘어 무료 한도 10만을 넘는다). wrangler dev로 확인(log/077).
   "assets": {
     "directory": "../apps/admin-web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/m/*", "!/m/", "!/m/assets/*"]
   },
   // Workers Rate Limiting(2025-09-19 GA). simple: 지정한 period(초) 동안 limit회 초과 시 거부.
   "unsafe": {

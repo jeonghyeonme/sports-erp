@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-07 · [log/077](log/077.md)(목록 응답 전화번호 마스킹, ADR-MEM-04)
+> 마지막 갱신: 2026-10-07 · [log/077](log/077.md)(회원 모바일 웹 형태 결정 D41 + 뼈대, B1-1), [log/078](log/078.md)(목록 응답 전화번호 마스킹, ADR-MEM-04)
 
 ## 현재 상태
 
@@ -13,18 +13,19 @@
 | admin-web·엣지 | Cloudflare Worker(정적 자산 + 프록시 + rate limit). `API_ORIGIN`·`ORIGIN_SECRET`은 Worker secret | [D25](decisions/D25.md), [D37](decisions/D37.md) |
 | 저장소 | 주 개발·배포 브랜치 = `dev`(기본 브랜치), `main` = 완성본(완료 시 병합). 작업은 임시 브랜치 → `dev` PR → 병합 후 삭제. 2026-10-06 전환 완료(`dev`에서 배포 성공), 원격에는 `dev`·`main`만 남김 | [D39](decisions/D39.md), [log/067](log/067.md) |
 | 산출물 | 요구사항 정의서·데이터 정의서(Excel), 기업 분석·제안서·아키텍처 설계서(Word) — `scripts/deliverables/`로 재생성 | [log/061](log/061.md), [log/062](log/062.md) |
-| 범위 | **지점 수도권 83곳 + 회원 모바일 웹으로 재설정(2026-10-06)**. 덱·문서·산출물·시드·테스트·관리자 웹·배포 DB 모두 83곳(2026-10-06), 회원 웹은 미착수 | [D40](decisions/D40.md), [log/074](log/074.md) |
+| 범위 | **지점 수도권 83곳 + 회원 모바일 웹으로 재설정(2026-10-06)**. 덱·문서·산출물·시드·테스트·관리자 웹·배포 DB 모두 83곳(2026-10-06) | [D40](decisions/D40.md), [log/074](log/074.md) |
+| 회원 웹 | `apps/member-web`(`/m/`, 같은 Worker) 뼈대 — 360px 셸·로그인·토큰 갱신·빈 홈. 모의 api로만 확인했고 실제 api 연동·배포는 아직이다. CI에 lint·빌드가 없다(B1-4) | [D41](decisions/D41.md), [log/077](log/077.md) |
 | 문서 구조 | 2026-10-01 재편 완료 — 로딩 계층·doc-check 도입 | [D38](decisions/D38.md) |
 
 ## 다음 할 일 (우선순위순)
 
 > 각 항목을 새 세션에서 시작하는 방법(근거·범위·완료 기준·주의점)은 [작업 브리프](process/04_작업_브리프.md)의 B 번호를 본다.
 
-0. **B1 회원 모바일 웹(D40)** — 발표 시연 전 목표. 첫 세션에서 앱 형태·배포 경로(브리프 A/B/C안, 권장 B)를 사용자와 정해 D41로 남긴다. 세션 3~4개.
+0. **B1 회원 모바일 웹(D40·D41)** — 발표 시연 전 목표. B1-1(결정·뼈대) 끝. 다음은 **B1-2 조회·예약**. 시작할 때 로컬 api+DB로 로그인 실연동부터 확인한다(B1-1은 모의 api로만 확인).
 1. **B2 k6 실측을 결정 기록에** — D37은 고치지 않고 새 D 파일로([log/056](log/056.md) 수치).
 2. **B3 Worker rate limit 429 실동작 확인** — [log/033](log/033.md)부터 미확인. 사용자 PC에서 curl 권장.
 3. **B4 트래픽·인프라 후보 이슈를 ADR로 승격** — [traffic-infra-review.md](architecture/traffic-infra-review.md).
-4. **B5 RFP 미구현 중 비용이 작은 것** — AuditLog 기록(상세 전화번호 열람 포함) / 공통 Toast(각각 세션 1개). 응답 마스킹은 끝났다(ADR-MEM-04, log/077).
+4. **B5 RFP 미구현 중 비용이 작은 것** — AuditLog 기록(상세 전화번호 열람 포함) / 공통 Toast(각각 세션 1개). 응답 마스킹은 끝났다(ADR-MEM-04, log/078).
 5. **B6** 폐기 자산 누적 대응(페이지네이션·아카이빙).
 6. **B7** `src/mock-data/` 폴더 이름 정리.
 7. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제, Supabase 커넥터 재인증(배포 DB 작업 전에 필요).
@@ -43,4 +44,5 @@
 - `ORIGIN_SECRET`·DB 비밀번호가 대화에 노출됐다(사용자가 교체 보류). Render가 정지돼 이제 DB 비밀번호를 쓰는 곳은 Lambda뿐이다 — 바꾸면 `.env` → `set-lambda-env.sh` → Actions 재배포.
 - DB 무료 용량(500MB): 예약·결제 이력만으로 1~1.5년 안에 닿는다(design-constants ⑮, 가정). 지점이 90곳을 넘으면 Workers 무료 한도 초과(⑬).
 - AWS 클래식 계정은 유료 플랜이라 지출 한도가 없다. 예산 경보($1/$5/$20)·Lambda 경보(SNS 이메일, 2026-10-04 재구독)는 있고 대응은 수동이다. 경보 메일의 unsubscribe 링크를 누르면 구독이 지워진다.
+- 회원 웹 refresh token이 localStorage에 있다(D41) — XSS가 생기면 탈취될 수 있다. 빌드 순서(admin → member)를 어기면 `dist/m`이 지워진 채 배포된다(`npm run build:web` 사용).
 - admin-web은 테스트가 없어 lint·빌드만 검증된다. 전환 후 화면은 로그인·데이터 조회만 확인했다.
