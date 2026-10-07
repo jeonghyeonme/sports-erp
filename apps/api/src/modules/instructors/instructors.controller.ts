@@ -7,6 +7,7 @@ import { InstructorService } from './instructor.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { MockInstructor } from '../../mock-data/mock-data.types';
 import { ok } from '../../common/http/api-response';
+import { maskPhones } from '../../common/privacy/mask-phone';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
 
@@ -18,7 +19,8 @@ export class InstructorsController {
 
   @Get()
   async list(@Query('branchId') branchId?: string) {
-    return ok(await this.instructorService.list(branchId));
+    // ADR-MEM-04 — 회원도 보는 목록이라 강사 연락처를 마스킹한다.
+    return ok(maskPhones(await this.instructorService.list(branchId)));
   }
 
   @Post()
