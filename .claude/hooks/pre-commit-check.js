@@ -41,8 +41,11 @@ process.stdin.on('end', () => {
   const checks = [
     ['api lint', 'npm exec --workspace=apps/api -- eslint .'],
     ['admin-web lint', 'npm exec --workspace=apps/admin-web -- eslint .'],
+    ['member-web lint', 'npm exec --workspace=apps/member-web -- eslint .'],
     ['api 빌드', 'npm run build --workspace=apps/api'],
     ['admin-web 빌드', 'npm run build --workspace=apps/admin-web'],
+    // D41 — admin-web 빌드가 dist를 비우므로 member-web은 그 뒤에 빌드한다(루트 build:web과 같은 순서).
+    ['member-web 빌드', 'npm run build --workspace=apps/member-web'],
     ['api 테스트', 'npm test --workspace=apps/api -- --passWithNoTests'],
   ];
   for (const [name, c] of checks) {
