@@ -95,6 +95,29 @@ jobs:
       - name: Build
         run: npm run build --workspace=apps/admin-web
 
+  # D41 — 회원 웹. 테스트가 없어 lint + 빌드(tsc -b 타입체크)가 검증의 전부다. 빌드 결과는 ../admin-web/dist/m에 쓰이지만
+  # 이 잡은 산출물을 쓰지 않는다(배포 순서 admin → member는 루트 build:web이 지킨다).
+  member-web:
+    name: member-web (lint · build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm exec --workspace=apps/member-web -- eslint .
+
+      - name: Build
+        run: npm run build --workspace=apps/member-web
+
   # D38 — 문서 구조가 다시 썩지 않게 하는 신호(끊긴 링크·옛 문서 이름·ADR ID·진입 문서 크기 상한·인덱스 누락).
   docs:
     name: docs (doc-check)

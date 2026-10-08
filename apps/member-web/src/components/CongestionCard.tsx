@@ -2,36 +2,35 @@ import { useEffect, useState } from 'react';
 import { useLoad } from '../lib/use-load';
 import { describeError } from '../lib/errors';
 import { sinceLabel } from '../lib/format';
-import { LEVEL_LABELS, REFRESH_COOLDOWN_MS } from '../lib/congestion';
+import { HOME_CARD_CACHE_MS, LEVEL_LABELS, REFRESH_COOLDOWN_MS } from '../lib/congestion';
 import { Facility } from '../lib/types';
 
-// 홈 혼잡도 카드 — GET /facilities 1회(지점은 서버가 본인 지점으로 강제, 운영 중 시설만).
+// 홈 혼잡도 카드 — GET /facilities 1회(지점은 서버가 본인 지점으로 강제, 운영 중 시설만). 60초 안에 다시 오면 0회(캐시).
 // ADR-FAC-04: 자동 폴링하지 않는다. 새로고침 버튼은 마지막 조회 뒤 30초가 지나야 다시 누를 수 있다.
 export function CongestionCard() {
-  const { data, error, loading, reload } = useLoad<Facility[]>('/facilities');
+  const { data, error, loading, reload, fetchedAt } = useLoad<Facility[]>('/facilities', { cacheMs: HOME_CARD_CACHE_MS });
   // 시계 상태 — "N분 전"과 버튼 잠금 해제를 위해 화면 안에서만 흐른다(네트워크 호출 없음).
   const [now, setNow] = useState(() => Date.now());
-  const [lastFetchAt, setLastFetchAt] = useState(() => Date.now());
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15_000);
     return () => clearInterval(timer);
   }, []);
 
-  const coolingDown = now - lastFetchAt < REFRESH_COOLDOWN_MS;
+  // 잠금 기준은 실제로 서버에서 받은 시각이다 — 캐시로 홈에 다시 들어와도 30초 간격이 지켜진다.
+  const coolingDown = fetchedAt === undefined || now - fetchedAt < REFRESH_COOLDOWN_MS;
   const refresh = () => {
-    const t = Date.now();
-    setLastFetchAt(t);
-    setNow(t);
+    setNow(Date.now());
     reload();
   };
-  // 잠금은 마지막 조회 30초 뒤 풀린다 — 15초 시계보다 정확하게 풀리도록 그 시점에 한 번 더 시계를 맞춘다.
+  // 잠금은 조회 30초 뒤 풀린다 — 15초 시계보다 정확하게 풀리도록 그 시점에 한 번 더 시계를 맞춘다.
   useEffect(() => {
-    const wait = lastFetchAt + REFRESH_COOLDOWN_MS - Date.now();
+    if (fetchedAt === undefined) return;
+    const wait = fetchedAt + REFRESH_COOLDOWN_MS - Date.now();
     if (wait <= 0) return;
     const timer = setTimeout(() => setNow(Date.now()), wait);
     return () => clearTimeout(timer);
-  }, [lastFetchAt]);
+  }, [fetchedAt]);
 
   const facilities = data ?? [];
   const latest = facilities.reduce<string | null>(

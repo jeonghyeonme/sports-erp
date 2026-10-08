@@ -3,10 +3,11 @@ import { useLoad } from '../lib/use-load';
 import { describeError } from '../lib/errors';
 import { shortDate } from '../lib/format';
 import { Post } from '../lib/types';
+import { HOME_CARD_CACHE_MS } from '../lib/congestion';
 
-// 홈 최근 공지 3건 — GET /posts?sort=latest&limit=3 1회(ADR-BRD-03). 회원에게 보이는 글만 온다(ADR-BRD-01).
+// 홈 최근 공지 3건 — GET /posts?sort=latest&limit=3 1회(ADR-BRD-03), 60초 안에 다시 오면 0회(캐시). 회원에게 보이는 글만 온다(ADR-BRD-01).
 export function RecentNotices() {
-  const { data, error, loading } = useLoad<Post[]>('/posts?sort=latest&limit=3');
+  const { data, error, loading } = useLoad<Post[]>('/posts?sort=latest&limit=3', { cacheMs: HOME_CARD_CACHE_MS });
 
   return (
     <section className="panel stack-sm" aria-labelledby="notices-title">

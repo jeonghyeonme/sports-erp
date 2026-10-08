@@ -10,6 +10,7 @@ import {
 import { ApiEnvelope, AuthUser, LoginResult } from './types';
 import { AuthContext } from './use-auth';
 import { describeError } from './errors';
+import { clearLoadCache } from './use-load';
 
 async function revokeRefreshToken(refreshToken: string) {
   try {
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setSessionExpiredHandler(() => {
+      clearLoadCache();
       setUser(null);
       setSessionExpired(true);
     });
@@ -80,6 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
       const refreshToken = readRefreshToken();
+      // 다른 계정이 같은 탭에서 로그인해도 앞 사람 화면 데이터가 보이지 않게 캐시를 비운다.
+      clearLoadCache();
       setSession(null);
       setSessionExpired(false);
       setUser(null);
