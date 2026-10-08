@@ -19,6 +19,7 @@ import { ReservationsPage } from './pages/ReservationsPage';
 import { AssetsPage } from './pages/AssetsPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { PermissionsPage } from './pages/PermissionsPage';
+import { AuditLogsPage } from './pages/AuditLogsPage';
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ export default function App() {
                 <Route path="/assets" element={<AssetsPage />} />
                 <Route path="/documents" element={<DocumentsPage />} />
                 <Route path="/permissions" element={<PermissionsPage />} />
+                <Route path="/audit-logs" element={<AuditLogsPage />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

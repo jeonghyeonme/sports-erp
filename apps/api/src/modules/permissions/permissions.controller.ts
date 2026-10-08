@@ -2,6 +2,8 @@ import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { StaffService } from '../staff/staff.service';
 import { ok } from '../../common/http/api-response';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { UpdateStaffRoleDto } from './dto/update-staff-role.dto';
 
 // 권한관리 A-7 권한 매트릭스 — 본사(SUPER_ADMIN)만 지점 직원의 권한(STAFF/BRANCH_ADMIN)을 제어할 수 있다.
@@ -17,7 +19,8 @@ export class PermissionsController {
   }
 
   @Patch('staff/:staffId/role')
-  async updateRole(@Param('staffId') staffId: string, @Body() dto: UpdateStaffRoleDto) {
-    return ok(await this.staffService.updateRole(staffId, dto.role));
+  async updateRole(@Param('staffId') staffId: string, @Body() dto: UpdateStaffRoleDto, @CurrentUser() user: RequestUser) {
+    // D44 — 처리자를 변경 이력에 남긴다.
+    return ok(await this.staffService.updateRole(staffId, dto.role, user.accountId));
   }
 }

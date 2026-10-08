@@ -4,6 +4,7 @@ import { MOCK_DEMO_PASSWORD } from '../../fixtures/demo-password';
 import { MockStaff, MockStaffAssignment } from '../../fixtures/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
+import { recordAudit } from '../../prisma/audit';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode } from '../../prisma/integrity';
 import { recalculateHrRetention } from '../documents/document.service';
@@ -149,7 +150,7 @@ export class StaffService {
    * 인사서류 보존기한 재계산(ADR-RES-02)도 같은 트랜잭션에서 한다 — D34로 문서가 DB로 옮겨져
    * D30 결정 3의 "커밋 뒤 mock 적용"이 끝났다(data-integrity §6 퇴사 체크리스트).
    */
-  async resign(id: string): Promise<StaffView> {
+  async resign(id: string, actorAccountId: string): Promise<StaffView> {
     const today = todayKst();
     await this.prisma.$transaction(async (tx) => {
       const staff = await tx.staff.findUnique({ where: { id } });
@@ -161,6 +162,15 @@ export class StaffService {
       await tx.account.update({ where: { id: staff.accountId }, data: { isActive: false } });
       await tx.staffAssignment.updateMany({ where: { staffId: id, endDate: null }, data: { endDate: dateOf(today) } });
       await recalculateHrRetention(tx, id, today);
+      // D44 — 누가 퇴사 처리했는지(같은 트랜잭션).
+      await recordAudit(tx, {
+        actorId: actorAccountId,
+        entity: 'Staff',
+        entityId: id,
+        action: 'RESIGNED',
+        before: { status: staff.status, branchId: staff.branchId },
+        after: { status: 'RESIGNED', resignDate: today },
+      });
     });
     return this.afterWrite(id);
   }
@@ -205,6 +215,15 @@ export class StaffService {
         data: { staffId: null, isActive: false },
       });
       await tx.staff.update({ where: { id }, data: { branchId: newBranchId } });
+      // D44 — 재배치 이력. StaffAssignment.assignedBy와 별개로 감사 기록 한 곳에서 인사 변경을 모아 본다.
+      await recordAudit(tx, {
+        actorId: assignedByAccountId,
+        entity: 'Staff',
+        entityId: id,
+        action: 'ASSIGNED',
+        before: { branchId: staff.branchId },
+        after: { branchId: newBranchId, note: note ?? null, releasedMemberCount: released.length },
+      });
       return released;
     });
     return { ...(await this.afterWrite(id)), unassignedMembers };
@@ -229,10 +248,22 @@ export class StaffService {
   }
 
   /** 매 요청 계정을 다시 읽는 JwtStrategy 덕분에 재로그인 없이 다음 요청부터 반영된다(ADR-AUTH-01). */
-  async updateRole(staffId: string, role: Extract<Role, 'STAFF' | 'BRANCH_ADMIN'>) {
-    const staff = await this.prisma.staff.findUnique({ where: { id: staffId } });
-    if (!staff) throw staffNotFound();
-    await this.prisma.account.update({ where: { id: staff.accountId }, data: { role } });
+  async updateRole(staffId: string, role: Extract<Role, 'STAFF' | 'BRANCH_ADMIN'>, actorAccountId: string) {
+    // D44 — 역할 변경과 이력을 한 트랜잭션으로 묶는다(D17 숙제: 누가 언제 승진·강등시켰는지). 같은 값이면 기록하지 않는다.
+    await this.prisma.$transaction(async (tx) => {
+      const staff = await tx.staff.findUnique({ where: { id: staffId }, include: { account: { select: { role: true } } } });
+      if (!staff) throw staffNotFound();
+      if (staff.account.role === role) return;
+      await tx.account.update({ where: { id: staff.accountId }, data: { role } });
+      await recordAudit(tx, {
+        actorId: actorAccountId,
+        entity: 'Staff',
+        entityId: staffId,
+        action: 'ROLE_CHANGED',
+        before: { role: staff.account.role },
+        after: { role },
+      });
+    });
     await this.afterWrite(staffId);
     return (await this.listWithRole()).find((s) => s.staffId === staffId);
   }

@@ -69,7 +69,7 @@ export class StaffController {
   async resign(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     const staff = await this.findStaffOrThrow(id);
     this.assertCurrentBranch(staff, user);
-    return ok(await this.staffService.resign(id));
+    return ok(await this.staffService.resign(id, user.accountId));
   }
 
   // 파견 발령(재배치) — SUPER_ADMIN 전용(인사정보관리 A-5·A-7, 본사의 인력 배치 결정). 지점 범위 제한 없음.

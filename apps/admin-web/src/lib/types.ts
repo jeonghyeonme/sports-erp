@@ -330,3 +330,17 @@ export interface DocumentRow {
   retentionUntil?: string;
   createdAt: string;
 }
+
+// D44 — GET /audit-logs(본사 전용) 한 행. before/after는 바뀐 필드만 담는다.
+export interface AuditLogRow {
+  id: string;
+  createdAt: string;
+  actorId?: string;
+  actorName?: string;
+  entity: string;
+  entityId: string;
+  entityName?: string;
+  action: 'ROLE_CHANGED' | 'RESIGNED' | 'ASSIGNED' | string;
+  before?: Record<string, unknown>;
+  after?: Record<string, unknown>;
+}
