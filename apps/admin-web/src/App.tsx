@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './lib/auth-context';
+import { ToastProvider } from './components/ToastProvider';
 import { useAuth } from './lib/use-auth';
 import { AppLayout } from './layout/AppLayout';
 import { LoginPage } from './pages/LoginPage';
@@ -32,34 +33,36 @@ function ProtectedRoute() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route element={<ProtectedRoute />}>
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/branches/:branchId" element={<BranchDetailPage />} />
-                <Route path="/members" element={<MembersPage />} />
-                <Route path="/members/:id" element={<MemberDetailPage />} />
-                <Route path="/staff" element={<StaffPage />} />
-                <Route path="/attendance" element={<AttendancePage />} />
-                <Route path="/programs" element={<ProgramsPage />} />
-                <Route path="/instructors" element={<InstructorsPage />} />
-                <Route path="/board" element={<BoardPage />} />
-                <Route path="/board/:id" element={<PostDetailPage />} />
-                <Route path="/facilities" element={<FacilitiesPage />} />
-                <Route path="/reservations" element={<ReservationsPage />} />
-                <Route path="/assets" element={<AssetsPage />} />
-                <Route path="/documents" element={<DocumentsPage />} />
-                <Route path="/permissions" element={<PermissionsPage />} />
-                <Route path="/audit-logs" element={<AuditLogsPage />} />
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route element={<ProtectedRoute />}>
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route path="/branches/:branchId" element={<BranchDetailPage />} />
+                  <Route path="/members" element={<MembersPage />} />
+                  <Route path="/members/:id" element={<MemberDetailPage />} />
+                  <Route path="/staff" element={<StaffPage />} />
+                  <Route path="/attendance" element={<AttendancePage />} />
+                  <Route path="/programs" element={<ProgramsPage />} />
+                  <Route path="/instructors" element={<InstructorsPage />} />
+                  <Route path="/board" element={<BoardPage />} />
+                  <Route path="/board/:id" element={<PostDetailPage />} />
+                  <Route path="/facilities" element={<FacilitiesPage />} />
+                  <Route path="/reservations" element={<ReservationsPage />} />
+                  <Route path="/assets" element={<AssetsPage />} />
+                  <Route path="/documents" element={<DocumentsPage />} />
+                  <Route path="/permissions" element={<PermissionsPage />} />
+                  <Route path="/audit-logs" element={<AuditLogsPage />} />
+                </Route>
               </Route>
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

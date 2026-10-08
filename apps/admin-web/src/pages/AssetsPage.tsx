@@ -9,6 +9,7 @@ import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection
 import { Modal } from '../components/Modal';
 import { ApiEnvelope, AssetCategory, AssetRow, AssetStatus, AssetType, BranchSummary } from '../lib/types';
 
+import { useToast } from '../lib/use-toast';
 const AUTO_EXPAND_THRESHOLD = 3;
 const FIXED_ASSET_THRESHOLD = 1_000_000;
 
@@ -77,6 +78,7 @@ const EMPTY_FORM: AssetForm = {
 function CreateAssetModal({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [form, setForm] = useState<AssetForm>(EMPTY_FORM);
   const branchesQuery = useApiList<BranchSummary>(['branches'], '/branches');
@@ -103,6 +105,7 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      toast.success('자산을 등록했습니다.');
       onClose();
     },
   });
@@ -233,11 +236,15 @@ export function AssetsPage() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | AssetStatus>('ALL');
   const [showCreate, setShowCreate] = useState(false);
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const statusMutation = useMutation<AssetRow, AxiosError<ApiErrorBody>, { id: string; status: AssetStatus }>({
     mutationFn: async ({ id, status }) =>
       (await api.patch<ApiEnvelope<AssetRow>>(`/assets/${id}/status`, { status })).data.data!,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assets'] }),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      toast.success(`'${updated.name}' 상태를 바꿨습니다.`);
+    },
   });
 
   const groups = useMemo(() => {

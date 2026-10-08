@@ -7,6 +7,7 @@ import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { groupByBranch } from '../lib/group-by-branch';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { Modal } from '../components/Modal';
+import { useToast } from '../lib/use-toast';
 import {
   AffectedReservations,
   AgeGroup,
@@ -94,6 +95,7 @@ function ProgramFormModal({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [form, setForm] = useState<ProgramForm>(toForm(program));
   const isEdit = !!program;
   const isFree = form.pricingType === 'FREE_ACCESS';
@@ -126,6 +128,7 @@ function ProgramFormModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['programs'] });
+      toast.success(isEdit ? '프로그램을 수정했습니다.' : '프로그램을 등록했습니다.');
       onClose();
     },
   });
@@ -285,14 +288,17 @@ function ProgramFormModal({
 }
 
 // ADR-PRG-02 — 값만 내려주고 화면에서 안 보이면 ADR-BRD-01·ADR-FAC-01과 같은 문제가 재발하므로,
-// PAUSED/ENDED 전이(상태 변경·삭제) 양쪽에서 이 알림을 공유한다.
-function alertAffectedReservations(updated: ProgramRow & { affectedReservations?: AffectedReservations }): void {
+// PAUSED/ENDED 전이(상태 변경·삭제) 양쪽에서 이 안내를 공유한다. B5-3 — window.alert 대신 닫을 때까지 남는 경고 Toast.
+function affectedReservationsMessage(updated: ProgramRow & { affectedReservations?: AffectedReservations }): string | null {
+  // 안내가 필요한 것은 예약을 받을 수 없게 되는 전이(휴강·종료)뿐이다 — 진행중으로 되돌릴 때도 api가 건수를 주지만
+  // 그때 "직접 안내하라"고 띄우면 틀린 지시가 된다(옛 window.alert도 같은 결함, log/087).
+  if (updated.status !== 'PAUSED' && updated.status !== 'ENDED') return null;
   const affected = updated.affectedReservations;
-  if (!affected || affected.count === 0) return;
+  if (!affected || affected.count === 0) return null;
   const names = affected.items.map((i) => `${i.memberName ?? '이름 미상'}(${i.date})`).join(', ');
-  window.alert(
+  return (
     `'${updated.name}' 프로그램에 앞으로 예정된 예약이 ${affected.count}건 있습니다: ${names}\n` +
-      '자동 알림은 발송되지 않으니 직접 안내해주세요.',
+    '자동 알림은 발송되지 않으니 직접 안내해주세요.'
   );
 }
 
@@ -302,6 +308,7 @@ export function ProgramsPage() {
   const [search, setSearch] = useState('');
   const [modalProgram, setModalProgram] = useState<ProgramRow | 'new' | null>(null);
   const queryClient = useQueryClient();
+  const toast = useToast();
   const canManage = user?.role === 'BRANCH_ADMIN';
 
   // ADR-PRG-02 — 응답에 딸려오는 affectedReservations를 화면에서 즉시 보여줘야 "관리자가 즉시 인지"라는
@@ -320,7 +327,9 @@ export function ProgramsPage() {
       ).data.data!,
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['programs'] });
-      alertAffectedReservations(updated);
+      toast.success(`'${updated.name}' 상태를 바꿨습니다.`);
+      const warning = affectedReservationsMessage(updated);
+      if (warning) toast.warning(warning);
     },
   });
 
@@ -335,7 +344,9 @@ export function ProgramsPage() {
         .data.data!,
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['programs'] });
-      alertAffectedReservations(updated);
+      toast.success(`'${updated.name}' 프로그램을 종료했습니다.`);
+      const warning = affectedReservationsMessage(updated);
+      if (warning) toast.warning(warning);
     },
   });
 

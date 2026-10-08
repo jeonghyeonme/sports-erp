@@ -975,3 +975,63 @@ tbody tr:hover td {
   font-weight: 700;
   color: var(--color-text);
 }
+
+/* 공통 Toast(B5-3, 디자인시스템 §5 "알림") — 화면 오른쪽 아래. 실제로 위에 뜨는 요소라 최소 그림자 허용(§2).
+   색은 상태 의미(semantic)만 쓴다: success / danger / warning. */
+.toast-viewport {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(380px, calc(100vw - 48px));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-overlay);
+  pointer-events: auto;
+}
+
+.toast-success {
+  border-left-color: #15803d;
+}
+
+.toast-error {
+  border-left-color: #b91c1c;
+}
+
+.toast-warning {
+  border-left-color: #a16207;
+  background: #fefce8;
+}
+
+.toast-message {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text);
+  white-space: pre-line;
+  word-break: keep-all;
+}
+
+.toast-close {
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px;
+}

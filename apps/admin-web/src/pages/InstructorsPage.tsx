@@ -8,6 +8,7 @@ import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection
 import { Modal } from '../components/Modal';
 import { ApiEnvelope, InstructorRow } from '../lib/types';
 
+import { useToast } from '../lib/use-toast';
 const AUTO_EXPAND_THRESHOLD = 3;
 
 interface ApiErrorBody {
@@ -26,6 +27,7 @@ const EMPTY_FORM: InstructorForm = { name: '', specialty: '', phone: '', bio: ''
 
 function CreateInstructorModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [form, setForm] = useState<InstructorForm>(EMPTY_FORM);
 
   const createMutation = useMutation<InstructorRow, AxiosError<ApiErrorBody>, InstructorForm>({
@@ -40,6 +42,7 @@ function CreateInstructorModal({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructors'] });
+      toast.success('강사를 등록했습니다.');
       onClose();
     },
   });
@@ -102,15 +105,24 @@ export function InstructorsPage() {
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const deactivateMutation = useMutation<InstructorRow, AxiosError<ApiErrorBody>, string>({
     mutationFn: async (id) => (await api.delete<ApiEnvelope<InstructorRow>>(`/instructors/${id}`)).data.data!,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['instructors'] }),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['instructors'] });
+      toast.success(`${updated.name} 강사를 비활성화했습니다.`);
+    },
   });
   const activateMutation = useMutation<InstructorRow, AxiosError<ApiErrorBody>, string>({
     mutationFn: async (id) =>
       (await api.patch<ApiEnvelope<InstructorRow>>(`/instructors/${id}`, { isActive: true })).data.data!,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['instructors'] }),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['instructors'] });
+      toast.success(`${updated.name} 강사를 다시 활성화했습니다.`);
+    },
+    // 재활성화 오류는 화면에 인라인으로 보일 자리가 없다(목록 버튼) — Toast로 알린다(B5-3).
+    onError: (err) => toast.error(apiErrorMessage(err) ?? '다시 활성화하지 못했습니다.'),
   });
 
   const groups = useMemo(() => {

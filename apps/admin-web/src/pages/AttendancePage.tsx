@@ -4,6 +4,7 @@ import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { useToast } from '../lib/use-toast';
 import {
   ApiEnvelope,
   AttendanceRecordRow,
@@ -52,6 +53,7 @@ function formatTime(iso?: string): string {
 export function AttendancePage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const isAdmin = user?.role === 'BRANCH_ADMIN';
   const staffId = user?.staffId;
   const month = useMemo(() => todayStr().slice(0, 7), []);
@@ -91,12 +93,18 @@ export function AttendancePage() {
 
   const checkInMutation = useMutation<AttendanceRecordRow, AxiosError<ApiErrorBody>>({
     mutationFn: async () => (await api.post<ApiEnvelope<AttendanceRecordRow>>('/attendance/check-in')).data.data!,
-    onSuccess: invalidateAttendance,
+    onSuccess: () => {
+      invalidateAttendance();
+      toast.success('출근을 기록했습니다.');
+    },
   });
 
   const checkOutMutation = useMutation<AttendanceRecordRow, AxiosError<ApiErrorBody>>({
     mutationFn: async () => (await api.post<ApiEnvelope<AttendanceRecordRow>>('/attendance/check-out')).data.data!,
-    onSuccess: invalidateAttendance,
+    onSuccess: () => {
+      invalidateAttendance();
+      toast.success('퇴근을 기록했습니다.');
+    },
   });
 
   const requestLeaveMutation = useMutation<LeaveRequestRow, AxiosError<ApiErrorBody>, typeof leaveForm>({
@@ -104,6 +112,7 @@ export function AttendancePage() {
     onSuccess: () => {
       invalidateLeave();
       setLeaveForm((f) => ({ ...f, reason: '' }));
+      toast.success('휴가를 신청했습니다.');
     },
   });
 
@@ -114,7 +123,10 @@ export function AttendancePage() {
   >({
     mutationFn: async ({ id, action }) =>
       (await api.patch<ApiEnvelope<LeaveRequestRow>>(`/leave-requests/${id}/${action}`)).data.data!,
-    onSuccess: invalidateLeave,
+    onSuccess: (_data, { action }) => {
+      invalidateLeave();
+      toast.success(action === 'approve' ? '휴가를 승인했습니다.' : '휴가를 반려했습니다.');
+    },
   });
 
   const workLogMutation = useMutation<WorkLogRow, AxiosError<ApiErrorBody>, typeof workLogForm>({
@@ -122,6 +134,7 @@ export function AttendancePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['work-logs'] });
       setWorkLogForm({ date: todayStr(), content: '' });
+      toast.success('업무일지를 저장했습니다.');
     },
   });
 

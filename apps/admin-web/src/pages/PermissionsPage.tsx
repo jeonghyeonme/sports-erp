@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { ApiEnvelope, PermissionStaffRow } from '../lib/types';
 
+import { useToast } from '../lib/use-toast';
 const ROLE_LABEL = {
   BRANCH_ADMIN: '지점 관리자',
   STAFF: '지점 직원',
@@ -17,6 +18,7 @@ interface ApiErrorBody {
 
 export function PermissionsPage() {
   const queryClient = useQueryClient();
+const toast = useToast();
   const { data, isLoading, isError, error } = useApiList<PermissionStaffRow>(
     ['permissions', 'staff'],
     '/permissions/staff',
@@ -47,8 +49,9 @@ export function PermissionsPage() {
           role,
         })
       ).data.data!,
-    onSuccess: () => {
+    onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['permissions', 'staff'] });
+      toast.success(`${updated.name}님의 권한을 ${ROLE_LABEL[updated.role]}(으)로 바꿨습니다.`);
     },
   });
 
