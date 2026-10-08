@@ -14,6 +14,13 @@
 
   --color-danger-bg: #fee2e2;
   --color-danger-text: #b91c1c;
+  /* 상태 색(디자인시스템 §2 semantic) — 뱃지에만 쓴다. */
+  --color-success-bg: #dcfce7;
+  --color-success-text: #15803d;
+  --color-warning-bg: #fef9c3;
+  --color-warning-text: #a16207;
+  --color-neutral-bg: #e2e8f0;
+  --color-neutral-text: #475569;
 
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -21,6 +28,7 @@
 
   --touch-min: 44px;
   --gutter: 16px;
+  --tab-bar-height: 56px;
 }
 
 * {
@@ -108,7 +116,8 @@ h1 {
 }
 
 .app-main {
-  padding: var(--gutter);
+  /* 하단 탭에 마지막 항목이 가리지 않게 탭 높이만큼 더 띄운다(아이폰 홈 표시줄 영역 포함). */
+  padding: var(--gutter) var(--gutter) calc(var(--tab-bar-height) + var(--gutter) + env(safe-area-inset-bottom));
 }
 
 .text-button {
@@ -129,10 +138,20 @@ h1 {
   padding: var(--gutter);
 }
 
-.home {
+.stack {
   display: flex;
   flex-direction: column;
   gap: var(--gutter);
+}
+
+.stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.center {
+  text-align: center;
 }
 
 .empty-state {
@@ -208,8 +227,18 @@ h1 {
   font-size: 13px;
 }
 
+.primary-button,
+.secondary-button,
+.danger-button {
+  min-height: var(--touch-min);
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .primary-button {
-  height: var(--touch-min);
   border: 0;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
@@ -220,7 +249,311 @@ h1 {
   cursor: pointer;
 }
 
-.primary-button:disabled {
+.primary-button:disabled,
+.secondary-button:disabled,
+.danger-button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.secondary-button {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.danger-button {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-text);
+  color: #ffffff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notice {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.login-page .notice {
+  margin-bottom: var(--gutter);
+}
+
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-min);
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-min);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.error-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--color-danger-text);
+}
+
+.error-panel p {
+  margin: 0;
+}
+
+/* 하단 탭(B1-2 사용자 결정) — 셸 폭(최대 480px)에 맞춰 화면 아래에 붙는다. */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  height: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.tab-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.tab-link.active {
+  color: var(--color-primary);
+  font-weight: 700;
+  box-shadow: inset 0 2px 0 var(--color-primary);
+}
+
+/* 홈 바로가기 */
+.link-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.link-card-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.link-card .muted {
+  margin: 0;
+}
+
+/* 프로그램·회차 */
+.program-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.program-card.is-static {
+  background: var(--color-surface-alt);
+}
+
+.program-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.program-price {
+  margin-top: 4px;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.slot-button {
+  width: 100%;
+  min-height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font: inherit;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.slot-button:disabled {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.slot-time {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.slot-left {
+  font-size: 13px;
+  color: var(--color-primary);
+}
+
+.slot-left.is-full {
+  color: var(--color-text-muted);
+}
+
+/* 요약(예약 확인·결제) */
+.summary {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+}
+
+.summary dt {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.summary dd {
+  margin: 0;
+  text-align: right;
+}
+
+.summary .amount {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* 내 예약 */
+.reservation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reservation-card.is-past {
+  background: var(--color-surface-alt);
+}
+
+.reservation-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reservation-summary .muted {
+  margin: 0;
+}
+
+.reservation-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.badge-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.badge-danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.badge-neutral {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
+}
+
+/* 하단 시트(B1-2 사용자 결정 — 취소 확인) */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  padding: 20px var(--gutter) calc(var(--gutter) + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.sheet .muted {
+  margin: 0;
+}
+
+.sheet-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.sheet-actions {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px;
 }

@@ -1,9 +1,10 @@
 import { FormEvent, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/use-auth';
+import { SESSION_EXPIRED_MESSAGE } from '../lib/errors';
 
 export function LoginPage() {
-  const { user, isRestoring, login } = useAuth();
+  const { user, isRestoring, sessionExpired, login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +33,12 @@ export function LoginPage() {
         <h1>회원 로그인</h1>
         <p className="muted">등록한 지점의 프로그램 예약과 공지를 확인하세요.</p>
       </header>
+
+      {sessionExpired && !error && (
+        <p className="notice" role="status">
+          {SESSION_EXPIRED_MESSAGE}
+        </p>
+      )}
 
       <form className="form" onSubmit={handleSubmit} noValidate>
         <label className="field">

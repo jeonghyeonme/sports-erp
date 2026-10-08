@@ -29,3 +29,59 @@ export interface SessionTokens {
 export interface LoginResult extends SessionTokens {
   user: AuthUser;
 }
+
+// ── 조회·예약·결제(B1-2) — api 응답 형식(fixtures/mock-data.types.ts의 Mock*)에서 화면이 쓰는 필드만 ──
+
+export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
+
+export interface Program {
+  id: string;
+  branchId: string;
+  name: string;
+  category: string;
+  description?: string;
+  pricingType: PricingType;
+  price: number;
+  capacity?: number;
+  status: string;
+  instructorName?: string;
+}
+
+export interface ScheduleSlot {
+  id: string;
+  programId: string;
+  date: string; // KST YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime: string;
+  capacity: number;
+}
+
+export interface SlotWithCount extends ScheduleSlot {
+  bookedCount: number;
+}
+
+export type ReservationStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
+export type PaymentStatus = 'PENDING' | 'APPROVED' | 'FAILED' | 'REFUNDED';
+
+export interface Payment {
+  id: string;
+  reservationId: string;
+  amount: number;
+  status: PaymentStatus;
+  mockApprovalNo?: string;
+  approvedAt?: string;
+  refundedAt?: string;
+}
+
+export interface Reservation {
+  id: string;
+  scheduleSlotId: string;
+  status: ReservationStatus;
+  createdAt: string;
+  cancelledAt?: string;
+  slot?: ScheduleSlot;
+  programId?: string;
+  programName?: string;
+  branchName?: string;
+  payment?: Payment;
+}

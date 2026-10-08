@@ -6,6 +6,8 @@ export interface AuthContextValue {
   user: AuthUser | null;
   // 저장된 refresh token으로 세션을 되살리는 중인지 — 이 동안은 로그인 화면으로 보내지 않는다.
   isRestoring: boolean;
+  // 사용 중에 refresh까지 실패해 로그인 화면으로 돌아왔는지 — 로그인 화면이 이유를 알려 준다(B1-2).
+  sessionExpired: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
