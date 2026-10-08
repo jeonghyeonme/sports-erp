@@ -8,6 +8,7 @@ import { useAuth } from '../lib/use-auth';
 import { Modal } from '../components/Modal';
 import { ApiEnvelope, BranchSummary, PostCategory, PostRow } from '../lib/types';
 
+import { useToast } from '../lib/use-toast';
 const PAGE_SIZE = 20;
 
 const SCOPE_LABEL: Record<PostRow['scope'], string> = {
@@ -40,6 +41,7 @@ const EMPTY_FORM: PostForm = { title: '', content: '', category: 'NOTICE', branc
 function CreatePostModal({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+const toast = useToast();
   const [form, setForm] = useState<PostForm>(EMPTY_FORM);
   const branchesQuery = useApiList<BranchSummary>(['branches'], '/branches');
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
@@ -57,6 +59,7 @@ function CreatePostModal({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+      toast.success('게시글을 등록했습니다.');
       onClose();
     },
   });

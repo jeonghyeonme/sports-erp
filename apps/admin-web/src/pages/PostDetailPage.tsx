@@ -7,6 +7,7 @@ import { apiErrorMessage } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
 import { ApiEnvelope, PostCategory, PostRow } from '../lib/types';
 
+import { useToast } from '../lib/use-toast';
 interface ApiErrorBody {
   code?: string;
   message?: string;
@@ -39,6 +40,7 @@ export function PostDetailPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm | null>(null);
 
@@ -53,6 +55,7 @@ export function PostDetailPage() {
       queryClient.setQueryData(['posts', id], updated);
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       setEditing(false);
+      toast.success('게시글을 수정했습니다.');
     },
   });
 
@@ -62,6 +65,7 @@ export function PostDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+      toast.success('게시글을 삭제했습니다.');
       navigate('/board');
     },
   });

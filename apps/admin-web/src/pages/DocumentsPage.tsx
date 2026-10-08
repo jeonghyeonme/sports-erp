@@ -7,6 +7,7 @@ import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
 import { ApiEnvelope, BranchSummary, DocumentCategory, DocumentRow, StaffRow } from '../lib/types';
 
+import { useToast } from '../lib/use-toast';
 interface ApiErrorBody {
   code?: string;
   message?: string;
@@ -54,6 +55,7 @@ const EMPTY_FORM: DocForm = { category: 'CONTRACT', branchId: '', relatedStaffId
 function UploadDocumentModal({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [form, setForm] = useState<DocForm>(EMPTY_FORM);
   const branchesQuery = useApiList<BranchSummary>(['branches'], '/branches');
@@ -78,6 +80,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
+      toast.success('문서를 등록했습니다.');
       onClose();
     },
   });
@@ -192,13 +195,17 @@ export function DocumentsPage() {
   const [category, setCategory] = useState<'ALL' | DocumentCategory>('ALL');
   const [showUpload, setShowUpload] = useState(false);
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data, isLoading, isError, error } = useApiList<DocumentRow>(['documents'], '/documents');
   const alertsQuery = useApiList<DocumentRow>(['documents', 'alerts'], '/documents/retention-alerts');
 
   const deleteMutation = useMutation<unknown, AxiosError<ApiErrorBody>, string>({
     mutationFn: async (id) => (await api.delete(`/documents/${id}`)).data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      toast.success('문서를 삭제했습니다.');
+    },
   });
 
   const rows = (data ?? []).filter((d) => category === 'ALL' || d.category === category);

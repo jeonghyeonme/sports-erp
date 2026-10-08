@@ -9,6 +9,7 @@ import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection
 import { Modal } from '../components/Modal';
 import { ApiEnvelope, MemberRow } from '../lib/types';
 
+import { useToast } from '../lib/use-toast';
 // 검색으로 이만큼 좁혀지면 굳이 또 눌러서 펼치게 하지 않고 바로 보여준다.
 const AUTO_EXPAND_THRESHOLD = 3;
 
@@ -50,6 +51,7 @@ function isMinor(birthDate: string): boolean {
 
 function CreateMemberModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
+const toast = useToast();
   const [form, setForm] = useState<CreateMemberForm>(EMPTY_FORM);
   const minor = isMinor(form.birthDate);
 
@@ -65,8 +67,9 @@ function CreateMemberModal({ onClose }: { onClose: () => void }) {
       };
       return (await api.post<ApiEnvelope<MemberRow>>('/members', payload)).data.data!;
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
+      toast.success(`${created.name} 회원을 등록했습니다.`);
       onClose();
     },
   });

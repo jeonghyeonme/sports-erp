@@ -5,6 +5,7 @@ import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { useToast } from '../lib/use-toast';
 import {
   ApiEnvelope,
   CourseEnrollmentRow,
@@ -64,6 +65,7 @@ function toEditForm(member: MemberRow): EditForm {
 // ADR-MEM-03 — 수강내역 탭. 예약과 별개로 "이 회원이 이 프로그램을 듣고 있다"는 등록 사실을 관리자가 기록한다.
 function EnrollmentsTab({ member, canManage }: { member: MemberRow; canManage: boolean }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ programId: '', enrolledAt: '', expiresAt: '' });
 
@@ -87,6 +89,7 @@ function EnrollmentsTab({ member, canManage }: { member: MemberRow; canManage: b
       queryClient.invalidateQueries({ queryKey: ['members', member.id] });
       setForm({ programId: '', enrolledAt: '', expiresAt: '' });
       setShowForm(false);
+      toast.success('수강을 등록했습니다.');
     },
   });
 
@@ -193,6 +196,7 @@ function EnrollmentsTab({ member, canManage }: { member: MemberRow; canManage: b
 // 세션 사용(차감)은 별도 액션으로 기록한다.
 function PTSessionsTab({ member, canManage }: { member: MemberRow; canManage: boolean }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ programId: '', totalSessions: '', purchasedAt: '' });
   const [noteBySession, setNoteBySession] = useState<Record<string, string>>({});
@@ -222,6 +226,7 @@ function PTSessionsTab({ member, canManage }: { member: MemberRow; canManage: bo
       invalidate();
       setForm({ programId: '', totalSessions: '', purchasedAt: '' });
       setShowForm(false);
+      toast.success('PT 이용권을 등록했습니다.');
     },
   });
 
@@ -235,6 +240,7 @@ function PTSessionsTab({ member, canManage }: { member: MemberRow; canManage: bo
     onSuccess: (_data, { sessionId }) => {
       invalidate();
       setNoteBySession((prev) => ({ ...prev, [sessionId]: '' }));
+      toast.success('PT 세션 1회를 사용 처리했습니다.');
     },
   });
 
@@ -413,6 +419,7 @@ export function MemberDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm | null>(null);
   const [tab, setTab] = useState<'enrollments' | 'pt' | 'payments'>('enrollments');
@@ -439,6 +446,7 @@ export function MemberDetailPage() {
       queryClient.setQueryData(['members', id], updated);
       queryClient.invalidateQueries({ queryKey: ['members'] });
       setEditing(false);
+      toast.success('회원 정보를 저장했습니다.');
     },
   });
 
@@ -448,6 +456,7 @@ export function MemberDetailPage() {
     onSuccess: (updated) => {
       queryClient.setQueryData(['members', id], updated);
       queryClient.invalidateQueries({ queryKey: ['members'] });
+      toast.success(`회원 상태를 ${STATUS_LABEL[updated.status]}(으)로 바꿨습니다.`);
     },
   });
 

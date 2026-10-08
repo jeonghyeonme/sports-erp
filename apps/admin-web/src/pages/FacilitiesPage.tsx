@@ -9,6 +9,7 @@ import { Modal } from '../components/Modal';
 import { useAuth } from '../lib/use-auth';
 import { ApiEnvelope, FacilityRow, FacilityType } from '../lib/types';
 
+import { useToast } from '../lib/use-toast';
 const AUTO_EXPAND_THRESHOLD = 3;
 
 const TYPE_LABEL: Record<FacilityType, string> = {
@@ -81,6 +82,7 @@ function FacilityFormFields({ form, onChange }: { form: FacilityForm; onChange: 
 
 function CreateFacilityModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [form, setForm] = useState<FacilityForm>(EMPTY_FORM);
 
   const createMutation = useMutation<FacilityRow, AxiosError<ApiErrorBody>, FacilityForm>({
@@ -90,6 +92,7 @@ function CreateFacilityModal({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['facilities'] });
+      toast.success('시설을 등록했습니다.');
       onClose();
     },
   });
@@ -126,6 +129,7 @@ function CreateFacilityModal({ onClose }: { onClose: () => void }) {
 
 function EditFacilityModal({ facility, onClose }: { facility: FacilityRow; onClose: () => void }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [form, setForm] = useState<FacilityForm>(toEditForm(facility));
 
   const updateMutation = useMutation<FacilityRow, AxiosError<ApiErrorBody>, FacilityForm>({
@@ -135,6 +139,7 @@ function EditFacilityModal({ facility, onClose }: { facility: FacilityRow; onClo
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['facilities'] });
+      toast.success('시설 정보를 저장했습니다.');
       onClose();
     },
   });
@@ -171,6 +176,7 @@ function EditFacilityModal({ facility, onClose }: { facility: FacilityRow; onClo
 
 function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow; canManage: boolean }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [manualCount, setManualCount] = useState('');
 
@@ -178,9 +184,10 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
     mutationFn: async (currentCount) =>
       (await api.post<ApiEnvelope<FacilityRow>>(`/facilities/${facility.id}/congestion/manual`, { currentCount }))
         .data.data!,
-    onSuccess: () => {
+    onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['facilities'] });
       setManualCount('');
+      toast.success(`혼잡도를 보정했습니다(현재 ${updated.currentCount}명, ${updated.level}단계).`);
     },
   });
 
@@ -188,8 +195,9 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
   const toggleActiveMutation = useMutation<FacilityRow, AxiosError<ApiErrorBody>, boolean>({
     mutationFn: async (isActive) =>
       (await api.patch<ApiEnvelope<FacilityRow>>(`/facilities/${facility.id}`, { isActive })).data.data!,
-    onSuccess: () => {
+    onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['facilities'] });
+      toast.success(updated.isActive ? `'${updated.name}'을(를) 다시 운영합니다.` : `'${updated.name}'을(를) 운영 중단했습니다.`);
     },
   });
 

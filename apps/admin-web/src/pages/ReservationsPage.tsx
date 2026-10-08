@@ -6,6 +6,7 @@ import { useAuth } from '../lib/use-auth';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { ApiEnvelope, PaymentRow, ProgramRow, ReservationRow, ReservationStatus, ScheduleSlotRow } from '../lib/types';
 
+import { useToast } from '../lib/use-toast';
 interface ApiErrorBody {
   code?: string;
   message?: string;
@@ -31,6 +32,7 @@ function slotLabel(slot?: ScheduleSlotRow): string {
 // 예약및결제 A-5 GET /programs/:id/slots — 프로그램 하나의 회차 목록 + 예약하기 버튼(회원 전용).
 function ProgramSlotsCard({ program }: { program: ProgramRow }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const slotsQuery = useQuery<ScheduleSlotRow[], AxiosError<ApiErrorBody>>({
     queryKey: ['slots', program.id],
     queryFn: async () => (await api.get<ApiEnvelope<ScheduleSlotRow[]>>(`/programs/${program.id}/slots`)).data.data ?? [],
@@ -42,6 +44,7 @@ function ProgramSlotsCard({ program }: { program: ProgramRow }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['slots', program.id] });
       queryClient.invalidateQueries({ queryKey: ['reservations', 'mine'] });
+      toast.success('예약했습니다.');
     },
   });
 
@@ -99,9 +102,13 @@ function ProgramSlotsCard({ program }: { program: ProgramRow }) {
 // 예약및결제 A-5 결제 대기(REQUESTED) 예약에 붙는 모의결제 버튼.
 function MockPayButton({ reservationId }: { reservationId: string }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const payMutation = useMutation<unknown, AxiosError<ApiErrorBody>, void>({
     mutationFn: async () => (await api.post(`/payments/${reservationId}/mock-pay`)).data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reservations'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      toast.success('결제했습니다. 예약이 확정됐습니다.');
+    },
   });
   return (
     <>
@@ -119,12 +126,16 @@ function MockPayButton({ reservationId }: { reservationId: string }) {
 
 function CancelButton({ reservationId }: { reservationId: string }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const cancelMutation = useMutation<ReservationRow, AxiosError<ApiErrorBody>, void>({
     mutationFn: async () => (await api.patch<ApiEnvelope<ReservationRow>>(`/reservations/${reservationId}/cancel`)).data.data!,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
       queryClient.invalidateQueries({ queryKey: ['slots'] });
+      toast.success('예약을 취소했습니다.');
     },
+    // 목록 안의 작은 버튼이라 인라인으로 보일 자리가 없다 — 오류는 Toast로(B5-3).
+    onError: (err) => toast.error(apiErrorMessage(err) ?? '예약을 취소하지 못했습니다.'),
   });
   return (
     <button className="btn-danger-outline" disabled={cancelMutation.isPending} onClick={() => cancelMutation.mutate()}>
@@ -135,10 +146,15 @@ function CancelButton({ reservationId }: { reservationId: string }) {
 
 function CheckInButton({ reservationId }: { reservationId: string }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const checkInMutation = useMutation<ReservationRow, AxiosError<ApiErrorBody>, void>({
     mutationFn: async () =>
       (await api.patch<ApiEnvelope<ReservationRow>>(`/reservations/${reservationId}/check-in`)).data.data!,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reservations'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      toast.success('체크인했습니다.');
+    },
+    onError: (err) => toast.error(apiErrorMessage(err) ?? '체크인하지 못했습니다.'),
   });
   return (
     <button className="btn-secondary" disabled={checkInMutation.isPending} onClick={() => checkInMutation.mutate()}>
@@ -150,6 +166,7 @@ function CheckInButton({ reservationId }: { reservationId: string }) {
 // 강사프로그램게시 A-5 POST /programs/:id/slots — BRANCH_ADMIN 본인 지점 PAID_SESSION 프로그램에 회차 개별 추가.
 function SlotManager({ programs }: { programs: ProgramRow[] }) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const reservablePrograms = programs.filter((p) => p.pricingType === 'PAID_SESSION');
   const [programId, setProgramId] = useState(reservablePrograms[0]?.id ?? '');
   const [form, setForm] = useState({ date: todayStr(), startTime: '10:00', endTime: '11:00', capacity: '' });
@@ -170,7 +187,10 @@ function SlotManager({ programs }: { programs: ProgramRow[] }) {
       };
       return (await api.post<ApiEnvelope<ScheduleSlotRow>>(`/programs/${programId}/slots`, payload)).data.data!;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['slots', programId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['slots', programId] });
+      toast.success('회차를 등록했습니다.');
+    },
   });
 
   function submit(e: FormEvent) {
