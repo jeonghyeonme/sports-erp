@@ -7,6 +7,7 @@ const MESSAGES: Record<string, string> = {
   // 계약 종료 지점 차단(CLAUDE.md 불변식) — 과거 예약 조회는 그대로 된다.
   BRANCH_TERMINATED: '이 지점은 위탁운영 계약이 끝나 새 예약을 받지 않습니다. 지난 예약은 내 예약에서 볼 수 있습니다.',
   SLOT_FULL: '정원이 다 찼습니다. 다른 회차를 골라 주세요.',
+  SLOT_ALREADY_STARTED: '이미 시작했거나 지난 회차입니다. 다른 회차를 골라 주세요.', // ADR-RSV-05
   ALREADY_RESERVED: '이미 예약한 회차입니다. 내 예약에서 확인하세요.',
   PROGRAM_NOT_RUNNING: '지금은 운영하지 않는 프로그램입니다.',
   NOT_RESERVABLE: '회차 예약을 받지 않는 프로그램입니다.',

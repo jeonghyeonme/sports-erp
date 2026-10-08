@@ -44,8 +44,8 @@ export function ProgramSlotsPage() {
       }
     } catch (err) {
       setSheetError(describeError(err, '예약하지 못했습니다. 잠시 후 다시 시도하세요.'));
-      // 정원이 찼다면 남은 자리 표시가 낡은 것이다 — 목록을 다시 받아 맞춘다.
-      if (errorCode(err) === 'SLOT_FULL') slots.reload();
+      // 정원이 찼거나 회차가 시작됐다면 목록 표시가 낡은 것이다 — 다시 받아 맞춘다.
+      if (errorCode(err) === 'SLOT_FULL' || errorCode(err) === 'SLOT_ALREADY_STARTED') slots.reload();
     } finally {
       setSubmitting(false);
     }
@@ -64,7 +64,7 @@ export function ProgramSlotsPage() {
     );
   }
 
-  // 지난 회차는 보여 주지 않는다 — api가 지난 회차 예약을 막지 않으므로 화면에서 거른다(log/083 알려진 문제).
+  // 지난 회차는 보여 주지 않는다. 화면을 열어 둔 사이 시작한 회차는 api가 409 SLOT_ALREADY_STARTED로 막는다(ADR-RSV-05).
   const upcoming = (slots.data ?? []).filter((s) => slotStartMs(s) > now);
   const byDate = new Map<string, SlotWithCount[]>();
   for (const s of upcoming) byDate.set(s.date, [...(byDate.get(s.date) ?? []), s]);

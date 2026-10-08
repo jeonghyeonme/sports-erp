@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { baseDatabaseUrl, databaseName, dropDatabase, withDatabase } from '../setup/test-db';
+import { baseDatabaseUrl, databaseName, dropDatabase, moveSeedSlotsToFuture, withDatabase } from '../setup/test-db';
 import { disconnectTestDb } from './branch-status';
 
 /**
@@ -23,4 +23,5 @@ export async function resetWorkerDb(): Promise<void> {
   } finally {
     await admin.$disconnect();
   }
+  await moveSeedSlotsToFuture(worker);
 }

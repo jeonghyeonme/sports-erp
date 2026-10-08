@@ -60,7 +60,7 @@ export class ReservationService {
 
   /**
    * 예약및결제 A-5 POST /reservations. 검사 순서는 예전 mock 그대로(에러 코드 우선순위가 테스트로 고정돼 있음):
-   * 회차 → 프로그램 → 예약형 여부 → 진행중 → 회원 지점(DI-02) → 계약 종료 → 중복(ADR-RSV-02) → 정원(ADR-RSV-01).
+   * 회차 → 프로그램 → 예약형 여부 → 진행중 → 회원 지점(DI-02) → 계약 종료 → 지난 회차(ADR-RSV-05) → 중복(ADR-RSV-02) → 정원(ADR-RSV-01).
    * 정원·중복은 회차 행을 잠근 트랜잭션 안에서 센다 — 동시 요청이 같은 마지막 좌석을 둘 다 잡지 못한다.
    */
   async create(memberId: string, scheduleSlotId: string): Promise<{ reservation: ReservationView; payment?: MockPayment }> {
@@ -84,6 +84,10 @@ export class ReservationService {
         }
         if (gate.isTerminated(program.branchId)) {
           throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 예약할 수 없습니다.', 409);
+        }
+        // ADR-RSV-05 — 이미 시작했거나 지난 회차는 예약하지 않는다. 회차 날짜·시각은 KST라 +09:00으로 해석한다(D32 결정 5).
+        if (kstSlotStart(slot).getTime() <= Date.now()) {
+          throw new AppException('SLOT_ALREADY_STARTED', '이미 시작했거나 지난 회차는 예약할 수 없습니다.', 409);
         }
         const duplicate = await tx.reservation.findFirst({
           where: { memberId, scheduleSlotId, status: { in: ACTIVE } },
@@ -146,8 +150,7 @@ export class ReservationService {
       } else if (payment?.status === 'APPROVED') {
         const slot = reservation.scheduleSlot;
         const deadlineHours = slot.program.branch.cancellationDeadlineHours ?? 24;
-        const slotStart = new Date(`${toKstDateString(slot.date)}T${slot.startTime}:00+09:00`);
-        if (slotStart.getTime() - Date.now() >= deadlineHours * 60 * 60 * 1000) {
+        if (kstSlotStart(slot).getTime() - Date.now() >= deadlineHours * 60 * 60 * 1000) {
           await tx.payment.update({ where: { id: payment.id }, data: { status: 'REFUNDED', refundedAt: new Date() } });
         }
         // 마감 이내 취소는 환불 없이 Payment.status=APPROVED가 그대로 남는다(예약및결제 A-6 "환불 불가").
@@ -186,6 +189,11 @@ export class ReservationService {
 export function splitVat(amount: number): { supplyAmount: number; vat: number } {
   const supplyAmount = Math.round(amount / 1.1);
   return { supplyAmount, vat: amount - supplyAmount };
+}
+
+/** 회차 시작 시각 — 날짜(KST 달력 날짜)와 HH:mm을 KST로 해석한다. 취소 마감(A-6)과 지난 회차 판정(ADR-RSV-05)이 같이 쓴다. */
+function kstSlotStart(slot: Pick<ScheduleSlot, 'date' | 'startTime'>): Date {
+  return new Date(`${toKstDateString(slot.date)}T${slot.startTime}:00+09:00`);
 }
 
 function alreadyReserved(): AppException {
