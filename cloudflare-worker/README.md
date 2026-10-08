@@ -58,12 +58,16 @@ curl -X POST https://<위에서 받은 주소>/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"kim.minsu@spoism.example","password":"demo-password-1234"}'
 
-# 11번째 연속 호출부터 429가 나와야 함(60초당 10회 제한)
-for i in $(seq 1 11); do
-  curl -s -o /dev/null -w "%{http_code}\n" -X POST https://<위 주소>/api/v1/auth/login \
-    -H "Content-Type: application/json" -d '{"email":"x","password":"x"}'
+# 연결 하나를 재사용해 14회 보낸다 — 앞의 11회는 400, 12번째 전후부터 429 RATE_LIMITED(60초당 10회 제한)
+U=https://<위 주소>/api/v1/auth/login
+args=(); for i in $(seq 1 14); do
+  args+=(-X POST "$U" -H "Content-Type: application/json" -d '{"email":"x","password":"x"}' -o /dev/null -w "%{http_code}\n")
+  [ $i -lt 14 ] && args+=(--next)
 done
+curl -s "${args[@]}"
 ```
+
+**한계(2026-10-07 실측, `docs/log/079.md`)**: 요청마다 새 연결을 열면(`for` 안에서 curl을 매번 실행) 60초에 30회를 보내도 429가 나오지 않는다. Workers Rate Limiting은 카운터를 머신마다 캐시하는 permissive 방식이라, 새 연결이 다른 머신에 떨어지면 카운트가 합쳐지지 않는 것으로 보인다. 그래서 확인할 때는 위처럼 연결을 재사용한다.
 
 ## 실패 시
 
