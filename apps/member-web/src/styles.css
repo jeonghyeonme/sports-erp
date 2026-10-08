@@ -131,6 +131,11 @@ h1 {
   cursor: pointer;
 }
 
+.text-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -556,4 +561,161 @@ h1 {
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 8px;
+}
+
+/* B1-3 — 홈 카드(혼잡도·공지), 공지, 내 정보 */
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.stack-sm > .muted {
+  margin: 0;
+}
+
+.text-link.small {
+  font-size: 13px;
+}
+
+.congestion-list {
+  gap: 4px;
+}
+
+.congestion-row {
+  min-height: 32px;
+  display: grid;
+  grid-template-columns: 1fr auto 72px;
+  align-items: center;
+  gap: 12px;
+}
+
+.congestion-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.level-meter {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.level-meter span {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--color-border);
+}
+
+/* 단계 색은 상태 의미(디자인시스템 §2 semantic)만 쓴다: 1~2 여유(success), 3 주의(warning), 4~5 붐빔(danger). */
+.level-1 .on,
+.level-2 .on {
+  background: var(--color-success-text);
+}
+
+.level-3 .on {
+  background: var(--color-warning-text);
+}
+
+.level-4 .on,
+.level-5 .on {
+  background: var(--color-danger-text);
+}
+
+.level-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.level-label.level-1,
+.level-label.level-2 {
+  color: var(--color-success-text);
+}
+
+.level-label.level-3 {
+  color: var(--color-warning-text);
+}
+
+.level-label.level-4,
+.level-label.level-5 {
+  color: var(--color-danger-text);
+}
+
+.notice-row {
+  min-height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text);
+  text-decoration: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.list li:first-child .notice-row {
+  border-top: 0;
+}
+
+.notice-date {
+  flex-shrink: 0;
+  width: 44px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.notice-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.notice-card .notice-title {
+  font-weight: 600;
+}
+
+.notice-card .muted {
+  margin: 0;
+}
+
+.notice-body {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.info-row .muted {
+  margin: 0;
+}
+
+.form.panel {
+  gap: 12px;
 }

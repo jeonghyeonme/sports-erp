@@ -15,6 +15,8 @@ const MESSAGES: Record<string, string> = {
   MEMBER_BRANCH_MISMATCH: '등록한 지점의 프로그램만 예약할 수 있습니다.',
   RESERVATION_NOT_FOUND: '예약을 찾을 수 없습니다.',
   RESERVATION_NOT_CANCELLABLE: '이미 취소됐거나 끝난 예약이라 취소할 수 없습니다.',
+  POST_NOT_FOUND: '공지를 찾을 수 없습니다. 삭제됐거나 볼 수 없는 공지입니다.',
+  MEMBER_FIELD_FORBIDDEN: '이 항목은 지점에서만 바꿀 수 있습니다.',
   PAYMENT_NOT_PENDING: '이미 결제했거나 결제할 수 없는 예약입니다. 내 예약에서 상태를 확인하세요.',
   // Worker(cloudflare-worker/src/index.ts)가 붙이는 코드 — 로그인 제한과 Lambda 동시 실행 상한(D37).
   RATE_LIMITED: '요청이 너무 잦습니다. 잠시 후 다시 시도하세요.',

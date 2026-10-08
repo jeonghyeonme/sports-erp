@@ -85,3 +85,55 @@ export interface Reservation {
   branchName?: string;
   payment?: Payment;
 }
+
+// ── 공지·혼잡도·내 정보(B1-3) ──
+
+export interface Facility {
+  id: string;
+  name: string;
+  type: 'GYM' | 'POOL' | 'GOLF' | 'READING_ROOM' | 'ETC';
+  capacity: number;
+  currentCount: number;
+  level: number; // 1~5(혼잡도관리 A-6)
+  lastUpdatedAt: string; // ADR-FAC-01
+}
+
+export interface Post {
+  id: string;
+  scope: 'HQ_TO_BRANCH' | 'BRANCH_TO_MEMBER';
+  category: 'NOTICE' | 'TRAINING_MATERIAL' | 'EVENT' | 'OTHER';
+  title: string;
+  content: string;
+  publishedAt: string;
+  branchName?: string;
+}
+
+export interface MemberProfile {
+  id: string;
+  memberNo: string;
+  name: string;
+  phone?: string;
+  status: 'ACTIVE' | 'DORMANT' | 'WITHDRAWN';
+  joinedAt: string;
+  branchName?: string;
+  // ADR-MEM-03 — 상세 조회가 함께 주는 요약
+  enrollmentCount?: number;
+  ptRemainingTotal?: number;
+}
+
+export interface Enrollment {
+  id: string;
+  programName?: string;
+  enrolledAt: string;
+  expiresAt?: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+}
+
+export interface PTPackage {
+  id: string;
+  programName?: string;
+  totalSessions: number;
+  usedSessions: number;
+  remainingSessions: number;
+  purchasedAt: string;
+}
