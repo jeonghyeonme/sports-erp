@@ -13,11 +13,12 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// D41 — 같은 Worker의 /m/ 아래에서 서빙되므로 라우터 basename을 /m으로 둔다(vite base와 맞춘다).
+// D41 — 같은 Worker의 /m/ 아래에서 서빙되므로 라우터 basename을 /m/으로 둔다(vite base와 맞춘다).
+// 끝 슬래시가 없으면 홈 이동이 /m이 되고, 그 주소를 새로고침하면 vite 개발 서버는 404, Worker는 /m/* 규칙 밖이라 관리자 웹으로 간다(log/083).
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter basename="/m">
+      <BrowserRouter basename="/m/">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
