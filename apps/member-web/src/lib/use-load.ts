@@ -5,6 +5,7 @@ import { ApiEnvelope } from './types';
 interface LoadState<T> {
   key: string;
   data?: T;
+  meta?: Record<string, unknown>;
   error?: unknown;
 }
 
@@ -21,7 +22,7 @@ export function useLoad<T>(url: string | null) {
     if (url === null) return;
     let cancelled = false;
     api.get<ApiEnvelope<T>>(url).then(
-      (res) => !cancelled && setState({ key, data: res.data.data }),
+      (res) => !cancelled && setState({ key, data: res.data.data, meta: res.data.meta }),
       (error: unknown) => !cancelled && setState({ key, error }),
     );
     return () => {
@@ -37,5 +38,13 @@ export function useLoad<T>(url: string | null) {
 
   const loading = url !== null && state.key !== key;
   const current = state.key === key;
-  return { data: current ? state.data : undefined, error: current ? state.error : undefined, loading, reload, mutate };
+  return {
+    data: current ? state.data : undefined,
+    // 공통 응답의 meta(페이지네이션 total 등, ADR-BRD-02)
+    meta: current ? state.meta : undefined,
+    error: current ? state.error : undefined,
+    loading,
+    reload,
+    mutate,
+  };
 }

@@ -10,6 +10,8 @@ export interface AuthContextValue {
   sessionExpired: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  // 내 정보에서 이름을 고친 뒤 상단·홈 인사에 바로 반영한다(/auth/me를 다시 부르지 않는다 — design-constants ⑩).
+  renameUser: (name: string) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

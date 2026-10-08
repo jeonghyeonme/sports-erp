@@ -9,6 +9,9 @@ import { ProgramsPage } from './pages/ProgramsPage';
 import { ProgramSlotsPage } from './pages/ProgramSlotsPage';
 import { PaymentPage } from './pages/PaymentPage';
 import { MyReservationsPage } from './pages/MyReservationsPage';
+import { NoticesPage } from './pages/NoticesPage';
+import { NoticeDetailPage } from './pages/NoticeDetailPage';
+import { MyInfoPage } from './pages/MyInfoPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, isRestoring } = useAuth();
@@ -37,6 +40,9 @@ export default function App() {
             <Route path="programs/:programId" element={<ProgramSlotsPage />} />
             <Route path="pay/:reservationId" element={<PaymentPage />} />
             <Route path="reservations" element={<MyReservationsPage />} />
+            <Route path="notices" element={<NoticesPage />} />
+            <Route path="notices/:postId" element={<NoticeDetailPage />} />
+            <Route path="me" element={<MyInfoPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

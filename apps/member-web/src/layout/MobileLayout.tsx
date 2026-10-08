@@ -2,11 +2,12 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../lib/use-auth';
 
 // D41 결정 4 — 기준 폭 360px 모바일 셸. 상단 바(지점명·로그아웃) + 본문 + 하단 탭(B1-2 사용자 결정, log/083).
-// 공지·혼잡도·내 정보 탭은 B1-3에서 더한다.
+// B1-3 — 내 정보 탭을 더하고, 혼잡도·최근 공지는 홈 카드로 둔다(사용자 결정, log/084).
 const TABS = [
   { to: '/', label: '홈', end: true },
   { to: '/programs', label: '예약하기', end: false },
   { to: '/reservations', label: '내 예약', end: false },
+  { to: '/me', label: '내 정보', end: false },
 ];
 
 export function MobileLayout() {
