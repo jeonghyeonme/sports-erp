@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-07 · [log/077](log/077.md)(회원 모바일 웹 형태 결정 D41 + 뼈대, B1-1), [log/078](log/078.md)(목록 응답 전화번호 마스킹, ADR-MEM-04)
+> 마지막 갱신: 2026-10-08 · [log/079](log/079.md)(Worker 로그인 rate limit 429 실동작 확인)
 
 ## 현재 상태
 
@@ -23,12 +23,11 @@
 
 0. **B1 회원 모바일 웹(D40·D41)** — 발표 시연 전 목표. B1-1(결정·뼈대) 끝. 다음은 **B1-2 조회·예약**. 시작할 때 로컬 api+DB로 로그인 실연동부터 확인한다(B1-1은 모의 api로만 확인).
 1. **B2 k6 실측을 결정 기록에** — D37은 고치지 않고 새 D 파일로([log/056](log/056.md) 수치).
-2. **B3 Worker rate limit 429 실동작 확인** — [log/033](log/033.md)부터 미확인. 사용자 PC에서 curl 권장.
-3. **B4 트래픽·인프라 후보 이슈를 ADR로 승격** — [traffic-infra-review.md](architecture/traffic-infra-review.md).
-4. **B5 RFP 미구현 중 비용이 작은 것** — AuditLog 기록(상세 전화번호 열람 포함) / 공통 Toast(각각 세션 1개). 응답 마스킹은 끝났다(ADR-MEM-04, log/078).
-5. **B6** 폐기 자산 누적 대응(페이지네이션·아카이빙).
-6. **B7** `src/mock-data/` 폴더 이름 정리.
-7. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제, Supabase 커넥터 재인증(배포 DB 작업 전에 필요).
+2. **B4 트래픽·인프라 후보 이슈를 ADR로 승격** — [traffic-infra-review.md](architecture/traffic-infra-review.md).
+3. **B5 RFP 미구현 중 비용이 작은 것** — AuditLog 기록(상세 전화번호 열람 포함) / 공통 Toast(각각 세션 1개). 응답 마스킹은 끝났다(ADR-MEM-04, log/078).
+4. **B6** 폐기 자산 누적 대응(페이지네이션·아카이빙).
+5. **B7** `src/mock-data/` 폴더 이름 정리.
+6. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제, Supabase 커넥터 재인증(배포 DB 작업 전에 필요).
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 
@@ -41,6 +40,7 @@
 ## 열린 위험
 
 - **처리 한계가 설계 가정보다 작다**: 요청당 Lambda 처리 p50 약 110ms(가정 50ms) → 상한 10에서 실질 약 50~55 rps. S2(50 rps)가 경계에서 통과했고 S1 정점에서 거절 1건([log/056](log/056.md)). 원인은 추정만 했다.
+- **Worker 로그인 rate limit은 연결을 재사용할 때만 걸린다**: 같은 연결로는 12번째부터 429, 요청마다 새 연결이면 60초에 30회도 통과했다(2026-10-07, [log/079](log/079.md)). 그때는 Lambda 상한 10 + 503 `SERVER_BUSY`가 2차 방어. 코드는 유지하기로 했다(대안: Durable Object 카운터 / API 계정별 제한).
 - `ORIGIN_SECRET`·DB 비밀번호가 대화에 노출됐다(사용자가 교체 보류). Render가 정지돼 이제 DB 비밀번호를 쓰는 곳은 Lambda뿐이다 — 바꾸면 `.env` → `set-lambda-env.sh` → Actions 재배포.
 - DB 무료 용량(500MB): 예약·결제 이력만으로 1~1.5년 안에 닿는다(design-constants ⑮, 가정). 지점이 90곳을 넘으면 Workers 무료 한도 초과(⑬).
 - AWS 클래식 계정은 유료 플랜이라 지출 한도가 없다. 예산 경보($1/$5/$20)·Lambda 경보(SNS 이메일, 2026-10-04 재구독)는 있고 대응은 수동이다. 경보 메일의 unsubscribe 링크를 누르면 구독이 지워진다.
