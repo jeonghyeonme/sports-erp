@@ -61,3 +61,27 @@ export async function dropDatabase(admin: RawExecutor, name: string): Promise<vo
     }
   }
 }
+
+/**
+ * ADR-RSV-05 — 시드 회차 2건(`slot-seocho-yoga-1`·`-2`, catalog-fixtures.ts)은 고정 날짜(2026-09-21·22)라, 그 날이 지나면
+ * "지난 회차"가 되어 예약이 409(SLOT_ALREADY_STARTED)다. 이 회차를 예약하는 테스트가 실행 날짜와 상관없이 돌도록
+ * 워커 DB를 만들 때마다 오늘(KST)+7일·+8일로 옮긴다. 순서(1이 2보다 먼저)는 그대로다. 기준 DB와 시드 원천은 바꾸지 않는다.
+ * 지난 회차가 필요한 테스트는 회차를 직접 만들거나 날짜를 과거로 돌린다.
+ */
+export async function moveSeedSlotsToFuture(databaseUrl: string): Promise<void> {
+  // 이 파일은 globalSetup(ts-jest 변환)에서도 쓰이므로 PrismaClient를 여기서 직접 만든다.
+  const { PrismaClient } = await import('@prisma/client');
+  const client = new PrismaClient({ datasourceUrl: databaseUrl });
+  const kstDaysFromNow = (days: number) =>
+    new Date(Date.now() + days * 86_400_000 + 9 * 3_600_000).toISOString().slice(0, 10);
+  try {
+    for (const [id, days] of [
+      ['slot-seocho-yoga-1', 7],
+      ['slot-seocho-yoga-2', 8],
+    ] as const) {
+      await client.scheduleSlot.updateMany({ where: { id }, data: { date: new Date(`${kstDaysFromNow(days)}T00:00:00Z`) } });
+    }
+  } finally {
+    await client.$disconnect();
+  }
+}

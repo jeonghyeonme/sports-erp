@@ -223,8 +223,10 @@ describe('취소 정책 — 마감시간(24시간) 기준 환불 분기', () => 
     });
 
   it('마감시간 이내(임박·경과 회차) 취소는 환불되지 않는다(Payment는 APPROVED로 유지)', async () => {
-    // slot-seocho-yoga-1은 2026-09-21 — 항상 "24시간 이내"(이미 지난) 조건을 만족한다.
-    const cancelRes = await cancel(await reserveAndPay('slot-seocho-yoga-1'));
+    // 예약·결제한 뒤 회차가 지나간 경우 — ADR-RSV-05로 지난 회차는 예약부터 막히므로, 예약 후 회차 날짜를 과거로 돌린다.
+    const reservationId = await reserveAndPay('slot-seocho-yoga-1');
+    await db(app).scheduleSlot.update({ where: { id: 'slot-seocho-yoga-1' }, data: { date: new Date('2026-09-21T00:00:00Z') } });
+    const cancelRes = await cancel(reservationId);
     expect(cancelRes.status).toBe(200);
     expect(cancelRes.body.data.payment.status).toBe('APPROVED');
     expect(cancelRes.body.data.payment.refundedAt).toBeUndefined();
@@ -250,5 +252,29 @@ describe('취소 정책 — 마감시간(24시간) 기준 환불 분기', () => 
     await createSlot('slot-test-in-30h', kstAfterHours(30));
     const cancelRes = await cancel(await reserveAndPay('slot-test-in-30h'));
     expect(cancelRes.body.data.payment.status).toBe('REFUNDED');
+  });
+
+  // ADR-RSV-05 — 이미 시작했거나 지난 회차는 예약할 수 없다(회원 웹은 숨기지만 api를 직접 부르는 경로도 막는다).
+  const reserve = (slotId: string) =>
+    request(app.getHttpServer()).post('/api/v1/reservations').set('Authorization', token).send({ scheduleSlotId: slotId });
+
+  it('지난 회차는 예약할 수 없다 — 409 SLOT_ALREADY_STARTED, 예약·결제 행이 생기지 않는다', async () => {
+    await createSlot('slot-test-past', { date: '2026-09-21', time: '07:00' });
+    const res = await reserve('slot-test-past');
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('SLOT_ALREADY_STARTED');
+    expect(await db(app).reservation.count({ where: { scheduleSlotId: 'slot-test-past' } })).toBe(0);
+  });
+
+  it('오늘이라도 시작 시각이 지난 회차(1시간 전 시작, KST)는 예약할 수 없다 — 시간대 해석 회귀 방지', async () => {
+    await createSlot('slot-test-started', kstAfterHours(-1));
+    const res = await reserve('slot-test-started');
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('SLOT_ALREADY_STARTED');
+  });
+
+  it('대조군: 1시간 뒤(KST) 시작하는 회차는 예약할 수 있다', async () => {
+    await createSlot('slot-test-soon', kstAfterHours(1));
+    expect((await reserve('slot-test-soon')).status).toBe(201);
   });
 });
