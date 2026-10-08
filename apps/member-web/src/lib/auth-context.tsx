@@ -1,7 +1,7 @@
+import { AxiosError } from 'axios';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   api,
-  errorMessage,
   readRefreshToken,
   refreshSession,
   setSession,
@@ -9,6 +9,7 @@ import {
 } from './api';
 import { ApiEnvelope, AuthUser, LoginResult } from './types';
 import { AuthContext } from './use-auth';
+import { describeError } from './errors';
 
 async function revokeRefreshToken(refreshToken: string) {
   try {
@@ -23,9 +24,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   // 저장된 refresh token이 있으면 처음부터 "복원 중"으로 시작한다(effect 안에서 동기 setState를 하지 않기 위해).
   const [isRestoring, setIsRestoring] = useState(() => readRefreshToken() !== null);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
-    setSessionExpiredHandler(() => setUser(null));
+    setSessionExpiredHandler(() => {
+      setUser(null);
+      setSessionExpired(true);
+    });
     return () => setSessionExpiredHandler(null);
   }, []);
 
@@ -42,6 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // 만료·폐기된 토큰이면 정상적으로 로그인 화면으로 간다. 원인은 콘솔에 남긴다.
         console.warn('저장된 세션을 복원하지 못했습니다.', err);
         setSession(null);
+        // 저장된 토큰을 서버가 거절했다(만료·폐기) — 로그인 화면이 이유를 알려 준다. 네트워크 오류는 안내하지 않는다.
+        if (!cancelled && (err as AxiosError)?.response?.status === 401) setSessionExpired(true);
       })
       .finally(() => {
         if (!cancelled) setIsRestoring(false);
@@ -58,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const res = await api.post<ApiEnvelope<LoginResult>>('/auth/login', { email, password });
         result = res.data.data;
       } catch (err) {
-        throw new Error(errorMessage(err, '로그인에 실패했습니다. 잠시 후 다시 시도하세요.'), { cause: err });
+        throw new Error(describeError(err, '로그인에 실패했습니다. 잠시 후 다시 시도하세요.'), { cause: err });
       }
       if (!result) throw new Error('로그인 응답이 비어 있습니다.');
       // D41 결정 5 — 관리자·직원 계정은 회원 웹에서 받지 않는다. 방금 발급된 refresh token은 바로 폐기한다.
@@ -67,18 +74,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('회원 계정만 이용할 수 있습니다. 관리자는 관리자 웹을 이용하세요.');
       }
       setSession(result);
+      setSessionExpired(false);
       setUser(result.user);
     };
 
     const logout = async () => {
       const refreshToken = readRefreshToken();
       setSession(null);
+      setSessionExpired(false);
       setUser(null);
       if (refreshToken) await revokeRefreshToken(refreshToken);
     };
 
-    return { user, isRestoring, login, logout };
-  }, [user, isRestoring]);
+    return { user, isRestoring, sessionExpired, login, logout };
+  }, [user, isRestoring, sessionExpired]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -77,9 +77,3 @@ api.interceptors.response.use(undefined, async (error: AxiosError) => {
   }
   return api(config);
 });
-
-// 공통 에러 포맷({ success:false, error:{ code, message } })에서 사용자에게 보여 줄 문구를 꺼낸다.
-export function errorMessage(err: unknown, fallback: string): string {
-  const body = (err as AxiosError<ApiEnvelope<unknown>>)?.response?.data;
-  return body?.error?.message ?? fallback;
-}

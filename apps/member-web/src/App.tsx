@@ -5,6 +5,10 @@ import { useAuth } from './lib/use-auth';
 import { MobileLayout } from './layout/MobileLayout';
 import { LoginPage } from './pages/LoginPage';
 import { HomePage } from './pages/HomePage';
+import { ProgramsPage } from './pages/ProgramsPage';
+import { ProgramSlotsPage } from './pages/ProgramSlotsPage';
+import { PaymentPage } from './pages/PaymentPage';
+import { MyReservationsPage } from './pages/MyReservationsPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, isRestoring } = useAuth();
@@ -29,6 +33,10 @@ export default function App() {
             }
           >
             <Route index element={<HomePage />} />
+            <Route path="programs" element={<ProgramsPage />} />
+            <Route path="programs/:programId" element={<ProgramSlotsPage />} />
+            <Route path="pay/:reservationId" element={<PaymentPage />} />
+            <Route path="reservations" element={<MyReservationsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
