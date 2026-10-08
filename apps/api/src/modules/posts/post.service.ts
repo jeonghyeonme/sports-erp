@@ -35,7 +35,7 @@ export class PostService {
   }
 
   // ADR-BRD-02 — 걸러낸 뒤 자르는 것이 아니라 조건 그대로 count + skip/take(D36 결정 1). 순서는 mock처럼 등록순.
-  async list(user: RequestUser, filter: { scope?: string; page: number; pageSize: number }) {
+  async list(user: RequestUser, filter: { scope?: string; page: number; pageSize: number; latestFirst?: boolean }) {
     // 예전 mock은 모르는 scope로 거르면 빈 목록이었다 — enum 밖 값을 DB로 보내 500이 나지 않게 유지.
     if (filter.scope && !SCOPES.includes(filter.scope as PostScope)) {
       return { items: [] as PostView[], total: 0 };
@@ -48,7 +48,8 @@ export class PostService {
       this.prisma.post.findMany({
         where,
         include: withBranch,
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        // ADR-BRD-03 — 회원 웹 홈의 "최근 공지"가 1회 호출로 끝나도록 최신순을 고를 수 있다. id는 같은 시각의 동점 정렬용.
+        orderBy: filter.latestFirst ? [{ createdAt: 'desc' }, { id: 'desc' }] : [{ createdAt: 'asc' }, { id: 'asc' }],
         skip: (filter.page - 1) * filter.pageSize,
         take: filter.pageSize,
       }),

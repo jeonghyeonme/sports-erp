@@ -15,16 +15,18 @@ export class PostsController {
   constructor(private readonly posts: PostService) {}
 
   // ADR-BRD-02 — page/limit로 잘라 돌려준다. 기본 limit=20, meta.total/page/pageSize를 함께 내린다.
+  // ADR-BRD-03 — sort=latest면 최신 글부터. 그 밖의 값·생략은 기존 순서(오래된 글부터)라 admin-web은 그대로다.
   @Get()
   async list(
     @CurrentUser() user: RequestUser,
     @Query('scope') scope?: string,
     @Query('page') pageQuery?: string,
     @Query('limit') limitQuery?: string,
+    @Query('sort') sort?: string,
   ) {
     const page = Math.max(1, Math.trunc(Number(pageQuery)) || 1);
     const pageSize = Math.max(1, Math.trunc(Number(limitQuery)) || 20);
-    const { items, total } = await this.posts.list(user, { scope, page, pageSize });
+    const { items, total } = await this.posts.list(user, { scope, page, pageSize, latestFirst: sort === 'latest' });
     return ok(items, { page, pageSize, total });
   }
 
