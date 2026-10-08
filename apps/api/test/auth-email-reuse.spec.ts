@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
-import { MOCK_DEMO_PASSWORD } from '../src/mock-data/demo-password';
+import { MOCK_DEMO_PASSWORD } from '../src/fixtures/demo-password';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { createApp } from './helpers/app';
 

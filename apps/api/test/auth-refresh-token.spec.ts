@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, createApp, db } from './helpers/app';
-import { MOCK_DEMO_PASSWORD } from '../src/mock-data/demo-password';
+import { MOCK_DEMO_PASSWORD } from '../src/fixtures/demo-password';
 import { resetWorkerDb } from './helpers/worker-db';
 
 /**

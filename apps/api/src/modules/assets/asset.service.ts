@@ -4,7 +4,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode } from '../../prisma/integrity';
-import { MockAsset } from '../../mock-data/mock-data.types';
+import { MockAsset } from '../../fixtures/mock-data.types';
 import { BranchService } from '../branches/branch.service';
 
 type AssetRow = Asset & { branch: { name: string } };

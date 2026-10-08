@@ -3,7 +3,7 @@ import { Document, DocumentCategory, Prisma } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { addYearsToDateString, todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MockDocument } from '../../mock-data/mock-data.types';
+import { MockDocument } from '../../fixtures/mock-data.types';
 import { BranchService } from '../branches/branch.service';
 
 type Tx = Prisma.TransactionClient;

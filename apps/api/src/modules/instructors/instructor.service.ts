@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Instructor } from '@prisma/client';
-import { MockInstructor } from '../../mock-data/mock-data.types';
+import { MockInstructor } from '../../fixtures/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { PrismaService } from '../../prisma/prisma.service';
 

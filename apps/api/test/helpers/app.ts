@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/app.setup';
-import { MOCK_DEMO_PASSWORD } from '../../src/mock-data/demo-password';
+import { MOCK_DEMO_PASSWORD } from '../../src/fixtures/demo-password';
 import { PrismaService } from '../../src/prisma/prisma.service';
 
 /**

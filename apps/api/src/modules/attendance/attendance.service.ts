@@ -17,7 +17,7 @@ import {
   MockLeaveBalance,
   MockLeaveRequest,
   MockWorkLog,
-} from '../../mock-data/mock-data.types';
+} from '../../fixtures/mock-data.types';
 
 type Tx = Prisma.TransactionClient;
 type AssignmentSpan = { branchId: string; startDate: Date; endDate: Date | null };

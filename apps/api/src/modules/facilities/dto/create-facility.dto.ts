@@ -1,5 +1,5 @@
 import { IsIn, IsInt, IsString, Min, MinLength } from 'class-validator';
-import { FacilityType } from '../../../mock-data/mock-data.types';
+import { FacilityType } from '../../../fixtures/mock-data.types';
 
 const TYPES: FacilityType[] = ['GYM', 'POOL', 'GOLF', 'READING_ROOM', 'ETC'];
 

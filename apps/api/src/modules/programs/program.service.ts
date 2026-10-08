@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Program, ScheduleSlot } from '@prisma/client';
-import { MockProgram, MockScheduleSlot } from '../../mock-data/mock-data.types';
+import { MockProgram, MockScheduleSlot } from '../../fixtures/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';

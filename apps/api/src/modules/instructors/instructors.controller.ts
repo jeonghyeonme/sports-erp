@@ -5,7 +5,7 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
 import { InstructorService } from './instructor.service';
 import { AppException } from '../../common/exceptions/app.exception';
-import { MockInstructor } from '../../mock-data/mock-data.types';
+import { MockInstructor } from '../../fixtures/mock-data.types';
 import { ok } from '../../common/http/api-response';
 import { maskPhones } from '../../common/privacy/mask-phone';
 import { CreateInstructorDto } from './dto/create-instructor.dto';

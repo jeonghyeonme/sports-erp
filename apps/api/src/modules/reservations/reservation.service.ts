@@ -5,7 +5,7 @@ import { toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACTIVE_RESERVATION_STATUSES, lockScheduleSlot } from '../../prisma/integrity';
 import { BranchService } from '../branches/branch.service';
-import { MockPayment, MockReservation, MockScheduleSlot } from '../../mock-data/mock-data.types';
+import { MockPayment, MockReservation, MockScheduleSlot } from '../../fixtures/mock-data.types';
 
 export type ReservationView = MockReservation & {
   slot?: MockScheduleSlot;

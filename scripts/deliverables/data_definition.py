@@ -232,7 +232,7 @@ def parse_sql():
 
 def used_tables(models):
     """코드(apps/api/src, 테스트 제외)에서 실제로 읽고 쓰는지 — prisma 클라이언트 호출 또는 SQL의 "테이블명"."""
-    src = '\n'.join(p.read_text(encoding='utf-8') for p in SRC.rglob('*.ts') if '.spec.' not in p.name and 'mock-data' not in str(p))
+    src = '\n'.join(p.read_text(encoding='utf-8') for p in SRC.rglob('*.ts') if '.spec.' not in p.name and 'fixtures' not in p.parts)
     out = {}
     for name in models:
         camel = name[0].lower() + name[1:]

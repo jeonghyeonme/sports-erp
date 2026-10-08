@@ -1,5 +1,5 @@
 import { IsDateString, IsIn, IsOptional, IsString } from 'class-validator';
-import { LeaveType } from '../../../mock-data/mock-data.types';
+import { LeaveType } from '../../../fixtures/mock-data.types';
 
 const LEAVE_TYPES: LeaveType[] = ['ANNUAL', 'SICK', 'FAMILY_EVENT', 'OTHER'];
 

@@ -1,5 +1,5 @@
 import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
-import { PostCategory } from '../../../mock-data/mock-data.types';
+import { PostCategory } from '../../../fixtures/mock-data.types';
 
 const CATEGORIES: PostCategory[] = ['NOTICE', 'TRAINING_MATERIAL', 'EVENT', 'OTHER'];
 

@@ -7,7 +7,7 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
 import { MemberService } from './member.service';
 import { AppException } from '../../common/exceptions/app.exception';
-import { MockMember } from '../../mock-data/mock-data.types';
+import { MockMember } from '../../fixtures/mock-data.types';
 import { ok } from '../../common/http/api-response';
 import { maskPhones } from '../../common/privacy/mask-phone';
 import { CreateMemberDto } from './dto/create-member.dto';

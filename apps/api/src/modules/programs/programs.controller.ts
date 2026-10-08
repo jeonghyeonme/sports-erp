@@ -5,7 +5,7 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
 import { ProgramService } from './program.service';
 import { AppException } from '../../common/exceptions/app.exception';
-import { MockProgram } from '../../mock-data/mock-data.types';
+import { MockProgram } from '../../fixtures/mock-data.types';
 import { ok } from '../../common/http/api-response';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
