@@ -133,6 +133,29 @@ describe('회원 대상 게시글 가시성(visibleToMember)', () => {
       expect(res.body.meta.total).toBe(1);
     });
 
+    // ADR-BRD-03 — 회원 웹 홈의 최근 공지. 최신순도 가시성(ADR-BRD-01)·페이지(ADR-BRD-02)를 그대로 따른다.
+    it('sort=latest면 최신 글부터 내려오고, 회원에게는 여전히 보이는 글만 나온다', async () => {
+      await createPosts(3); // HQ_TO_BRANCH·visibleToMember 기본 false → 회원에게 안 보임
+      const visible = await api(superAdmin).post('/posts', { title: '회원 공개 최신 공지', content: 'x', category: 'NOTICE', visibleToMember: true });
+      expect(visible.status).toBe(201);
+
+      const res = await api(seochoMember).get('/posts?sort=latest&limit=3');
+      expect(res.status).toBe(200);
+      expect(res.body.data[0].title).toBe('회원 공개 최신 공지');
+      expect(res.body.data.every((p: { title: string }) => !p.title.startsWith('대량 공지'))).toBe(true);
+    });
+
+    it('대조군: sort를 생략하거나 모르는 값이면 기존 순서(오래된 글부터)다', async () => {
+      await createPosts(2);
+      const plain = await api(superAdmin).get('/posts');
+      const unknown = await api(superAdmin).get('/posts?sort=oldest');
+      const latest = await api(superAdmin).get('/posts?sort=latest');
+      const titles = (r: request.Response) => r.body.data.map((p: { title: string }) => p.title);
+      expect(titles(plain).at(-1)).toBe('대량 공지 1');
+      expect(titles(unknown)).toEqual(titles(plain));
+      expect(titles(latest)).toEqual([...titles(plain)].reverse());
+    });
+
     it('잘못된/음수 page·limit은 1·20으로 안전하게 대체된다', async () => {
       const res = await api(superAdmin).get('/posts?page=-5&limit=abc');
       expect(res.status).toBe(200);
