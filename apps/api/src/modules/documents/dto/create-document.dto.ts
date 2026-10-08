@@ -1,5 +1,5 @@
 import { IsDateString, IsIn, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
-import { DocumentCategory } from '../../../mock-data/mock-data.types';
+import { DocumentCategory } from '../../../fixtures/mock-data.types';
 
 const CATEGORIES: DocumentCategory[] = ['CONTRACT', 'HR_RECORD', 'MANUAL', 'OTHER'];
 

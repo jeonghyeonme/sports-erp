@@ -1,18 +1,18 @@
 /**
- * 시드 스크립트 — src/mock-data/*-fixtures.ts(시드 원천, 가상 회사 시나리오)를 그대로 재현합니다.
+ * 시드 스크립트 — src/fixtures/*-fixtures.ts(시드 원천, 가상 회사 시나리오)를 그대로 재현합니다.
  * 등장인물: 정하늘(본사) · 김민수(서초점장) · 박서연(트레이너/강사) · 이수진(회원)
  *
  * 실행: npm run prisma:seed --workspace=apps/api  (package.json의 prisma.seed 설정 참고)
  */
 import { PrismaClient, Role, PricingType, ProgramStatus, AgeGroup, FacilityType, CongestionSource, CodeSequenceKind, MemberStatus, EnrollmentStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { allBranchRecords } from '../src/mock-data/branch-fixtures';
-import { staffSeed } from '../src/mock-data/staff-fixtures';
-import { catalogSeed } from '../src/mock-data/catalog-fixtures';
-import { memberSeed } from '../src/mock-data/member-fixtures';
-import { documentSeed } from '../src/mock-data/document-fixtures';
-import { assetSeed } from '../src/mock-data/asset-fixtures';
-import { postSeed } from '../src/mock-data/post-fixtures';
+import { allBranchRecords } from '../src/fixtures/branch-fixtures';
+import { staffSeed } from '../src/fixtures/staff-fixtures';
+import { catalogSeed } from '../src/fixtures/catalog-fixtures';
+import { memberSeed } from '../src/fixtures/member-fixtures';
+import { documentSeed } from '../src/fixtures/document-fixtures';
+import { assetSeed } from '../src/fixtures/asset-fixtures';
+import { postSeed } from '../src/fixtures/post-fixtures';
 
 const prisma = new PrismaClient();
 

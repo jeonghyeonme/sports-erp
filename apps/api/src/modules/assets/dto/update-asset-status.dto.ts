@@ -1,5 +1,5 @@
 import { IsIn } from 'class-validator';
-import { AssetStatus } from '../../../mock-data/mock-data.types';
+import { AssetStatus } from '../../../fixtures/mock-data.types';
 
 const STATUSES: AssetStatus[] = ['NORMAL', 'REPAIRING', 'DISPOSAL_PENDING', 'DISPOSED'];
 

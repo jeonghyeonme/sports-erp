@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import { Role } from '../../mock-data/mock-data.types';
+import { Role } from '../../fixtures/mock-data.types';
 
 export const ROLES_KEY = 'roles';
 

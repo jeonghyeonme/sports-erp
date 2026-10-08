@@ -5,7 +5,7 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
 import { FacilityService } from './facility.service';
 import { AppException } from '../../common/exceptions/app.exception';
-import { MockFacility } from '../../mock-data/mock-data.types';
+import { MockFacility } from '../../fixtures/mock-data.types';
 import { ok } from '../../common/http/api-response';
 import { CreateFacilityDto } from './dto/create-facility.dto';
 import { UpdateFacilityDto } from './dto/update-facility.dto';

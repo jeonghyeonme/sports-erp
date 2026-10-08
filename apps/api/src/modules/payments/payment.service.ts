@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { AppException } from '../../common/exceptions/app.exception';
 import { toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MockPayment } from '../../mock-data/mock-data.types';
+import { MockPayment } from '../../fixtures/mock-data.types';
 import { ReservationService, ReservationView, splitVat, toMockPayment } from '../reservations/reservation.service';
 
 export type PaymentView = MockPayment & { memberName?: string; programName?: string; branchName?: string };

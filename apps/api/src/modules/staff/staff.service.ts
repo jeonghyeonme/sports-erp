@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Role, Staff, StaffAssignment } from '@prisma/client';
-import { MOCK_DEMO_PASSWORD } from '../../mock-data/demo-password';
-import { MockStaff, MockStaffAssignment } from '../../mock-data/mock-data.types';
+import { MOCK_DEMO_PASSWORD } from '../../fixtures/demo-password';
+import { MockStaff, MockStaffAssignment } from '../../fixtures/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Facility } from '@prisma/client';
-import { FacilityType, MockFacility } from '../../mock-data/mock-data.types';
+import { FacilityType, MockFacility } from '../../fixtures/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BranchService } from '../branches/branch.service';

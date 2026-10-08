@@ -3,7 +3,7 @@ import { Post, PostCategory, PostScope, Prisma } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MockPost } from '../../mock-data/mock-data.types';
+import { MockPost } from '../../fixtures/mock-data.types';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchService } from '../branches/branch.service';
 

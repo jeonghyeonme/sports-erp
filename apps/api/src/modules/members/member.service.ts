@@ -12,7 +12,7 @@ import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode } from '../../prisma/integrity';
 import { BranchService } from '../branches/branch.service';
-import { MockCourseEnrollment, MockMember, MockPTSession, MockPTSessionLog } from '../../mock-data/mock-data.types';
+import { MockCourseEnrollment, MockMember, MockPTSession, MockPTSessionLog } from '../../fixtures/mock-data.types';
 
 export type MemberView = MockMember & { branchName?: string; assignedStaffName?: string };
 type PTView = MockPTSession & { remainingSessions: number; programName?: string };

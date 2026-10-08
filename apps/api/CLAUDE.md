@@ -18,7 +18,7 @@ npm run test    # jest — HTTP 통합 테스트(test/), 실제 AppModule + supe
 - 계약 종료 판정은 `BranchService.loadGate()`의 gate(`src/modules/branches/branch-gate.ts`), 예약 생성은 회차 행 락(`lockScheduleSlot`) 위에서 정원을 센다(ADR-RSV-01).
 - 부분 unique 인덱스·CHECK 제약·지점 일치 트리거(D27·D28)는 `schema.prisma`가 아니라 **마이그레이션 SQL에만** 있다(schema.prisma 상단 주석). 도메인을 옮기거나 규칙을 추가할 때는 [data-integrity.md](../../docs/architecture/data-integrity.md) §6 체크리스트(채번·회차 락 헬퍼 포함)를 따른다.
 - **이미 적용된 `prisma/migrations/*/migration.sql`은 고치지 않는다** — 체크섬이 바뀌어 배포 DB의 `migrate deploy`가 실패한다. 바꿀 게 있으면 새 마이그레이션을 만든다.
-- `src/mock-data/`는 역사적 이름이다 — 응답 형식 타입(`mock-data.types.ts`)·시드 원천(`*-fixtures.ts`)·데모 비밀번호(`demo-password.ts`)만 있다. `prisma/seed.ts`가 픽스처를 upsert한다. 데모 계정·히어로 데이터 id(`account-haneul`, `staff-seoyeon`, `post-hq-manual` 등)는 테스트·admin-web이 기대므로 바꾸지 말 것.
+- `src/fixtures/`에는 응답 형식 타입(`mock-data.types.ts`)·시드 원천(`*-fixtures.ts`·`branch-generator.ts`)·데모 비밀번호(`demo-password.ts`)만 있다(인메모리 시절 이름 `src/mock-data/`에서 옮김, log/082). 파일명·`Mock*` 타입명은 그 시절 이름 그대로다. `prisma/seed.ts`가 픽스처를 upsert한다. 데모 계정·히어로 데이터 id(`account-haneul`, `staff-seoyeon`, `post-hq-manual` 등)는 테스트·admin-web이 기대므로 바꾸지 말 것.
 - Supabase(배포 DB) 시드는 같은 픽스처로 upsert SQL을 만들어 빈 로컬 복제 DB에서 2회 실행·지문 비교 후 **사용자 승인을 받아** 적용한다(절차: `docs/log/044`~`050`).
 
 ## 날짜 계산

@@ -1,13 +1,13 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { allBranchRecords, toMockBranch } from '../src/mock-data/branch-fixtures';
+import { allBranchRecords, toMockBranch } from '../src/fixtures/branch-fixtures';
 import { ACCOUNTS, BRANCH, createApp, login } from './helpers/app';
 import { setBranchStatus } from './helpers/branch-status';
 
 /**
  * D29 — 지점의 원천은 DB다. D36으로 mock 이름표 사본(MockDataService.branches)은 독자가 사라져 없앴고,
- * 이제는 시드 원천(src/mock-data/branch-fixtures.ts)이 DB에 그대로 들어갔는지를 본다 — 어긋나면 지점명·코드(채번)·
+ * 이제는 시드 원천(src/fixtures/branch-fixtures.ts)이 DB에 그대로 들어갔는지를 본다 — 어긋나면 지점명·코드(채번)·
  * 체크인 기준 시각(지각 판정)·취소 기준 시간이 조용히 틀어진다.
  */
 describe('지점 원천(DB)과 시드 원천', () => {
