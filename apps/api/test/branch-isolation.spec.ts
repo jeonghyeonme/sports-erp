@@ -198,6 +198,8 @@ describe('지점 데이터 격리', () => {
     { name: '게시글 수정', method: 'patch', path: (c) => `/posts/${c.seocho.postId}`, body: () => ({ title: 'x' }) },
     { name: '게시글 삭제', method: 'delete', path: (c) => `/posts/${c.seocho.postId}` },
     { name: '서초점 프로그램 요약 조회', method: 'get', path: () => `/branches/${BRANCH.seocho}/programs/summary` },
+    // D44 — 변경 이력은 본사 감사 기록이라 지점 관리자는 자기 지점 직원 것도 볼 수 없다(403).
+    { name: '서초 직원 변경 이력 조회', method: 'get', path: (c) => `/audit-logs?entity=Staff&entityId=${c.seocho.staffId}` },
     // 목록 API에 타 지점 branchId를 직접 지정하는 시도
     { name: '회원 목록(branchId=서초)', method: 'get', path: () => `/members?branchId=${BRANCH.seocho}` },
     { name: '직원 목록(branchId=서초)', method: 'get', path: () => `/staff?branchId=${BRANCH.seocho}` },

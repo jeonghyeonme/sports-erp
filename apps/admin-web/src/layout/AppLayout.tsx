@@ -27,6 +27,8 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
     group('인사·권한', [
       { to: '/staff', label: '직원' },
       { to: '/permissions', label: '권한 관리' },
+      // D44 — 인사 변경 감사 기록(본사 전용)
+      { to: '/audit-logs', label: '변경 이력' },
     ]),
     group('서비스 현황', [
       { to: '/members', label: '회원' },

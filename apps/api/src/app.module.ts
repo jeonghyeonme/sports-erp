@@ -17,6 +17,7 @@ import { ReservationsModule } from './modules/reservations/reservations.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { AssetsModule } from './modules/assets/assets.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -40,6 +41,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     PaymentsModule,
     AssetsModule,
     DocumentsModule,
+    AuditLogsModule,
   ],
   controllers: [AppController],
   providers: [
