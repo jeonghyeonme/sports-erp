@@ -24,7 +24,7 @@
 | 고정자산 수량 1, 수량·취득가 ≥ 0 | 자원문서관리 부록 A, RES-T01 | CHECK | **DB 적용**(D28) |
 | CONTRACT 문서 보존기한 필수 | ADR-RES-03 | CHECK | **DB 적용**(D28) |
 | HR_RECORD 문서 대상 직원 필수 | RES-T05 | CHECK | **DB 적용**(D28) |
-| 문서 대상 직원·업로더, 게시글 작성자가 실제로 존재 | D34 숙제, log/093 | FK(ON DELETE RESTRICT) | **DB 적용**(log/093 — 로컬·CI 마이그레이션. 배포 DB는 사용자가 SQL Editor로 적용) |
+| 문서 대상 직원·업로더, 게시글 작성자가 실제로 존재 | D34 숙제, log/093 | FK(ON DELETE RESTRICT) | **DB 적용**(log/093 — 로컬·CI는 마이그레이션, 배포 DB는 2026-10-09 SQL Editor로 적용·확인) |
 | 업무일지 직원·날짜당 1건 | 근태관리 A-3, D33 숙제 | unique(staffId, date) — 앱의 advisory lock은 그대로 둔다 | **DB 적용**(log/093, 배포 DB 동일) |
 | 휴무 요일 0~6, 파트타임 휴무 없음 | ATT-T05/STF-T04 | CHECK | **DB 적용**(D28) |
 | 파견·휴가 기간 종료 ≥ 시작, 휴가 일수 ≥ 1 | ADR-ATT-03 전제, ADR-ATT-01 | CHECK | **DB 적용**(D28) |
