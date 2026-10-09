@@ -206,7 +206,8 @@ h1 {
 }
 
 /* 16px — iOS 사파리는 16px 미만 입력창에 포커스하면 화면을 확대한다. */
-.field input {
+.field input,
+.field select {
   height: var(--touch-min);
   padding: 0 12px;
   border: 1px solid var(--color-border-strong);
@@ -217,10 +218,62 @@ h1 {
   font-size: 16px;
 }
 
-.field input:focus {
+.field input:focus,
+.field select:focus {
   outline: 2px solid var(--color-primary);
   outline-offset: -1px;
   border-color: var(--color-primary);
+}
+
+/* 가입·연동(log/092) — 체크박스 줄과 첫 화면의 선택 카드 */
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.check-row input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.choice-card {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+}
+
+.choice-card strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+.choice-card span {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.login-links {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.login-header a,
+.login-links a {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 .form-error {

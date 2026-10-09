@@ -20,6 +20,13 @@ const MESSAGES: Record<string, string> = {
   // 비밀번호 변경(log/091) — 401이 아니라 400이라 세션 만료로 처리되지 않는다.
   CURRENT_PASSWORD_MISMATCH: '현재 비밀번호가 맞지 않습니다. 다시 확인해 주세요.',
   DEMO_ACCOUNT_LOCKED: '데모 계정은 비밀번호를 바꿀 수 없습니다.',
+  // 가입·연동(log/092, ADR-MEM-01·02)
+  EMAIL_ALREADY_EXISTS: '이미 가입된 이메일입니다. 로그인하거나 다른 이메일을 써 주세요.',
+  GUARDIAN_CONSENT_REQUIRED: '만 19세 미만은 법정대리인 동의에 체크해야 가입할 수 있습니다.',
+  MEMBER_LINK_MISMATCH: '회원번호 또는 전화번호가 지점에 등록된 정보와 다릅니다. 등록할 때 받은 회원번호를 확인해 주세요.',
+  MEMBER_ALREADY_LINKED: '이미 앱 계정과 연결된 회원입니다. 그 계정으로 로그인해 주세요.',
+  LINK_ATTEMPTS_EXCEEDED: '연동 시도가 너무 많습니다. 1시간 뒤에 다시 시도하거나 지점에 문의해 주세요.',
+  BRANCH_NOT_FOUND: '지점을 찾을 수 없습니다. 지점을 다시 골라 주세요.',
   PAYMENT_NOT_PENDING: '이미 결제했거나 결제할 수 없는 예약입니다. 내 예약에서 상태를 확인하세요.',
   // Worker(cloudflare-worker/src/index.ts)가 붙이는 코드 — 로그인 제한과 Lambda 동시 실행 상한(D37).
   RATE_LIMITED: '요청이 너무 잦습니다. 잠시 후 다시 시도하세요.',

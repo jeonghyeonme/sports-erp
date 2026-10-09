@@ -3,11 +3,10 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useLoad } from '../lib/use-load';
 import { describeError } from '../lib/errors';
+import { PHONE_RE } from '../lib/format';
 import { ChangePasswordSection } from '../components/ChangePasswordSection';
 import { ApiEnvelope, Enrollment, MemberProfile, PTPackage } from '../lib/types';
 
-// 연락처 형식 — 서버는 형식을 검사하지 않으므로 화면에서 흔한 실수만 막는다(휴대폰·지역번호, 하이픈 선택).
-const PHONE_RE = /^0\d{1,2}-?\d{3,4}-?\d{4}$/;
 
 // 내 정보 — GET /members/:id 1회(이름·연락처·지점 + 수강 중·PT 잔여 요약, ADR-MEM-03).
 // 수강·PT 목록은 펼칠 때만 1회씩 부른다. 수정은 이름·연락처만(B1-3 사용자 결정) — 담당 직원·메모는 서버가 막는다.
