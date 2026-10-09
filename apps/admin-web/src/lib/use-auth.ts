@@ -7,8 +7,10 @@ export interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   error: string | null;
+  // 로그아웃하며 로그인 화면에 남길 안내(예: 비밀번호 변경 후 다시 로그인, log/091)
+  notice: string | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: (notice?: string) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

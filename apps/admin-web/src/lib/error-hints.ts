@@ -7,6 +7,8 @@ export const ERROR_HINTS: Record<string, string> = {
   INVALID_CREDENTIALS: '이메일과 비밀번호를 다시 확인하세요. 대소문자를 구분합니다.',
   ACCOUNT_INACTIVE: '비활성 계정입니다. 본사 관리자에게 계정 상태 확인을 요청하세요.',
   INVALID_REFRESH_TOKEN: '로그인 세션이 끝났습니다. 다시 로그인하세요.',
+  CURRENT_PASSWORD_MISMATCH: '지금 쓰는 비밀번호를 다시 확인하세요. 대소문자를 구분합니다.',
+  DEMO_ACCOUNT_LOCKED: '데모 계정은 모두가 같이 쓰는 계정이라 비밀번호를 바꿀 수 없습니다.',
   EMAIL_ALREADY_EXISTS: '이미 쓰고 있는 이메일입니다. 다른 이메일을 넣으세요(퇴사자 이메일은 다시 쓸 수 있습니다).',
 
   // 지점 격리 — 다른 지점 데이터

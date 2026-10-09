@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 저장된 refresh token이 있으면 처음부터 "복원 중"으로 시작한다(effect 안에서 동기 setState를 하지 않기 위해).
   const [isRestoring, setIsRestoring] = useState(() => readRefreshToken() !== null);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [loginNotice, setLoginNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setSessionExpiredHandler(() => {
@@ -77,23 +78,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setSession(result);
       setSessionExpired(false);
+      setLoginNotice(null);
       setUser(result.user);
     };
 
-    const logout = async () => {
+    const logout = async (options?: { notice?: string; serverRevoked?: boolean }) => {
       const refreshToken = readRefreshToken();
       // 다른 계정이 같은 탭에서 로그인해도 앞 사람 화면 데이터가 보이지 않게 캐시를 비운다.
       clearLoadCache();
       setSession(null);
       setSessionExpired(false);
+      setLoginNotice(options?.notice ?? null);
       setUser(null);
-      if (refreshToken) await revokeRefreshToken(refreshToken);
+      if (refreshToken && !options?.serverRevoked) await revokeRefreshToken(refreshToken);
     };
 
     const renameUser = (name: string) => setUser((u) => (u ? { ...u, name } : u));
 
-    return { user, isRestoring, sessionExpired, login, logout, renameUser };
-  }, [user, isRestoring, sessionExpired]);
+    return { user, isRestoring, sessionExpired, loginNotice, login, logout, renameUser };
+  }, [user, isRestoring, sessionExpired, loginNotice]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

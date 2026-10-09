@@ -17,6 +17,9 @@ const MESSAGES: Record<string, string> = {
   RESERVATION_NOT_CANCELLABLE: '이미 취소됐거나 끝난 예약이라 취소할 수 없습니다.',
   POST_NOT_FOUND: '공지를 찾을 수 없습니다. 삭제됐거나 볼 수 없는 공지입니다.',
   MEMBER_FIELD_FORBIDDEN: '이 항목은 지점에서만 바꿀 수 있습니다.',
+  // 비밀번호 변경(log/091) — 401이 아니라 400이라 세션 만료로 처리되지 않는다.
+  CURRENT_PASSWORD_MISMATCH: '현재 비밀번호가 맞지 않습니다. 다시 확인해 주세요.',
+  DEMO_ACCOUNT_LOCKED: '데모 계정은 비밀번호를 바꿀 수 없습니다.',
   PAYMENT_NOT_PENDING: '이미 결제했거나 결제할 수 없는 예약입니다. 내 예약에서 상태를 확인하세요.',
   // Worker(cloudflare-worker/src/index.ts)가 붙이는 코드 — 로그인 제한과 Lambda 동시 실행 상한(D37).
   RATE_LIMITED: '요청이 너무 잦습니다. 잠시 후 다시 시도하세요.',

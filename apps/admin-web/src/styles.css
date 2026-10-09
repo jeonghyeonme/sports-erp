@@ -229,6 +229,12 @@ body {
   padding: 18px 20px;
 }
 
+.notice-text {
+  color: var(--color-primary);
+  font-size: 13px;
+  margin: 8px 0;
+}
+
 .error-text {
   color: #b91c1c;
   font-size: 13px;
