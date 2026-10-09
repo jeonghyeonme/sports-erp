@@ -147,18 +147,35 @@ function EditStaffForm({ staff, onDone }: { staff: StaffRow; onDone: () => void 
   );
 }
 
+// ADR-STF-04·06 — 파견 발령·퇴사로 담당이 풀린 회원은 새 담당을 정해야 하는 정보라 닫을 때까지 남는 warning으로 보인다.
+interface ReleasedResult extends StaffRow {
+  unassignedMembers: Array<{ id: string; name: string }>;
+}
+
+function releasedMembersNotice(released: ReleasedResult['unassignedMembers'], whoDecides: string): string | null {
+  if (released.length === 0) return null;
+  const names = released
+    .slice(0, 5)
+    .map((m) => m.name)
+    .join(', ');
+  return `회원 ${released.length}명의 담당이 풀렸습니다: ${names}${released.length > 5 ? ' 외' : ''}.\n${whoDecides}`;
+}
+
 // ── 지점 관리자: 퇴사 처리(PATCH /staff/:id/resign — 계정 비활성화·파견 종료가 한 트랜잭션, ADR-STF-01) ──
 
 function ResignModal({ staff, onClose }: { staff: StaffRow; onClose: () => void }) {
   const queryClient = useQueryClient();
   const toast = useToast();
-  const resignMutation = useMutation<StaffRow, AxiosError<ApiErrorBody>>({
-    mutationFn: async () => (await api.patch<ApiEnvelope<StaffRow>>(`/staff/${staff.id}/resign`)).data.data!,
+  const resignMutation = useMutation<ReleasedResult, AxiosError<ApiErrorBody>>({
+    mutationFn: async () => (await api.patch<ApiEnvelope<ReleasedResult>>(`/staff/${staff.id}/resign`)).data.data!,
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
       queryClient.invalidateQueries({ queryKey: ['branches'] });
       toast.success(`${updated.name}님을 퇴사 처리했습니다(${updated.resignDate}).`);
+      const notice = releasedMembersNotice(updated.unassignedMembers, '회원 상세에서 새 담당 직원을 정해 주세요.');
+      if (notice) toast.warning(notice);
       onClose();
     },
   });
@@ -171,6 +188,7 @@ function ResignModal({ staff, onClose }: { staff: StaffRow; onClose: () => void 
       <ul className="page-desc" style={{ paddingLeft: 18 }}>
         <li>로그인 계정이 바로 비활성화됩니다(다음 요청부터 접근 차단).</li>
         <li>지금 파견이 오늘 날짜로 끝납니다.</li>
+        <li>이 직원이 담당하던 회원은 담당이 풀립니다(회원권만 남음). 새 담당은 회원 상세에서 정합니다.</li>
         <li>되돌리는 기능이 없습니다. 다시 일하게 되면 본사가 새로 채용합니다.</li>
       </ul>
       {resignMutation.isError && <div className="forbidden-note">{apiErrorMessage(resignMutation.error)}</div>}
@@ -193,10 +211,6 @@ function ResignModal({ staff, onClose }: { staff: StaffRow; onClose: () => void 
 
 // ── 본사: 파견 발령(POST /staff/:id/assignments — ADR-STF-01·04, 종료 지점 제외 log/090) ──
 
-interface AssignResult extends StaffRow {
-  unassignedMembers: Array<{ id: string; name: string }>;
-}
-
 function AssignModal({ staff, onClose }: { staff: StaffRow; onClose: () => void }) {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -207,10 +221,10 @@ function AssignModal({ staff, onClose }: { staff: StaffRow; onClose: () => void 
     (b) => b.id !== staff.branchId && b.contractStatus !== 'TERMINATED',
   );
 
-  const assignMutation = useMutation<AssignResult, AxiosError<ApiErrorBody>>({
+  const assignMutation = useMutation<ReleasedResult, AxiosError<ApiErrorBody>>({
     mutationFn: async () =>
       (
-        await api.post<ApiEnvelope<AssignResult>>(`/staff/${staff.id}/assignments`, {
+        await api.post<ApiEnvelope<ReleasedResult>>(`/staff/${staff.id}/assignments`, {
           branchId,
           note: note.trim() || undefined,
         })
@@ -221,18 +235,11 @@ function AssignModal({ staff, onClose }: { staff: StaffRow; onClose: () => void 
       queryClient.invalidateQueries({ queryKey: ['branches'] });
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
       toast.success(`${updated.name}님을 ${updated.branchName}으로 발령했습니다.`);
-      // ADR-STF-04 — 담당이 풀린 회원은 새 담당을 정해야 하는 정보라 닫을 때까지 남긴다.
-      const released = updated.unassignedMembers;
-      if (released.length > 0) {
-        const names = released
-          .slice(0, 5)
-          .map((m) => m.name)
-          .join(', ');
-        toast.warning(
-          `예전 지점 회원 ${released.length}명의 담당이 풀렸습니다: ${names}${released.length > 5 ? ' 외' : ''}.\n` +
-            '그 지점 관리자가 회원 상세에서 새 담당 직원을 정해야 합니다.',
-        );
-      }
+      const notice = releasedMembersNotice(
+        updated.unassignedMembers,
+        '그 지점 관리자가 회원 상세에서 새 담당 직원을 정해야 합니다.',
+      );
+      if (notice) toast.warning(notice);
       onClose();
     },
   });

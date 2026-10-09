@@ -10,7 +10,8 @@ cd "$(dirname "$0")/.."
 set -a; . aws-lambda/.env; set +a
 : "${ORIGIN_SECRET:?aws-lambda/.env에 ORIGIN_SECRET이 없다}"
 : "${LAMBDA_DATABASE_URL:?aws-lambda/.env에 LAMBDA_DATABASE_URL이 없다}"
-case "$LAMBDA_DATABASE_URL" in *:6543/*pgbouncer=true*) ;; *) echo "경고: Transaction pooler(6543) + pgbouncer=true 형식이 아니다 — 확인할 것" >&2 ;; esac
+# log/056 6번 장애(풀러 형식 누락)의 재발 방지 — 경고만 하고 진행하던 것을 중단으로 바꿨다(사용자 결정 2A, log/093).
+case "$LAMBDA_DATABASE_URL" in *:6543/*pgbouncer=true*) ;; *) echo "중단: LAMBDA_DATABASE_URL이 Transaction pooler(6543) + pgbouncer=true 형식이 아니다 — aws-lambda/.env를 고친 뒤 다시 실행할 것" >&2; exit 1 ;; esac
 
 CURRENT=$(aws lambda get-function-configuration --function-name sports-erp-api --query 'Environment.Variables' --output json)
 ENVJSON=$(CURRENT="$CURRENT" node -e '
