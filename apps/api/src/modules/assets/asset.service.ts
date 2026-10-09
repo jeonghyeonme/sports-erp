@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { Asset, AssetCategory, AssetStatus, AssetType } from '@prisma/client';
+import { Asset, AssetCategory, AssetStatus, AssetType, Prisma } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { toKstDateString } from '../../common/date/kst-date';
+import { PageRequest } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode } from '../../prisma/integrity';
 import { MockAsset } from '../../fixtures/mock-data.types';
@@ -50,22 +51,36 @@ export class AssetService {
   ) {}
 
   // 지점 이름은 조인으로(목록 N+1 제거, D35 결정 1).
-  async list(filter: { branchId?: string; category?: string; status?: string; assetType?: string }): Promise<AssetView[]> {
+  /**
+   * D43 — 쪽 단위 + total. 상태를 지정하지 않으면 폐기(DISPOSED)는 뺀다(B8 사용자 결정, log/088) — 폐기 자산은
+   * status=DISPOSED로 따로 본다. 이 기본 목록의 total이 곧 "미처리 자산 수"다(ADR-RES-01 계약 종료 경고).
+   */
+  async list(
+    filter: { branchId?: string; category?: string; status?: string; assetType?: string },
+    page: PageRequest,
+  ): Promise<{ items: AssetView[]; total: number }> {
+    const empty = { items: [], total: 0 };
     // 예전 mock은 모르는 값으로 거르면 빈 목록이었다 — enum 밖 값을 DB로 보내 500이 나지 않게 유지.
-    if (filter.category && !CATEGORIES.includes(filter.category as AssetCategory)) return [];
-    if (filter.status && !STATUSES.includes(filter.status as AssetStatus)) return [];
-    if (filter.assetType && !TYPES.includes(filter.assetType as AssetType)) return [];
-    const rows = await this.prisma.asset.findMany({
-      where: {
-        branchId: filter.branchId,
-        category: filter.category as AssetCategory | undefined,
-        status: filter.status as AssetStatus | undefined,
-        assetType: filter.assetType as AssetType | undefined,
-      },
-      include: withBranch,
-      orderBy: { assetCode: 'asc' },
-    });
-    return rows.map(toView);
+    if (filter.category && !CATEGORIES.includes(filter.category as AssetCategory)) return empty;
+    if (filter.status && !STATUSES.includes(filter.status as AssetStatus)) return empty;
+    if (filter.assetType && !TYPES.includes(filter.assetType as AssetType)) return empty;
+    const where: Prisma.AssetWhereInput = {
+      branchId: filter.branchId,
+      category: filter.category as AssetCategory | undefined,
+      status: filter.status ? (filter.status as AssetStatus) : { not: 'DISPOSED' },
+      assetType: filter.assetType as AssetType | undefined,
+    };
+    const [total, rows] = await Promise.all([
+      this.prisma.asset.count({ where }),
+      this.prisma.asset.findMany({
+        where,
+        include: withBranch,
+        orderBy: [{ assetCode: 'asc' }, { id: 'asc' }],
+        skip: page.skip,
+        take: page.pageSize,
+      }),
+    ]);
+    return { items: rows.map(toView), total };
   }
 
   async findById(id: string): Promise<AssetView> {

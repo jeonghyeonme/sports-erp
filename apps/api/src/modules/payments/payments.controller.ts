@@ -6,6 +6,7 @@ import { PaymentService } from './payment.service';
 import { ReservationService } from '../reservations/reservation.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { ok } from '../../common/http/api-response';
+import { pageMeta, parsePage } from '../../common/http/pagination';
 
 // 예약및결제 A-5·A-7 — 결제 승인은 예약 당사자 본인만, 결제(매출) 내역 조회는 BRANCH_ADMIN/SUPER_ADMIN 전용.
 @Controller('payments')
@@ -35,8 +36,13 @@ export class PaymentsController {
     @Query('dateFrom') dateFrom: string | undefined,
     @Query('dateTo') dateTo: string | undefined,
     @CurrentUser() user: RequestUser,
+    @Query('page') pageQuery?: string,
+    @Query('limit') limitQuery?: string,
   ) {
     const scopeBranchId = user.role === 'BRANCH_ADMIN' ? user.branchId : branchId;
-    return ok(await this.paymentService.list({ branchId: scopeBranchId, dateFrom, dateTo }));
+    // D43·ADR-RSV-04 — offset 페이지네이션(page·limit, 상한 100), 날짜 필터는 DB 조건.
+    const page = parsePage(pageQuery, limitQuery);
+    const { items, total } = await this.paymentService.list({ branchId: scopeBranchId, dateFrom, dateTo }, page);
+    return ok(items, pageMeta(page, total));
   }
 }

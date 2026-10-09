@@ -4,6 +4,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { AppException } from '../../common/exceptions/app.exception';
 import { ok } from '../../common/http/api-response';
+import { pageMeta, parsePage } from '../../common/http/pagination';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { UpdateAssetStatusDto } from './dto/update-asset-status.dto';
@@ -23,16 +24,21 @@ export class AssetsController {
     @Query('category') category?: string,
     @Query('status') status?: string,
     @Query('assetType') assetType?: string,
+    @Query('page') pageQuery?: string,
+    @Query('limit') limitQuery?: string,
   ) {
+    const page = parsePage(pageQuery, limitQuery);
     let targetBranchId = branchId;
     if (user.role === 'BRANCH_ADMIN') {
       if (branchId && branchId !== user.branchId) {
         throw new AppException('BRANCH_SCOPE_VIOLATION', '다른 지점의 데이터에는 접근할 수 없습니다.', 403);
       }
-      if (!user.branchId) return ok([]);
+      if (!user.branchId) return ok([], pageMeta(page, 0));
       targetBranchId = user.branchId;
     }
-    return ok(await this.assets.list({ branchId: targetBranchId, category, status, assetType }));
+    // D43 — offset 페이지네이션(page·limit, 상한 100).
+    const { items, total } = await this.assets.list({ branchId: targetBranchId, category, status, assetType }, page);
+    return ok(items, pageMeta(page, total));
   }
 
   @Post()

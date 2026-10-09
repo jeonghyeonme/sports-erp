@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Payment, Prisma, Reservation, ReservationStatus, ScheduleSlot } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { toKstDateString } from '../../common/date/kst-date';
+import { PageRequest } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACTIVE_RESERVATION_STATUSES, lockScheduleSlot } from '../../prisma/integrity';
 import { BranchService } from '../branches/branch.service';
@@ -44,18 +45,28 @@ export class ReservationService {
   }
 
   /** 예약및결제 A-5·A-7 — 범위(회원 본인·지점·회원 지정)는 컨트롤러가 정해서 넘긴다. */
-  async list(filter: { memberId?: string; branchId?: string; status?: string }): Promise<ReservationView[]> {
-    if (filter.status && !RESERVATION_STATUSES.includes(filter.status as ReservationStatus)) return [];
-    const rows = await this.prisma.reservation.findMany({
-      where: {
-        memberId: filter.memberId,
-        status: filter.status as ReservationStatus | undefined,
-        scheduleSlot: filter.branchId ? { program: { branchId: filter.branchId } } : undefined,
-      },
-      include: withContext,
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    });
-    return rows.map(toView);
+  /** D43 — 쪽 단위 + total, 최근 예약부터(B8 사용자 결정, log/088). 회원 웹 "내 예약"도 이 순서로 받는다. */
+  async list(
+    filter: { memberId?: string; branchId?: string; status?: string },
+    page: PageRequest,
+  ): Promise<{ items: ReservationView[]; total: number }> {
+    if (filter.status && !RESERVATION_STATUSES.includes(filter.status as ReservationStatus)) return { items: [], total: 0 };
+    const where: Prisma.ReservationWhereInput = {
+      memberId: filter.memberId,
+      status: filter.status as ReservationStatus | undefined,
+      scheduleSlot: filter.branchId ? { program: { branchId: filter.branchId } } : undefined,
+    };
+    const [total, rows] = await Promise.all([
+      this.prisma.reservation.count({ where }),
+      this.prisma.reservation.findMany({
+        where,
+        include: withContext,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: page.skip,
+        take: page.pageSize,
+      }),
+    ]);
+    return { items: rows.map(toView), total };
   }
 
   /**
