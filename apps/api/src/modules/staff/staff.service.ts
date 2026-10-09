@@ -157,9 +157,12 @@ export class StaffService {
    * 인사서류 보존기한 재계산(ADR-RES-02)도 같은 트랜잭션에서 한다 — D34로 문서가 DB로 옮겨져
    * D30 결정 3의 "커밋 뒤 mock 적용"이 끝났다(data-integrity §6 퇴사 체크리스트).
    */
-  async resign(id: string, actorAccountId: string): Promise<StaffView> {
+  async resign(
+    id: string,
+    actorAccountId: string,
+  ): Promise<StaffView & { unassignedMembers: Array<{ id: string; name: string }> }> {
     const today = todayKst();
-    await this.prisma.$transaction(async (tx) => {
+    const unassignedMembers = await this.prisma.$transaction(async (tx) => {
       const staff = await tx.staff.findUnique({ where: { id } });
       if (!staff) throw staffNotFound();
       if (staff.status === 'RESIGNED') {
@@ -168,6 +171,14 @@ export class StaffService {
       await tx.staff.update({ where: { id }, data: { status: 'RESIGNED', resignDate: dateOf(today) } });
       await tx.account.update({ where: { id: staff.accountId }, data: { isActive: false } });
       await tx.staffAssignment.updateMany({ where: { staffId: id, endDate: null }, data: { endDate: dateOf(today) } });
+      // ADR-STF-06(사용자 결정 1A, log/093) — 파견 발령(ADR-STF-04)처럼 담당 회원을 같은 트랜잭션에서 푼다.
+      // 퇴사한 직원이 회원 화면에 담당으로 남지 않게 하고, 풀린 회원은 응답으로 돌려줘 지점 관리자가 새 담당을 정하게 한다.
+      const released = await tx.member.findMany({
+        where: { assignedStaffId: id },
+        select: { id: true, name: true },
+        orderBy: { memberNo: 'asc' },
+      });
+      await tx.member.updateMany({ where: { id: { in: released.map((m) => m.id) } }, data: { assignedStaffId: null } });
       await recalculateHrRetention(tx, id, today);
       // D44 — 누가 퇴사 처리했는지(같은 트랜잭션).
       await recordAudit(tx, {
@@ -176,10 +187,11 @@ export class StaffService {
         entityId: id,
         action: 'RESIGNED',
         before: { status: staff.status, branchId: staff.branchId },
-        after: { status: 'RESIGNED', resignDate: today },
+        after: { status: 'RESIGNED', resignDate: today, releasedMemberCount: released.length },
       });
+      return released;
     });
-    return this.afterWrite(id);
+    return { ...(await this.afterWrite(id)), unassignedMembers };
   }
 
   /**

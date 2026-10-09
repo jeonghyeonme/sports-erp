@@ -88,6 +88,10 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
       .set('Authorization', adminToken);
     expect(resignRes.status).toBe(200);
     expect(resignRes.body.data.status).toBe('RESIGNED');
+    // ADR-STF-06 — 담당 회원(수진)이 같은 트랜잭션에서 풀리고 응답에 목록이 온다.
+    expect(resignRes.body.data.unassignedMembers).toEqual([{ id: 'member-sujin', name: expect.any(String) }]);
+    const sujin = await db(app).member.findUniqueOrThrow({ where: { id: 'member-sujin' } });
+    expect(sujin.assignedStaffId).toBeNull();
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
