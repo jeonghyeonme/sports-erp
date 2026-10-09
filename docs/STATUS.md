@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-08 · [log/087](log/087.md)(admin-web 공통 Toast, B5 완료)
+> 마지막 갱신: 2026-10-09 · [log/088](log/088.md)(쌓이는 목록 페이지네이션 B8, D43·ADR-RSV-04)
 
 ## 현재 상태
 
@@ -22,7 +22,7 @@
 > 각 항목을 새 세션에서 시작하는 방법(근거·범위·완료 기준·주의점)은 [작업 브리프](process/04_작업_브리프.md)의 B 번호를 본다.
 
 0. **B1 회원 모바일 웹(D40·D41)** — 구현 끝(B1-1~4). 남은 것은 **사용자 Worker 배포**(`npm run build:web` → `cd cloudflare-worker && npx wrangler deploy`)와 배포 후 운영 확인·일일 요청 관찰, (선택) 가입·연동 화면 — [브리프 B1](process/04_작업_브리프.md).
-1. **B8 쌓이는 목록 페이지네이션** — 회원·예약·결제·자산 offset 페이지네이션 + 결제 날짜 필터를 DB 조건으로([D43](decisions/D43.md), ADR-RSV-04). 응답 형식이 바뀌어 admin-web 4개 화면도 함께 고친다. (B5는 끝났다 — 마스킹 ADR-MEM-04, 변경 이력 D44, 공통 Toast log/087)
+1. **배포 확인(사용자)** — B8은 응답 형식을 바꿨다. api(Lambda)는 병합 시 배포되고, 화면(Worker)은 `npm run build:web` → `wrangler deploy`로 따로 배포한다. 그 사이 기존 화면은 첫 20건만 보인다(log/088). B5·B8 끝.
 2. RFP 잔여(작음): 화면별 도움말·툴팁, 상세 전화번호 열람 기록(D44 범위 밖) — 요구사항추적표 §2-3
 3. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제. (Supabase 커넥터는 2026-10-08 정상 동작 확인 — log/084)
 
