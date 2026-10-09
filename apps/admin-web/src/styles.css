@@ -233,6 +233,7 @@ body {
   color: #b91c1c;
   font-size: 13px;
   margin: 8px 0;
+  white-space: pre-line; /* "해결: …" 둘째 줄(log/089) */
 }
 
 .demo-accounts {
@@ -418,6 +419,136 @@ body {
   background: var(--color-surface-alt);
 }
 
+/* 화면별 도움말(log/089) — 상단 버튼 + 오른쪽 패널. 배경 막 없이 본문 옆에 붙어 열린 채로 화면을 쓸 수 있다. */
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.help-btn {
+  background: none;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--color-primary);
+}
+
+.help-btn:hover,
+.help-btn.active {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.content-row {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.help-panel {
+  width: 320px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  padding: 18px 20px;
+  overflow: auto;
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.help-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.help-panel-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.help-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.help-panel h4 {
+  margin: 18px 0 8px;
+  font-size: 13px;
+}
+
+.help-panel .role-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.help-summary {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.help-steps {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+
+.help-steps li + li {
+  margin-top: 6px;
+}
+
+.help-errors {
+  margin: 0;
+}
+
+.help-errors > div {
+  padding: 8px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.help-errors dt {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: #b91c1c;
+}
+
+.help-errors dd {
+  margin: 2px 0 0;
+  line-height: 1.5;
+}
+
+.help-foot {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* 좁은 화면에서는 본문 위에 겹쳐 띄운다(본문 폭을 빼앗지 않게). */
+@media (max-width: 900px) {
+  .help-panel {
+    position: fixed;
+    top: 52px;
+    right: 0;
+    bottom: 0;
+    width: min(320px, 100vw);
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.12);
+    z-index: 50;
+  }
+}
+
 .content {
   padding: 24px 28px;
   flex: 1;
@@ -595,6 +726,7 @@ tbody tr:hover td {
   padding: 10px 14px;
   font-size: 13px;
   margin-bottom: 16px;
+  white-space: pre-line; /* "해결: …" 둘째 줄(log/089) */
 }
 
 /* 아이콘: 장식용 4색 칩 폐기, 전부 단색(디자인시스템 §2) */

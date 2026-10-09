@@ -1,7 +1,9 @@
 import { ReactNode, useMemo, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { api, setAccessToken } from './api';
 import { ApiEnvelope, AuthUser } from './types';
 import { AuthContext } from './use-auth';
+import { apiErrorMessage } from './use-api-list';
 
 interface LoginResult {
   accessToken: string;
@@ -23,9 +25,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessToken(result.accessToken);
       setUser(result.user);
     } catch (err) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        '로그인에 실패했습니다.';
+      // 서버 오류는 data.error.message에 있다(apiErrorMessage 주석) — 해결 줄도 같은 함수가 붙인다(log/089).
+      const message = (isAxiosError(err) && apiErrorMessage(err)) || '로그인에 실패했습니다.';
       setError(message);
       throw err;
     } finally {
