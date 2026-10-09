@@ -187,4 +187,4 @@
 
 ## 승인 대기
 
-- ~~`statement_timeout` 5초~~ — 2026-10-09 사용자 승인(log/093). Lambda는 풀러를 거쳐 `postgres` 역할로 접속하므로 `ALTER ROLE postgres SET statement_timeout = '5s'`. SQL Editor에도 걸린다. 실행 SQL은 log/093.
+- ~~`statement_timeout` 5초~~ — 2026-10-09 사용자 승인(log/093). Lambda는 풀러를 거쳐 `postgres` 역할로 접속하므로 `ALTER ROLE postgres SET statement_timeout = '5s'`. SQL Editor에도 걸린다. 2026-10-09 적용·확인(log/093).
