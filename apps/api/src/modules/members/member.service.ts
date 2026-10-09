@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
+import { PageRequest } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode } from '../../prisma/integrity';
 import { BranchService } from '../branches/branch.service';
@@ -49,26 +50,40 @@ export class MemberService {
 
   // ── 조회 ──────────────────────────────────────────────
 
-  async list(filter: { branchId?: string; status?: string; q?: string }): Promise<MemberView[]> {
+  /**
+   * D43 — 쪽 단위로 자르고 total을 함께 준다. 필터는 모두 where에 넣는다(메모리에서 거르면 total·쪽이 틀린다).
+   * assignedStaffId='none'이면 담당 직원이 없는 회원(지점 상세 "담당 없음", log/088).
+   */
+  async list(
+    filter: { branchId?: string; status?: string; q?: string; assignedStaffId?: string },
+    page: PageRequest,
+  ): Promise<{ items: MemberView[]; total: number }> {
     // 예전 mock은 모르는 상태값으로 거르면 빈 목록이었다 — enum 밖 값을 DB로 보내 500이 나지 않게 유지.
-    if (filter.status && !MEMBER_STATUSES.includes(filter.status as MemberStatus)) return [];
+    if (filter.status && !MEMBER_STATUSES.includes(filter.status as MemberStatus)) return { items: [], total: 0 };
     const needle = filter.q?.trim().toLowerCase();
-    const rows = await this.prisma.member.findMany({
-      where: {
-        branchId: filter.branchId,
-        status: filter.status as MemberStatus | undefined,
-        OR: needle
-          ? [
-              { name: { contains: needle, mode: 'insensitive' } },
-              { memberNo: { contains: needle, mode: 'insensitive' } },
-              { phone: { contains: needle } },
-            ]
-          : undefined,
-      },
-      include: withNames,
-      orderBy: { memberNo: 'asc' },
-    });
-    return rows.map(toView);
+    const where: Prisma.MemberWhereInput = {
+      branchId: filter.branchId,
+      status: filter.status as MemberStatus | undefined,
+      assignedStaffId: filter.assignedStaffId === 'none' ? null : filter.assignedStaffId || undefined,
+      OR: needle
+        ? [
+            { name: { contains: needle, mode: 'insensitive' } },
+            { memberNo: { contains: needle, mode: 'insensitive' } },
+            { phone: { contains: needle } },
+          ]
+        : undefined,
+    };
+    const [total, rows] = await Promise.all([
+      this.prisma.member.count({ where }),
+      this.prisma.member.findMany({
+        where,
+        include: withNames,
+        orderBy: [{ memberNo: 'asc' }, { id: 'asc' }],
+        skip: page.skip,
+        take: page.pageSize,
+      }),
+    ]);
+    return { items: rows.map(toView), total };
   }
 
   async findById(id: string): Promise<MockMember | null> {

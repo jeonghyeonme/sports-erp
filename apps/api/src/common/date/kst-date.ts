@@ -50,3 +50,16 @@ export function addYearsToDateString(date: string, years: number): string {
   dt.setUTCFullYear(dt.getUTCFullYear() + years);
   return dt.toISOString().slice(0, 10);
 }
+
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * KST 달력 날짜 하루의 범위 `[시작, 다음날 시작)`을 UTC 시각으로 돌려준다 — 날짜 필터를 DB 조건으로 내릴 때 쓴다
+ * (ADR-RSV-04). 형식이 YYYY-MM-DD가 아니면 null. 예: '2026-10-08' → 2026-10-07T15:00Z ~ 2026-10-08T15:00Z.
+ */
+export function kstDayRange(date: string): { start: Date; end: Date } | null {
+  if (!DATE_ONLY.test(date)) return null;
+  const start = new Date(`${date}T00:00:00+09:00`);
+  if (Number.isNaN(start.getTime())) return null;
+  return { start, end: new Date(start.getTime() + 24 * 60 * 60 * 1000) };
+}

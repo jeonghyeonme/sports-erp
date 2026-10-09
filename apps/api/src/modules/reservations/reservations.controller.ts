@@ -6,6 +6,7 @@ import { ReservationService, ReservationView } from './reservation.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ok } from '../../common/http/api-response';
+import { pageMeta, parsePage } from '../../common/http/pagination';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
 
@@ -34,12 +35,20 @@ export class ReservationsController {
     @Query('status') status: string | undefined,
     @Query('memberId') memberId: string | undefined,
     @CurrentUser() user: RequestUser,
+    @Query('page') pageQuery?: string,
+    @Query('limit') limitQuery?: string,
   ) {
+    // D43 — offset 페이지네이션(page·limit, 상한 100), 최근 것부터.
+    const page = parsePage(pageQuery, limitQuery);
+    const paged = async (filter: { memberId?: string; branchId?: string; status?: string }) => {
+      const { items, total } = await this.reservationService.list(filter, page);
+      return ok(items, pageMeta(page, total));
+    };
     if (user.role === 'MEMBER') {
       if (!user.memberId) {
         throw new AppException('MEMBER_REQUIRED', '회원 계정이 아닙니다.', 403);
       }
-      return ok(await this.reservationService.list({ memberId: user.memberId, status }));
+      return paged({ memberId: user.memberId, status });
     }
     if (memberId) {
       const member = await this.prisma.member.findUnique({ where: { id: memberId }, select: { branchId: true } });
@@ -49,10 +58,10 @@ export class ReservationsController {
       if (user.role === 'BRANCH_ADMIN' && member.branchId !== user.branchId) {
         throw new AppException('RESERVATION_SCOPE_VIOLATION', '다른 지점 회원의 예약은 조회할 수 없습니다.', 403);
       }
-      return ok(await this.reservationService.list({ memberId, status }));
+      return paged({ memberId, status });
     }
     const branchId = user.role === 'BRANCH_ADMIN' ? user.branchId : undefined;
-    return ok(await this.reservationService.list({ branchId, status }));
+    return paged({ branchId, status });
   }
 
   @Patch(':id/cancel')

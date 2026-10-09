@@ -1,4 +1,4 @@
-import { addYearsToDateString, kstHoursMinutes, toKstDateString } from './kst-date';
+import { addYearsToDateString, kstDayRange, kstHoursMinutes, toKstDateString } from './kst-date';
 
 /**
  * architecture/date-time-handling.md의 회귀 테스트 — 이 파일이 검증 대상.
@@ -43,5 +43,19 @@ describe('addYearsToDateString', () => {
 
   it('윤년 2월 29일 + 1년 → JS Date의 자동 이월을 그대로 따른다(3월 1일)', () => {
     expect(addYearsToDateString('2024-02-29', 1)).toBe('2025-03-01');
+  });
+});
+
+describe('kstDayRange — ADR-RSV-04 결제 날짜 필터의 KST 경계', () => {
+  it('KST 하루는 전날 15:00Z부터 그날 15:00Z 직전까지다', () => {
+    const r = kstDayRange('2026-10-08')!;
+    expect(r.start.toISOString()).toBe('2026-10-07T15:00:00.000Z');
+    expect(r.end.toISOString()).toBe('2026-10-08T15:00:00.000Z');
+  });
+
+  it('형식이 틀리면 null', () => {
+    expect(kstDayRange('2026-10-8')).toBeNull();
+    expect(kstDayRange('2026-13-40')).toBeNull();
+    expect(kstDayRange('x')).toBeNull();
   });
 });
