@@ -9,11 +9,15 @@ import { ApiEnvelope, Reservation } from '../lib/types';
 import { BottomSheet } from '../components/BottomSheet';
 import { StatusBadge } from '../components/StatusBadge';
 
+const MAX_ROWS = 100; // api 목록 상한(D43)
+
 // 내 예약 — 호출: 목록 1회(GET /reservations, MEMBER는 서버가 본인 것만 준다) + 취소 1회(PATCH /reservations/:id/cancel).
-// 취소 응답으로 목록 항목을 바꿔 끼우고 다시 조회하지 않는다. 응답은 아직 배열이다 — B8(D43)이 페이지네이션으로 바꾼다.
+// 취소 응답으로 목록 항목을 바꿔 끼우고 다시 조회하지 않는다.
+// D43 — 목록은 쪽 단위로 오고 최근 예약부터다. 회원 한 명의 예약은 적어서 상한(100건)만큼 한 번에 받는다.
 export function MyReservationsPage() {
   const passedNotice = (useLocation().state as { notice?: string } | null)?.notice;
-  const { data, error, loading, reload, mutate } = useLoad<Reservation[]>('/reservations');
+  const { data, meta, error, loading, reload, mutate } = useLoad<Reservation[]>(`/reservations?limit=${MAX_ROWS}`);
+  const total = typeof meta?.total === 'number' ? meta.total : 0;
   const [now] = useState(() => Date.now());
   const [target, setTarget] = useState<Reservation | null>(null);
   const [cancelling, setCancelling] = useState(false);
@@ -90,6 +94,8 @@ export function MyReservationsPage() {
           </ul>
         )}
       </section>
+
+      {total > MAX_ROWS && <p className="muted">최근 예약 {MAX_ROWS}건만 보여 줍니다.</p>}
 
       {past.length > 0 && (
         <section className="stack-sm">

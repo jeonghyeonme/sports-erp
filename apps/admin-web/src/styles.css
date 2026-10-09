@@ -1035,3 +1035,9 @@ tbody tr:hover td {
   cursor: pointer;
   padding: 2px;
 }
+
+/* 목록 쪽 넘김(D43) */
+.pager-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}

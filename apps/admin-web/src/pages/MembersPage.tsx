@@ -1,17 +1,23 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
-import { groupByBranch } from '../lib/group-by-branch';
-import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
+import { apiErrorMessage, useApiPage } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
+import { Pager } from '../components/Pager';
+import { BranchFilter } from '../components/BranchFilter';
 import { ApiEnvelope, MemberRow } from '../lib/types';
-
+import { useAuth } from '../lib/use-auth';
 import { useToast } from '../lib/use-toast';
-// 검색으로 이만큼 좁혀지면 굳이 또 눌러서 펼치게 하지 않고 바로 보여준다.
-const AUTO_EXPAND_THRESHOLD = 3;
+
+const PAGE_SIZE = 20;
+
+const STATUS_LABEL: Record<MemberRow['status'], string> = {
+  ACTIVE: '활성',
+  DORMANT: '휴면',
+  WITHDRAWN: '탈퇴',
+};
 
 interface ApiErrorBody {
   code?: string;
@@ -150,18 +156,40 @@ const toast = useToast();
 }
 
 export function MembersPage() {
-  const { data, isLoading, isError, error } = useApiList<MemberRow>(['members'], '/members');
-  const [search, setSearch] = useState('');
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const [branchId, setBranchId] = useState('');
+  const [status, setStatus] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const navigate = useNavigate();
 
-  const groups = useMemo(() => {
-    const all = groupByBranch(data ?? []);
-    const term = search.trim().toLowerCase();
-    return term ? all.filter((g) => g.branchName.toLowerCase().includes(term)) : all;
-  }, [data, search]);
+  // 필터가 바뀌면 1쪽부터 — effect 대신 렌더 중 이전 값 비교(BoardPage와 같은 패턴).
+  const filterKey = `${branchId}|${status}|${q}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setPage(1);
+  }
 
-  const autoExpand = groups.length > 0 && groups.length <= AUTO_EXPAND_THRESHOLD;
+  // D43 — 서버가 쪽 단위로 자른다. 지점·상태·검색(q: 이름·회원번호·전화)은 모두 서버 조건이라 total과 쪽이 정확하다.
+  const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+  if (branchId) params.set('branchId', branchId);
+  if (status) params.set('status', status);
+  if (q) params.set('q', q);
+  const { data, isLoading, isFetching, isError, error } = useApiPage<MemberRow>(
+    ['members', branchId, status, q, page],
+    `/members?${params}`,
+  );
+  const rows = data?.rows ?? [];
+  const total = data?.total ?? 0;
+
+  const submitSearch = (e: FormEvent) => {
+    e.preventDefault();
+    setQ(searchInput.trim());
+  };
 
   return (
     <>
@@ -169,8 +197,8 @@ export function MembersPage() {
         <div>
           <h2>회원</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
-            회원관리 문서 기준 더미 데이터입니다. BRANCH_ADMIN은 본인 지점 회원만, STAFF는 접근 시 403이 표시됩니다.
-            지점별로 묶어서 보여줍니다(83개 지점 규모 대응 — 지점명으로 검색해 좁혀보세요).
+            BRANCH_ADMIN은 본인 지점 회원만 봅니다. 목록은 {PAGE_SIZE}명씩 나눠 보여 주고, 지점·상태·검색은 서버에서
+            거릅니다(D43).
           </p>
         </div>
         <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
@@ -178,64 +206,65 @@ export function MembersPage() {
         </button>
       </div>
 
+      <form className="list-toolbar" onSubmit={submitSearch} style={{ gap: 8 }}>
+        {isSuperAdmin && <BranchFilter value={branchId} onChange={setBranchId} />}
+        <select className="role-select" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="상태">
+          <option value="">전체 상태</option>
+          {Object.entries(STATUS_LABEL).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <input
+          className="search-input"
+          placeholder="이름 · 회원번호 · 전화번호"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
+        <button type="submit" className="btn-secondary">
+          검색
+        </button>
+      </form>
+
       {isError && <div className="forbidden-note">{apiErrorMessage(error)}</div>}
       {isLoading && <div className="loading-state">불러오는 중...</div>}
-
-      {!isLoading && !isError && (data?.length ?? 0) > 0 && (
-        <div className="list-toolbar">
-          <input
-            className="search-input"
-            placeholder="지점명 검색"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+      {!isLoading && !isError && rows.length === 0 && (
+        <div className="empty-state">{q || status || branchId ? '조건에 맞는 회원이 없습니다.' : '표시할 회원이 없습니다.'}</div>
       )}
 
-      {!isLoading && !isError && (data?.length ?? 0) === 0 && (
-        <div className="empty-state">표시할 회원이 없습니다.</div>
-      )}
-      {!isLoading && !isError && (data?.length ?? 0) > 0 && groups.length === 0 && (
-        <div className="empty-state">검색 결과가 없습니다.</div>
+      {!isError && rows.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              {isSuperAdmin && <th>지점</th>}
+              <th>회원번호</th>
+              <th>이름</th>
+              <th>연락처</th>
+              <th>담당 직원</th>
+              <th>상태</th>
+              <th>가입일</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((m) => (
+              <tr key={m.id} className="branch-row" onClick={() => navigate(`/members/${m.id}`)}>
+                {isSuperAdmin && <td>{m.branchName ?? '-'}</td>}
+                <td>{m.memberNo}</td>
+                <td>{m.name}</td>
+                <td>{m.phone ?? '-'}</td>
+                <td>{m.assignedStaffName ?? '회원권만(미배정)'}</td>
+                <td>
+                  <span className={`badge ${m.status}`}>{STATUS_LABEL[m.status] ?? m.status}</span>
+                </td>
+                <td>{m.joinedAt}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
-      {!isError &&
-        groups.map((group) => (
-          <CollapsibleBranchSection
-            key={group.branchId}
-            branchName={group.branchName}
-            count={group.rows.length}
-            countLabel="명"
-            defaultExpanded={autoExpand}
-          >
-            <table>
-              <thead>
-                <tr>
-                  <th>회원번호</th>
-                  <th>이름</th>
-                  <th>연락처</th>
-                  <th>담당 직원</th>
-                  <th>상태</th>
-                  <th>가입일</th>
-                </tr>
-              </thead>
-              <tbody>
-                {group.rows.map((m) => (
-                  <tr key={m.id} className="branch-row" onClick={() => navigate(`/members/${m.id}`)}>
-                    <td>{m.memberNo}</td>
-                    <td>{m.name}</td>
-                    <td>{m.phone ?? '-'}</td>
-                    <td>{m.assignedStaffName ?? '회원권만(미배정)'}</td>
-                    <td>
-                      <span className={`badge ${m.status}`}>{m.status}</span>
-                    </td>
-                    <td>{m.joinedAt}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CollapsibleBranchSection>
-        ))}
+      <Pager page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} disabled={isFetching} />
 
       {showCreate && <CreateMemberModal onClose={() => setShowCreate(false)} />}
     </>

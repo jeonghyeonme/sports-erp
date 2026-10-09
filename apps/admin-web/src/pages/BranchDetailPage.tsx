@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
+import { Pager } from '../components/Pager';
 import {
   ApiEnvelope,
   AssetRow,
@@ -29,6 +30,32 @@ const STATUS_LABEL: Record<ProgramStatus, string> = {
   PAUSED: '휴강',
   ENDED: '종료',
 };
+
+const MEMBER_PAGE_SIZE = 20;
+
+// D43 — 지점 회원 전체를 받아 화면에서 나누지 않고, 직원을 펼칠 때(또는 "담당 없음" 절에서) 그 조건의 쪽만 부른다
+// (B8 사용자 결정, assignedStaffId 필터 — 'none'이면 미배정).
+function AssignedMembers({ branchId, assignedStaffId }: { branchId: string; assignedStaffId: string }) {
+  const [page, setPage] = useState(1);
+  const query = useApiPage<MemberRow>(
+    ['members', branchId, 'assigned', assignedStaffId, page],
+    `/members?branchId=${branchId}&assignedStaffId=${assignedStaffId}&page=${page}&limit=${MEMBER_PAGE_SIZE}`,
+  );
+  if (query.isLoading) return <div className="loading-state">불러오는 중...</div>;
+  if (query.isError) return <div className="forbidden-note">{apiErrorMessage(query.error)}</div>;
+  const total = query.data?.total ?? 0;
+  return (
+    <>
+      {total > 0 && (
+        <p className="page-desc" style={{ margin: '0 0 8px' }}>
+          {total.toLocaleString()}명
+        </p>
+      )}
+      <MemberTable rows={query.data?.rows ?? []} />
+      <Pager page={page} pageSize={MEMBER_PAGE_SIZE} total={total} onChange={setPage} disabled={query.isFetching} />
+    </>
+  );
+}
 
 function MemberTable({ rows }: { rows: MemberRow[] }) {
   if (rows.length === 0) {
@@ -68,7 +95,6 @@ export function BranchDetailPage() {
 
   const branchesQuery = useApiList<BranchSummary>(['branches'], '/branches');
   const staffQuery = useApiList<StaffRow>(['staff', branchId], `/staff?branchId=${branchId}`);
-  const membersQuery = useApiList<MemberRow>(['members', branchId], `/members?branchId=${branchId}`);
   const programsQuery = useApiList<ProgramRow>(['programs', branchId], `/programs?branchId=${branchId}`);
   // 강사프로그램게시 A-5 지점 현황판 API — 이미 완성돼 있었지만 화면 어디서도 호출하지 않던 것을 여기서 연결한다.
   const programSummaryQuery = useQuery<ProgramStatusSummary | undefined>({
@@ -78,17 +104,16 @@ export function BranchDetailPage() {
     enabled: !!branchId,
   });
   const facilitiesQuery = useApiList<FacilityRow>(['facilities', branchId], `/facilities?branchId=${branchId}`);
-  const assetsQuery = useApiList<AssetRow>(['assets', branchId], `/assets?branchId=${branchId}`);
+  // ADR-RES-01 — 계약종료 지점의 잔여 자산은 자동 처리하지 않고 경고만 노출한다(자원문서관리 A-6).
+  // D43 — 자산 기본 목록은 폐기를 뺀 목록이라 그 total이 곧 미처리 자산 수다(1건만 받아 total만 쓴다).
+  const assetsQuery = useApiPage<AssetRow>(['assets', branchId, 'unprocessed'], `/assets?branchId=${branchId}&limit=1`);
 
   const branch = branchesQuery.data?.find((b) => b.id === branchId);
   const branchName = branch?.name ?? branchId;
-  const members = membersQuery.data ?? [];
   const staff = staffQuery.data ?? [];
   const programs = programsQuery.data ?? [];
   const facilities = facilitiesQuery.data ?? [];
-  const unassignedMembers = members.filter((m) => !m.assignedStaffId);
-  // ADR-RES-01 — 계약종료 지점의 잔여 자산은 자동 처리하지 않고 경고만 노출한다(자원문서관리 A-6).
-  const unprocessedAssetCount = (assetsQuery.data ?? []).filter((a) => a.status !== 'DISPOSED').length;
+  const unprocessedAssetCount = assetsQuery.data?.total ?? 0;
 
   return (
     <>
@@ -148,7 +173,6 @@ export function BranchDetailPage() {
 
         {staffQuery.isError && <div className="forbidden-note">{apiErrorMessage(staffQuery.error)}</div>}
         {staffQuery.isLoading && <div className="loading-state">불러오는 중...</div>}
-        {membersQuery.isError && <div className="forbidden-note">{apiErrorMessage(membersQuery.error)}</div>}
 
         {!staffQuery.isError && !staffQuery.isLoading && staff.length === 0 && (
           <div className="empty-state">등록된 직원이 없습니다.</div>
@@ -157,7 +181,6 @@ export function BranchDetailPage() {
         {!staffQuery.isError && staff.length > 0 && (
           <div className="staff-list">
             {staff.map((s) => {
-              const assignedMembers = members.filter((m) => m.assignedStaffId === s.id);
               const expanded = expandedStaffId === s.id;
               return (
                 <div className="staff-block" key={s.id}>
@@ -173,13 +196,13 @@ export function BranchDetailPage() {
                         {s.name}
                         <span className="staff-row-position">{s.position ?? '-'}</span>
                       </div>
-                      <div className="staff-row-sub">담당 회원 {assignedMembers.length}명</div>
+                      <div className="staff-row-sub">담당 회원 {expanded ? '' : '보기'}</div>
                     </div>
                     <span className="chevron">{expanded ? '▲' : '▼'}</span>
                   </button>
                   {expanded && (
                     <div className="nested-table-wrap">
-                      {!membersQuery.isError && <MemberTable rows={assignedMembers} />}
+                      <AssignedMembers branchId={branchId} assignedStaffId={s.id} />
                     </div>
                   )}
                 </div>
@@ -192,10 +215,9 @@ export function BranchDetailPage() {
       <section className="detail-section">
         <h3 className="section-title">
           담당 직원 없음
-          <span className="section-count">{unassignedMembers.length}명</span>
         </h3>
         <p className="page-desc">회원권만 등록하고 담당 트레이너가 배정되지 않은 회원입니다.</p>
-        {!membersQuery.isError && !membersQuery.isLoading && <MemberTable rows={unassignedMembers} />}
+        <AssignedMembers branchId={branchId} assignedStaffId="none" />
       </section>
 
       <section className="detail-section">
