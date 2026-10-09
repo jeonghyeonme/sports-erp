@@ -14,10 +14,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
+    setNotice(null);
     try {
       const res = await api.post<ApiEnvelope<LoginResult>>('/auth/login', { email, password });
       const result = res.data.data;
@@ -34,14 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = (nextNotice?: string) => {
     setAccessToken(null);
     setUser(null);
+    setNotice(nextNotice ?? null);
   };
 
   const value = useMemo(
-    () => ({ user, isLoading, error, login, logout }),
-    [user, isLoading, error],
+    () => ({ user, isLoading, error, notice, login, logout }),
+    [user, isLoading, error, notice],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

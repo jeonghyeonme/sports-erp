@@ -4,6 +4,7 @@ import { useAuth } from '../lib/use-auth';
 import { Role } from '../lib/types';
 import { findScreenHelp } from '../lib/help-content';
 import { HelpPanel } from '../components/HelpPanel';
+import { ChangePasswordModal } from '../components/ChangePasswordModal';
 
 interface NavLinkItem {
   to: string;
@@ -136,6 +137,7 @@ export function AppLayout() {
   // 화면별 도움말(log/089) — 열린 채로 다른 화면으로 가면 그 화면 도움말로 바뀐다(경로로 매번 찾음).
   const [helpOpen, setHelpOpen] = useState(false);
   const closeHelp = useCallback(() => setHelpOpen(false), []);
+  const [showPassword, setShowPassword] = useState(false);
 
   if (!user) return null;
 
@@ -188,7 +190,10 @@ export function AppLayout() {
             >
               ? 도움말
             </button>
-            <button className="logout-btn" onClick={logout}>
+            <button type="button" className="logout-btn" onClick={() => setShowPassword(true)}>
+              비밀번호 변경
+            </button>
+            <button className="logout-btn" onClick={() => logout()}>
               로그아웃
             </button>
           </div>
@@ -197,6 +202,7 @@ export function AppLayout() {
           <main className="content">
             <Outlet />
           </main>
+          {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}
           {helpOpen && <HelpPanel help={findScreenHelp(location.pathname)} role={user.role} onClose={closeHelp} />}
         </div>
       </div>

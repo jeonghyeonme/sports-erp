@@ -1,19 +1,11 @@
 import { FormEvent, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/use-auth';
-import { DEMO_PASSWORD } from '../lib/demo-account';
-
-// prisma/seed.ts의 SHEET04 시나리오 계정 + 지점 격리 시연용 강남점 관리자 계정(mock-data.service.ts 참고).
-const DEMO_ACCOUNTS = [
-  { email: 'jeong.haneul@spoism.example', label: '정하늘 · SUPER_ADMIN(본사)' },
-  { email: 'kim.minsu@spoism.example', label: '김민수 · BRANCH_ADMIN(서초점)' },
-  { email: 'choi.gangnam@spoism.example', label: '최강남 · BRANCH_ADMIN(강남점)' },
-  { email: 'park.seoyeon@spoism.example', label: '박서연 · STAFF(서초점 트레이너)' },
-  { email: 'lee.sujin@example.com', label: '이수진 · MEMBER(서초점 회원)' },
-];
+// 데모 계정 = prisma/seed.ts의 SHEET04 시나리오 계정 + 지점 격리 시연용 강남점 관리자 계정(lib/demo-account.ts).
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from '../lib/demo-account';
 
 export function LoginPage() {
-  const { user, login, isLoading, error } = useAuth();
+  const { user, login, isLoading, error, notice } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -65,6 +57,7 @@ export function LoginPage() {
               required
             />
           </div>
+          {notice && !error && <p className="notice-text">{notice}</p>}
           {error && <p className="error-text">{error}</p>}
           <button className="btn-primary" type="submit" disabled={isLoading}>
             {isLoading ? '로그인 중...' : '로그인'}

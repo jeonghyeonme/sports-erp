@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useLoad } from '../lib/use-load';
 import { describeError } from '../lib/errors';
+import { ChangePasswordSection } from '../components/ChangePasswordSection';
 import { ApiEnvelope, Enrollment, MemberProfile, PTPackage } from '../lib/types';
 
 // 연락처 형식 — 서버는 형식을 검사하지 않으므로 화면에서 흔한 실수만 막는다(휴대폰·지역번호, 하이픈 선택).
@@ -171,6 +172,8 @@ export function MyInfoPage() {
           </LoadList>
         )}
       </section>
+
+      <ChangePasswordSection />
     </div>
   );
 }

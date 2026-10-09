@@ -4,7 +4,7 @@ import { useAuth } from '../lib/use-auth';
 import { SESSION_EXPIRED_MESSAGE } from '../lib/errors';
 
 export function LoginPage() {
-  const { user, isRestoring, sessionExpired, login } = useAuth();
+  const { user, isRestoring, sessionExpired, loginNotice, login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +34,11 @@ export function LoginPage() {
         <p className="muted">등록한 지점의 프로그램 예약과 공지를 확인하세요.</p>
       </header>
 
+      {loginNotice && !error && (
+        <p className="notice" role="status">
+          {loginNotice}
+        </p>
+      )}
       {sessionExpired && !error && (
         <p className="notice" role="status">
           {SESSION_EXPIRED_MESSAGE}
