@@ -128,6 +128,43 @@ describe('정합성 헬퍼 — 채번(ADR-STF-02)·회차 행 락(ADR-RSV-01)', 
       prisma.pTSession.update({ where: { id: pt.id }, data: { usedSessions: pt.totalSessions + 1 } }),
     ).rejects.toThrow(/PTSession_usage_range_ck/);
   });
+
+  // log/093(사용자 결정 3) — D33·D34 숙제. 앱 검증을 우회한 SQL 직접 쓰기도 DB가 거부한다.
+  describe('외래키·unique 보강(log/093)', () => {
+    const insertDoc = (relatedStaffId: string | null, uploadedBy: string) =>
+      prisma.$executeRaw`INSERT INTO "Document" (id, category, title, "fileUrl", "relatedStaffId", "uploadedBy")
+        VALUES (${`d093-doc-${RUN}-${randomUUID().slice(0, 4)}`}, 'HR_RECORD'::"DocumentCategory", 't', 'https://x', ${relatedStaffId}, ${uploadedBy})`;
+
+    it('없는 계정을 업로더로 둔 문서는 거부된다', async () => {
+      await expect(insertDoc('staff-seoyeon', 'no-such-account')).rejects.toThrow(/Document_uploadedBy_fkey/);
+    });
+    it('없는 직원을 대상 직원으로 둔 문서는 거부된다', async () => {
+      await expect(insertDoc('no-such-staff', 'account-haneul')).rejects.toThrow(/Document_relatedStaffId_fkey/);
+    });
+    it('없는 계정을 작성자로 둔 게시글은 거부된다', async () => {
+      await expect(
+        prisma.$executeRaw`INSERT INTO "Post" (id, scope, "authorId", title, content, "publishedAt", "updatedAt")
+          VALUES (${`d093-post-${RUN}`}, 'HQ_TO_BRANCH'::"PostScope", 'no-such-account', 't', 'c', CURRENT_DATE, now())`,
+      ).rejects.toThrow(/Post_authorId_fkey/);
+    });
+    it('같은 직원·같은 날 업무일지 두 번째 행은 거부된다(대조군: 첫 행은 들어간다)', async () => {
+      const date = new Date('2099-12-31');
+      const first = await prisma.workLog.create({ data: { staffId: 'staff-seoyeon', date, content: 'a' } });
+      try {
+        await expect(prisma.workLog.create({ data: { staffId: 'staff-seoyeon', date, content: 'b' } })).rejects.toThrow(
+          /Unique constraint/,
+        );
+      } finally {
+        await prisma.workLog.delete({ where: { id: first.id } });
+      }
+    });
+    it('대조군: 존재하는 계정·직원이면 문서가 들어간다', async () => {
+      const id = `d093-ok-${RUN}`;
+      await prisma.$executeRaw`INSERT INTO "Document" (id, category, title, "fileUrl", "relatedStaffId", "uploadedBy")
+        VALUES (${id}, 'HR_RECORD'::"DocumentCategory", 't', 'https://x', 'staff-seoyeon', 'account-haneul')`;
+      await prisma.document.delete({ where: { id } });
+    });
+  });
   describe('교차 테이블 지점 일치 트리거(DI-02, ADR-STF-04) — 파견 트랜잭션 순서', () => {
     const rollback = new Error('rollback');
 

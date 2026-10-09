@@ -65,6 +65,9 @@ model Account {
   refreshTokens        RefreshToken[]
   auditLogs            AuditLog[]
   staffAssignmentsMade StaffAssignment[] // 이 계정이 SUPER_ADMIN으로서 발령한 파견 이력(assignedBy)
+  // log/093(사용자 결정 3) — 작성자·업로더 외래키. 계정은 지우지 않고 비활성화하므로(D27) Restrict로 둔다.
+  postsAuthored        Post[]
+  documentsUploaded    Document[]        @relation("DocumentUploader")
 
   @@index([email])
   @@index([role])
@@ -158,6 +161,7 @@ model Staff {
   leaveRequests     LeaveRequest[]
   leaveBalances     LeaveBalance[]
   workLogs          WorkLog[]
+  hrDocuments       Document[]                  @relation("DocumentRelatedStaff") // HR_RECORD 대상 직원(log/093)
   instructorProfile Instructor?
   assignedMembers   Member[]                    @relation("StaffAssignedMembers")
   assignments       StaffAssignment[] // 파견 이력 — architecture/entities.md §2-2
@@ -290,7 +294,8 @@ model WorkLog {
 
   staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
-  @@index([staffId, date])
+  // 하루 1건(근태관리 A-3) — D33은 앱 잠금(pg_advisory_xact_lock)으로만 막았다. SQL 직접 입력까지 막도록 unique로 올린다(log/093).
+  @@unique([staffId, date])
 }
 
 // ── 1-5. 게시판(공지사항) ───────────────────────────────
@@ -324,6 +329,7 @@ model Post {
   updatedAt       DateTime     @updatedAt
 
   branch       Branch?           @relation(fields: [branchId], references: [id])
+  author       Account           @relation(fields: [authorId], references: [id], onDelete: Restrict) // log/093
   attachments  Attachment[]
   readReceipts PostReadReceipt[]
 
@@ -720,14 +726,18 @@ model Document {
   fileUrl        String // 실제 파일 업로드 인프라는 아직 없음 — 문자열 필드일 뿐
   fileType       String?
   fileSize       Int?
-  uploadedBy     String // FK → Account
+  uploadedBy     String // FK → Account(log/093)
   retentionUntil DateTime?        @db.Date // null = 영구 보관
   createdAt      DateTime         @default(now())
   deletedAt      DateTime? // 소프트 삭제(D9)
 
-  branch Branch? @relation(fields: [branchId], references: [id])
+  branch       Branch?  @relation(fields: [branchId], references: [id])
+  // D34 숙제 → log/093: 대상 직원·업로더 외래키. 직원·계정은 지우지 않으므로(퇴사·비활성화) Restrict.
+  relatedStaff Staff?   @relation("DocumentRelatedStaff", fields: [relatedStaffId], references: [id], onDelete: Restrict)
+  uploader     Account  @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
 
   @@index([branchId])
+  @@index([relatedStaffId])
 }
 
 // ── 공통: 변경 이력 ─────────────────────────────────────
