@@ -14,6 +14,7 @@ import { resetWorkerDb } from './helpers/worker-db';
 describe('위탁계약 종료 지점의 신규 활동 차단', () => {
   let app: INestApplication;
   let admin: string; // 서초점 관리자
+  let superAdmin: string; // 본사 — 채용·파견 발령(log/090)
   let member: string; // 서초점 회원 수진
   let slotId: string;
 
@@ -29,6 +30,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
     await resetWorkerDb();
     app = await createApp();
     admin = await login(app, ACCOUNTS.seochoAdmin);
+    superAdmin = await login(app, ACCOUNTS.superAdmin);
     member = await login(app, ACCOUNTS.seochoMember);
     const slot = await db(app).scheduleSlot.findFirst({
       where: { program: { branchId: BRANCH.seocho, status: 'RUNNING' } },
@@ -88,6 +90,20 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
       expect(res.status).toBe(409);
       expect(res.body.error.code).toBe('BRANCH_TERMINATED');
     });
+    it('직원 채용(최초 파견) — log/090', async () => {
+      const res = await api(superAdmin).post('/staff', { branchId: BRANCH.seocho, name: '신규직원', email: 'new.hire@spoism.example' });
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('BRANCH_TERMINATED');
+    });
+    it('종료 지점으로 파견 발령 — log/090', async () => {
+      const res = await api(superAdmin).post('/staff/staff-choi/assignments', { branchId: BRANCH.seocho });
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('BRANCH_TERMINATED');
+    });
+    it('종료 지점에서 다른 지점으로 빼내는 파견은 막지 않는다 — 재배치는 종료 후 해야 할 일이다', async () => {
+      const res = await api(superAdmin).post('/staff/staff-seoyeon/assignments', { branchId: BRANCH.gangnam });
+      expect(res.status).toBe(201);
+    });
     it('차단된 요청은 데이터를 남기지 않는다', async () => {
       const prisma = db(app);
       const counts = async () => [
@@ -97,6 +113,9 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
         await prisma.facility.count(),
         await prisma.asset.count(), // D35 — 자산 원천은 DB
         await prisma.document.count(), // D34 — 문서 원천은 DB
+        await prisma.staff.count(),
+        await prisma.staffAssignment.count(),
+        await prisma.account.count(),
       ];
       const before = await counts();
       await api(admin).post('/members', { name: '신규회원' });
@@ -114,6 +133,8 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
         title: '신규 문서',
         fileUrl: 'https://files.example/x.pdf',
       });
+      await api(superAdmin).post('/staff', { branchId: BRANCH.seocho, name: '신규직원', email: 'new.hire@spoism.example' });
+      await api(superAdmin).post('/staff/staff-choi/assignments', { branchId: BRANCH.seocho });
       expect(await counts()).toEqual(before);
     });
   });
@@ -215,6 +236,9 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
         fileUrl: 'https://files.example/x.pdf',
       });
       expect(res.status).toBe(201);
+    });
+    it('직원 채용(최초 파견) — log/090', async () => {
+      expect((await api(superAdmin).post('/staff', { branchId: BRANCH.seocho, name: '신규직원', email: 'new.hire@spoism.example' })).status).toBe(201);
     });
   });
 

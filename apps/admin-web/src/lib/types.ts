@@ -106,9 +106,26 @@ export interface StaffRow {
   branchName?: string;
   staffCode: string;
   name: string;
+  // 목록은 마스킹(ADR-MEM-04), 상세·me는 원문
+  phone?: string;
   position?: string;
   employmentType?: string;
+  offDays?: number[]; // 0=일~6=토, 파트타임은 쓰지 않음(ATT-T05)
   hireDate: string;
+  resignDate?: string;
+  status?: 'ACTIVE' | 'ON_LEAVE' | 'RESIGNED';
+}
+
+// 파견 이력(인사정보관리 A-3) — endDate가 없으면 지금 파견 중
+export interface StaffAssignmentRow {
+  id: string;
+  staffId: string;
+  branchId: string;
+  branchName: string;
+  startDate: string;
+  endDate?: string;
+  assignedBy: string;
+  note?: string;
 }
 
 export interface ProgramRow {

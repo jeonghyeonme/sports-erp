@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/use-auth';
+import { DEMO_PASSWORD } from '../lib/demo-account';
 
 // prisma/seed.ts의 SHEET04 시나리오 계정 + 지점 격리 시연용 강남점 관리자 계정(mock-data.service.ts 참고).
 const DEMO_ACCOUNTS = [
@@ -10,7 +11,6 @@ const DEMO_ACCOUNTS = [
   { email: 'park.seoyeon@spoism.example', label: '박서연 · STAFF(서초점 트레이너)' },
   { email: 'lee.sujin@example.com', label: '이수진 · MEMBER(서초점 회원)' },
 ];
-const DEMO_PASSWORD = 'demo-password-1234';
 
 export function LoginPage() {
   const { user, login, isLoading, error } = useAuth();

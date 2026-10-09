@@ -75,6 +75,8 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
     const activeAfter = after.body.data.filter((a: { endDate?: string }) => !a.endDate);
     expect(activeAfter).toHaveLength(1); // 여전히 활성은 1건(불변규칙 2)
     expect(activeAfter[0].branchId).toBe(BRANCH.gangnam);
+    // log/090 — 화면이 지점 목록 없이도 이름을 보이게 지점명이 붙는다(지점 관리자는 다른 지점 목록을 못 본다).
+    expect(after.body.data.map((a: { branchName: string }) => a.branchName)).toEqual(['강남점', '서초점']);
     expect(after.body.data.length).toBe(before.body.data.length + 1); // 새 레코드 1건 추가, 기존 것은 마감됨(삭제 아님)
   });
 

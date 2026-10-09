@@ -7,7 +7,7 @@ export const ERROR_HINTS: Record<string, string> = {
   INVALID_CREDENTIALS: '이메일과 비밀번호를 다시 확인하세요. 대소문자를 구분합니다.',
   ACCOUNT_INACTIVE: '비활성 계정입니다. 본사 관리자에게 계정 상태 확인을 요청하세요.',
   INVALID_REFRESH_TOKEN: '로그인 세션이 끝났습니다. 다시 로그인하세요.',
-  EMAIL_ALREADY_EXISTS: '이미 가입된 이메일입니다. 다른 이메일을 쓰거나 기존 계정으로 로그인하세요.',
+  EMAIL_ALREADY_EXISTS: '이미 쓰고 있는 이메일입니다. 다른 이메일을 넣으세요(퇴사자 이메일은 다시 쓸 수 있습니다).',
 
   // 지점 격리 — 다른 지점 데이터
   BRANCH_SCOPE_VIOLATION: '자기 지점 데이터만 볼 수 있습니다. 다른 지점 일은 본사 관리자에게 요청하세요.',
@@ -26,7 +26,7 @@ export const ERROR_HINTS: Record<string, string> = {
   BRANCH_REQUIRED: '지점을 먼저 고르세요.',
 
   // 계약 종료(TERMINATED) 지점
-  BRANCH_TERMINATED: '위탁계약이 종료된 지점이라 새 등록·예약·작성이 막혀 있습니다. 과거 기록 조회만 됩니다.',
+  BRANCH_TERMINATED: '위탁계약이 종료된 지점이라 새 등록·예약·작성·파견이 막혀 있습니다. 과거 기록 조회만 됩니다.',
 
   // 지점 불일치
   MEMBER_BRANCH_MISMATCH: '회원과 프로그램(또는 직원)의 지점이 다릅니다. 같은 지점 것을 고르세요.',
