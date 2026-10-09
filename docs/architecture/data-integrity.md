@@ -24,6 +24,8 @@
 | 고정자산 수량 1, 수량·취득가 ≥ 0 | 자원문서관리 부록 A, RES-T01 | CHECK | **DB 적용**(D28) |
 | CONTRACT 문서 보존기한 필수 | ADR-RES-03 | CHECK | **DB 적용**(D28) |
 | HR_RECORD 문서 대상 직원 필수 | RES-T05 | CHECK | **DB 적용**(D28) |
+| 문서 대상 직원·업로더, 게시글 작성자가 실제로 존재 | D34 숙제, log/093 | FK(ON DELETE RESTRICT) | **DB 적용**(log/093 — 로컬·CI 마이그레이션. 배포 DB는 사용자가 SQL Editor로 적용) |
+| 업무일지 직원·날짜당 1건 | 근태관리 A-3, D33 숙제 | unique(staffId, date) — 앱의 advisory lock은 그대로 둔다 | **DB 적용**(log/093, 배포 DB 동일) |
 | 휴무 요일 0~6, 파트타임 휴무 없음 | ATT-T05/STF-T04 | CHECK | **DB 적용**(D28) |
 | 파견·휴가 기간 종료 ≥ 시작, 휴가 일수 ≥ 1 | ADR-ATT-03 전제, ADR-ATT-01 | CHECK | **DB 적용**(D28) |
 | 체크아웃 ≥ 체크인 | 근태 | CHECK | **DB 적용**(D28) |
@@ -34,7 +36,7 @@
 | 강사 프로필의 직원이 같은 지점 | ADR-STF-04 | 트리거(앱 검증은 강사 도메인 이관 때 — mock에 연결 필드 없음) | **DB 적용**(D28 DI-02) |
 | 정원 초과 방지 | ADR-RSV-01 | 트랜잭션 + 회차 행 락 | **헬퍼 준비**(D28 `lockScheduleSlot`), 예약 도메인 이관 때 사용 |
 | 채번 중복 방지 | ADR-STF-02, RES-T04 | 트랜잭션 + 시퀀스 upsert | **헬퍼 준비**(D28 `allocateBranchCode`), 인사·회원·자산 이관 때 사용 |
-| 퇴사 = 계정 비활성화 + 파견 종료 + HR_RECORD 보존기한 재계산 | ADR-STF-01, ADR-RES-02 | 단일 트랜잭션 | 인사정보관리 이관 때 구현(체크리스트 §5) |
+| 퇴사 = 계정 비활성화 + 파견 종료 + 담당 회원 해제(ADR-STF-06) + HR_RECORD 보존기한 재계산 | ADR-STF-01, ADR-RES-02 | 단일 트랜잭션 | 인사정보관리 이관 때 구현(체크리스트 §5) |
 | 연차 승인과 잔여일수 차감을 함께 | ADR-ATT-01 | 단일 트랜잭션 | 근태관리 이관 때 구현 |
 | 프로그램 수정은 전부 검증 후 한 번에 반영 | ADR-PRG-01(부분수정 결함) | 단일 `update` 호출 | 강사프로그램 이관 때 구현 |
 | Staff.branchId = 진행 중 파견의 branchId | architecture/entities.md §2-2(비정규화 캐시) | 단일 트랜잭션(ADR-STF-01) | 인사정보관리 이관 때 구현 |

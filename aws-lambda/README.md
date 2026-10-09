@@ -187,4 +187,4 @@
 
 ## 승인 대기
 
-- `statement_timeout` 5초를 DB 역할(role)에 거는 것(D37 결정 1)은 **DB 설정 변경이라 사용자 승인 후 적용**한다. 풀러의 트랜잭션 모드는 연결 옵션을 무시할 수 있어서 역할 단위 설정이 필요하다.
+- ~~`statement_timeout` 5초~~ — 2026-10-09 사용자 승인(log/093). Lambda는 풀러를 거쳐 `postgres` 역할로 접속하므로 `ALTER ROLE postgres SET statement_timeout = '5s'`. SQL Editor에도 걸린다. 실행 SQL은 log/093.
