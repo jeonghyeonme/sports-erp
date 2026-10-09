@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
+import { Pager } from '../components/Pager';
 import { useToast } from '../lib/use-toast';
 import {
   ApiEnvelope,
@@ -21,6 +22,8 @@ interface ApiErrorBody {
   code?: string;
   message?: string;
 }
+
+const RESERVATION_PAGE_SIZE = 20;
 
 const STATUS_LABEL: Record<MemberRow['status'], string> = {
   ACTIVE: '활성',
@@ -374,44 +377,54 @@ function PTSessionsTab({ member, canManage }: { member: MemberRow; canManage: bo
 // ADR-MEM-03 — 예약·결제 내역 탭. 신규 API 없이 GET /reservations?memberId=를 재사용한다
 // (각 예약 응답에 payment가 이미 nested로 포함돼 있어 그대로 표시하면 된다).
 function MemberReservationsTab({ memberId }: { memberId: string }) {
-  const reservationsQuery = useQuery<ReservationRow[], AxiosError<ApiErrorBody>>({
-    queryKey: ['reservations', 'byMember', memberId],
-    queryFn: async () =>
-      (await api.get<ApiEnvelope<ReservationRow[]>>(`/reservations?memberId=${memberId}`)).data.data ?? [],
-  });
+  // D43 — 쪽 단위, 최근 예약부터.
+  const [page, setPage] = useState(1);
+  const reservationsQuery = useApiPage<ReservationRow>(
+    ['reservations', 'byMember', memberId, page],
+    `/reservations?memberId=${memberId}&page=${page}&limit=${RESERVATION_PAGE_SIZE}`,
+  );
 
   if (reservationsQuery.isLoading) return <div className="loading-state">불러오는 중...</div>;
   if (reservationsQuery.isError) {
     return <div className="forbidden-note">{apiErrorMessage(reservationsQuery.error)}</div>;
   }
-  const rows = reservationsQuery.data ?? [];
+  const rows = reservationsQuery.data?.rows ?? [];
   if (rows.length === 0) return <div className="empty-state">예약·결제 내역이 없습니다.</div>;
 
   return (
-    <table>
-      <thead>
-        <tr>
-          <th>프로그램</th>
-          <th>회차</th>
-          <th>상태</th>
-          <th>결제금액</th>
-          <th>결제상태</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.id}>
-            <td>{r.programName ?? '-'}</td>
-            <td>{r.slot ? `${r.slot.date} ${r.slot.startTime}~${r.slot.endTime}` : '-'}</td>
-            <td>
-              <span className={`badge ${r.status}`}>{RESERVATION_STATUS_LABEL[r.status]}</span>
-            </td>
-            <td>{r.payment ? `${r.payment.amount.toLocaleString()}원` : '-'}</td>
-            <td>{r.payment?.status ?? '-'}</td>
+    <>
+      <table>
+        <thead>
+          <tr>
+            <th>프로그램</th>
+            <th>회차</th>
+            <th>상태</th>
+            <th>결제금액</th>
+            <th>결제상태</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td>{r.programName ?? '-'}</td>
+              <td>{r.slot ? `${r.slot.date} ${r.slot.startTime}~${r.slot.endTime}` : '-'}</td>
+              <td>
+                <span className={`badge ${r.status}`}>{RESERVATION_STATUS_LABEL[r.status]}</span>
+              </td>
+              <td>{r.payment ? `${r.payment.amount.toLocaleString()}원` : '-'}</td>
+              <td>{r.payment?.status ?? '-'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <Pager
+        page={page}
+        pageSize={RESERVATION_PAGE_SIZE}
+        total={reservationsQuery.data?.total ?? 0}
+        onChange={setPage}
+        disabled={reservationsQuery.isFetching}
+      />
+    </>
   );
 }
 

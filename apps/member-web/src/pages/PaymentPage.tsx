@@ -12,7 +12,8 @@ import { ApiEnvelope, Payment, Reservation } from '../lib/types';
 export function PaymentPage() {
   const { reservationId = '' } = useParams();
   const passed = (useLocation().state as { reservation?: Reservation } | null)?.reservation;
-  const fallback = useLoad<Reservation[]>(passed ? null : '/reservations');
+  // D43 — 목록은 최근 예약부터 오므로 방금 만든 예약은 첫 쪽에 있다.
+  const fallback = useLoad<Reservation[]>(passed ? null : '/reservations?limit=20');
   const reservation = passed ?? fallback.data?.find((r) => r.id === reservationId);
 
   const [paid, setPaid] = useState<Payment | null>(null);

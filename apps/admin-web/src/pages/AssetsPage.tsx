@@ -1,16 +1,16 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
-import { groupByBranch } from '../lib/group-by-branch';
-import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
+import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
+import { Pager } from '../components/Pager';
+import { BranchFilter } from '../components/BranchFilter';
 import { ApiEnvelope, AssetCategory, AssetRow, AssetStatus, AssetType, BranchSummary } from '../lib/types';
-
 import { useToast } from '../lib/use-toast';
-const AUTO_EXPAND_THRESHOLD = 3;
+
+const PAGE_SIZE = 20;
 const FIXED_ASSET_THRESHOLD = 1_000_000;
 
 interface ApiErrorBody {
@@ -231,9 +231,30 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
 }
 
 export function AssetsPage() {
-  const { data, isLoading, isError, error } = useApiList<AssetRow>(['assets'], '/assets');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | AssetStatus>('ALL');
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const [branchId, setBranchId] = useState('');
+  // '' = 기본 목록(폐기 제외, B8 사용자 결정). 폐기 자산은 'DISPOSED'를 골라 따로 본다.
+  const [statusFilter, setStatusFilter] = useState<'' | AssetStatus>('');
+  const [page, setPage] = useState(1);
+
+  const filterKey = `${branchId}|${statusFilter}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setPage(1);
+  }
+
+  // D43 — 서버가 쪽 단위로 자르고, 상태를 고르지 않으면 폐기를 뺀다.
+  const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+  if (branchId) params.set('branchId', branchId);
+  if (statusFilter) params.set('status', statusFilter);
+  const { data, isLoading, isFetching, isError, error } = useApiPage<AssetRow>(
+    ['assets', branchId, statusFilter, page],
+    `/assets?${params}`,
+  );
+  const rows = data?.rows ?? [];
+  const total = data?.total ?? 0;
   const [showCreate, setShowCreate] = useState(false);
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -247,15 +268,6 @@ export function AssetsPage() {
     },
   });
 
-  const groups = useMemo(() => {
-    const rows = (data ?? []).filter((a) => statusFilter === 'ALL' || a.status === statusFilter);
-    const all = groupByBranch(rows);
-    const term = search.trim().toLowerCase();
-    return term ? all.filter((g) => g.branchName.toLowerCase().includes(term)) : all;
-  }, [data, search, statusFilter]);
-
-  const autoExpand = groups.length > 0 && groups.length <= AUTO_EXPAND_THRESHOLD;
-
   return (
     <>
       <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -263,7 +275,7 @@ export function AssetsPage() {
           <h2>자산·비품</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
             자원문서관리 부록 A 기준입니다. 취득가액 100만원 초과는 고정자산, 이하는 소모품으로 자동 분류됩니다.
-            재물조사·감가상각(Phase 2)은 아직 없습니다.
+            기본 목록은 폐기된 자산을 빼고 {PAGE_SIZE}건씩 보여 줍니다(D43).
           </p>
         </div>
         <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
@@ -271,92 +283,79 @@ export function AssetsPage() {
         </button>
       </div>
 
+      <div className="list-toolbar" style={{ gap: 8 }}>
+        {isSuperAdmin && <BranchFilter value={branchId} onChange={setBranchId} />}
+        {(['', 'NORMAL', 'REPAIRING', 'DISPOSAL_PENDING', 'DISPOSED'] as const).map((s) => (
+          <button
+            key={s || 'BASE'}
+            className={statusFilter === s ? 'filter-chip active' : 'filter-chip'}
+            onClick={() => setStatusFilter(s)}
+          >
+            {s === '' ? '보유 중(폐기 제외)' : STATUS_LABEL[s]}
+          </button>
+        ))}
+      </div>
+
       {isError && <div className="forbidden-note">{apiErrorMessage(error)}</div>}
       {statusMutation.isError && <div className="forbidden-note">{apiErrorMessage(statusMutation.error)}</div>}
       {isLoading && <div className="loading-state">불러오는 중...</div>}
+      {!isLoading && !isError && rows.length === 0 && <div className="empty-state">조건에 맞는 자산이 없습니다.</div>}
 
-      {!isLoading && !isError && (data?.length ?? 0) > 0 && (
-        <div className="list-toolbar">
-          <input
-            className="search-input"
-            placeholder="지점명 검색"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {(['ALL', 'NORMAL', 'REPAIRING', 'DISPOSAL_PENDING', 'DISPOSED'] as const).map((s) => (
-            <button
-              key={s}
-              className={statusFilter === s ? 'filter-chip active' : 'filter-chip'}
-              onClick={() => setStatusFilter(s)}
-            >
-              {s === 'ALL' ? '전체' : STATUS_LABEL[s]}
-            </button>
-          ))}
-        </div>
+      {!isError && rows.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              {isSuperAdmin && <th>지점</th>}
+              <th>자산코드</th>
+              <th>품명</th>
+              <th>분류</th>
+              <th>구분</th>
+              <th>취득가액</th>
+              <th>수량</th>
+              <th>위치</th>
+              <th>상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((a) => {
+              const next = STATUS_TRANSITIONS[a.status];
+              return (
+                <tr key={a.id}>
+                  {isSuperAdmin && <td>{a.branchName ?? '-'}</td>}
+                  <td>{a.assetCode}</td>
+                  <td>{a.name}</td>
+                  <td>{CATEGORY_LABEL[a.category]}</td>
+                  <td>{TYPE_LABEL[a.assetType]}</td>
+                  <td>{a.acquisitionCost.toLocaleString()}원</td>
+                  <td>{a.quantity}</td>
+                  <td>{a.location ?? '-'}</td>
+                  <td>
+                    {next.length > 0 ? (
+                      <select
+                        className="role-select"
+                        value={a.status}
+                        disabled={statusMutation.isPending}
+                        onChange={(e) => statusMutation.mutate({ id: a.id, status: e.target.value as AssetStatus })}
+                      >
+                        <option value={a.status}>{STATUS_LABEL[a.status]}</option>
+                        {next.map((s) => (
+                          <option key={s} value={s}>
+                            {STATUS_LABEL[s]}(으)로 전환
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className={`badge ${STATUS_BADGE[a.status]}`}>{STATUS_LABEL[a.status]}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       )}
 
-      {!isLoading && !isError && (data?.length ?? 0) === 0 && <div className="empty-state">등록된 자산이 없습니다.</div>}
-
-      {!isError &&
-        groups.map((group) => (
-          <CollapsibleBranchSection
-            key={group.branchId}
-            branchName={group.branchName}
-            count={group.rows.length}
-            countLabel="건"
-            defaultExpanded={autoExpand}
-          >
-            <table>
-              <thead>
-                <tr>
-                  <th>자산코드</th>
-                  <th>품명</th>
-                  <th>분류</th>
-                  <th>구분</th>
-                  <th>취득가액</th>
-                  <th>수량</th>
-                  <th>위치</th>
-                  <th>상태</th>
-                </tr>
-              </thead>
-              <tbody>
-                {group.rows.map((a) => {
-                  const next = STATUS_TRANSITIONS[a.status];
-                  return (
-                    <tr key={a.id}>
-                      <td>{a.assetCode}</td>
-                      <td>{a.name}</td>
-                      <td>{CATEGORY_LABEL[a.category]}</td>
-                      <td>{TYPE_LABEL[a.assetType]}</td>
-                      <td>{a.acquisitionCost.toLocaleString()}원</td>
-                      <td>{a.quantity}</td>
-                      <td>{a.location ?? '-'}</td>
-                      <td>
-                        {next.length > 0 ? (
-                          <select
-                            className="role-select"
-                            value={a.status}
-                            disabled={statusMutation.isPending}
-                            onChange={(e) => statusMutation.mutate({ id: a.id, status: e.target.value as AssetStatus })}
-                          >
-                            <option value={a.status}>{STATUS_LABEL[a.status]}</option>
-                            {next.map((s) => (
-                              <option key={s} value={s}>
-                                {STATUS_LABEL[s]}(으)로 전환
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span className={`badge ${STATUS_BADGE[a.status]}`}>{STATUS_LABEL[a.status]}</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </CollapsibleBranchSection>
-        ))}
+      <Pager page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} disabled={isFetching} />
 
       {showCreate && <CreateAssetModal onClose={() => setShowCreate(false)} />}
     </>

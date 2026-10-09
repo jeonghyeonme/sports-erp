@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from './api';
 import { ApiEnvelope } from './types';
@@ -27,4 +27,18 @@ export function apiErrorMessage(error: AxiosError<unknown> | null): string | nul
   if (!error) return null;
   const data = error.response?.data as { error?: { message?: string } } | undefined;
   return data?.error?.message ?? '데이터를 불러오지 못했습니다.';
+}
+
+// D43 — 쪽 단위 목록(회원·예약·결제·자산). url에 page·limit을 넣어 부르고, meta.total을 함께 돌려준다.
+// keepPreviousData로 쪽을 넘길 때 표가 비었다가 다시 그려지지 않게 한다.
+export function useApiPage<T>(key: unknown[], url: string, options?: { enabled?: boolean }) {
+  return useQuery<{ rows: T[]; total: number }, AxiosError<ApiErrorBody>>({
+    queryKey: key,
+    queryFn: async () => {
+      const res = await api.get<ApiEnvelope<T[]>>(url);
+      return { rows: res.data.data ?? [], total: Number(res.data.meta?.total ?? 0) };
+    },
+    placeholderData: keepPreviousData,
+    enabled: options?.enabled,
+  });
 }

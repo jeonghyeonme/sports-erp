@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
+import { Pager } from '../components/Pager';
 import { ApiEnvelope, PaymentRow, ProgramRow, ReservationRow, ReservationStatus, ScheduleSlotRow } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
@@ -19,6 +20,8 @@ const STATUS_LABEL: Record<ReservationStatus, string> = {
   COMPLETED: '완료',
   NO_SHOW: '노쇼',
 };
+
+const PAGE_SIZE = 20;
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -292,11 +295,28 @@ export function ReservationsPage() {
     ['programs', 'reservable'],
     '/programs?status=RUNNING&pricingType=PAID_SESSION',
   );
-  const myReservationsQuery = useApiList<ReservationRow>(['reservations', 'mine'], '/reservations');
+  // D43 — 예약·결제는 쪽 단위, 최근 것부터(B8 사용자 결정). 무효화는 ['reservations']·['payments'] 접두어로 그대로 된다.
+  const [myPage, setMyPage] = useState(1);
+  const [branchPage, setBranchPage] = useState(1);
+  const [paymentPage, setPaymentPage] = useState(1);
+  const myReservationsQuery = useApiPage<ReservationRow>(
+    ['reservations', 'mine', myPage],
+    `/reservations?page=${myPage}&limit=${PAGE_SIZE}`,
+    { enabled: isMember },
+  );
 
   const branchProgramsQuery = useApiList<ProgramRow>(['programs'], '/programs');
-  const branchReservationsQuery = useApiList<ReservationRow>(['reservations', 'branch'], '/reservations');
-  const paymentsQuery = useApiList<PaymentRow>(['payments'], '/payments');
+  const branchReservationsQuery = useApiPage<ReservationRow>(
+    ['reservations', 'branch', branchPage],
+    `/reservations?page=${branchPage}&limit=${PAGE_SIZE}`,
+    { enabled: isAdmin },
+  );
+  const paymentsQuery = useApiPage<PaymentRow>(['payments', paymentPage], `/payments?page=${paymentPage}&limit=${PAGE_SIZE}`, {
+    enabled: isAdmin,
+  });
+  const myRows = myReservationsQuery.data?.rows ?? [];
+  const branchRows = branchReservationsQuery.data?.rows ?? [];
+  const paymentRows = paymentsQuery.data?.rows ?? [];
 
   return (
     <>
@@ -329,7 +349,14 @@ export function ReservationsPage() {
             {myReservationsQuery.isError && (
               <div className="forbidden-note">{apiErrorMessage(myReservationsQuery.error)}</div>
             )}
-            {(myReservationsQuery.data?.length ?? 0) === 0 ? (
+            <Pager
+              page={myPage}
+              pageSize={PAGE_SIZE}
+              total={myReservationsQuery.data?.total ?? 0}
+              onChange={setMyPage}
+              disabled={myReservationsQuery.isFetching}
+            />
+            {myRows.length === 0 ? (
               <div className="empty-state">예약 내역이 없습니다.</div>
             ) : (
               <table>
@@ -343,7 +370,7 @@ export function ReservationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {myReservationsQuery.data!.map((r) => (
+                  {myRows.map((r) => (
                     <tr key={r.id}>
                       <td>{r.programName ?? '-'}</td>
                       <td>{slotLabel(r.slot)}</td>
@@ -377,7 +404,14 @@ export function ReservationsPage() {
             {branchReservationsQuery.isError && (
               <div className="forbidden-note">{apiErrorMessage(branchReservationsQuery.error)}</div>
             )}
-            {(branchReservationsQuery.data?.length ?? 0) === 0 ? (
+            <Pager
+              page={branchPage}
+              pageSize={PAGE_SIZE}
+              total={branchReservationsQuery.data?.total ?? 0}
+              onChange={setBranchPage}
+              disabled={branchReservationsQuery.isFetching}
+            />
+            {branchRows.length === 0 ? (
               <div className="empty-state">예약 내역이 없습니다.</div>
             ) : (
               <table>
@@ -391,7 +425,7 @@ export function ReservationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {branchReservationsQuery.data!.map((r) => (
+                  {branchRows.map((r) => (
                     <tr key={r.id}>
                       <td>{r.memberName ?? '-'}</td>
                       <td>{r.programName ?? '-'}</td>
@@ -426,7 +460,7 @@ export function ReservationsPage() {
           <div className="detail-section">
             <h3 className="section-title">결제 내역</h3>
             {paymentsQuery.isError && <div className="forbidden-note">{apiErrorMessage(paymentsQuery.error)}</div>}
-            {(paymentsQuery.data?.length ?? 0) === 0 ? (
+            {paymentRows.length === 0 ? (
               <div className="empty-state">결제 내역이 없습니다.</div>
             ) : (
               <table>
@@ -442,7 +476,7 @@ export function ReservationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paymentsQuery.data!.map((p) => (
+                  {paymentRows.map((p) => (
                     <tr key={p.id}>
                       <td>{p.memberName ?? '-'}</td>
                       <td>{p.programName ?? '-'}</td>
@@ -458,6 +492,13 @@ export function ReservationsPage() {
                 </tbody>
               </table>
             )}
+            <Pager
+              page={paymentPage}
+              pageSize={PAGE_SIZE}
+              total={paymentsQuery.data?.total ?? 0}
+              onChange={setPaymentPage}
+              disabled={paymentsQuery.isFetching}
+            />
           </div>
         </>
       )}
