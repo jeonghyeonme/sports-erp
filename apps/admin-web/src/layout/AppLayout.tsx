@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/use-auth';
 import { Role } from '../lib/types';
+import { findScreenHelp } from '../lib/help-content';
+import { HelpPanel } from '../components/HelpPanel';
 
 interface NavLinkItem {
   to: string;
@@ -131,6 +133,9 @@ export function AppLayout() {
   // 접힌 그룹의 라벨만 기록(기본값 = 전부 펼침) — AppLayout은 로그인 세션 동안 계속 마운트돼 있어
   // 페이지를 이동해도 펼침 상태가 그대로 유지된다.
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
+  // 화면별 도움말(log/089) — 열린 채로 다른 화면으로 가면 그 화면 도움말로 바뀐다(경로로 매번 찾음).
+  const [helpOpen, setHelpOpen] = useState(false);
+  const closeHelp = useCallback(() => setHelpOpen(false), []);
 
   if (!user) return null;
 
@@ -174,13 +179,26 @@ export function AppLayout() {
             <span className="role-badge">{ROLE_LABEL[user.role]}</span>
             {user.branchName && <span className="role-badge">{user.branchName}</span>}
           </div>
-          <button className="logout-btn" onClick={logout}>
-            로그아웃
-          </button>
+          <div className="topbar-actions">
+            <button
+              type="button"
+              className={helpOpen ? 'help-btn active' : 'help-btn'}
+              onClick={() => setHelpOpen((v) => !v)}
+              aria-expanded={helpOpen}
+            >
+              ? 도움말
+            </button>
+            <button className="logout-btn" onClick={logout}>
+              로그아웃
+            </button>
+          </div>
         </header>
-        <main className="content">
-          <Outlet />
-        </main>
+        <div className={helpOpen ? 'content-row with-help' : 'content-row'}>
+          <main className="content">
+            <Outlet />
+          </main>
+          {helpOpen && <HelpPanel help={findScreenHelp(location.pathname)} role={user.role} onClose={closeHelp} />}
+        </div>
       </div>
     </div>
   );
