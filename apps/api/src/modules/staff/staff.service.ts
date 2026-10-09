@@ -46,12 +46,14 @@ export class StaffService {
   }
 
   /** 인사정보관리 A-5 GET /staff/:id/assignments — 최신 파견이 먼저. */
-  async history(staffId: string): Promise<MockStaffAssignment[]> {
+  // 지점명을 붙여 준다 — 지점 관리자는 GET /branches로 자기 지점만 보므로 화면이 예전 파견 지점 이름을 알 길이 없다(log/090).
+  async history(staffId: string): Promise<Array<MockStaffAssignment & { branchName: string }>> {
     const rows = await this.prisma.staffAssignment.findMany({
       where: { staffId },
+      include: { branch: { select: { name: true } } },
       orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
     });
-    return rows.map(toMockAssignment);
+    return rows.map((a) => ({ ...toMockAssignment(a), branchName: a.branch.name }));
   }
 
   // ── 쓰기 ──────────────────────────────────────────────
@@ -84,8 +86,13 @@ export class StaffService {
     let staffId: string;
     try {
       staffId = await this.prisma.$transaction(async (tx) => {
-        const branch = await tx.branch.findUnique({ where: { id: input.branchId }, select: { id: true, code: true } });
+        const branch = await tx.branch.findUnique({
+          where: { id: input.branchId },
+          select: { id: true, code: true, contractStatus: true },
+        });
         if (!branch) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+        // 계약 종료 지점은 신규 활동 차단(CLAUDE.md 불변식) — 채용(=최초 파견)도 새 파견이다(log/090).
+        if (branch.contractStatus === 'TERMINATED') throw terminatedBranch();
 
         const account = await tx.account.create({
           data: { email: input.email, passwordHash, role: 'STAFF', name: input.name },
@@ -194,9 +201,10 @@ export class StaffService {
       if (staff.status === 'RESIGNED') {
         throw new AppException('STAFF_ALREADY_RESIGNED', '퇴사한 직원은 재파견할 수 없습니다.', 409);
       }
-      if (!(await tx.branch.findUnique({ where: { id: newBranchId }, select: { id: true } }))) {
-        throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
-      }
+      const target = await tx.branch.findUnique({ where: { id: newBranchId }, select: { contractStatus: true } });
+      if (!target) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+      // Prisma 도메인이라 gate 대신 트랜잭션 안에서 지점을 직접 읽는다(branch-gate.ts 주석). 떠나는 지점이 종료여도 막지 않는다(log/090).
+      if (target.contractStatus === 'TERMINATED') throw terminatedBranch();
       await tx.staffAssignment.updateMany({ where: { staffId: id, endDate: null }, data: { endDate: today } });
       await tx.staffAssignment.create({
         data: { staffId: id, branchId: newBranchId, startDate: today, assignedBy: assignedByAccountId, note },
@@ -284,6 +292,10 @@ function staffNotFound() {
 
 function emailTaken() {
   return new AppException('EMAIL_ALREADY_EXISTS', '이미 사용 중인 이메일입니다.', 409);
+}
+
+function terminatedBranch() {
+  return new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 직원을 파견할 수 없습니다.', 409);
 }
 
 // DB 행 → mock 형태. null은 필드 생략(undefined)으로, 빈 휴무 요일도 생략으로 바꿔 이관 전 응답 형식을 유지한다.
