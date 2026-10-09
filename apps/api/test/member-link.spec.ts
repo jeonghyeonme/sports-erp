@@ -54,6 +54,17 @@ describe('POST /members/link (오프라인↔앱 연동)', () => {
     expect(res.body.error.code).toBe('MEMBER_LINK_MISMATCH');
   });
 
+  it('전화번호는 숫자만 비교한다 — 하이픈 없이 넣어도 연동된다(log/092)', async () => {
+    const res = await link({ phone: '01023456789' });
+    expect(res.status).toBe(201);
+  });
+
+  it('넣은 전화번호에 숫자가 없으면 불일치다', async () => {
+    const res = await link({ phone: '---' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('MEMBER_LINK_MISMATCH');
+  });
+
   it('존재하지 않는 회원번호도 동일하게 400 MEMBER_LINK_MISMATCH', async () => {
     const res = await link({ memberNo: 'NO-SUCH-001' });
     expect(res.status).toBe(400);

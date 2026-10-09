@@ -12,6 +12,9 @@ import { MyReservationsPage } from './pages/MyReservationsPage';
 import { NoticesPage } from './pages/NoticesPage';
 import { NoticeDetailPage } from './pages/NoticeDetailPage';
 import { MyInfoPage } from './pages/MyInfoPage';
+import { JoinPage } from './pages/JoinPage';
+import { SignupPage } from './pages/SignupPage';
+import { LinkPage } from './pages/LinkPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, isRestoring } = useAuth();
@@ -28,6 +31,10 @@ export default function App() {
       <BrowserRouter basename="/m/">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* 가입·연동(log/092) — 로그인 전 화면 */}
+          <Route path="/join" element={<JoinPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/link" element={<LinkPage />} />
           <Route
             element={
               <RequireAuth>

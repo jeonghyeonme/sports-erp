@@ -93,9 +93,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (refreshToken && !options?.serverRevoked) await revokeRefreshToken(refreshToken);
     };
 
+    const startSession = (result: LoginResult) => {
+      clearLoadCache();
+      setSession(result);
+      setSessionExpired(false);
+      setLoginNotice(null);
+      setUser(result.user);
+    };
+
     const renameUser = (name: string) => setUser((u) => (u ? { ...u, name } : u));
 
-    return { user, isRestoring, sessionExpired, loginNotice, login, logout, renameUser };
+    return { user, isRestoring, sessionExpired, loginNotice, login, startSession, logout, renameUser };
   }, [user, isRestoring, sessionExpired, loginNotice]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -184,9 +184,12 @@ export class MemberService {
       throw new AppException('LINK_ATTEMPTS_EXCEEDED', '연동 시도 횟수를 초과했습니다. 1시간 후 다시 시도하세요.', 429);
     }
     // 회원번호 불일치·전화번호 불일치·탈퇴 회원을 같은 메시지로 묶는다 — 부분 정보를 주지 않기 위함(회원관리 §8 질문 1).
-    const member = await this.prisma.member.findFirst({
-      where: { memberNo: input.memberNo, phone: input.phone, status: { not: 'WITHDRAWN' } },
+    // 전화번호는 숫자만 비교한다(log/092) — 지점이 "010-1234-5678"로 적었어도 "01012345678"로 넣은 본인이
+    // 불일치로 시도 횟수를 잃지 않게. 회원번호는 unique라 후보는 최대 1명이다.
+    const found = await this.prisma.member.findFirst({
+      where: { memberNo: input.memberNo, status: { not: 'WITHDRAWN' } },
     });
+    const member = found && digitsOf(found.phone) !== '' && digitsOf(found.phone) === digitsOf(input.phone) ? found : null;
     if (!member) {
       await this.prisma.memberLinkAttempt.create({ data: { memberNo: input.memberNo } });
       throw new AppException('MEMBER_LINK_MISMATCH', '회원번호 또는 전화번호가 일치하지 않습니다.', 400);
@@ -459,3 +462,6 @@ function toMockLog(row: PTSessionLog): MockPTSessionLog {
   return { id: row.id, ptSessionId: row.ptSessionId, usedAt: row.usedAt.toISOString(), note: row.note ?? undefined };
 }
 
+function digitsOf(phone: string | null | undefined): string {
+  return (phone ?? '').replace(/\D/g, '');
+}

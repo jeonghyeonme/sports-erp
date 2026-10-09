@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/use-auth';
 import { SESSION_EXPIRED_MESSAGE } from '../lib/errors';
 
@@ -76,6 +76,10 @@ export function LoginPage() {
           {submitting ? '로그인 중…' : '로그인'}
         </button>
       </form>
+
+      <p className="login-links">
+        처음 오셨나요? <Link to="/join">가입·지점 회원 연결</Link>
+      </p>
     </div>
   );
 }

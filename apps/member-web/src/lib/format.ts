@@ -41,3 +41,21 @@ export function shortDate(date: string): string {
   const [, m, d] = date.slice(0, 10).split('-').map(Number);
   return `${m}. ${d}.`;
 }
+
+// 연락처 형식 — 서버는 형식을 검사하지 않으므로 화면에서 흔한 실수만 막는다(휴대폰·지역번호, 하이픈 선택).
+// 내 정보 수정·가입·연동이 같이 쓴다.
+export const PHONE_RE = /^0\d{1,2}-?\d{3,4}-?\d{4}$/;
+
+// 회원관리 A-6 — 만 19세 미만이면 법정대리인 동의가 필요하다(서버도 검사한다, GUARDIAN_CONSENT_REQUIRED).
+// 생년월일(YYYY-MM-DD)과 오늘 KST 날짜로 만 나이를 센다.
+export function isMinor(birthDate: string, today = todayKst()): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return false;
+  const [by, bm, bd] = birthDate.split('-').map(Number);
+  const [ty, tm, td] = today.split('-').map(Number);
+  const age = ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0);
+  return age < 19;
+}
+
+export function todayKst(): string {
+  return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}

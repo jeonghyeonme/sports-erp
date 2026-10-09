@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import { AuthUser } from './types';
+import { AuthUser, LoginResult } from './types';
 
 // admin-web과 같은 이유로 context·훅을 Provider 파일과 분리한다(react-refresh/only-export-components).
 export interface AuthContextValue {
@@ -11,6 +11,8 @@ export interface AuthContextValue {
   // 로그아웃하며 로그인 화면에 남길 안내(예: 비밀번호 변경 후 다시 로그인, log/091)
   loginNotice: string | null;
   login: (email: string, password: string) => Promise<void>;
+  // 가입·연동(POST /members/register·link)이 돌려준 세션으로 바로 로그인한다 — /auth/login을 다시 부르지 않는다(⑩, log/092).
+  startSession: (result: LoginResult) => void;
   // serverRevoked: 서버가 이미 refresh token을 폐기했으면(비밀번호 변경) /auth/logout을 다시 부르지 않는다(design-constants ⑩).
   logout: (options?: { notice?: string; serverRevoked?: boolean }) => Promise<void>;
   // 내 정보에서 이름을 고친 뒤 상단·홈 인사에 바로 반영한다(/auth/me를 다시 부르지 않는다 — design-constants ⑩).
