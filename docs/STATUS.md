@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-09 · [log/092](log/092.md)(회원 가입·연동 화면, ADR-MEM-05)
+> 마지막 갱신: 2026-10-09 · [log/093](log/093.md)(사용자 결정 일괄 — 퇴사 담당 해제·env 스크립트·외래키·statement_timeout)
 
 ## 현재 상태
 
@@ -22,6 +22,7 @@
 
 > 각 항목을 새 세션에서 시작하는 방법(근거·범위·완료 기준·주의점)은 [작업 브리프](process/04_작업_브리프.md)의 B 번호를 본다.
 
+0. **배포 DB SQL 실행(사용자)** — 외래키 3·업무일지 unique·`statement_timeout` 5초. Supabase SQL Editor에서 [log/093](log/093.md)의 SQL 블록을 그대로 실행한다(커넥터 쓰기가 시간 초과로 적용되지 않았다).
 0. **화면 재배포(사용자)** — 가입·연동 화면(log/092)은 병합 뒤 `npm run build:web` → `cd cloudflare-worker && npx wrangler deploy`로 Worker에 다시 올려야 보인다(api는 병합 시 Lambda 자동 배포). 그다음 Cloudflare 일일 요청 관찰(D40 재고 트리거 9만).
 1. 배포 확인(사용자): 2026-10-09 Worker 배포까지 반영된 것 — 회원 웹, 목록 페이지네이션(B8), 화면별 도움말, 인사 화면, 비밀번호 변경. 운영 화면에서 한 번씩 눌러 보기.
 2. RFP 잔여(작음): 상세 전화번호 열람 기록(D44 범위 밖) — 요구사항추적표 §2-3. 화면별 도움말은 admin-web 완료(log/089), member-web 오류 해결 줄은 남음
@@ -30,11 +31,7 @@
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 
-- **보조 스크립트 처리 — 미정.** 선택지 A(`set-lambda-env.sh` 경고를 중단으로) / B(Worker 전환·k6 실행·진단 스크립트를 `aws-lambda/`로) / C(두지 않음). 내용·비용은 [log/056](log/056.md) "미정" 표.
-- DB 제약 보강(스키마 변경): `Document.relatedStaffId`·`uploadedBy` 외래키([D34](decisions/D34.md)), `Post.authorId`, `WorkLog(staffId, date)` unique([D33](decisions/D33.md)).
 - 지점 격리 검사의 공통 가드 중앙화 — 전제조건(실DB 전환) 충족([요구사항추적표](reference/요구사항추적표.md) §3).
-- Lambda용 DB 역할 `statement_timeout` 설정(DB 변경, D37).
-- 퇴사 시 담당 회원 해제 여부 — 지금은 퇴사한 직원이 회원 담당으로 남는다(파견은 해제, ADR-STF-04). [log/090](log/090.md)
 
 ## 열린 위험
 
