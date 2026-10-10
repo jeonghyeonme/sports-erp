@@ -4,6 +4,7 @@ import { describeError } from '../lib/errors';
 import { sinceLabel } from '../lib/format';
 import { HOME_CARD_CACHE_MS, LEVEL_LABELS, REFRESH_COOLDOWN_MS } from '../lib/congestion';
 import { Facility } from '../lib/types';
+import { SkeletonLines } from './Skeleton';
 
 // 홈 혼잡도 카드 — GET /facilities 1회(지점은 서버가 본인 지점으로 강제, 운영 중 시설만). 60초 안에 다시 오면 0회(캐시).
 // ADR-FAC-04: 자동 폴링하지 않는다. 새로고침 버튼은 마지막 조회 뒤 30초가 지나야 다시 누를 수 있다.
@@ -59,7 +60,7 @@ export function CongestionCard() {
           {describeError(error, '혼잡도를 불러오지 못했습니다.')}
         </p>
       ) : loading ? (
-        <p className="muted">불러오는 중…</p>
+        <SkeletonLines />
       ) : facilities.length === 0 ? (
         <p className="muted">혼잡도를 표시할 시설이 없습니다.</p>
       ) : (

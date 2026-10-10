@@ -26,6 +26,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 저장된 refresh token이 있으면 처음부터 "복원 중"으로 시작한다(effect 안에서 동기 setState를 하지 않기 위해).
   const [isRestoring, setIsRestoring] = useState(() => readRefreshToken() !== null);
   const [sessionExpired, setSessionExpired] = useState(false);
+  // log/094 — 오프라인으로 앱을 열어 세션 복원 요청이 서버에 닿지 못했다. 저장된 토큰은 지우지 않는다.
+  const [restoreOffline, setRestoreOffline] = useState(false);
   const [loginNotice, setLoginNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,6 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setUser(res.data.data ?? null);
       })
       .catch((err) => {
+        // 네트워크 오류(응답 없음) — 홈 화면 앱을 오프라인으로 열었을 때다. 토큰을 지우면 연결이 돌아와도 다시 로그인해야 하므로
+        // 그대로 두고, 화면은 "연결 필요"를 보인다(log/094). 서버가 거절했을 때만 세션을 지운다.
+        if (!(err as AxiosError)?.response) {
+          if (!cancelled) setRestoreOffline(true);
+          return;
+        }
         // 만료·폐기된 토큰이면 정상적으로 로그인 화면으로 간다. 원인은 콘솔에 남긴다.
         console.warn('저장된 세션을 복원하지 못했습니다.', err);
         setSession(null);
@@ -101,10 +109,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(result.user);
     };
 
+    const retryRestore = () => {
+      setRestoreOffline(false);
+      setIsRestoring(true);
+    };
+
     const renameUser = (name: string) => setUser((u) => (u ? { ...u, name } : u));
 
-    return { user, isRestoring, sessionExpired, loginNotice, login, startSession, logout, renameUser };
-  }, [user, isRestoring, sessionExpired, loginNotice]);
+    return { user, isRestoring, restoreOffline, retryRestore, sessionExpired, loginNotice, login, startSession, logout, renameUser };
+  }, [user, isRestoring, restoreOffline, sessionExpired, loginNotice]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

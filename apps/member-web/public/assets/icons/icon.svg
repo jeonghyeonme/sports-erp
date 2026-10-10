@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 스포이즘 회원 앱 아이콘(log/094) — 브랜드색(#0f766e) 바탕에 흰 덤벨. maskable 안전 영역(가운데 80%) 안에 그린다. -->
+  <rect width="512" height="512" fill="#0f766e"/>
+  <g fill="#ffffff" transform="rotate(-35 256 256)">
+    <rect x="150" y="241" width="212" height="30" rx="10"/>
+    <rect x="112" y="176" width="44" height="160" rx="14"/>
+    <rect x="356" y="176" width="44" height="160" rx="14"/>
+    <rect x="80" y="204" width="34" height="104" rx="12"/>
+    <rect x="398" y="204" width="34" height="104" rx="12"/>
+  </g>
+</svg>

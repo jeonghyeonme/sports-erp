@@ -6,6 +6,7 @@ import { describeError, errorCode } from '../lib/errors';
 import { CANCEL_DEADLINE_HOURS, dateLabel, slotStartMs, won } from '../lib/format';
 import { ApiEnvelope, Program, Reservation, SlotWithCount } from '../lib/types';
 import { BottomSheet } from '../components/BottomSheet';
+import { SkeletonList } from '../components/Skeleton';
 
 // 예약하기 2단계 — 회차 선택 → 예약 확인 시트 → POST /reservations.
 // 호출: 회차 1회(GET /programs/:id/slots) + 예약 1회. 프로그램 정보는 목록 화면이 넘겨 주고,
@@ -52,7 +53,7 @@ export function ProgramSlotsPage() {
   };
 
   const loadError = slots.error ?? fallback.error;
-  if (slots.loading || fallback.loading) return <p className="muted center">불러오는 중…</p>;
+  if (slots.loading || fallback.loading) return <SkeletonList />;
   if (loadError || !program) {
     return (
       <div className="panel error-panel" role="alert">
@@ -72,9 +73,6 @@ export function ProgramSlotsPage() {
   return (
     <div className="stack">
       <div>
-        <Link to="/programs" className="back-link">
-          ← 프로그램 목록
-        </Link>
         <h1>{program.name}</h1>
         <p className="muted">
           {program.category}

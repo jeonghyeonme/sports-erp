@@ -5,6 +5,7 @@ import { useLoad } from '../lib/use-load';
 import { describeError } from '../lib/errors';
 import { dateLabel, won } from '../lib/format';
 import { ApiEnvelope, Payment, Reservation } from '../lib/types';
+import { SkeletonList } from '../components/Skeleton';
 
 // 예약하기 3단계 — 모의 결제(POST /payments/:reservationId/mock-pay, 호출 1회). 결제는 예약 직후 이 화면에서만 한다
 // (B1-2 사용자 결정, log/083). 예약 화면이 넘겨 준 예약을 쓰고, 이 주소를 새로고침했을 때만 내 예약을 1회 부른다.
@@ -35,7 +36,7 @@ export function PaymentPage() {
     }
   };
 
-  if (fallback.loading) return <p className="muted center">불러오는 중…</p>;
+  if (fallback.loading) return <SkeletonList />;
   if (fallback.error || !reservation) {
     return (
       <div className="panel error-panel" role="alert">

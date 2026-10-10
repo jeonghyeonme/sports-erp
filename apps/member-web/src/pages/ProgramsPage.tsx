@@ -3,13 +3,14 @@ import { useLoad } from '../lib/use-load';
 import { describeError } from '../lib/errors';
 import { won } from '../lib/format';
 import { Program } from '../lib/types';
+import { SkeletonList } from '../components/Skeleton';
 
 // 예약하기 1단계 — 운영 중 프로그램 목록. 호출 1회(GET /programs?status=RUNNING). 지점은 서버가 본인 지점으로 강제한다
 // (BranchScopeGuard). 회차 예약을 받는 것은 PAID_SESSION뿐이다(api reservation.service NOT_RESERVABLE).
 export function ProgramsPage() {
   const { data, error, loading, reload } = useLoad<Program[]>('/programs?status=RUNNING');
 
-  if (loading) return <p className="muted center">불러오는 중…</p>;
+  if (loading) return <SkeletonList />;
   if (error) {
     return (
       <div className="panel error-panel" role="alert">

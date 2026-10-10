@@ -6,12 +6,13 @@ import { describeError } from '../lib/errors';
 import { PHONE_RE } from '../lib/format';
 import { ChangePasswordSection } from '../components/ChangePasswordSection';
 import { ApiEnvelope, Enrollment, MemberProfile, PTPackage } from '../lib/types';
+import { SkeletonLines, SkeletonList } from '../components/Skeleton';
 
 
 // 내 정보 — GET /members/:id 1회(이름·연락처·지점 + 수강 중·PT 잔여 요약, ADR-MEM-03).
 // 수강·PT 목록은 펼칠 때만 1회씩 부른다. 수정은 이름·연락처만(B1-3 사용자 결정) — 담당 직원·메모는 서버가 막는다.
 export function MyInfoPage() {
-  const { user, renameUser } = useAuth();
+  const { user, renameUser, logout } = useAuth();
   const memberId = user?.memberId ?? '';
   const profile = useLoad<MemberProfile>(`/members/${encodeURIComponent(memberId)}`);
   const [editing, setEditing] = useState<{ name: string; phone: string } | null>(null);
@@ -57,7 +58,7 @@ export function MyInfoPage() {
     }
   };
 
-  if (profile.loading) return <p className="muted center">불러오는 중…</p>;
+  if (profile.loading) return <SkeletonList />;
   if (profile.error || !p) {
     return (
       <div className="panel error-panel" role="alert">
@@ -173,6 +174,11 @@ export function MyInfoPage() {
       </section>
 
       <ChangePasswordSection />
+
+      {/* log/094 — 로그아웃은 앱처럼 내 정보 맨 아래에 둔다(상단 바에서 옮김). */}
+      <button type="button" className="secondary-button danger-text" onClick={() => void logout()}>
+        로그아웃
+      </button>
     </div>
   );
 }
@@ -186,7 +192,7 @@ function LoadList({
   empty: string;
   children: ReactNode;
 }) {
-  if (state.loading) return <p className="muted">불러오는 중…</p>;
+  if (state.loading) return <SkeletonLines lines={2} />;
   if (state.error) return <p className="form-error">{describeError(state.error, '불러오지 못했습니다.')}</p>;
   if (!state.data?.length) return <p className="muted">{empty}</p>;
   return <ul className="list">{children}</ul>;

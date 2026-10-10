@@ -4,6 +4,7 @@ import { useLoad } from '../lib/use-load';
 import { describeError } from '../lib/errors';
 import { shortDate } from '../lib/format';
 import { Post } from '../lib/types';
+import { SkeletonList } from '../components/Skeleton';
 
 const PAGE_SIZE = 20;
 
@@ -17,9 +18,6 @@ export function NoticesPage() {
   return (
     <div className="stack">
       <div>
-        <Link to="/" className="back-link">
-          ← 홈
-        </Link>
         <h1>공지</h1>
       </div>
       {error ? (
@@ -30,7 +28,7 @@ export function NoticesPage() {
           </button>
         </div>
       ) : loading ? (
-        <p className="muted center">불러오는 중…</p>
+        <SkeletonList />
       ) : (data ?? []).length === 0 ? (
         <p className="panel empty-state">공지가 없습니다.</p>
       ) : (
