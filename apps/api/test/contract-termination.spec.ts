@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { BranchContractStatus } from '@prisma/client';
+import { todayKst, toKstDateString } from '../src/common/date/kst-date';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
 import { setBranchStatus } from './helpers/branch-status';
 import { resetWorkerDb } from './helpers/worker-db';
@@ -23,6 +24,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
   const api = (auth: string) => ({
     get: (p: string) => request(app.getHttpServer()).get(`/api/v1${p}`).set('Authorization', auth),
     post: (p: string, b?: object) => request(app.getHttpServer()).post(`/api/v1${p}`).set('Authorization', auth).send(b),
+    patch: (p: string, b?: object) => request(app.getHttpServer()).patch(`/api/v1${p}`).set('Authorization', auth).send(b),
   });
 
   beforeEach(async () => {
@@ -243,6 +245,103 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
   });
 
   // entities.md §2-1: "TERMINATED 지점에 현재 파견 중(StaffAssignment.endDate=null)인 직원이 있으면
-  // 그 파견을 종료 처리하고 본사가 재배치할 대상 목록에 올려야 함". 코드에는 아직 없다(계약 상태를 바꾸는 API도 없음).
-  it.todo('TERMINATED 전이 시 파견 중인 직원의 파견을 종료하고 재배치 대상 목록에 올린다 (entities.md §2-1, 미구현)');
+  // 그 파견을 종료 처리하고 본사가 재배치할 대상 목록에 올려야 함" — ADR-STF-07(PATCH /branches/:id/contract-status).
+  describe('TERMINATED 전이 시 진행 중 파견 자동 종료 (ADR-STF-07)', () => {
+    const changeStatus = (auth: string, status: BranchContractStatus, branchId: string = BRANCH.seocho) =>
+      api(auth).patch(`/branches/${branchId}/contract-status`, { status });
+    const openAtSeocho = () => db(app).staffAssignment.findMany({ where: { branchId: BRANCH.seocho, endDate: null } });
+
+    it('파견을 오늘 날짜로 종료하고, 재배치 대상·담당 해제 회원을 돌려주고, 담당·강사 연결을 같은 트랜잭션에서 푼다', async () => {
+      const prisma = db(app);
+      const before = await openAtSeocho();
+      // 전제: 서초점에 진행 중 파견 2건(민수·서연), 서연은 담당 회원 1명·강사 프로필 1개
+      expect(before.map((a) => a.staffId).sort()).toEqual(['staff-minsu', 'staff-seoyeon']);
+      expect(await prisma.member.count({ where: { assignedStaffId: 'staff-seoyeon' } })).toBe(1);
+      expect(await prisma.instructor.count({ where: { staffId: 'staff-seoyeon' } })).toBe(1);
+
+      const res = await changeStatus(superAdmin, 'TERMINATED');
+      expect(res.status).toBe(200);
+      expect(res.body.data.contractStatus).toBe('TERMINATED');
+      expect(res.body.data.previousStatus).not.toBe('TERMINATED');
+      expect(res.body.data.reassignmentTargets.map((s: { id: string }) => s.id)).toEqual(['staff-minsu', 'staff-seoyeon']);
+      expect(res.body.data.unassignedMembers).toHaveLength(1);
+      expect(res.body.data.unassignedMembers[0].staffId).toBe('staff-seoyeon');
+
+      expect(await openAtSeocho()).toHaveLength(0);
+      const ended = await prisma.staffAssignment.findMany({ where: { id: { in: before.map((a) => a.id) } } });
+      expect(ended.map((a) => toKstDateString(a.endDate!))).toEqual([todayKst(), todayKst()]);
+      expect(await prisma.member.count({ where: { assignedStaffId: 'staff-seoyeon' } })).toBe(0);
+      expect(await prisma.instructor.count({ where: { staffId: 'staff-seoyeon' } })).toBe(0);
+      // 퇴사가 아니다 — 재직 상태·계정·Staff.branchId(재배치 대기 표시)는 그대로
+      const seoyeon = await prisma.staff.findUniqueOrThrow({ where: { id: 'staff-seoyeon' }, include: { account: true } });
+      expect(seoyeon.status).toBe('ACTIVE');
+      expect(seoyeon.account.isActive).toBe(true);
+      expect(seoyeon.branchId).toBe(BRANCH.seocho);
+      // D44 — 직원별 이력 2건, 처리자는 본사 관리자
+      const audits = await prisma.auditLog.findMany({ where: { action: 'ASSIGNMENT_ENDED' } });
+      expect(audits.map((a) => a.entityId).sort()).toEqual(['staff-minsu', 'staff-seoyeon']);
+      expect(audits.every((a) => a.actorId === 'account-haneul')).toBe(true);
+    });
+
+    it('재배치 대상 직원은 본사가 다른 지점으로 발령할 수 있다(빼내는 발령 허용, ADR-STF-05)', async () => {
+      await changeStatus(superAdmin, 'TERMINATED');
+      const res = await api(superAdmin).post('/staff/staff-seoyeon/assignments', { branchId: BRANCH.gangnam });
+      expect(res.status).toBe(201);
+      expect(res.body.data.branchId).toBe(BRANCH.gangnam);
+      const open = await db(app).staffAssignment.findMany({ where: { staffId: 'staff-seoyeon', endDate: null } });
+      expect(open.map((a) => a.branchId)).toEqual([BRANCH.gangnam]);
+    });
+
+    describe.each<BranchContractStatus>(['RENEWAL_DUE', 'EXPIRED'])('대조군 — %s 전이는 파견을 건드리지 않는다', (status) => {
+      it('진행 중 파견·담당 회원·강사 연결·이력 모두 그대로', async () => {
+        const prisma = db(app);
+        const res = await changeStatus(superAdmin, status);
+        expect(res.status).toBe(200);
+        expect(res.body.data.contractStatus).toBe(status);
+        expect(res.body.data.reassignmentTargets).toEqual([]);
+        expect(await openAtSeocho()).toHaveLength(2);
+        expect(await prisma.member.count({ where: { assignedStaffId: 'staff-seoyeon' } })).toBe(1);
+        expect(await prisma.instructor.count({ where: { staffId: 'staff-seoyeon' } })).toBe(1);
+        expect(await prisma.auditLog.count({ where: { action: 'ASSIGNMENT_ENDED' } })).toBe(0);
+      });
+    });
+
+    it('이미 TERMINATED인 지점을 다시 TERMINATED로 지정하면 전이가 아니므로 아무것도 종료하지 않는다', async () => {
+      await setSeochoStatus('TERMINATED'); // 테스트용으로 상태만 바꾼다(파견은 열린 채)
+      const res = await changeStatus(superAdmin, 'TERMINATED');
+      expect(res.status).toBe(200);
+      expect(res.body.data.reassignmentTargets).toEqual([]);
+      expect(await openAtSeocho()).toHaveLength(2);
+    });
+
+    it('지점 관리자는 자기 지점이라도 계약 상태를 바꿀 수 없다(403) — 대조군은 위의 본사 200', async () => {
+      const res = await changeStatus(admin, 'TERMINATED');
+      expect(res.status).toBe(403);
+      expect(await openAtSeocho()).toHaveLength(2);
+      expect((await db(app).branch.findUniqueOrThrow({ where: { id: BRANCH.seocho } })).contractStatus).not.toBe('TERMINATED');
+    });
+
+    it('잘못된 상태 값은 400, 없는 지점은 404', async () => {
+      expect((await api(superAdmin).patch(`/branches/${BRANCH.seocho}/contract-status`, { status: 'CLOSED' })).status).toBe(400);
+      const res = await changeStatus(superAdmin, 'TERMINATED', 'branch-nope');
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('BRANCH_NOT_FOUND');
+    });
+
+    it('종료 전이와 동시에 들어온 발령이 종료 지점에 활성 파견을 남기지 않는다(지점 행 락, 실DB 동시성)', async () => {
+      const others = await db(app).staff.findMany({
+        where: { status: 'ACTIVE', branchId: { not: BRANCH.seocho } },
+        orderBy: { staffCode: 'asc' },
+        take: 6,
+      });
+      const assigns = others.map((s) => api(superAdmin).post(`/staff/${s.id}/assignments`, { branchId: BRANCH.seocho }));
+      const [terminate, ...results] = await Promise.all([changeStatus(superAdmin, 'TERMINATED'), ...assigns]);
+      expect(terminate.status).toBe(200);
+      // 각 발령은 종료 전에 커밋돼 종료 대상이 되거나(201), 종료 뒤라 거부된다(409) — 어느 쪽이든 결과는 같다.
+      for (const r of results) expect([201, 409]).toContain(r.status);
+      expect(await openAtSeocho()).toHaveLength(0);
+      const committedBefore = results.filter((r) => r.status === 201).length;
+      expect(terminate.body.data.reassignmentTargets).toHaveLength(2 + committedBefore);
+    });
+  });
 });

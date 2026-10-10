@@ -364,7 +364,7 @@ export interface AuditLogRow {
   entity: string;
   entityId: string;
   entityName?: string;
-  action: 'ROLE_CHANGED' | 'RESIGNED' | 'ASSIGNED' | string;
+  action: 'ROLE_CHANGED' | 'RESIGNED' | 'ASSIGNED' | 'ASSIGNMENT_ENDED' | string;
   before?: Record<string, unknown>;
   after?: Record<string, unknown>;
 }

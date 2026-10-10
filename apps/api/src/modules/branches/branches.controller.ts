@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -8,6 +8,7 @@ import { ok } from '../../common/http/api-response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { toMockProgram } from '../programs/program.service';
 import { BranchService } from './branch.service';
+import { ChangeContractStatusDto } from './dto/change-contract-status.dto';
 
 @Controller('branches')
 export class BranchesController {
@@ -35,6 +36,17 @@ export class BranchesController {
     const branches = await this.branchService.listVisibleTo(user);
     const counts = await this.branchService.counts(branches.map((b) => b.id));
     return ok(branches.map((b) => ({ ...BranchService.toContractView(b), ...counts.get(b.id)! })));
+  }
+
+  // ADR-STF-07 — 계약 상태 변경은 본사 전용. TERMINATED 전이 시 그 지점의 진행 중 파견을 같은 트랜잭션에서 종료한다.
+  @Patch(':branchId/contract-status')
+  @Roles('SUPER_ADMIN')
+  async changeContractStatus(
+    @Param('branchId') branchId: string,
+    @Body() dto: ChangeContractStatusDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return ok(await this.branchService.changeContractStatus(branchId, dto.status, user.accountId));
   }
 
   // 강사프로그램게시 A-5 — 지점별 진행중 프로그램 현황판

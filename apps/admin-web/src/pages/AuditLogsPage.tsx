@@ -8,11 +8,12 @@ import { useAuth } from '../lib/use-auth';
 
 const PAGE_SIZE = 20;
 
-// D44 — 지금 기록하는 이벤트 3종. 늘릴 때는 api `prisma/audit.ts`의 AuditAction과 함께 고친다.
+// D44 — 지금 기록하는 이벤트 4종(파견 종료는 ADR-STF-07). 늘릴 때는 api `prisma/audit.ts`의 AuditAction과 함께 고친다.
 const ACTION_LABEL: Record<string, string> = {
   ROLE_CHANGED: '권한 변경',
   RESIGNED: '퇴사 처리',
   ASSIGNED: '파견(재배치)',
+  ASSIGNMENT_ENDED: '파견 종료(계약 종료)',
 };
 
 const ROLE_LABEL: Record<string, string> = {
@@ -74,6 +75,10 @@ export function AuditLogsPage() {
       const note = after.note ? ` · ${after.note}` : '';
       return `${branchName(before.branchId)} → ${branchName(after.branchId)}${released ? ` · 담당 회원 ${released}명 해제` : ''}${note}`;
     }
+    if (r.action === 'ASSIGNMENT_ENDED') {
+      const released = Number(after.releasedMemberCount ?? 0);
+      return `${branchName(before.branchId)} 계약 종료 · 재배치 대기${released ? ` · 담당 회원 ${released}명 해제` : ''}`;
+    }
     return '-';
   };
 
@@ -97,7 +102,7 @@ export function AuditLogsPage() {
       <div className="page-header">
         <h2>변경 이력</h2>
         <p className="page-desc">
-          D44 — 직원 권한 변경·퇴사 처리·파견을 누가 언제 했는지 남긴 기록입니다. 본사 관리자만 볼 수 있고, 변경과 같은
+          D44 — 직원 권한 변경·퇴사 처리·파견·파견 종료를 누가 언제 했는지 남긴 기록입니다. 본사 관리자만 볼 수 있고, 변경과 같은
           트랜잭션에서 기록되어 실패한 요청은 남지 않습니다.
         </p>
       </div>

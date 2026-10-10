@@ -2,8 +2,8 @@ import { Prisma } from '@prisma/client';
 
 type Tx = Prisma.TransactionClient;
 
-/** D44 — 지금 기록하는 이벤트. 늘릴 때는 D44 표와 admin-web 변경 이력 화면의 문구를 함께 고친다. */
-export type AuditAction = 'ROLE_CHANGED' | 'RESIGNED' | 'ASSIGNED';
+/** D44 — 지금 기록하는 이벤트(ASSIGNMENT_ENDED는 인사정보관리 ADR-STF-07). 늘릴 때는 근거 ADR과 admin-web 변경 이력 화면의 문구를 함께 고친다. */
+export type AuditAction = 'ROLE_CHANGED' | 'RESIGNED' | 'ASSIGNED' | 'ASSIGNMENT_ENDED';
 
 /**
  * 변경 이력 한 건 — D44. 변경과 **같은 대화형 트랜잭션 안에서** 부른다(data-integrity 체크리스트):

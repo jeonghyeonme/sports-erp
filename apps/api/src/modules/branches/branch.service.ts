@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { Branch } from '@prisma/client';
-import { toKstDateString } from '../../common/date/kst-date';
+import { Branch, BranchContractStatus } from '@prisma/client';
+import { todayKst, toKstDateString } from '../../common/date/kst-date';
+import { AppException } from '../../common/exceptions/app.exception';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { PrismaService } from '../../prisma/prisma.service';
+import { endAssignmentsAtTerminatedBranch } from '../staff/terminated-branch-assignments';
 import { BranchGate, branchGateFrom } from './branch-gate';
 
 /**
- * 지점(Branch) 조회 — D29. 원천은 DB다. 지점에는 쓰기 API가 없다(계약 상태 변경은 본사의
- * 수동 조치). 계약 종료(TERMINATED) 규칙이 여기 한 곳으로 모인다 — CLAUDE.md가 실DB 전환 이후로 미뤄둔
+ * 지점(Branch) 조회 — D29. 원천은 DB다. 쓰기는 본사의 계약 상태 변경 하나뿐이다(ADR-STF-07).
+ * 계약 종료(TERMINATED) 규칙이 여기 한 곳으로 모인다 — CLAUDE.md가 실DB 전환 이후로 미뤄둔
  * "공통 검사 중앙화"의 첫 조각.
  */
 @Injectable()
@@ -21,6 +23,35 @@ export class BranchService {
       select: { id: true },
     });
     return branchGateFrom(rows.map((r) => r.id));
+  }
+
+  /**
+   * 계약 상태 변경(SUPER_ADMIN) — ADR-STF-07. TERMINATED로 **바뀔 때** 그 지점의 진행 중 파견을 같은 트랜잭션에서
+   * 종료하고(담당 회원·강사 연결도 해제), 재배치 대상 직원과 담당이 풀린 회원을 응답으로 돌려준다.
+   * EXPIRED·RENEWAL_DUE·ACTIVE로의 변경과 이미 TERMINATED인 지점의 재지정은 파견을 건드리지 않는다.
+   * 지점 행을 FOR UPDATE로 먼저 잠가, 공유 락으로 읽는 채용·발령(lockBranchForShare)과 직렬화한다.
+   * TERMINATED에서 되돌려도 끝난 파견은 복구하지 않는다(본사가 다시 발령한다).
+   */
+  async changeContractStatus(branchId: string, status: BranchContractStatus, actorAccountId: string) {
+    const today = todayKst();
+    return this.prisma.$transaction(async (tx) => {
+      // 행 배타 락 — 동시 상태 변경끼리도 직렬화해 "TERMINATED로 바뀌는 순간"을 정확히 한 번만 판정한다.
+      const [before] = await tx.$queryRaw<Array<{ contractStatus: BranchContractStatus }>>`
+        SELECT "contractStatus" FROM "Branch" WHERE "id" = ${branchId} FOR UPDATE`;
+      if (!before) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+      const branch = await tx.branch.update({ where: { id: branchId }, data: { contractStatus: status } });
+      const terminating = status === 'TERMINATED' && before.contractStatus !== 'TERMINATED';
+      const ended = terminating
+        ? await endAssignmentsAtTerminatedBranch(tx, branchId, actorAccountId, today)
+        : { endedStaff: [], unassignedMembers: [] };
+      return {
+        ...BranchService.toContractView(branch),
+        previousStatus: before.contractStatus,
+        // 재배치 대상 — 파견이 끝나 활성 파견이 없는 직원(entities.md §2-1)
+        reassignmentTargets: ended.endedStaff,
+        unassignedMembers: ended.unassignedMembers,
+      };
+    });
   }
 
   /** SUPER_ADMIN은 전 지점, 그 외는 자기 지점만(지점 데이터 격리). */
