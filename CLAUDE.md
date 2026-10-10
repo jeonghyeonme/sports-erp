@@ -65,7 +65,7 @@ node scripts/doc-check.mjs     # 문서 검사(링크·옛 이름·ADR ID·크�
 
 **도메인 불변식 — 코드를 바꿀 때 깨뜨리면 안 되는 것**
 - **지점 데이터 격리**: BRANCH_ADMIN은 자기 지점 데이터만 조회·수정한다. 지점 단위 라우트를 추가·수정하면 **`apps/api/test/branch-isolation.spec.ts` 공격 케이스 표에 함께 추가**하고 다른 지점 ID로 403/404를 확인한다. 격리는 전역 `BranchScopeGuard` 한 곳이 본다([D46](docs/decisions/D46.md)) — `branchId` 파라미터·쿼리는 자동이고, 리소스 id를 받는 라우트는 `@ScopedResource(kind)`를 붙인다(빠뜨리면 `branch-scope-coverage.spec.ts`가 실패). 컨트롤러에 지점 검사를 손으로 다시 쓰지 않는다.
-- **계약 종료 지점 차단**: `TERMINATED` 지점은 신규 회원 등록·예약 생성·게시글 작성·직원 채용·파견 발령(대상 지점)이 409(`BRANCH_TERMINATED`), 과거 조회는 유지. `EXPIRED`·`RENEWAL_DUE`는 차단하지 않는다. 판정은 `BranchService.loadGate()`의 gate로 한다(인사처럼 트랜잭션 안에서 지점을 읽는 도메인은 직접 판정, ADR-STF-05). TERMINATED 전이 시 기존 파견 자동 종료는 설계만 있고 미구현.
+- **계약 종료 지점 차단**: `TERMINATED` 지점은 신규 회원 등록·예약 생성·게시글 작성·직원 채용·파견 발령(대상 지점)이 409(`BRANCH_TERMINATED`), 과거 조회는 유지. `EXPIRED`·`RENEWAL_DUE`는 차단하지 않는다. 판정은 `BranchService.loadGate()`의 gate로 한다(인사처럼 트랜잭션 안에서 지점을 읽는 도메인은 직접 판정, ADR-STF-05). 계약 상태 변경은 본사 `PATCH /branches/:branchId/contract-status` 한 곳이고, TERMINATED 전이 시 그 지점의 진행 중 파견을 같은 트랜잭션에서 종료한다(ADR-STF-07).
 - **인사 권한 분리**: 채용·재배치는 SUPER_ADMIN만. BRANCH_ADMIN은 파견된 인력의 일상 관리만.
 - "지점이 직원을 고용한다"는 전제로 코드·문서를 쓰지 않는다.
 

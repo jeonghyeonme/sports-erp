@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-10 · [log/098](log/098.md)(회원 웹 오류 해결 안내)
+> 마지막 갱신: 2026-10-10 · [log/099](log/099.md)(계약 종료 시 파견 자동 종료)
 
 ## 현재 상태
 
@@ -17,17 +17,19 @@
 | 회원 웹 | `apps/member-web`(`/m/`, 같은 Worker) — 로그인·세션 복원, 하단 탭 4개(홈·예약하기·내 예약·내 정보). 홈 혼잡도·최근 공지(60초 캐시), 예약·모의 결제·취소, 공지, 내 정보 조회·수정·비밀번호 변경, 가입·지점 회원 연동(`/join`). **PWA**(홈 화면 설치·오프라인 셸·앱 셸, D45). CI·커밋 hook이 lint·빌드를 본다(자동 테스트 없음). 로컬 Worker 경유 확인·실측(방문당 api 3~11회). **Worker 배포 완료(2026-10-09, 사용자)** — log/092 이후 변경은 다시 배포해야 반영된다. 배포 DB에 시연 회차(서초 아침 요가 평일, 12/31까지) | [D41](decisions/D41.md), [log/083](log/083.md)~[085](log/085.md) |
 | admin-web 도움말 | 상단 "도움말" 버튼 → 오른쪽 패널(화면 16개, 역할별 순서·자주 나는 오류). 오류 문구 아래 "해결" 한 줄(코드 → 문구 표 `lib/error-hints.ts`) | [log/089](log/089.md), 디자인시스템 §5 |
 | 지점 격리 | 전역 `BranchScopeGuard` 한 곳(branchId 파라미터·쿼리 + `@ScopedResource` 리소스 소유). 선언 누락은 `branch-scope-coverage` spec이 잡는다. BRANCH_ADMIN이 남의 branchId를 주면 모든 목록에서 403 | [D46](decisions/D46.md), [log/095](log/095.md) |
+| 계약 상태 변경 | 본사 `PATCH /branches/:branchId/contract-status`(API만, 화면 없음). TERMINATED 전이 시 그 지점의 진행 중 파견을 같은 트랜잭션에서 종료하고 재배치 대상을 응답으로 돌려준다. 채용·발령과는 지점 행 락으로 직렬화 | 인사정보관리 ADR-STF-07, [log/099](log/099.md) |
 | 문서 구조 | 2026-10-01 재편 완료 — 로딩 계층·doc-check 도입 | [D38](decisions/D38.md) |
 
 ## 다음 할 일 (우선순위순)
 
 > 각 항목을 새 세션에서 시작하는 방법(근거·범위·완료 기준·주의점)은 [작업 브리프](process/04_작업_브리프.md)의 B 번호를 본다.
 
-0. **화면 재배포(사용자)** — PWA·앱 셸(log/094, Worker 설정 포함), 가입·연동 화면(log/092), 결근 확정·자산 수정 화면(log/096), 회원 웹 데모 로그인 버튼(log/097), 회원 웹 오류 해결 줄(log/098)은 병합 뒤 `npm run build:web` → `cd cloudflare-worker && npx wrangler deploy`로 Worker에 다시 올려야 보인다(api는 병합 시 Lambda 자동 배포). 그다음 Cloudflare 일일 요청 관찰(D40 재고 트리거 9만).
+0. **화면 재배포(사용자)** — PWA·앱 셸(log/094, Worker 설정 포함), 가입·연동 화면(log/092), 결근 확정·자산 수정 화면(log/096), 회원 웹 데모 로그인 버튼(log/097), 회원 웹 오류 해결 줄(log/098), 변경 이력의 "파견 종료" 문구(log/099)는 병합 뒤 `npm run build:web` → `cd cloudflare-worker && npx wrangler deploy`로 Worker에 다시 올려야 보인다(api는 병합 시 Lambda 자동 배포). 그다음 Cloudflare 일일 요청 관찰(D40 재고 트리거 9만).
 1. 배포 확인(사용자): 2026-10-09 Worker 배포까지 반영된 것 — 회원 웹, 목록 페이지네이션(B8), 화면별 도움말, 인사 화면, 비밀번호 변경. 운영 화면에서 한 번씩 눌러 보기.
 2. RFP 잔여(작음): 상세 전화번호 열람 기록(D44 범위 밖) — 요구사항추적표 §2-3. 화면별 도움말은 admin-web(log/089), member-web 오류 해결 줄(log/098) 모두 완료
 3. ~~API만 있고 화면이 없는 것~~ — 결근 확정·자산 정보 수정(log/096)으로 끝. 화면은 Worker 재배포 후 보인다
-4. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제. (Supabase 커넥터는 2026-10-08 정상 동작 확인 — log/084)
+4. 계약 상태 변경 화면(admin-web, 지점 상세) — API만 있다(ADR-STF-07 숙제). 재배치 대기 직원 모아 보기·지점 소속 계정 일괄 처리(entities.md §2-1)도 미정
+5. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제. (Supabase 커넥터는 2026-10-08 정상 동작 확인 — log/084)
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 

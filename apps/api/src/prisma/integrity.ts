@@ -1,4 +1,4 @@
-import { CodeSequenceKind, Prisma } from '@prisma/client';
+import { BranchContractStatus, CodeSequenceKind, Prisma } from '@prisma/client';
 import { todayKst } from '../common/date/kst-date';
 
 /**
@@ -71,3 +71,19 @@ export async function lockScheduleSlot(
 
 /** ADR-RSV-02와 같은 "활성 예약" 정의(부분 unique 인덱스의 WHERE 절과 동일). */
 export const ACTIVE_RESERVATION_STATUSES = ['REQUESTED', 'CONFIRMED'] as const;
+
+/**
+ * 지점 행 공유 락 — ADR-STF-07. 채용·파견 발령이 대상 지점의 계약 상태를 읽을 때 쓴다.
+ * 계약 종료 전이(`BranchService.changeContractStatus`)는 같은 행을 FOR UPDATE로 잠그므로 둘이 직렬화된다:
+ * 발령이 먼저 잠그면 종료 전이는 발령 커밋을 기다렸다가 그 새 파견까지 종료하고, 종료가 먼저면 발령은 커밋된
+ * TERMINATED를 읽고 409를 낸다. 락 없이 읽으면 "ACTIVE로 읽은 발령"이 종료 뒤에 커밋돼 종료 지점에 활성 파견이 남는다.
+ * 공유 락이라 같은 지점으로의 발령끼리는 서로 막지 않는다. 없는 지점이면 null.
+ */
+export async function lockBranchForShare(
+  tx: Tx,
+  branchId: string,
+): Promise<{ id: string; code: string; contractStatus: BranchContractStatus } | null> {
+  const rows = await tx.$queryRaw<Array<{ id: string; code: string; contractStatus: BranchContractStatus }>>`
+    SELECT "id", "code", "contractStatus" FROM "Branch" WHERE "id" = ${branchId} FOR SHARE`;
+  return rows[0] ?? null;
+}

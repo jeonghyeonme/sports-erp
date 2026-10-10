@@ -6,7 +6,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { recordAudit } from '../../prisma/audit';
 import { PrismaService } from '../../prisma/prisma.service';
-import { allocateBranchCode } from '../../prisma/integrity';
+import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
 import { recalculateHrRetention } from '../documents/document.service';
 import * as bcrypt from 'bcrypt';
 
@@ -86,10 +86,8 @@ export class StaffService {
     let staffId: string;
     try {
       staffId = await this.prisma.$transaction(async (tx) => {
-        const branch = await tx.branch.findUnique({
-          where: { id: input.branchId },
-          select: { id: true, code: true, contractStatus: true },
-        });
+        // ADR-STF-07 — 공유 락으로 읽어 계약 종료 전이와 직렬화한다(종료 직후 커밋되는 채용이 활성 파견을 남기지 않게).
+        const branch = await lockBranchForShare(tx, input.branchId);
         if (!branch) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
         // 계약 종료 지점은 신규 활동 차단(CLAUDE.md 불변식) — 채용(=최초 파견)도 새 파견이다(log/090).
         if (branch.contractStatus === 'TERMINATED') throw terminatedBranch();
@@ -213,7 +211,8 @@ export class StaffService {
       if (staff.status === 'RESIGNED') {
         throw new AppException('STAFF_ALREADY_RESIGNED', '퇴사한 직원은 재파견할 수 없습니다.', 409);
       }
-      const target = await tx.branch.findUnique({ where: { id: newBranchId }, select: { contractStatus: true } });
+      // ADR-STF-07 — 공유 락. 계약 종료 전이와 직렬화해 "ACTIVE로 읽고 종료 뒤에 커밋되는" 발령을 막는다.
+      const target = await lockBranchForShare(tx, newBranchId);
       if (!target) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
       // Prisma 도메인이라 gate 대신 트랜잭션 안에서 지점을 직접 읽는다(branch-gate.ts 주석). 떠나는 지점이 종료여도 막지 않는다(log/090).
       if (target.contractStatus === 'TERMINATED') throw terminatedBranch();
