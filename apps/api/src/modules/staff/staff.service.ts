@@ -4,7 +4,8 @@ import { MOCK_DEMO_PASSWORD } from '../../fixtures/demo-password';
 import { MockStaff, MockStaffAssignment } from '../../fixtures/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
-import { recordAudit } from '../../prisma/audit';
+import { recordAudit, recordPhoneView } from '../../prisma/audit';
+import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
 import { recalculateHrRetention } from '../documents/document.service';
@@ -43,6 +44,11 @@ export class StaffService {
   async findById(id: string): Promise<StaffView | null> {
     const row = await this.prisma.staff.findUnique({ where: { id }, include: { branch: { select: { name: true } } } });
     return row ? toView(row) : null;
+  }
+
+  /** D47 — 상세 연락처 원문 열람 기록(관리자가 남의 상세를 열 때만). */
+  recordPhoneView(viewer: RequestUser, staff: StaffView): Promise<void> {
+    return recordPhoneView(this.prisma, viewer, { entity: 'Staff', id: staff.id, branchId: staff.branchId, phone: staff.phone });
   }
 
   /** 인사정보관리 A-5 GET /staff/:id/assignments — 최신 파견이 먼저. */

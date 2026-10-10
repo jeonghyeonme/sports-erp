@@ -89,8 +89,11 @@ export class MembersController {
   @Get(':id')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'MEMBER')
   @ScopedResource('member')
-  async detail(@Param('id') id: string) {
-    return ok({ ...(await this.memberService.view(id)), ...(await this.memberService.summary(id)) });
+  async detail(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    const member = await this.memberService.view(id);
+    // D47 — 상세는 전화번호 원문을 준다(ADR-MEM-04)라 관리자 열람을 남긴다. 요청당 INSERT 1회(D42).
+    await this.memberService.recordPhoneView(user, member);
+    return ok({ ...member, ...(await this.memberService.summary(id)) });
   }
 
   @Post()

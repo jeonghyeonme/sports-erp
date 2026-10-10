@@ -45,8 +45,11 @@ export class StaffController {
   @Get(':id')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
   @ScopedResource('staff')
-  async detail(@Param('id') id: string) {
-    return ok(await this.findStaffOrThrow(id));
+  async detail(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    const staff = await this.findStaffOrThrow(id);
+    // D47 — 상세는 연락처 원문을 준다(STF-T03)라 관리자 열람을 남긴다(본인 조회는 남기지 않는다).
+    await this.staffService.recordPhoneView(user, staff);
+    return ok(staff);
   }
 
   // 신규 채용 등록 — SUPER_ADMIN 전용(인사정보관리 §0, A-5·A-7). Staff는 Account와 1:1이라 로그인 계정도 같이 만든다.

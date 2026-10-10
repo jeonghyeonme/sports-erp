@@ -9,7 +9,7 @@ export interface AuditLogView {
   actorName?: string;
   entity: string;
   entityId: string;
-  // entity=Staff면 대상 직원 이름(삭제된 대상이면 비어 있다)
+  // 대상 직원·회원 이름(삭제된 대상이면 비어 있다)
   entityName?: string;
   action: string;
   before?: Prisma.JsonValue;
@@ -44,12 +44,22 @@ export class AuditLogService {
         take: filter.pageSize,
       }),
     ]);
-    // 대상 이름은 쪽 단위로 한 번에 모은다(행마다 조회하지 않는다). 지금 entity는 Staff뿐이다.
-    const staffIds = [...new Set(rows.filter((r) => r.entity === 'Staff').map((r) => r.entityId))];
-    const staff = staffIds.length
-      ? await this.prisma.staff.findMany({ where: { id: { in: staffIds } }, select: { id: true, name: true } })
-      : [];
-    const staffName = new Map(staff.map((s) => [s.id, s.name]));
+    // 대상 이름은 쪽 단위로 한 번에 모은다(행마다 조회하지 않는다). entity는 Staff·Member(D47 열람 기록).
+    const idsOf = (entity: string) => [...new Set(rows.filter((r) => r.entity === entity).map((r) => r.entityId))];
+    const staffIds = idsOf('Staff');
+    const memberIds = idsOf('Member');
+    const [staff, members] = await Promise.all([
+      staffIds.length
+        ? this.prisma.staff.findMany({ where: { id: { in: staffIds } }, select: { id: true, name: true } })
+        : [],
+      memberIds.length
+        ? this.prisma.member.findMany({ where: { id: { in: memberIds } }, select: { id: true, name: true } })
+        : [],
+    ]);
+    const names = new Map<string, string>([
+      ...staff.map((x) => [`Staff:${x.id}`, x.name] as const),
+      ...members.map((x) => [`Member:${x.id}`, x.name] as const),
+    ]);
     const items = rows.map((r) => ({
       id: r.id,
       createdAt: r.createdAt.toISOString(),
@@ -57,7 +67,7 @@ export class AuditLogService {
       actorName: r.actor?.name,
       entity: r.entity,
       entityId: r.entityId,
-      entityName: r.entity === 'Staff' ? staffName.get(r.entityId) : undefined,
+      entityName: names.get(`${r.entity}:${r.entityId}`),
       action: r.action,
       before: r.before ?? undefined,
       after: r.after ?? undefined,
