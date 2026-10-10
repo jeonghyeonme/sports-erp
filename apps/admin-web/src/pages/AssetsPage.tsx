@@ -230,6 +230,107 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// 자원문서관리 A-5 PATCH /assets/:id — 품명·위치·메모와 구분별 숫자(고정자산 내용연수 / 소모품 재고 수량)만 고친다.
+// 분류·취득가액·취득일·구분은 회계 기록이라 고치지 않는다(자원문서관리 A-6). 폼은 모달이 열릴 때 한 번 채운다.
+function EditAssetModal({ asset, onClose }: { asset: AssetRow; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const isFixed = asset.assetType === 'FIXED_ASSET';
+  const [form, setForm] = useState({
+    name: asset.name,
+    location: asset.location ?? '',
+    note: asset.note ?? '',
+    usefulLifeYears: asset.usefulLifeYears ? String(asset.usefulLifeYears) : '',
+    quantity: String(asset.quantity),
+  });
+
+  const updateMutation = useMutation<AssetRow, AxiosError<ApiErrorBody>, typeof form>({
+    mutationFn: async (f) => {
+      const payload = {
+        name: f.name.trim(),
+        location: f.location.trim(), // 빈 값은 서버가 "지움"으로 처리한다
+        note: f.note.trim(),
+        usefulLifeYears: isFixed && f.usefulLifeYears ? Number(f.usefulLifeYears) : undefined,
+        quantity: isFixed ? undefined : Number(f.quantity),
+      };
+      return (await api.patch<ApiEnvelope<AssetRow>>(`/assets/${asset.id}`, payload)).data.data!;
+    },
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      toast.success(`'${updated.name}' 정보를 고쳤습니다.`);
+      onClose();
+    },
+  });
+
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim() || (!isFixed && form.quantity === '')) return;
+    updateMutation.mutate(form);
+  }
+
+  return (
+    <Modal title={`자산 수정 — ${asset.assetCode}`} onClose={onClose}>
+      <form onSubmit={submit}>
+        <p className="page-desc" style={{ marginTop: 0 }}>
+          {CATEGORY_LABEL[asset.category]} · {TYPE_LABEL[asset.assetType]} · 취득 {asset.acquiredAt.slice(0, 10)} ·{' '}
+          {asset.acquisitionCost.toLocaleString()}원 (취득 정보는 고칠 수 없습니다)
+        </p>
+        <div className="form-row">
+          <div className="field">
+            <label>품명 *</label>
+            <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
+          </div>
+          {isFixed ? (
+            <div className="field">
+              <label>내용연수(년)</label>
+              <input
+                type="number"
+                min={1}
+                value={form.usefulLifeYears}
+                onChange={(e) => setForm((f) => ({ ...f, usefulLifeYears: e.target.value }))}
+              />
+            </div>
+          ) : (
+            <div className="field">
+              <label>재고 수량 *</label>
+              <input
+                type="number"
+                min={0}
+                value={form.quantity}
+                onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
+                required
+              />
+            </div>
+          )}
+        </div>
+        <div className="field" style={{ marginTop: 12 }}>
+          <label>보관 위치</label>
+          <input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="예: 2층 헬스장" />
+        </div>
+        <div className="field" style={{ marginTop: 12 }}>
+          <label>메모</label>
+          <input value={form.note} onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))} />
+        </div>
+
+        {updateMutation.isError && (
+          <div className="forbidden-note" style={{ marginTop: 12 }}>
+            {apiErrorMessage(updateMutation.error)}
+          </div>
+        )}
+
+        <div className="action-row" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
+          <button type="button" className="btn-secondary" onClick={onClose}>
+            취소
+          </button>
+          <button type="submit" className="btn-secondary primary" disabled={updateMutation.isPending}>
+            저장
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export function AssetsPage() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
@@ -256,6 +357,7 @@ export function AssetsPage() {
   const rows = data?.rows ?? [];
   const total = data?.total ?? 0;
   const [showCreate, setShowCreate] = useState(false);
+  const [editing, setEditing] = useState<AssetRow | null>(null);
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -314,6 +416,7 @@ export function AssetsPage() {
               <th>수량</th>
               <th>위치</th>
               <th>상태</th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -348,6 +451,14 @@ export function AssetsPage() {
                       <span className={`badge ${STATUS_BADGE[a.status]}`}>{STATUS_LABEL[a.status]}</span>
                     )}
                   </td>
+                  <td>
+                    {/* 폐기된 자산은 기록으로만 남기고 고치지 않는다. */}
+                    {a.status !== 'DISPOSED' && (
+                      <button className="btn-secondary" onClick={() => setEditing(a)}>
+                        수정
+                      </button>
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -358,6 +469,7 @@ export function AssetsPage() {
       <Pager page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} disabled={isFetching} />
 
       {showCreate && <CreateAssetModal onClose={() => setShowCreate(false)} />}
+      {editing && <EditAssetModal key={editing.id} asset={editing} onClose={() => setEditing(null)} />}
     </>
   );
 }

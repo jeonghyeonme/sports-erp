@@ -60,7 +60,7 @@ export const ERROR_HINTS: Record<string, string> = {
   INVALID_DATE_RANGE: '종료일이 시작일보다 앞설 수 없습니다. 날짜를 다시 고르세요.',
   INVALID_CAPACITY: '정원은 1 이상이어야 합니다.',
   INVALID_CURRENT_COUNT: '현재 인원은 0 이상, 정원 이하로 넣으세요.',
-  INVALID_QUANTITY: '수량은 1 이상이어야 합니다.',
+  INVALID_QUANTITY: '고정자산은 수량이 항상 1입니다. 소모품 재고 수량은 0 이상으로 넣으세요.',
   RETENTION_UNTIL_REQUIRED: '이 분류의 문서는 보존기한이 필요합니다. 보존기한을 넣으세요.',
 
   // 상태 전환
