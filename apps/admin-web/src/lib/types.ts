@@ -266,6 +266,13 @@ export interface AttendanceSummaryRow {
   onLeave: number;
 }
 
+// ADR-ATT-02 — GET /attendance/absence-preview 한 행(저장 전 잠정 결근).
+export interface AbsenceCandidateRow {
+  staffId: string;
+  name: string;
+  date: string;
+}
+
 export interface LeaveBalanceRow {
   staffId: string;
   year: number;

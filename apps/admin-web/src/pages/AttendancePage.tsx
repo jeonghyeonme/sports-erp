@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { useToast } from '../lib/use-toast';
+import { AbsenceConfirmSection } from '../components/AbsenceConfirmSection';
 import {
   ApiEnvelope,
   AttendanceRecordRow,
@@ -474,6 +475,9 @@ export function AttendancePage() {
               </table>
             )}
           </div>
+
+          {/* 휴가 승인함 다음 — 대기 휴가를 먼저 처리해야 그 날이 결근 후보에서 빠진다. */}
+          <AbsenceConfirmSection />
         </>
       )}
     </>
