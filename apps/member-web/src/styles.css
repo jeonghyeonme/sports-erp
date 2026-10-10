@@ -394,6 +394,7 @@ h1 {
 
 .form-error {
   margin: 0;
+  white-space: pre-line; /* describeError의 "해결: …" 줄(log/098) */
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   background: var(--color-danger-bg);
@@ -508,6 +509,7 @@ h1 {
 
 .error-panel p {
   margin: 0;
+  white-space: pre-line; /* "해결: …" 줄(log/098) */
 }
 
 /* 하단 탭(B1-2 사용자 결정) — 셸 폭(최대 480px)에 맞춰 화면 아래에 붙는다. */
