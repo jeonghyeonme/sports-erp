@@ -75,11 +75,6 @@ export class DocumentService {
     return this.toViews(rows);
   }
 
-  async staffBranchId(staffId: string): Promise<string | undefined> {
-    const staff = await this.prisma.staff.findUnique({ where: { id: staffId }, select: { branchId: true } });
-    return staff?.branchId;
-  }
-
   // ── 쓰기 ──────────────────────────────────────────────
 
   // 검사 순서는 mock 그대로(지점 없음 → 계약 종료 → HR 대상 직원 → CONTRACT 보존기한) — 에러 코드 우선순위가 테스트로 고정돼 있다.

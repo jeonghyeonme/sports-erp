@@ -20,6 +20,8 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { BranchScopeGuard } from './common/guards/branch-scope.guard';
+import { ScopeOwners } from './common/guards/scope-owners';
 
 @Module({
   imports: [
@@ -47,6 +49,9 @@ import { RolesGuard } from './common/guards/roles.guard';
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // D46 — 지점 격리 검사를 한 곳으로(branchId 파라미터·쿼리 + @ScopedResource 리소스 소유). 등록 순서대로 실행된다.
+    ScopeOwners,
+    { provide: APP_GUARD, useClass: BranchScopeGuard },
   ],
 })
 export class AppModule {}

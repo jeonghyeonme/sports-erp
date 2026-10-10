@@ -1,20 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
+import { ScopedResource } from '../../common/decorators/scoped-resource.decorator';
 import { ProgramService } from './program.service';
 import { AppException } from '../../common/exceptions/app.exception';
-import { MockProgram } from '../../fixtures/mock-data.types';
 import { ok } from '../../common/http/api-response';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
 import { UpdateProgramStatusDto } from './dto/update-program-status.dto';
 import { CreateScheduleSlotDto } from './dto/create-schedule-slot.dto';
 
-// 강사프로그램게시 A-7 — 회원 포함 모든 역할이 조회 가능(본인 소속 지점 기준 필터 기본 적용)
+// 강사프로그램게시 A-7 — 회원 포함 모든 역할이 조회 가능(본인 소속 지점 기준 필터 기본 적용).
+// D46 — 지점 범위(branchId·:id 소유)는 전역 BranchScopeGuard가 본다.
 @Controller('programs')
-@UseGuards(BranchScopeGuard)
 export class ProgramsController {
   constructor(private readonly programService: ProgramService) {}
 
@@ -39,8 +38,8 @@ export class ProgramsController {
 
   @Patch(':id')
   @Roles('BRANCH_ADMIN')
-  async update(@Param('id') id: string, @Body() dto: UpdateProgramDto, @CurrentUser() user: RequestUser) {
-    this.assertOwnBranch(await this.findProgramOrThrow(id), user);
+  @ScopedResource('program')
+  async update(@Param('id') id: string, @Body() dto: UpdateProgramDto) {
     return ok(await this.programService.update(id, dto));
   }
 
@@ -49,12 +48,8 @@ export class ProgramsController {
   // 관리자가 "몇 명에게 영향이 가는지"를 전이 즉시 알 수 있게 한다. 예약도 D32부터 DB에서 센다.
   @Patch(':id/status')
   @Roles('BRANCH_ADMIN')
-  async updateStatus(
-    @Param('id') id: string,
-    @Body() dto: UpdateProgramStatusDto,
-    @CurrentUser() user: RequestUser,
-  ) {
-    this.assertOwnBranch(await this.findProgramOrThrow(id), user);
+  @ScopedResource('program')
+  async updateStatus(@Param('id') id: string, @Body() dto: UpdateProgramStatusDto) {
     const updated = await this.programService.updateStatus(id, dto.status);
     const affectedReservations = await this.programService.futureActiveReservations(id);
     return ok({ ...updated, affectedReservations });
@@ -64,8 +59,8 @@ export class ProgramsController {
   // ADR-PRG-02 — ENDED도 종결 전이라 PAUSED 못지않게 영향이 크므로 같은 정보를 포함한다.
   @Delete(':id')
   @Roles('BRANCH_ADMIN')
-  async remove(@Param('id') id: string, @CurrentUser() user: RequestUser) {
-    this.assertOwnBranch(await this.findProgramOrThrow(id), user);
+  @ScopedResource('program')
+  async remove(@Param('id') id: string) {
     const updated = await this.programService.updateStatus(id, 'ENDED');
     const affectedReservations = await this.programService.futureActiveReservations(id);
     return ok({ ...updated, affectedReservations });
@@ -74,37 +69,16 @@ export class ProgramsController {
   // 예약및결제 A-5 GET /programs/:id/slots?date= — 잔여좌석 조회. 로그인한 모든 역할이 조회할 수 있지만
   // SUPER_ADMIN 외에는 본인 소속 지점의 프로그램만(강사프로그램게시 A-7 기본 정책 "본인 지점만 노출").
   @Get(':id/slots')
-  async listSlots(@Param('id') id: string, @CurrentUser() user: RequestUser, @Query('date') date?: string) {
-    this.assertReadable(await this.findProgramOrThrow(id), user);
+  @ScopedResource('program')
+  async listSlots(@Param('id') id: string, @Query('date') date?: string) {
     return ok(await this.programService.listSlots(id, date));
   }
 
   // 강사프로그램게시 A-5 POST /programs/:id/slots — 회차 개별 추가, BRANCH_ADMIN 본인 지점만.
   @Post(':id/slots')
   @Roles('BRANCH_ADMIN')
-  async createSlot(@Param('id') id: string, @Body() dto: CreateScheduleSlotDto, @CurrentUser() user: RequestUser) {
-    this.assertOwnBranch(await this.findProgramOrThrow(id), user);
+  @ScopedResource('program')
+  async createSlot(@Param('id') id: string, @Body() dto: CreateScheduleSlotDto) {
     return ok(await this.programService.createSlot(id, dto));
-  }
-
-  private async findProgramOrThrow(id: string): Promise<MockProgram> {
-    const program = await this.programService.findById(id);
-    if (!program) {
-      throw new AppException('PROGRAM_NOT_FOUND', '프로그램을 찾을 수 없습니다.', 404);
-    }
-    return program;
-  }
-
-  private assertOwnBranch(program: MockProgram, user: RequestUser): void {
-    if (program.branchId !== user.branchId) {
-      throw new AppException('PROGRAM_SCOPE_VIOLATION', '다른 지점의 프로그램은 수정할 수 없습니다.', 403);
-    }
-  }
-
-  private assertReadable(program: MockProgram, user: RequestUser): void {
-    if (user.role === 'SUPER_ADMIN') return;
-    if (program.branchId !== user.branchId) {
-      throw new AppException('PROGRAM_SCOPE_VIOLATION', '다른 지점의 프로그램 회차는 조회할 수 없습니다.', 403);
-    }
   }
 }

@@ -1,9 +1,9 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
+import { BranchScopeExempt } from '../../common/decorators/scoped-resource.decorator';
 import { ok } from '../../common/http/api-response';
 import { PrismaService } from '../../prisma/prisma.service';
 import { toMockProgram } from '../programs/program.service';
@@ -40,7 +40,7 @@ export class BranchesController {
   // 강사프로그램게시 A-5 — 지점별 진행중 프로그램 현황판
   @Get(':branchId/programs/summary')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
-  @UseGuards(BranchScopeGuard)
+  @BranchScopeExempt('경로 파라미터가 branchId라 전역 BranchScopeGuard의 branchId 검사가 본다')
   async programsSummary(@Param('branchId') branchId: string) {
     const programs = (await this.prisma.program.findMany({ where: { branchId }, orderBy: { id: 'asc' } })).map(toMockProgram);
     const byStatus = {

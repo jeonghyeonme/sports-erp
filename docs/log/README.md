@@ -100,5 +100,6 @@
 | [092](092.md) | 2026-10-09 | 회원 가입·지점 회원 연동 화면(/join·/signup·/link), 공개 지점 목록(ADR-MEM-05), 연동 전화번호 숫자 비교 |
 | [093](093.md) | 2026-10-09 | 사용자 결정 일괄: 퇴사 시 담당 해제(ADR-STF-06), env 스크립트 중단, 외래키 3·업무일지 unique, statement_timeout 5초(배포 DB는 사용자 SQL Editor) |
 | [094](094.md) | 2026-10-10 | 회원 웹 PWA(설치·service worker·오프라인 세션 유지)와 앱 셸(탭 아이콘·뒤로 가기·전환·당겨서 새로고침·스켈레톤), D45 |
+| [095](095.md) | 2026-10-10 | 지점 격리 검사 중앙화 — 전역 BranchScopeGuard·`@ScopedResource`·선언 누락 검사, D46 |
 
 그 밖의 기록: [troubleshooting.md](troubleshooting.md)(구현 중 부딪힌 문제), [archive/](archive/)(끝난 과정 문서).
