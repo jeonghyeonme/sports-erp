@@ -365,6 +365,21 @@ h1 {
   color: var(--color-text-muted);
 }
 
+.demo-login {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+}
+
+.demo-login p {
+  margin: 0;
+  font-size: 13px;
+}
+
 .login-links {
   margin-top: 24px;
   text-align: center;
