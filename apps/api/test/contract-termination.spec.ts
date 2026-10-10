@@ -344,4 +344,56 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
       expect(terminate.body.data.reassignmentTargets).toHaveLength(2 + committedBefore);
     });
   });
+  // ADR-STF-08 — 재배치 대기 목록(GET /staff?unassigned=true)과 본사의 계약 종료 지점 직원 퇴사(ADR-AUTH-02 수동 비활성화).
+  describe('재배치 대기와 종료 지점 직원 퇴사 (ADR-STF-08)', () => {
+    const unassigned = async (auth: string) => {
+      const res = await api(auth).get('/staff?unassigned=true');
+      expect(res.status).toBe(200);
+      return (res.body.data as Array<{ id: string; branchId: string }>).map((s) => s.id);
+    };
+    const SEED_TERMINATED_STAFF = ['staff-gen-094-1', 'staff-gen-095-1', 'staff-gen-095-2', 'staff-gen-096-1', 'staff-gen-096-2', 'staff-gen-096-3'];
+
+    it('시드의 계약 종료 지점에는 진행 중 파견·담당 회원이 없고, 그 직원들이 재배치 대기로 보인다', async () => {
+      const prisma = db(app);
+      const terminated = { branch: { contractStatus: 'TERMINATED' as const } };
+      expect(await prisma.staffAssignment.count({ where: { endDate: null, ...terminated } })).toBe(0);
+      expect(await prisma.member.count({ where: { assignedStaffId: { not: null }, ...terminated } })).toBe(0);
+      expect((await unassigned(superAdmin)).sort()).toEqual(SEED_TERMINATED_STAFF);
+    });
+
+    it('종료 전이 후 그 지점 직원이 재배치 대기에 더해지고, 다시 발령하면 빠진다', async () => {
+      expect(await unassigned(superAdmin)).not.toContain('staff-seoyeon');
+      await api(superAdmin).patch(`/branches/${BRANCH.seocho}/contract-status`, { status: 'TERMINATED' });
+      const after = await unassigned(superAdmin);
+      expect(after).toEqual(expect.arrayContaining(['staff-minsu', 'staff-seoyeon', ...SEED_TERMINATED_STAFF]));
+      expect(after).toHaveLength(SEED_TERMINATED_STAFF.length + 2);
+      expect((await api(superAdmin).post('/staff/staff-seoyeon/assignments', { branchId: BRANCH.gangnam })).status).toBe(201);
+      expect(await unassigned(superAdmin)).not.toContain('staff-seoyeon');
+    });
+
+    it('지점 관리자는 자기 지점 재배치 대기만 본다(다른 지점 대기 인원은 안 보인다)', async () => {
+      expect(await unassigned(admin)).toEqual([]);
+      await api(superAdmin).patch(`/branches/${BRANCH.seocho}/contract-status`, { status: 'TERMINATED' });
+      expect((await unassigned(admin)).sort()).toEqual(['staff-minsu', 'staff-seoyeon']);
+    });
+
+    it('본사는 운영 중인 지점 직원을 퇴사시킬 수 없다(403, 지점 관리자의 일)', async () => {
+      const res = await api(superAdmin).patch('/staff/staff-seoyeon/resign');
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('RESIGN_BY_BRANCH_ADMIN');
+      expect((await db(app).staff.findUniqueOrThrow({ where: { id: 'staff-seoyeon' } })).status).toBe('ACTIVE');
+    });
+
+    it('본사는 계약 종료 지점 직원을 퇴사 처리해 계정을 비활성화한다 — 재배치 대기에서도 빠진다', async () => {
+      await api(superAdmin).patch(`/branches/${BRANCH.seocho}/contract-status`, { status: 'TERMINATED' });
+      const res = await api(superAdmin).patch('/staff/staff-seoyeon/resign');
+      expect(res.status).toBe(200);
+      const seoyeon = await db(app).staff.findUniqueOrThrow({ where: { id: 'staff-seoyeon' }, include: { account: true } });
+      expect(seoyeon.status).toBe('RESIGNED');
+      expect(seoyeon.account.isActive).toBe(false);
+      expect(await unassigned(superAdmin)).not.toContain('staff-seoyeon');
+      const audit = await db(app).auditLog.findFirst({ where: { action: 'RESIGNED', entityId: 'staff-seoyeon' } });
+      expect(audit?.actorId).toBe('account-haneul');
+    });
+  });
 });

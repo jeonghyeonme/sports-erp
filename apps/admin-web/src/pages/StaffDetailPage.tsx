@@ -340,6 +340,8 @@ export function StaffDetailPage() {
     queryKey: ['staff', 'detail', id],
     queryFn: async () => (await api.get<ApiEnvelope<StaffRow>>(`/staff/${id}`)).data.data!,
   });
+  // ADR-STF-08 — 본사의 퇴사 버튼은 계약 종료 지점 직원에게만 보인다(서버도 그 외는 403).
+  const branchesQuery = useApiList<BranchSummary>(['branches'], '/branches');
 
   if (staffQuery.isLoading) return <div className="loading-state">불러오는 중...</div>;
   if (staffQuery.isError) return <div className="forbidden-note">{apiErrorMessage(staffQuery.error)}</div>;
@@ -348,7 +350,11 @@ export function StaffDetailPage() {
   // 인사 권한 분리(CLAUDE.md) — 버튼은 API 권한과 같게 보인다. 본인 퇴사 처리는 자기 접근을 끊으므로 숨긴다.
   const isOwnBranchAdmin = user?.role === 'BRANCH_ADMIN' && user.branchId === staff.branchId;
   const canEdit = isOwnBranchAdmin && active;
-  const canResign = isOwnBranchAdmin && active && user?.staffId !== staff.id;
+  const branchTerminated =
+    branchesQuery.data?.find((b) => b.id === staff.branchId)?.contractStatus === 'TERMINATED';
+  const canResign =
+    (isOwnBranchAdmin && active && user?.staffId !== staff.id) ||
+    (user?.role === 'SUPER_ADMIN' && active && branchTerminated);
   const canAssign = user?.role === 'SUPER_ADMIN' && active;
 
   return (

@@ -75,7 +75,7 @@ Payment(결제 — 예약및결제 문서, "매출 인식의 원천") N─1 Rese
 - 회원 등록(`POST /api/v1/members`): `Branch.contractStatus`가 `TERMINATED`면 409 — [05_회원관리](../domains/회원관리.md) 참고
 - 예약 생성(`POST /api/v1/reservations`): 동일하게 409 — [06_예약및결제](../domains/예약및결제.md) 참고
 - 게시판: TERMINATED 지점의 기존 공지는 열람만 유지하고 신규 작성은 차단 — [04_게시판_공지사항](../domains/게시판.md) 참고
-- 계정: 지점이 TERMINATED되면 그 지점 소속 계정 전체를 어떻게 처리할지는 개인 퇴사 처리와 별개 정책 — [01_권한관리](../domains/권한관리.md) 참고
+- 계정: 지점이 TERMINATED되면 그 지점 소속 계정 전체를 어떻게 처리할지는 개인 퇴사 처리와 별개 정책 — [01_권한관리](../domains/권한관리.md) 참고 — 일괄 비활성화하지 않고(권한관리 ADR-AUTH-02), 본사가 재배치하지 않을 직원을 퇴사 처리해 계정을 닫는다(인사정보관리 ADR-STF-08)
 - 파견 직원: TERMINATED 지점에 현재 파견 중(`StaffAssignment.endDate=null`)인 직원이 있으면, 그 파견을 종료 처리하고 본사가 재배치할 대상 목록에 올려야 함 — 아래 §2-2, [02_인사정보관리](../domains/인사정보관리.md) 참고 — **구현**: 본사 `PATCH /branches/:branchId/contract-status`가 TERMINATED로 바꿀 때 같은 트랜잭션에서 종료하고 재배치 대상을 응답으로 돌려준다(인사정보관리 ADR-STF-07). `Staff.branchId`는 그대로 남는다(활성 파견 없는 재직 직원 = 재배치 대기)
 
 ### 2-2. Staff(직원) 파견(Assignment) 모델

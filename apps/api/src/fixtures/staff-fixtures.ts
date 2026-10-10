@@ -74,7 +74,13 @@ export interface StaffSeed {
  * (`staff-gen-001-1` → `gen-001-1@staff.spoism.example`, 역할 STAFF, 데모 비밀번호).
  */
 export function staffSeed(): StaffSeed {
-  const generated = generateLightBranches().staff;
+  const dataset = generateLightBranches();
+  const generated = dataset.staff;
+  // 인사정보관리 ADR-STF-07 — 계약 종료 지점의 파견은 종료 전이 때 끝났어야 하므로 계약 종료일로 닫아 둔다(log/103).
+  // 이 직원들은 활성 파견이 없는 재직 직원 = 재배치 대기로 보인다.
+  const terminatedEndAt = new Map(
+    dataset.branches.filter((b) => b.contractStatus === 'TERMINATED').map((b) => [b.id, b.contractEndAt]),
+  );
   const staff = [...HERO_STAFF, ...generated];
   const accounts = [
     ...HERO_ACCOUNTS,
@@ -91,6 +97,7 @@ export function staffSeed(): StaffSeed {
     staffId: s.id,
     branchId: s.branchId,
     startDate: s.hireDate,
+    endDate: terminatedEndAt.get(s.branchId),
     assignedBy: 'account-haneul',
   }));
   return { accounts, staff, assignments };

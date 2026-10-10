@@ -157,7 +157,8 @@ export function generateLightBranches(): GeneratedDataset {
 
     const memberCount = i % 5;
     for (let m = 0; m < memberCount; m++) {
-      const assignToStaff = m % 2 === 0 && branchStaffIds.length > 0;
+      // 인사정보관리 ADR-STF-07 — 계약 종료 지점은 전이 때 담당이 풀린 상태라 시드에도 담당을 두지 않는다(log/103).
+      const assignToStaff = m % 2 === 0 && branchStaffIds.length > 0 && contractStatus !== 'TERMINATED';
       members.push({
         id: `member-gen-${pad(i + 1, 3)}-${m + 1}`,
         branchId,

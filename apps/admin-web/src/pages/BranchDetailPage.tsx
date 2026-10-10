@@ -17,6 +17,8 @@ import {
 } from '../lib/types';
 import { BriefcaseIcon } from '../components/icons';
 import { CONTRACT_STATUS_LABEL, contractRemainingLabel } from '../lib/contract-status';
+import { useAuth } from '../lib/use-auth';
+import { ContractStatusModal } from '../components/ContractStatusModal';
 
 const PRICING_LABEL: Record<ProgramRow['pricingType'], string> = {
   FREE_ACCESS: '자유이용',
@@ -92,6 +94,10 @@ function MemberTable({ rows }: { rows: MemberRow[] }) {
 export function BranchDetailPage() {
   const { branchId = '' } = useParams<{ branchId: string }>();
   const [expandedStaffId, setExpandedStaffId] = useState<string | null>(null);
+  const [contractModalOpen, setContractModalOpen] = useState(false);
+  const { user } = useAuth();
+  // ADR-STF-07 — 계약 상태 변경은 본사 전용(서버도 SUPER_ADMIN 외에는 403).
+  const canChangeContract = user?.role === 'SUPER_ADMIN';
 
   const branchesQuery = useApiList<BranchSummary>(['branches'], '/branches');
   const staffQuery = useApiList<StaffRow>(['staff', branchId], `/staff?branchId=${branchId}`);
@@ -151,7 +157,17 @@ export function BranchDetailPage() {
               <span>잔여</span>
               <strong>{contractRemainingLabel(branch.contractEndAt)}</strong>
             </div>
+            {canChangeContract && (
+              <div className="action-row" style={{ marginTop: 12, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn-secondary" onClick={() => setContractModalOpen(true)}>
+                  계약 상태 변경
+                </button>
+              </div>
+            )}
           </div>
+        )}
+        {contractModalOpen && branch && (
+          <ContractStatusModal branch={branch} onClose={() => setContractModalOpen(false)} />
         )}
         {branch?.contractStatus === 'TERMINATED' && unprocessedAssetCount > 0 && (
           <div className="forbidden-note" style={{ marginTop: 8 }}>

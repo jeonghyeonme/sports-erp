@@ -24,6 +24,7 @@ export const ERROR_HINTS: Record<string, string> = {
   ASSET_SCOPE_VIOLATION: '다른 지점 자산입니다. 이관이 필요하면 본사 관리자에게 요청하세요.',
   DOCUMENT_SCOPE_VIOLATION: '이 문서를 볼 수 있는 지점이 아닙니다. 본사 관리자에게 요청하세요.',
   POST_FORBIDDEN_ROLE: '이 역할로는 이 게시판 작업을 할 수 없습니다. 본사 공지는 본사 관리자가 씁니다.',
+  RESIGN_BY_BRANCH_ADMIN: '운영 중인 지점 직원의 퇴사는 그 지점 관리자가 합니다. 본사는 계약 종료 지점 직원만 퇴사 처리합니다.',
   MEMBER_FIELD_FORBIDDEN: '이 역할로는 바꿀 수 없는 항목입니다. 지점 관리자에게 요청하세요.',
   BRANCH_REQUIRED: '지점을 먼저 고르세요.',
 

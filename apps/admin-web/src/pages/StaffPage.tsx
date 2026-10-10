@@ -201,15 +201,21 @@ export function StaffPage() {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [search, setSearch] = useState('');
   // 인사정보관리 A-5 — 목록은 기본으로 퇴사자를 뺀다. 퇴사 처리한 직원은 "퇴사" 탭에서 다시 찾는다.
-  const [showResigned, setShowResigned] = useState(false);
+  // ADR-STF-08 — 본사에게는 "재배치 대기"(활성 파견이 없는 재직 직원, 계약 종료 지점에서 생긴다) 탭이 더 있다.
+  const [tab, setTab] = useState<'active' | 'unassigned' | 'resigned'>('active');
+  const showResigned = tab === 'resigned';
   const [showHire, setShowHire] = useState(false);
 
   // 인사정보관리 A-7 — STAFF는 목록(/staff) 대신 본인 레코드(/staff/me)만 조회 가능하므로
   // 응답 모양(단일 객체 vs 배열)이 갈려 두 쿼리를 분리해서 처리한다.
   const listQuery = useQuery<StaffRow[], AxiosError<ApiErrorBody>>({
-    queryKey: ['staff', 'list', showResigned],
+    queryKey: ['staff', 'list', tab],
     queryFn: async () =>
-      (await api.get<ApiEnvelope<StaffRow[]>>(showResigned ? '/staff?status=RESIGNED' : '/staff')).data.data ?? [],
+      (
+        await api.get<ApiEnvelope<StaffRow[]>>(
+          tab === 'resigned' ? '/staff?status=RESIGNED' : tab === 'unassigned' ? '/staff?unassigned=true' : '/staff',
+        )
+      ).data.data ?? [],
     enabled: !isSelfServiceOnly,
   });
 
@@ -261,10 +267,18 @@ export function StaffPage() {
 
       {!isSelfServiceOnly && (
         <div className="list-toolbar" style={{ gap: 8 }}>
-          <button className={showResigned ? 'filter-chip' : 'filter-chip active'} onClick={() => setShowResigned(false)}>
+          <button className={tab === 'active' ? 'filter-chip active' : 'filter-chip'} onClick={() => setTab('active')}>
             재직
           </button>
-          <button className={showResigned ? 'filter-chip active' : 'filter-chip'} onClick={() => setShowResigned(true)}>
+          {isSuperAdmin && (
+            <button
+              className={tab === 'unassigned' ? 'filter-chip active' : 'filter-chip'}
+              onClick={() => setTab('unassigned')}
+            >
+              재배치 대기
+            </button>
+          )}
+          <button className={tab === 'resigned' ? 'filter-chip active' : 'filter-chip'} onClick={() => setTab('resigned')}>
             퇴사
           </button>
           <input
@@ -276,13 +290,25 @@ export function StaffPage() {
         </div>
       )}
 
+      {tab === 'unassigned' && (
+        <p className="page-desc">
+          계약이 종료된 지점에서 파견이 끝난 직원입니다(ADR-STF-07). 행을 눌러 상세에서 "파견 발령"으로 다른 지점에
+          보내거나, 더 일하지 않으면 "퇴사 처리"로 계정을 닫습니다.
+        </p>
+      )}
       {isError && <div className="forbidden-note">{apiErrorMessage(error ?? null)}</div>}
       {isLoading && <div className="loading-state">불러오는 중...</div>}
 
       {!isError && isSelfServiceOnly && rows.length > 0 && <StaffTable rows={rows} />}
 
       {!isError && !isSelfServiceOnly && !isLoading && rows.length === 0 && (
-        <div className="empty-state">{showResigned ? '퇴사한 직원이 없습니다.' : '파견된 직원이 없습니다.'}</div>
+        <div className="empty-state">
+          {showResigned
+            ? '퇴사한 직원이 없습니다.'
+            : tab === 'unassigned'
+              ? '재배치를 기다리는 직원이 없습니다.'
+              : '파견된 직원이 없습니다.'}
+        </div>
       )}
       {!isError && !isSelfServiceOnly && !isLoading && rows.length > 0 && groups.length === 0 && (
         <div className="empty-state">검색 결과가 없습니다.</div>
@@ -292,7 +318,7 @@ export function StaffPage() {
         !isSelfServiceOnly &&
         groups.map((group) => (
           <CollapsibleBranchSection
-            key={`${showResigned}-${group.branchId}`}
+            key={`${tab}-${group.branchId}`}
             branchName={group.branchName}
             count={group.rows.length}
             countLabel="명"
