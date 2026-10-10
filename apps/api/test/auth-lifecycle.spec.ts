@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ACCOUNTS, createApp, login } from './helpers/app';
+import { ACCOUNTS, BRANCH, createApp, login } from './helpers/app';
 import { resetWorkerDb } from './helpers/worker-db';
 
 /**
@@ -60,5 +60,26 @@ describe('인증 상태의 즉시 반영 (퇴사·Role 전환)', () => {
 
     const after = await request(app.getHttpServer()).get('/api/v1/staff').set('Authorization', staffToken);
     expect(after.status).toBe(200);
+  });
+
+  // log/102 — 계정·프로필·소속 지점 이름을 Prisma 작업 하나로 읽도록 합쳤다. 매 요청 재조회(ADR-AUTH-01)는 그대로라
+  // 지점 이름도 파견 직후 같은 토큰의 다음 요청부터 바뀌어야 한다.
+  it('소속 지점 이름 — 직원·회원은 소속 지점, 본사는 없음, 파견 직후 같은 토큰에서 새 지점', async () => {
+    const me = async (auth: string) => (await request(app.getHttpServer()).get('/api/v1/auth/me').set('Authorization', auth)).body.data;
+    const staffToken = await login(app, ACCOUNTS.seochoStaff);
+    const superToken = await login(app, ACCOUNTS.superAdmin);
+
+    expect(await me(staffToken)).toMatchObject({ branchId: BRANCH.seocho, branchName: '서초점' });
+    expect(await me(await login(app, ACCOUNTS.seochoMember))).toMatchObject({ branchId: BRANCH.seocho, branchName: '서초점' });
+    const hq = await me(superToken);
+    expect(hq.branchId).toBeUndefined();
+    expect(hq.branchName).toBeUndefined();
+
+    const assignRes = await request(app.getHttpServer())
+      .post('/api/v1/staff/staff-seoyeon/assignments')
+      .set('Authorization', superToken)
+      .send({ branchId: BRANCH.gangnam });
+    expect(assignRes.status).toBeLessThan(300);
+    expect(await me(staffToken)).toMatchObject({ branchId: BRANCH.gangnam, branchName: '강남점' });
   });
 });

@@ -3,7 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { RequestUser } from '../../../common/interfaces/request-user.interface';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { AuthService } from '../auth.service';
+import { ACCOUNT_PROFILE_INCLUDE, AuthService } from '../auth.service';
 import { AppException } from '../../../common/exceptions/app.exception';
 import { AccessTokenPayload } from '../types/jwt-payload.interface';
 import { secretFromEnv } from '../../../common/config/secrets';
@@ -28,7 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // "재로그인 없이 다음 요청부터 즉시 반영"된다는 권한관리 A-6의 원칙이 깨진다(access token엔 sub만 담는다).
     const account = await this.prisma.account.findUnique({
       where: { id: payload.sub },
-      include: { staff: true, member: true },
+      include: ACCOUNT_PROFILE_INCLUDE,
     });
     // D32 — 모든 계정이 DB에 있다(mock 폴백 종료).
     if (!account || account.isActive === false) {
