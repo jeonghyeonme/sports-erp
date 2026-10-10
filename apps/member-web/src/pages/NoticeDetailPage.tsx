@@ -1,8 +1,9 @@
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useLoad } from '../lib/use-load';
 import { describeError } from '../lib/errors';
 import { shortDate } from '../lib/format';
 import { Post } from '../lib/types';
+import { SkeletonList } from '../components/Skeleton';
 
 // 공지 상세 — GET /posts/:id 1회. 상세 조회가 조회수를 올리므로(게시판 D36 결정 2) 목록 데이터를 넘겨 쓰지 않고 부른다.
 // 회원에게 보이지 않는 글은 서버가 404로 숨긴다(게시판 A-7).
@@ -12,15 +13,12 @@ export function NoticeDetailPage() {
 
   return (
     <div className="stack">
-      <Link to="/notices" className="back-link">
-        ← 공지 목록
-      </Link>
       {error ? (
         <div className="panel error-panel" role="alert">
           <p>{describeError(error, '공지를 불러오지 못했습니다.')}</p>
         </div>
       ) : loading || !data ? (
-        <p className="muted center">불러오는 중…</p>
+        <SkeletonList />
       ) : (
         <article className="panel stack-sm">
           <h1>{data.title}</h1>

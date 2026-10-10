@@ -4,6 +4,7 @@ import { describeError } from '../lib/errors';
 import { shortDate } from '../lib/format';
 import { Post } from '../lib/types';
 import { HOME_CARD_CACHE_MS } from '../lib/congestion';
+import { SkeletonLines } from './Skeleton';
 
 // 홈 최근 공지 3건 — GET /posts?sort=latest&limit=3 1회(ADR-BRD-03), 60초 안에 다시 오면 0회(캐시). 회원에게 보이는 글만 온다(ADR-BRD-01).
 export function RecentNotices() {
@@ -24,7 +25,7 @@ export function RecentNotices() {
           {describeError(error, '공지를 불러오지 못했습니다.')}
         </p>
       ) : loading ? (
-        <p className="muted">불러오는 중…</p>
+        <SkeletonLines />
       ) : (data ?? []).length === 0 ? (
         <p className="muted">새 공지가 없습니다.</p>
       ) : (

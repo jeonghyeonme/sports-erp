@@ -3,6 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './lib/auth-context';
 import { useAuth } from './lib/use-auth';
 import { MobileLayout } from './layout/MobileLayout';
+import { Splash } from './components/Splash';
+import { OfflineScreen } from './components/OfflineScreen';
 import { LoginPage } from './pages/LoginPage';
 import { HomePage } from './pages/HomePage';
 import { ProgramsPage } from './pages/ProgramsPage';
@@ -17,8 +19,9 @@ import { SignupPage } from './pages/SignupPage';
 import { LinkPage } from './pages/LinkPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { user, isRestoring } = useAuth();
-  if (isRestoring) return <div className="splash">불러오는 중…</div>;
+  const { user, isRestoring, restoreOffline } = useAuth();
+  if (isRestoring) return <Splash />;
+  if (restoreOffline) return <OfflineScreen />;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }

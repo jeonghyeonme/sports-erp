@@ -24,7 +24,8 @@
     "directory": "../apps/admin-web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/m/*", "!/m/", "!/m/assets/*"]
+    // D45 — 회원 앱 service worker(/m/sw.js)도 자산 계층이 바로 준다(브라우저가 업데이트 확인으로 자주 부른다).
+    "run_worker_first": ["/api/*", "/m/*", "!/m/", "!/m/assets/*", "!/m/sw.js"]
   },
   // Workers Rate Limiting(2025-09-19 GA). simple: 지정한 period(초) 동안 limit회 초과 시 거부.
   "unsafe": {

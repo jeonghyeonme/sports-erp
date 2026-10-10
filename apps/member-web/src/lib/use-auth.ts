@@ -6,6 +6,9 @@ export interface AuthContextValue {
   user: AuthUser | null;
   // 저장된 refresh token으로 세션을 되살리는 중인지 — 이 동안은 로그인 화면으로 보내지 않는다.
   isRestoring: boolean;
+  // 오프라인이라 세션 복원 요청이 서버에 닿지 못함(토큰은 남아 있음) — 연결되면 retryRestore로 다시 시도한다(log/094).
+  restoreOffline: boolean;
+  retryRestore: () => void;
   // 사용 중에 refresh까지 실패해 로그인 화면으로 돌아왔는지 — 로그인 화면이 이유를 알려 준다(B1-2).
   sessionExpired: boolean;
   // 로그아웃하며 로그인 화면에 남길 안내(예: 비밀번호 변경 후 다시 로그인, log/091)

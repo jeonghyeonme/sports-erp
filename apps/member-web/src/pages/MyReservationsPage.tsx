@@ -8,6 +8,7 @@ import { isActive } from '../lib/reservation-status';
 import { ApiEnvelope, Reservation } from '../lib/types';
 import { BottomSheet } from '../components/BottomSheet';
 import { StatusBadge } from '../components/StatusBadge';
+import { SkeletonList } from '../components/Skeleton';
 
 const MAX_ROWS = 100; // api 목록 상한(D43)
 
@@ -46,7 +47,7 @@ export function MyReservationsPage() {
     }
   };
 
-  if (loading) return <p className="muted center">불러오는 중…</p>;
+  if (loading) return <SkeletonList />;
   if (error) {
     return (
       <div className="panel error-panel" role="alert">

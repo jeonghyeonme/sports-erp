@@ -2,6 +2,8 @@ import { FormEvent, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/use-auth';
 import { SESSION_EXPIRED_MESSAGE } from '../lib/errors';
+import { Splash } from '../components/Splash';
+import { OfflineBanner } from '../components/OfflineBanner';
 
 export function LoginPage() {
   const { user, isRestoring, sessionExpired, loginNotice, login } = useAuth();
@@ -11,7 +13,7 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (user) return <Navigate to="/" replace />;
-  if (isRestoring) return <div className="splash">불러오는 중…</div>;
+  if (isRestoring) return <Splash />;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -28,6 +30,7 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
+      <OfflineBanner />
       <header className="login-header">
         <p className="login-brand">스포이즘</p>
         <h1>회원 로그인</h1>
