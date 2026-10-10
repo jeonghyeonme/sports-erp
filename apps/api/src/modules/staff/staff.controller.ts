@@ -25,9 +25,13 @@ export class StaffController {
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,
     @Query('position') position?: string,
+    @Query('unassigned') unassigned?: string,
   ) {
     // ADR-MEM-04 — 직원 목록도 같은 규칙으로 연락처를 마스킹한다(상세·me는 원문, 인사정보관리 STF-T03).
-    return ok(maskPhones(await this.staffService.list({ branchId, status, position })));
+    // unassigned=true — 재배치 대기(ADR-STF-08). 지점 관리자에게는 가드가 자기 지점을 주입하므로 자기 지점 것만 보인다.
+    return ok(
+      maskPhones(await this.staffService.list({ branchId, status, position, unassigned: unassigned === 'true' })),
+    );
   }
 
   // STAFF 본인 레코드만 셀프서비스로 조회(인사정보관리 A-7) — 동료 직원 정보는 노출하지 않는다.
@@ -66,11 +70,12 @@ export class StaffController {
     return ok(await this.staffService.update(id, dto));
   }
 
+  // 지점 관리자는 자기 지점 직원(@ScopedResource), 본사는 계약 종료 지점 직원만(ADR-STF-08, 서비스에서 판정).
   @Patch(':id/resign')
-  @Roles('BRANCH_ADMIN')
+  @Roles('BRANCH_ADMIN', 'SUPER_ADMIN')
   @ScopedResource('staff')
   async resign(@Param('id') id: string, @CurrentUser() user: RequestUser) {
-    return ok(await this.staffService.resign(id, user.accountId));
+    return ok(await this.staffService.resign(id, { accountId: user.accountId, role: user.role }));
   }
 
   // 파견 발령(재배치) — SUPER_ADMIN 전용(인사정보관리 A-5·A-7, 본사의 인력 배치 결정). 지점 범위 제한 없음 —

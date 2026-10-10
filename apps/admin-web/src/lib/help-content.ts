@@ -49,6 +49,13 @@ const HELP_ROUTES: HelpRoute[] = [
         '프로그램·혼잡도 탭에서 운영 중인 프로그램과 시설별 현재 인원을 봅니다.',
         '계약이 종료된 지점은 조회만 됩니다. 미처리 자산 경고가 보이면 자산·비품에서 폐기·이관하세요.',
       ],
+      byRole: {
+        SUPER_ADMIN: [
+          '계약 정보 카드의 "계약 상태 변경"을 누르고 새 상태를 고릅니다.',
+          '"계약 종료"를 고르면 파견 종료·담당 해제 안내를 확인한 뒤 "계약 종료 처리"를 누릅니다.',
+          '결과 창의 재배치 대기 직원 이름을 눌러 직원 상세로 가서 "파견 발령"으로 다른 지점에 보냅니다.',
+        ],
+      },
       errors: ['BRANCH_NOT_FOUND', 'BRANCH_SCOPE_VIOLATION', 'BRANCH_TERMINATED'],
     },
   },
@@ -105,6 +112,7 @@ const HELP_ROUTES: HelpRoute[] = [
           '"파견 발령"에서 새 지점과 메모를 넣고 발령합니다. 계약 종료 지점은 목록에 나오지 않습니다.',
           '발령하면 예전 지점 회원의 담당이 풀립니다. 풀린 회원 이름이 알림으로 남으니 그 지점 관리자에게 전달하세요.',
           '아래 파견 이력에서 언제 어느 지점에 있었는지 봅니다. 누가 발령했는지는 "변경 이력"에 있습니다.',
+          '계약 종료 지점 직원에게는 "퇴사 처리"도 보입니다. 다른 지점으로 보내지 않을 사람은 퇴사 처리로 계정을 닫습니다.',
         ],
         BRANCH_ADMIN: [
           '"정보 수정"으로 이름·연락처·직급·고용형태·정기 휴무 요일을 고치고 저장합니다.',
@@ -112,7 +120,14 @@ const HELP_ROUTES: HelpRoute[] = [
           '지점을 옮기는 일은 본사가 "파견 발령"으로 합니다.',
         ],
       },
-      errors: ['BRANCH_TERMINATED', 'STAFF_ALREADY_RESIGNED', 'STAFF_SCOPE_VIOLATION', 'STAFF_NOT_FOUND', 'VALIDATION_ERROR'],
+      errors: [
+        'BRANCH_TERMINATED',
+        'STAFF_ALREADY_RESIGNED',
+        'RESIGN_BY_BRANCH_ADMIN',
+        'STAFF_SCOPE_VIOLATION',
+        'STAFF_NOT_FOUND',
+        'VALIDATION_ERROR',
+      ],
     },
   },
   {
@@ -125,6 +140,7 @@ const HELP_ROUTES: HelpRoute[] = [
           '"+ 직원 채용"에서 파견 지점·이름·이메일(필수)을 넣고 채용합니다.',
           '채용이 끝나면 로그인 정보(이메일·임시 비밀번호)가 알림으로 남습니다. 직원에게 전달하세요.',
           '재직/퇴사 탭과 지점명 검색으로 찾고, 행을 누르면 상세에서 파견 발령을 합니다.',
+          '"재배치 대기" 탭은 계약 종료 지점에서 파견이 끝난 직원입니다. 상세에서 발령하거나 퇴사 처리합니다.',
           '역할(지점 관리자/직원) 변경은 "권한 관리"에서 합니다.',
         ],
         BRANCH_ADMIN: [

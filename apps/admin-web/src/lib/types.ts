@@ -39,6 +39,16 @@ export interface BranchSummary {
   contractPartner?: string;
 }
 
+// PATCH /branches/:branchId/contract-status 응답(인사정보관리 ADR-STF-07). 종료 전이가 아니면 두 목록은 빈 배열.
+export interface ContractStatusChangeResult {
+  id: string;
+  name: string;
+  contractStatus: BranchContractStatus;
+  previousStatus: BranchContractStatus;
+  reassignmentTargets: Array<{ id: string; staffCode: string; name: string }>;
+  unassignedMembers: Array<{ id: string; name: string; staffId: string }>;
+}
+
 export interface MemberRow {
   id: string;
   branchId: string;

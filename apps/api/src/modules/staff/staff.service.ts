@@ -28,12 +28,18 @@ export class StaffService {
   // ── 조회 ──────────────────────────────────────────────
 
   /** 인사정보관리 A-5 — 퇴사자는 기본적으로 숨기고(status!=RESIGNED), status를 명시하면 그 값만(인사정보관리 A-6). */
-  async list(filter: { branchId?: string; status?: string; position?: string }): Promise<StaffView[]> {
+  // unassigned=true — 재배치 대기(활성 파견이 없는 재직 직원, ADR-STF-08). 계약 종료 전이(ADR-STF-07)가 만든다.
+  async list(filter: { branchId?: string; status?: string; position?: string; unassigned?: boolean }): Promise<StaffView[]> {
     const rows = await this.prisma.staff.findMany({
       where: {
         branchId: filter.branchId,
-        status: filter.status ? (filter.status as Staff['status']) : { not: 'RESIGNED' },
+        status: filter.unassigned
+          ? { not: 'RESIGNED' }
+          : filter.status
+            ? (filter.status as Staff['status'])
+            : { not: 'RESIGNED' },
         position: filter.position,
+        assignments: filter.unassigned ? { none: { endDate: null } } : undefined,
       },
       include: { branch: { select: { name: true } } },
       orderBy: { staffCode: 'asc' },
@@ -163,12 +169,22 @@ export class StaffService {
    */
   async resign(
     id: string,
-    actorAccountId: string,
+    actor: { accountId: string; role: Role },
   ): Promise<StaffView & { unassignedMembers: Array<{ id: string; name: string }> }> {
+    const actorAccountId = actor.accountId;
     const today = todayKst();
     const unassignedMembers = await this.prisma.$transaction(async (tx) => {
-      const staff = await tx.staff.findUnique({ where: { id } });
+      const staff = await tx.staff.findUnique({ where: { id }, include: { branch: { select: { contractStatus: true } } } });
       if (!staff) throw staffNotFound();
+      // ADR-STF-08(ADR-AUTH-02의 "수동 비활성화") — 본사는 계약 종료 지점 직원만 퇴사 처리한다. 그 지점은 운영이 끝나
+      // 퇴사를 맡을 지점 관리자가 없을 수 있다. 운영 중인 지점의 퇴사는 여전히 그 지점 관리자의 일상 관리다.
+      if (actor.role === 'SUPER_ADMIN' && staff.branch.contractStatus !== 'TERMINATED') {
+        throw new AppException(
+          'RESIGN_BY_BRANCH_ADMIN',
+          '운영 중인 지점 직원의 퇴사는 그 지점 관리자가 처리합니다. 본사는 계약 종료 지점 직원만 퇴사 처리할 수 있습니다.',
+          403,
+        );
+      }
       if (staff.status === 'RESIGNED') {
         throw new AppException('STAFF_ALREADY_RESIGNED', '이미 퇴사 처리된 직원입니다.', 409);
       }
