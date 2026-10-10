@@ -75,7 +75,8 @@ export class MemberService {
           ]
         : undefined,
     };
-    const [total, rows] = await Promise.all([
+    // connection_limit=1(D37)이라 Promise.all도 차례로 실행된다 — 일괄 트랜잭션 하나로 묶어 풀러 왕복을 줄인다(log/102).
+    const [total, rows] = await this.prisma.$transaction([
       this.prisma.member.count({ where }),
       this.prisma.member.findMany({
         where,

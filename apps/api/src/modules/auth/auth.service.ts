@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
-import { Account, Member, Staff } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { AppException } from '../../common/exceptions/app.exception';
@@ -14,7 +14,17 @@ import { secretFromEnv } from '../../common/config/secrets';
 const REFRESH_TOKEN_SECRET = secretFromEnv('JWT_REFRESH_SECRET', 'change-me-refresh');
 const REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN ?? '14d';
 
-type AccountWithProfile = Account & { staff: Staff | null; member: Member | null };
+/**
+ * 계정 + 소속 프로필 + 소속 지점 이름을 Prisma 작업 하나로 읽는다(log/102). 풀러 모드(`pgbouncer=true`)에서는
+ * 작업마다 BEGIN·DEALLOCATE ALL·COMMIT 왕복이 붙어서, 지점을 따로 조회하면 요청마다 왕복이 3번 더 든다.
+ * 매 요청 재조회(ADR-AUTH-01)는 그대로다 — 합친 것은 한 요청 안의 두 조회다.
+ */
+export const ACCOUNT_PROFILE_INCLUDE = {
+  staff: { include: { branch: { select: { name: true } } } },
+  member: { include: { branch: { select: { name: true } } } },
+} satisfies Prisma.AccountInclude;
+
+export type AccountWithProfile = Prisma.AccountGetPayload<{ include: typeof ACCOUNT_PROFILE_INCLUDE }>;
 
 @Injectable()
 export class AuthService {
@@ -34,7 +44,7 @@ export class AuthService {
     const account = await this.prisma.account.findFirst({
       where: { email },
       orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
-      include: { staff: true, member: true },
+      include: ACCOUNT_PROFILE_INCLUDE,
     });
     if (!account) {
       throw new AppException('INVALID_CREDENTIALS', '이메일 또는 비밀번호가 올바르지 않습니다.', 401);
@@ -49,7 +59,7 @@ export class AuthService {
   async issueSessionFor(accountId: string): Promise<{ accessToken: string; refreshToken: string; user: RequestUser }> {
     const account = await this.prisma.account.findUniqueOrThrow({
       where: { id: accountId },
-      include: { staff: true, member: true },
+      include: ACCOUNT_PROFILE_INCLUDE,
     });
     return this.issuePrismaSession(account);
   }
@@ -110,9 +120,9 @@ export class AuthService {
 
   // 권한관리 A-6 — role/branchId를 매 요청 이 조회 결과로 새로 구성하는 단일 원천(JwtStrategy도 이걸 쓴다).
   // 실제 스키마엔 Account에 branchId가 없어 Staff/Member를 거쳐 조회한다.
-  async buildRequestUser(account: AccountWithProfile): Promise<RequestUser> {
+  buildRequestUser(account: AccountWithProfile): RequestUser {
     const branchId = account.staff?.branchId ?? account.member?.branchId;
-    const branch = branchId ? await this.prisma.branch.findUnique({ where: { id: branchId } }) : null;
+    const branch = account.staff?.branch ?? account.member?.branch;
     return {
       accountId: account.id,
       email: account.email,
@@ -128,7 +138,7 @@ export class AuthService {
   private async issuePrismaSession(
     account: AccountWithProfile,
   ): Promise<{ accessToken: string; refreshToken: string; user: RequestUser }> {
-    const user = await this.buildRequestUser(account);
+    const user = this.buildRequestUser(account);
     const accessToken = this.signAccessToken(account.id);
     const refreshToken = await this.issuePrismaRefreshToken(account.id);
     return { accessToken, refreshToken, user };

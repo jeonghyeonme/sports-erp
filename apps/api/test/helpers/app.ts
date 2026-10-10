@@ -15,7 +15,9 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 export async function createApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = configureApp(moduleRef.createNestApplication());
-  await app.init();
+  // 임의 포트로 미리 연다. 열지 않은 서버를 넘기면 supertest가 요청마다 같은 서버를 열고, 끝난 요청이 닫아 버려
+  // 동시 요청(Promise.all) 중 나머지가 ECONNRESET으로 간헐 실패했다(post-rules 동시 조회 20건, log/102).
+  await app.listen(0, '127.0.0.1');
   return app;
 }
 

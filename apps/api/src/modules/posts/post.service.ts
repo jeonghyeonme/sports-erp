@@ -7,11 +7,12 @@ import { MockPost } from '../../fixtures/mock-data.types';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchService } from '../branches/branch.service';
 
-type PostRow = Post & { branch: { name: string } | null };
+type PostRow = Post & { branch: { name: string } | null; author: { name: string } };
 export type PostView = MockPost & { authorName?: string; branchName?: string };
 
 const SCOPES: PostScope[] = ['HQ_TO_BRANCH', 'BRANCH_TO_MEMBER'];
-const withBranch = { branch: { select: { name: true } } } as const;
+// 작성자 이름도 같은 작업에서 읽는다(Post.author 관계, log/093) — 따로 묶음 조회하면 풀러 모드에서 왕복이 3번 더 든다(log/102).
+const withBranch = { branch: { select: { name: true } }, author: { select: { name: true } } } as const;
 
 /**
  * 게시판(게시판 문서) — D36. 원천은 DB다. 가시성(ADR-BRD-01)·페이지네이션(ADR-BRD-02)·
@@ -43,7 +44,8 @@ export class PostService {
     const where: Prisma.PostWhereInput = {
       AND: [{ deletedAt: null }, filter.scope ? { scope: filter.scope as PostScope } : {}, this.visibleWhere(user)],
     };
-    const [total, rows] = await Promise.all([
+    // connection_limit=1(D37)이라 Promise.all도 차례로 실행된다 — 일괄 트랜잭션 하나로 묶어 풀러 왕복을 줄인다(log/102).
+    const [total, rows] = await this.prisma.$transaction([
       this.prisma.post.count({ where }),
       this.prisma.post.findMany({
         where,
@@ -54,7 +56,7 @@ export class PostService {
         take: filter.pageSize,
       }),
     ]);
-    return { items: await this.toViews(rows), total };
+    return { items: toViews(rows), total };
   }
 
   /** 보이지 않거나 없거나 삭제된 글은 모두 404(존재 여부를 드러내지 않는다 — 게시판 A-7). */
@@ -75,7 +77,7 @@ export class PostService {
       data: { viewCount: { increment: 1 } },
       include: withBranch,
     });
-    return (await this.toViews([row]))[0];
+    return toViews([row])[0];
   }
 
   // 게시판 A-5 — 본사는 HQ_TO_BRANCH(전체 또는 특정 지점 지정), 지점장은 BRANCH_TO_MEMBER만(범위·지점은 서버가 강제).
@@ -115,7 +117,7 @@ export class PostService {
       },
       include: withBranch,
     });
-    return (await this.toViews([row]))[0];
+    return toViews([row])[0];
   }
 
   // 수정은 삭제되지 않았을 때만(D36 결정 2) — 권한(작성자 본인)은 컨트롤러가 먼저 본다.
@@ -126,7 +128,7 @@ export class PostService {
     });
     if (count === 0) throw postNotFound();
     const row = await this.prisma.post.findUniqueOrThrow({ where: { id }, include: withBranch });
-    return (await this.toViews([row]))[0];
+    return toViews([row])[0];
   }
 
   // 게시판 A-6 — 물리 삭제 대신 소프트 삭제. 두 번째 삭제는 404.
@@ -134,16 +136,10 @@ export class PostService {
     const { count } = await this.prisma.post.updateMany({ where: { id, deletedAt: null }, data: { deletedAt: new Date() } });
     if (count === 0) throw postNotFound();
   }
+}
 
-  // 작성자 이름은 id 묶음 조회 한 번으로(N+1 제거). Post.authorId에는 외래키가 없어 조인 대신 묶음 조회(D36 "감수하는 것").
-  private async toViews(rows: PostRow[]): Promise<PostView[]> {
-    const ids = [...new Set(rows.map((r) => r.authorId))];
-    const accounts = ids.length
-      ? await this.prisma.account.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })
-      : [];
-    const names = new Map(accounts.map((a) => [a.id, a.name]));
-    return rows.map((r) => ({ ...toMockPost(r), authorName: names.get(r.authorId), branchName: r.branch?.name }));
-  }
+function toViews(rows: PostRow[]): PostView[] {
+  return rows.map((r) => ({ ...toMockPost(r), authorName: r.author.name, branchName: r.branch?.name }));
 }
 
 function postNotFound() {
