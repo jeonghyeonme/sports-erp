@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { AppException } from '../../common/exceptions/app.exception';
+import { BranchScopeExempt } from '../../common/decorators/scoped-resource.decorator';
 import { ok } from '../../common/http/api-response';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -9,7 +10,9 @@ import { PostService } from './post.service';
 
 // 게시판 A-5·A-7 — 전체 HQ 공지 + 본인 소속 지점의 BRANCH_TO_MEMBER 게시글만 노출.
 // 작성: SUPER_ADMIN→HQ_TO_BRANCH, BRANCH_ADMIN→BRANCH_TO_MEMBER(본인 지점 강제). 수정/삭제는 작성자 본인만(삭제는 SUPER_ADMIN도 가능).
-// D36 — 원천은 DB(PostService).
+// D36 — 원천은 DB(PostService). D46 — 게시글은 "HQ 공지는 전 지점 공개"라 지점 소유 검사가 아니라
+// PostService의 가시성 규칙(findVisible·viewDetail)이 범위를 본다.
+const POST_VISIBILITY = 'PostService.findVisible·viewDetail의 가시성 규칙(게시판 A-7)이 범위를 본다';
 @Controller('posts')
 export class PostsController {
   constructor(private readonly posts: PostService) {}
@@ -31,6 +34,7 @@ export class PostsController {
   }
 
   @Get(':id')
+  @BranchScopeExempt(POST_VISIBILITY)
   async detail(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return ok(await this.posts.viewDetail(id, user));
   }
@@ -44,6 +48,7 @@ export class PostsController {
   }
 
   @Patch(':id')
+  @BranchScopeExempt(POST_VISIBILITY)
   async update(@Param('id') id: string, @Body() dto: UpdatePostDto, @CurrentUser() user: RequestUser) {
     const post = await this.posts.findVisible(id, user);
     if (post.authorId !== user.accountId) {
@@ -53,6 +58,7 @@ export class PostsController {
   }
 
   @Delete(':id')
+  @BranchScopeExempt(POST_VISIBILITY)
   async remove(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     const post = await this.posts.findVisible(id, user);
     if (post.authorId !== user.accountId && user.role !== 'SUPER_ADMIN') {

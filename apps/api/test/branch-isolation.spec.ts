@@ -5,8 +5,8 @@ import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
 /**
  * 지점 데이터 격리 — 원본 RFP 핵심 요구사항("타 지점 조회 불가", CLAUDE.md 프로젝트 가드레일).
  *
- * 격리는 BranchScopeGuard(branchId 파라미터·쿼리만 검사) + 컨트롤러별 assert*(리소스 :id 기반) 조합이라
- * 어느 한 곳이 빠지면 다른 지점 데이터가 그대로 노출된다. 그래서 라우트 표를 순회하며 확인한다.
+ * 격리는 전역 BranchScopeGuard 한 곳이 본다(D46) — branchId 파라미터·쿼리 + @ScopedResource로 선언한 리소스의
+ * 소유 지점. 선언이 빠진 라우트는 branch-scope-coverage.spec.ts가 잡고, 여기서는 실제 요청으로 거부되는지 확인한다.
  * 이 테스트는 "의도된 규칙"(타 지점 접근 불가)을 검증한다. 현재 동작에 맞추려고 기대값을 바꾸지 말 것.
  */
 
@@ -206,6 +206,13 @@ describe('지점 데이터 격리', () => {
     { name: '프로그램 목록(branchId=서초)', method: 'get', path: () => `/programs?branchId=${BRANCH.seocho}` },
     { name: '시설 목록(branchId=서초)', method: 'get', path: () => `/facilities?branchId=${BRANCH.seocho}` },
     { name: '강사 목록(branchId=서초)', method: 'get', path: () => `/instructors?branchId=${BRANCH.seocho}` },
+    // D46 — 전역 가드 전에는 이 라우트들이 남의 branchId를 조용히 본인 지점으로 바꿨다. 이제는 명시적으로 거부한다.
+    { name: '자산 목록(branchId=서초)', method: 'get', path: () => `/assets?branchId=${BRANCH.seocho}` },
+    { name: '문서 목록(branchId=서초)', method: 'get', path: () => `/documents?branchId=${BRANCH.seocho}` },
+    { name: '결제 목록(branchId=서초)', method: 'get', path: () => `/payments?branchId=${BRANCH.seocho}` },
+    { name: '근태 요약(branchId=서초)', method: 'get', path: () => `/attendance/summary?branchId=${BRANCH.seocho}&month=2026-09` },
+    { name: '결근 미리보기(branchId=서초)', method: 'get', path: () => `/attendance/absence-preview?branchId=${BRANCH.seocho}&month=2026-09` },
+    { name: '회원 예약 내역(memberId=서초 회원)', method: 'get', path: (c) => `/reservations?memberId=${c.seocho.memberId}` },
   ];
 
   describe('강남 관리자가 서초점 리소스에 접근하면 거부된다', () => {

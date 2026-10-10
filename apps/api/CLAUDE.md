@@ -15,6 +15,7 @@ npm run test    # jest — HTTP 통합 테스트(test/), 실제 AppModule + supe
 ## 현재 구조 (착각하기 쉬운 부분)
 
 - 전 도메인이 `PrismaService`로 동작한다(D26~D36). `MockDataService`와 인메모리 미러는 삭제됐다 — **인메모리 저장소를 새로 만들지 말 것.** "스키마에 있으니 동작한다"고 가정하지 말고 도메인 문서 §11·부록 A-8을 확인한다.
+- 지점 격리는 전역 `BranchScopeGuard`(`src/common/guards/`)가 본다(D46). 리소스 id를 받는 라우트는 `@ScopedResource(kind, { param | query | body })`를 붙이고, 새 리소스 종류는 `scope-owners.ts`에 주인 조회를 더한다. 컨트롤러에 `findXOrThrow`+`assert*`를 다시 만들지 않는다.
 - 계약 종료 판정은 `BranchService.loadGate()`의 gate(`src/modules/branches/branch-gate.ts`), 예약 생성은 회차 행 락(`lockScheduleSlot`) 위에서 정원을 센다(ADR-RSV-01).
 - 부분 unique 인덱스·CHECK 제약·지점 일치 트리거(D27·D28)는 `schema.prisma`가 아니라 **마이그레이션 SQL에만** 있다(schema.prisma 상단 주석). 도메인을 옮기거나 규칙을 추가할 때는 [data-integrity.md](../../docs/architecture/data-integrity.md) §6 체크리스트(채번·회차 락 헬퍼 포함)를 따른다.
 - **이미 적용된 `prisma/migrations/*/migration.sql`은 고치지 않는다** — 체크섬이 바뀌어 배포 DB의 `migrate deploy`가 실패한다. 바꿀 게 있으면 새 마이그레이션을 만든다.

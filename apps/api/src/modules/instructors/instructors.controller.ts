@@ -1,19 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-import { BranchScopeGuard } from '../../common/guards/branch-scope.guard';
+import { ScopedResource } from '../../common/decorators/scoped-resource.decorator';
 import { InstructorService } from './instructor.service';
 import { AppException } from '../../common/exceptions/app.exception';
-import { MockInstructor } from '../../fixtures/mock-data.types';
 import { ok } from '../../common/http/api-response';
 import { maskPhones } from '../../common/privacy/mask-phone';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
 
 // 강사프로그램게시 A-7 — 회원 포함 모든 역할이 조회 가능, 등록/수정/비활성화는 BRANCH_ADMIN 본인 지점만.
+// D46 — 지점 범위(branchId·:id 소유)는 전역 BranchScopeGuard가 본다.
 @Controller('instructors')
-@UseGuards(BranchScopeGuard)
 export class InstructorsController {
   constructor(private readonly instructorService: InstructorService) {}
 
@@ -34,30 +33,16 @@ export class InstructorsController {
 
   @Patch(':id')
   @Roles('BRANCH_ADMIN')
-  async update(@Param('id') id: string, @Body() dto: UpdateInstructorDto, @CurrentUser() user: RequestUser) {
-    this.assertOwnBranch(await this.findInstructorOrThrow(id), user);
+  @ScopedResource('instructor')
+  async update(@Param('id') id: string, @Body() dto: UpdateInstructorDto) {
     return ok(await this.instructorService.update(id, dto));
   }
 
   // 강사프로그램게시 A-5 "수정/비활성화" — 물리 삭제 대신 isActive=false로 소프트 비활성화한다(강사프로그램게시 A-6 소프트 삭제 원칙).
   @Delete(':id')
   @Roles('BRANCH_ADMIN')
-  async deactivate(@Param('id') id: string, @CurrentUser() user: RequestUser) {
-    this.assertOwnBranch(await this.findInstructorOrThrow(id), user);
+  @ScopedResource('instructor')
+  async deactivate(@Param('id') id: string) {
     return ok(await this.instructorService.update(id, { isActive: false }));
-  }
-
-  private async findInstructorOrThrow(id: string): Promise<MockInstructor> {
-    const instructor = await this.instructorService.findById(id);
-    if (!instructor) {
-      throw new AppException('INSTRUCTOR_NOT_FOUND', '강사를 찾을 수 없습니다.', 404);
-    }
-    return instructor;
-  }
-
-  private assertOwnBranch(instructor: MockInstructor, user: RequestUser): void {
-    if (instructor.branchId !== user.branchId) {
-      throw new AppException('INSTRUCTOR_SCOPE_VIOLATION', '다른 지점의 강사는 수정할 수 없습니다.', 403);
-    }
   }
 }

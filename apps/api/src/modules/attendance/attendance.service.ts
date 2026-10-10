@@ -263,12 +263,6 @@ export class AttendanceService {
     return rows.map(toMockLeave);
   }
 
-  async leaveRequestStaffId(id: string): Promise<string> {
-    const request = await this.prisma.leaveRequest.findUnique({ where: { id }, select: { staffId: true } });
-    if (!request) throw leaveNotFound();
-    return request.staffId;
-  }
-
   // ADR-ATT-01 — 승인 시점에만 차감, ANNUAL만 잔여에 반영. "PENDING일 때만" 바꾸는 조건부 갱신과
   // 잔여 증가를 한 트랜잭션으로 묶어, 동시 승인이 와도 한 번만 차감된다(data-integrity §6).
   async approveLeaveRequest(id: string, approverId: string): Promise<MockLeaveRequest> {
@@ -325,13 +319,6 @@ export class AttendanceService {
       orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
     });
     return rows.map(toMockWorkLog);
-  }
-
-  // ── 권한 검사용 ────────────────────────────────────────
-
-  async staffBranchId(staffId: string): Promise<string | undefined> {
-    const staff = await this.prisma.staff.findUnique({ where: { id: staffId }, select: { branchId: true } });
-    return staff?.branchId;
   }
 
   // ADR-ATT-03 — 그 날짜에 그 직원이 소속돼 있던 지점. endDate는 배타적(파견 전환 당일은 새 지점, ADR-AUTH-01).

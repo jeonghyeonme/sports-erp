@@ -60,13 +60,14 @@
 ### 3.3 인가(Authorization) 구현 방식 (NestJS 기준)
 
 ```
+// 세 가드는 AppModule에 APP_GUARD로 전역 등록(이 순서). 라우트는 역할과 다루는 리소스만 선언한다(D46).
 @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
-@UseGuards(JwtAuthGuard, RolesGuard, BranchScopeGuard)
+@ScopedResource('member')   // :id의 주인을 가드가 확인
 ```
 
 - `JwtAuthGuard`: 토큰 검증, `req.user`(accountId, role, branchId) 주입
 - `RolesGuard`: 데코레이터에 선언된 역할만 허용
-- `BranchScopeGuard`: BRANCH_ADMIN 요청에 대해 쿼리/파라미터의 `branchId`가 본인 소속과 일치하는지 검사 (불일치 시 403). 서비스 레이어에서도 이중으로 `where: { branchId: user.branchId }` 강제 적용(가드 우회 방지용 2중 안전장치)
+- `BranchScopeGuard`: SUPER_ADMIN 외 요청에 대해 ① 쿼리/파라미터의 `branchId`가 본인 소속과 일치하는지 검사(불일치 시 403, 없으면 본인 지점 주입 — 서비스가 이 값으로 `where`를 건다) ② `@ScopedResource`로 선언한 리소스의 소유 지점(회원·직원은 "본인")을 확인한다(없으면 404, 남의 것이면 403). 선언 누락은 라우트 표 테스트가 잡는다([D46](../decisions/D46.md))
 
 ### 3.4 권한 매트릭스(요약 — 상세는 권한관리 문서)
 
