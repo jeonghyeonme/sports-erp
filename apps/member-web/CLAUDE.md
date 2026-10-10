@@ -15,7 +15,8 @@ npm run build   # tsc -b && vite build → ../admin-web/dist/m
 ## 지킬 것 (D41)
 
 - **빌드 순서**: admin-web을 먼저 빌드한다(그 빌드가 `dist`를 비운다). 루트 `npm run build:web`이 순서를 지킨다.
-- **`public/` 파일을 두지 않는다.** `/m/` 바로 아래 파일은 요청마다 Worker를 거쳐 무료 한도를 쓴다(design-constants ⑬).
+- **`public/`에는 `public/assets/**`(manifest·아이콘)와 `public/sw.js`만 둔다(D45).** `/m/` 바로 아래 다른 파일은 요청마다 Worker를 거쳐 무료 한도를 쓴다(design-constants ⑬). `sw.js`는 Worker `run_worker_first`에서 예외로 뺐다.
+- **service worker는 화면 파일만 캐시한다** — `/api`를 캐시하지 않는다(D45). 캐시 방식을 바꾸면 `public/sw.js`의 `CACHE` 이름을 올린다.
 - **토큰**: access token은 메모리, refresh token은 localStorage(`lib/api.ts`). refresh는 1회용이라 `refreshSession()`을 거쳐 한 번만 보낸다.
 - **요청 수**: 방문당 약 10회 호출을 가정했다(design-constants ⑩). 화면 하나가 API를 여러 번 부르지 않게 한다.
 - lint 규칙과 패턴은 admin-web과 같다(`apps/admin-web/CLAUDE.md` — effect로 state 복사 금지, 훅·컴포넌트 export 분리).
