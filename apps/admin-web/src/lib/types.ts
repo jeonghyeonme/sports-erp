@@ -355,7 +355,7 @@ export interface DocumentRow {
   createdAt: string;
 }
 
-// D44 — GET /audit-logs(본사 전용) 한 행. before/after는 바뀐 필드만 담는다.
+// D44 — GET /audit-logs(본사 전용) 한 행. before/after는 바뀐 필드만 담는다. entity는 Staff·Member(D47 열람 기록).
 export interface AuditLogRow {
   id: string;
   createdAt: string;
@@ -364,7 +364,7 @@ export interface AuditLogRow {
   entity: string;
   entityId: string;
   entityName?: string;
-  action: 'ROLE_CHANGED' | 'RESIGNED' | 'ASSIGNED' | 'ASSIGNMENT_ENDED' | string;
+  action: 'ROLE_CHANGED' | 'RESIGNED' | 'ASSIGNED' | 'ASSIGNMENT_ENDED' | 'PHONE_VIEWED' | string;
   before?: Record<string, unknown>;
   after?: Record<string, unknown>;
 }

@@ -8,13 +8,16 @@ import { useAuth } from '../lib/use-auth';
 
 const PAGE_SIZE = 20;
 
-// D44 — 지금 기록하는 이벤트 4종(파견 종료는 ADR-STF-07). 늘릴 때는 api `prisma/audit.ts`의 AuditAction과 함께 고친다.
+// D44 — 지금 기록하는 이벤트 5종(파견 종료는 ADR-STF-07, 전화번호 열람은 D47). 늘릴 때는 api `prisma/audit.ts`의 AuditAction과 함께 고친다.
 const ACTION_LABEL: Record<string, string> = {
   ROLE_CHANGED: '권한 변경',
   RESIGNED: '퇴사 처리',
   ASSIGNED: '파견(재배치)',
   ASSIGNMENT_ENDED: '파견 종료(계약 종료)',
+  PHONE_VIEWED: '전화번호 열람',
 };
+
+const ENTITY_LABEL: Record<string, string> = { Staff: '직원', Member: '회원' };
 
 const ROLE_LABEL: Record<string, string> = {
   SUPER_ADMIN: '본사 관리자',
@@ -79,6 +82,10 @@ export function AuditLogsPage() {
       const released = Number(after.releasedMemberCount ?? 0);
       return `${branchName(before.branchId)} 계약 종료 · 재배치 대기${released ? ` · 담당 회원 ${released}명 해제` : ''}`;
     }
+    if (r.action === 'PHONE_VIEWED') {
+      // D47 — 상세 화면을 열어 원문 번호가 보인 기록. 번호 자체는 남기지 않는다.
+      return `${branchName(after.branchId)} · ${ENTITY_LABEL[r.entity] ?? r.entity} 상세 화면`;
+    }
     return '-';
   };
 
@@ -103,7 +110,8 @@ export function AuditLogsPage() {
         <h2>변경 이력</h2>
         <p className="page-desc">
           D44 — 직원 권한 변경·퇴사 처리·파견·파견 종료를 누가 언제 했는지 남긴 기록입니다. 본사 관리자만 볼 수 있고, 변경과 같은
-          트랜잭션에서 기록되어 실패한 요청은 남지 않습니다.
+          트랜잭션에서 기록되어 실패한 요청은 남지 않습니다. 관리자가 회원·직원 상세를 열어 전화번호 원문을 본 기록도 함께
+          남습니다(D47, 보존 1년).
         </p>
       </div>
 
@@ -128,7 +136,7 @@ export function AuditLogsPage() {
             <tr>
               <th>시각</th>
               <th>이벤트</th>
-              <th>대상 직원</th>
+              <th>대상</th>
               <th>내용</th>
               <th>처리자</th>
             </tr>
@@ -138,7 +146,9 @@ export function AuditLogsPage() {
               <tr key={r.id}>
                 <td>{formatTime(r.createdAt)}</td>
                 <td>{ACTION_LABEL[r.action] ?? r.action}</td>
-                <td>{r.entityName ?? r.entityId}</td>
+                <td>
+                  {ENTITY_LABEL[r.entity] ?? r.entity} {r.entityName ?? r.entityId}
+                </td>
                 <td>{describe(r)}</td>
                 <td>{r.actorName ?? '(삭제된 계정)'}</td>
               </tr>

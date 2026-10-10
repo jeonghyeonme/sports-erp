@@ -12,6 +12,8 @@ import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PageRequest } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode } from '../../prisma/integrity';
+import { recordPhoneView } from '../../prisma/audit';
+import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchService } from '../branches/branch.service';
 import { MockCourseEnrollment, MockMember, MockPTSession, MockPTSessionLog } from '../../fixtures/mock-data.types';
 
@@ -93,6 +95,11 @@ export class MemberService {
 
   async view(id: string): Promise<MemberView> {
     return toView(await this.prisma.member.findUniqueOrThrow({ where: { id }, include: withNames }));
+  }
+
+  /** D47 — 상세 전화번호 원문 열람 기록(관리자만, 회원 본인 조회는 남기지 않는다). */
+  recordPhoneView(viewer: RequestUser, member: MemberView): Promise<void> {
+    return recordPhoneView(this.prisma, viewer, { entity: 'Member', id: member.id, branchId: member.branchId, phone: member.phone });
   }
 
   // ADR-MEM-03 — 상세 진입 시 요약 카운트만. "수강중 N건"은 ACTIVE만 센다.
