@@ -37,7 +37,7 @@
 | `ORIGIN_SECRET` | 무작위 32바이트 이상(`openssl rand -hex 32`) | Lambda 환경변수, Worker secret, GitHub secret — **세 곳 모두 같은 값** |
 | `JWT_ACCESS_SECRET` | 무작위 32바이트 이상 | Lambda 환경변수 |
 | `JWT_REFRESH_SECRET` | 무작위 32바이트 이상, access와 다른 값 | Lambda 환경변수 |
-| `DATABASE_URL` | Supabase 대시보드 → Connect → **Transaction pooler**(포트 6543) 문자열 끝에 `?pgbouncer=true&connection_limit=1&pool_timeout=5` | Lambda 환경변수 |
+| `DATABASE_URL` | Supabase 대시보드 → Connect → **Session pooler**(포트 5432) 문자열 끝에 `?connection_limit=1&pool_timeout=5`([D49](../docs/decisions/D49.md), 그 전에는 Transaction pooler 6543 + `pgbouncer=true`) | Lambda 환경변수 |
 
 - JWT 비밀값을 새로 만들면 기존 로그인 토큰은 무효가 된다. 데모 사용자는 다시 로그인하면 된다.
 - `DIRECT_URL`은 마이그레이션 전용이라 Lambda에는 필요 없다.

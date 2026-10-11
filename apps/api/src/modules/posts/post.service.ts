@@ -11,7 +11,7 @@ type PostRow = Post & { branch: { name: string } | null; author: { name: string 
 export type PostView = MockPost & { authorName?: string; branchName?: string };
 
 const SCOPES: PostScope[] = ['HQ_TO_BRANCH', 'BRANCH_TO_MEMBER'];
-// 작성자 이름도 같은 작업에서 읽는다(Post.author 관계, log/093) — 따로 묶음 조회하면 풀러 모드에서 왕복이 3번 더 든다(log/102).
+// 작성자 이름도 같은 작업에서 읽는다(Post.author 관계, log/093) — 따로 조회하면 작업이 하나 늘어 순차 왕복이 는다(log/102).
 const withBranch = { branch: { select: { name: true } }, author: { select: { name: true } } } as const;
 
 /**
@@ -44,8 +44,7 @@ export class PostService {
     const where: Prisma.PostWhereInput = {
       AND: [{ deletedAt: null }, filter.scope ? { scope: filter.scope as PostScope } : {}, this.visibleWhere(user)],
     };
-    // connection_limit=1(D37)이라 Promise.all도 차례로 실행된다 — 일괄 트랜잭션 하나로 묶어 풀러 왕복을 줄인다(log/102).
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.post.count({ where }),
       this.prisma.post.findMany({
         where,

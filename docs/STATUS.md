@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-10 · [log/102](log/102.md)(처리 한계 원인 측정과 1단계 대응), [log/101](log/101.md)(열람 기록 정리 절차), [log/103](log/103.md)(계약 상태 변경 화면·재배치 대기·종료 지점 퇴사), [log/104](log/104.md)(종료 지점 정리 SQL 준비)
+> 마지막 갱신: 2026-10-11 · [log/105](log/105.md)(Session pooler 전환 준비), [log/102](log/102.md)(처리 한계 원인 측정과 1단계 대응), [log/101](log/101.md)(열람 기록 정리 절차), [log/103](log/103.md)(계약 상태 변경 화면·재배치 대기·종료 지점 퇴사), [log/104](log/104.md)(종료 지점 정리 SQL 준비)
 
 ## 현재 상태
 
@@ -30,17 +30,17 @@
 2. ~~RFP 잔여(작음)~~ — 상세 전화번호 열람 기록(D47, log/100)으로 끝. 남은 RFP 항목은 요구사항추적표 §2-3(변경 신청 승인·첨부·캘린더형 예약·개인정보처리방침)
 3. ~~API만 있고 화면이 없는 것~~ — 결근 확정·자산 정보 수정(log/096)으로 끝. 화면은 Worker 재배포 후 보인다
 4. ~~계약 상태 변경 화면·재배치 대기·종료 지점 계정 처리~~ — log/103으로 끝(ADR-STF-08). 배포 DB 정리는 아래 승인 대기
-5. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제. (Supabase 커넥터는 2026-10-08 정상 동작 확인 — log/084)
+5. **Session pooler 전환(사용자, D49 승인됨)** — 병합 뒤: 대시보드 Pool Size 확인(10 + 여유) → `aws-lambda/.env`의 `LAMBDA_DATABASE_URL`을 Session pooler(5432) + `?connection_limit=1&pool_timeout=5`로 → `bash aws-lambda/set-lambda-env.sh` → Actions 재배포 → k6 S2·CloudWatch 확인([log/105](log/105.md)). 되돌리기는 이전 값으로 같은 절차
+6. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제. (Supabase 커넥터는 2026-10-08 정상 동작 확인 — log/084)
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 
 - **배포 DB(Supabase) 종료 지점 데이터 정리**(인사정보관리 ADR-STF-08) — 종료 지점 3곳의 진행 중 파견 6건을 계약 종료일로 닫고 담당 회원 4명의 담당을 푼다. **SQL 준비 완료([log/104](log/104.md))**: 로컬 복제에서 2회 실행·중단 검사까지 확인했다. 승인하면 사용자가 SQL Editor에서 log/104 절차대로 실행한다.
-- **`pgbouncer=true` 제거(D48 A안)** — 처리 한계를 가장 크게 늘리는 안(S2 왕복 약 1/3.5)이지만 D37 접속 설정을 바꾼다. Supavisor의 prepared statement 동작 확인과 운영 k6 재측정이 따른다. 비밀값 교체는 열린 위험에 남아 있다.
 
 ## 열린 위험
 
 - **방문당 호출이 가정(⑩ 10회)을 넘을 수 있다**: 로컬 Worker 경유 실측 3~11회(기능을 다 쓰면 11). ⑩은 10을 유지했다 — 11이면 ⑬ ≈10.1만으로 Workers 무료 한도를 넘는다. 배포 후 Cloudflare 일일 요청이 9만을 넘으면 Workers 유료 검토(D40 재고 트리거, [log/085](log/085.md)).
-- **처리 한계가 설계 가정보다 작다**: 요청당 Lambda 처리 p50 약 110ms(가정 50ms) → 상한 10에서 실질 약 50~55 rps([D42](decisions/D42.md)). 원인은 풀러 모드(`pgbouncer=true`)에서 Prisma 작업마다 붙는 왕복 3번이다(로컬 실측, [D48](decisions/D48.md)). 1단계(인증·목록 조회 합치기)로 S2 왕복 20.8 → 16.8, 운영 기대 약 60 rps(추정·미측정) — 병합 뒤 k6 S2로 다시 잰다. 몰림이 약 25 rps를 넘으면 A안부터.
+- **처리 한계가 설계 가정보다 작다**: 요청당 Lambda 처리 p50 약 110ms(가정 50ms) → 상한 10에서 실질 약 50~55 rps([D42](decisions/D42.md)). 원인은 `pgbouncer=true`에서 Prisma 작업마다 붙는 왕복 3번이다([D48](decisions/D48.md)). Session pooler 전환(D49, 다음 할 일 5)으로 로컬 순차 왕복 S2 16.8 → 5.9, 운영 기대 약 100 rps(추정·미측정). 전환 뒤 세션 모드는 실행 환경마다 실제 연결을 쥐어 Pool Size 여유가 약 5로 준다 — 상한을 올리려면 Pool Size부터.
 - **Worker 로그인 rate limit은 연결을 재사용할 때만 걸린다**: 같은 연결로는 12번째부터 429, 요청마다 새 연결이면 60초에 30회도 통과했다(2026-10-07, [log/079](log/079.md)). 그때는 Lambda 상한 10 + 503 `SERVER_BUSY`가 2차 방어. 코드는 유지하기로 했다(대안: Durable Object 카운터 / API 계정별 제한).
 - `ORIGIN_SECRET`·DB 비밀번호가 대화에 노출됐다(사용자가 교체 보류). Render가 정지돼 이제 DB 비밀번호를 쓰는 곳은 Lambda뿐이다 — 바꾸면 `.env` → `set-lambda-env.sh` → Actions 재배포.
 - DB 무료 용량(500MB): 예약·결제 이력만으로 1~1.5년 안에 닿는다(design-constants ⑮, 가정). 지점이 90곳을 넘으면 Workers 무료 한도 초과(⑬).
