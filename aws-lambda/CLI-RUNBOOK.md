@@ -16,10 +16,12 @@
 2. 비밀값 파일 `aws-lambda/.env`를 만든다. `.gitignore`의 `.env` 규칙에 걸려 커밋되지 않는다.
    ```bash
    ORIGIN_SECRET=<openssl rand -hex 32 결과>
-   LAMBDA_DATABASE_URL='<Supabase Transaction pooler(6543) URI>?pgbouncer=true&connection_limit=1&pool_timeout=5'
+   LAMBDA_DATABASE_URL='<Supabase Session pooler(5432) URI>?connection_limit=1&pool_timeout=5'
    ```
    - URL은 **작은따옴표로 감싼다.** 스크립트가 이 파일을 bash로 `source`해서, 따옴표가 없으면 `&`가 백그라운드 기호로 읽힌다.
-   - `?pgbouncer=true...`가 빠지면 부하 중에 `42P05 prepared statement "sN" already exists`로 로그인·조회가 500이 된다. 실제로 이 값이 빠진 채 배포돼 장애가 났다([log/056](../docs/log/056.md)). `set-lambda-env.sh`가 경고를 내면 진행하지 말고 `.env`를 고친다.
+   - **Session pooler(대시보드 → Connect → Session pooler, 포트 5432)**를 쓴다([D49](../docs/decisions/D49.md)). `connection_limit=1`이 빠지면 실행 환경마다 연결을 여러 개 잡아 풀(Pool Size)을 채운다. 직접 연결(`db.<ref>.supabase.co`)은 쓰지 않는다.
+   - 되돌릴 때는 Transaction pooler(6543) URI에 `?pgbouncer=true&connection_limit=1&pool_timeout=5`를 붙인다. 6543에서 `pgbouncer=true`가 빠지면 부하 중에 `42P05 prepared statement "sN" already exists`로 로그인·조회가 500이 된다. 실제로 이 값이 빠진 채 배포돼 장애가 났다([log/056](../docs/log/056.md)).
+   - `set-lambda-env.sh`가 위 두 형식이 아니면 중단한다. 그때는 진행하지 말고 `.env`를 고친다.
    - `ORIGIN_SECRET`은 GitHub 저장소 Secrets(`ORIGIN_SECRET`)에도 같은 값으로 넣는다.
    - 비밀번호에 특수문자가 있으면 URL 인코딩한다.
 3. (선택) `gh auth login`을 해 두면 GitHub Variables 등록과 워크플로 실행도 Claude가 한다.

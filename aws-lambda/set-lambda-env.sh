@@ -11,7 +11,15 @@ set -a; . aws-lambda/.env; set +a
 : "${ORIGIN_SECRET:?aws-lambda/.env에 ORIGIN_SECRET이 없다}"
 : "${LAMBDA_DATABASE_URL:?aws-lambda/.env에 LAMBDA_DATABASE_URL이 없다}"
 # log/056 6번 장애(풀러 형식 누락)의 재발 방지 — 경고만 하고 진행하던 것을 중단으로 바꿨다(사용자 결정 2A, log/093).
-case "$LAMBDA_DATABASE_URL" in *:6543/*pgbouncer=true*) ;; *) echo "중단: LAMBDA_DATABASE_URL이 Transaction pooler(6543) + pgbouncer=true 형식이 아니다 — aws-lambda/.env를 고친 뒤 다시 실행할 것" >&2; exit 1 ;; esac
+# D49 — 기본은 Session pooler(5432) + connection_limit=1. 트랜잭션 풀러(6543)는 pgbouncer=true가 있을 때만(되돌리기용).
+# 6543에서 pgbouncer=true가 빠지면 42P05(prepared statement 충돌), 세션 모드에서 connection_limit=1이 빠지면
+# 실행 환경마다 연결을 여러 개 잡아 풀(Pool Size)을 채운다 — 둘 다 여기서 막는다. 직접 연결(db.*.supabase.co)도 막는다.
+case "$LAMBDA_DATABASE_URL" in
+  *pooler.supabase.com:5432/*pgbouncer=true*) echo "중단: Session pooler(5432)에는 pgbouncer=true를 붙이지 않는다(D49) — aws-lambda/.env를 고칠 것" >&2; exit 1 ;;
+  *pooler.supabase.com:5432/*connection_limit=1\&*|*pooler.supabase.com:5432/*connection_limit=1) echo "DB 연결: Session pooler(5432, D49)" ;;
+  *pooler.supabase.com:6543/*pgbouncer=true*) echo "DB 연결: Transaction pooler(6543) + pgbouncer=true — D49 이전 형식(되돌리기용)" ;;
+  *) echo "중단: LAMBDA_DATABASE_URL이 Session pooler(5432)+connection_limit=1 또는 Transaction pooler(6543)+pgbouncer=true 형식이 아니다 — aws-lambda/.env를 고친 뒤 다시 실행할 것" >&2; exit 1 ;;
+esac
 
 CURRENT=$(aws lambda get-function-configuration --function-name sports-erp-api --query 'Environment.Variables' --output json)
 ENVJSON=$(CURRENT="$CURRENT" node -e '

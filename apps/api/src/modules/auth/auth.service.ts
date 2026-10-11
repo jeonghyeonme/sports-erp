@@ -15,8 +15,8 @@ const REFRESH_TOKEN_SECRET = secretFromEnv('JWT_REFRESH_SECRET', 'change-me-refr
 const REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN ?? '14d';
 
 /**
- * 계정 + 소속 프로필 + 소속 지점 이름을 Prisma 작업 하나로 읽는다(log/102). 풀러 모드(`pgbouncer=true`)에서는
- * 작업마다 BEGIN·DEALLOCATE ALL·COMMIT 왕복이 붙어서, 지점을 따로 조회하면 요청마다 왕복이 3번 더 든다.
+ * 계정 + 소속 프로필 + 소속 지점 이름을 Prisma 작업 하나로 읽는다(log/102). 인증은 모든 요청이 거치므로
+ * 지점을 따로 조회하는 작업 하나가 곧 요청마다 순차 왕복 하나 이상이다(D48).
  * 매 요청 재조회(ADR-AUTH-01)는 그대로다 — 합친 것은 한 요청 안의 두 조회다.
  */
 export const ACCOUNT_PROFILE_INCLUDE = {
