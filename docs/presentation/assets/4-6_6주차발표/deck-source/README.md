@@ -9,6 +9,7 @@
 | 폴더 | 내용 |
 |---|---|
 | `viz/` | `deck46.js`(덱 23장). 도식은 SVG 없이 카드·막대로 그려 `lib.js`·`figs`를 쓰지 않는다 |
+| `screenshots/` | 덱에 넣은 캡처 5장(회원 웹 3 · 관리자 웹 2) — 2026-10-11 로컬에서 찍음 |
 | `deck-out/project/` | `deck46.js` 결과(`deck.json` + `slides/*.html`). 게시본과 같은 스냅샷 |
 
 ## 다시 만들기·게시
@@ -21,5 +22,5 @@ node viz/deck46.js deck-out    # 끝에 린트(24px·<text>·SVG 52KB·요소 20
 
 ## 알려진 한계
 
-- **캡처 3장이 빈 프레임이다**(`member-shot`·`req-shot`·`rule-shot`). Worker 재배포 전이라 회원 웹·변경 이력·계약 상태 변경 화면을 찍지 못했다. 찍으면 `screenshots/`에 원본을 두고 아티팩트 자산으로 올려 교체한다.
+- **캡처는 로컬 실행 화면이다**(api + admin-web + member-web, 로컬 `sports_erp_dev` DB). 배포본(Worker 재배포 전)이 아니다. Playwright로 데모 로그인 버튼을 눌러 찍었고, 회원 화면은 iPhone 13 에뮬레이션(실기기 아님), 관리자 화면은 개발용 안내 문구를 숨겼다. 홈 혼잡도는 찍기 전에 로컬 DB에서 현재 인원을 다시 입력해 갱신 시각을 맞췄다. 캡처 이미지는 아티팩트 자산(`/_blob/<id>`)이라 새 아티팩트로 옮기면 `screenshots/`에서 다시 올린다.
 - 게시 후 렌더 결과를 눈으로 확인하지 않았다(4-0 §7 마지막 항목은 발표자가 확인).
