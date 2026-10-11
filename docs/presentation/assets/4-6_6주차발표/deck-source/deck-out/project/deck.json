@@ -1,0 +1,79 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-11T00:00:00Z"
+  },
+  "lists": "css",
+  "title": "스포이즘 ERP 6주차 발표",
+  "order": [
+    "cover",
+    "recap",
+    "agenda",
+    "p1",
+    "member-why",
+    "member-flow",
+    "member-shot",
+    "member-app",
+    "p2",
+    "req-filled",
+    "req-shot",
+    "screens-done",
+    "p3",
+    "rule-isolation",
+    "rule-contract",
+    "rule-shot",
+    "p4",
+    "perf",
+    "p5",
+    "data-honest",
+    "data-why",
+    "data-plan",
+    "closing"
+  ],
+  "sections": {
+    "intro": {
+      "description": "표지, 지난 발표 이후 기반, 오늘의 질문 다섯 개",
+      "start": "cover"
+    },
+    "member": {
+      "description": "01 회원 앱 — 모바일 웹 결정, 기능 흐름, 화면, 설치와 요청량",
+      "start": "p1"
+    },
+    "rfp": {
+      "description": "02 RFP 요구 — 채운 요구 5개, 변경 이력 화면, 화면 후속 과제 5개 완료",
+      "start": "p2"
+    },
+    "rules": {
+      "description": "03 핵심 규칙 — 지점 격리 중앙화, 계약 종료 연쇄 처리와 화면",
+      "start": "p3"
+    },
+    "perf": {
+      "description": "04 성능 — DB 왕복 측정으로 찾은 원인과 대응",
+      "start": "p4"
+    },
+    "data": {
+      "description": "05 데이터와 다음 방향 — 이름표뿐인 83곳, 방향 전환의 근거, 계약 상태별 5곳 계획",
+      "start": "p5"
+    },
+    "wrap": {
+      "description": "마무리",
+      "start": "closing"
+    }
+  },
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
+}
