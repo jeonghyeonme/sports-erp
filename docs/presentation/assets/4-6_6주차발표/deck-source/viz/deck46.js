@@ -60,7 +60,26 @@ function dots(cx, cy, rx, ry, gap = 40) {
   return `<svg aria-label="장식용 점 격자" viewBox="0 0 1920 1080" width="1920" height="1080" style="position:absolute; left:0px; top:0px; width:1920px; height:1080px">${grp('c', 0.22)}${grp('b', 0.4)}${grp('a', 0.62)}</svg>`;
 }
 
-// 캡처 자리 — Worker 재배포 전이라 실제 화면을 아직 못 찍었다. 이미지를 합성하지 않고 빈 프레임으로 둔다(4-0 §5).
+// 업로드한 캡처(아티팩트 자산 — 원본은 ../screenshots/). 2026-10-11 로컬(api + admin-web + member-web, sports_erp_dev DB)에서
+// Playwright로 데모 로그인 버튼을 눌러 찍었다. 회원은 iPhone 13 에뮬레이션(1170×1992), 관리자는 1440폭 2배(개발자용 안내 문구는 숨김).
+const IMG = {
+  mLogin: '/_blob/2a6d3ce45abee6bd2849c923fbc77f6b', // m-login.png
+  mHome: '/_blob/ce624bc1227d6a37f35b042aa46c6f06', // m-home.png
+  mMyres: '/_blob/8896c154bdfd411fffa8051a6f14fd36', // m-myres.png
+  audit: '/_blob/f5556fb608c04e5bc5bd5b236b7d8286', // a-audit.png 2880×1280
+  contract: '/_blob/cf3a8d3d7039cfb36c3b4856606ade35', // a-contract.png 2880×1520
+};
+const browser = (src, url, w, h, alt) =>
+  `<div style="display:flex; flex-direction:column; width:${w}px; background:${SURFACE}; border:1px solid ${LINE_STRONG}; border-radius:14px; box-shadow:${SHADOW}; overflow:hidden">` +
+  `<div style="display:flex; align-items:center; gap:10px; padding:12px 20px; background:${SURFACE2}; border-bottom:1px solid ${LINE}">` +
+  `<div style="width:14px; height:14px; border-radius:50%; background:#D9534F"></div><div style="width:14px; height:14px; border-radius:50%; background:#E0A43A"></div><div style="width:14px; height:14px; border-radius:50%; background:#4CAF6A"></div>` +
+  `<p style="font-family:${MONO}; font-size:24px; color:${SOFT}; padding:0px 0px 0px 16px; white-space:nowrap">${url}</p></div>` +
+  `<img src="${src}" alt="${alt}" style="width:${w}px; height:${h}px; object-fit:contain; background:${SURFACE}"></div>`;
+const phone = (src, what, sub) =>
+  `<div style="display:flex; flex-direction:column; align-items:center; gap:14px">` +
+  `<div style="display:flex; background:${INK}; border-radius:40px; padding:10px; box-shadow:${SHADOW}"><img src="${src}" alt="회원 앱 ${what} 화면" style="width:330px; height:562px; object-fit:contain; border-radius:30px; background:${SURFACE}"></div>` +
+  `<p style="font-family:${DISPLAY}; font-size:32px; font-weight:700; color:${INK}">${what}</p>${ptxt(sub, 24)}</div>`;
+// (아래 placeholder는 캡처가 없을 때 쓰던 빈 프레임 — 지금은 쓰지 않는다)
 const shotNote = '캡처 자리 · 재배포 후 실제 화면으로 교체';
 const browserPH = (url, w, h, what) =>
   `<div style="display:flex; flex-direction:column; width:${w}px; background:${SURFACE}; border:1px solid ${LINE_STRONG}; border-radius:14px; box-shadow:${SHADOW}; overflow:hidden">` +
@@ -155,12 +174,12 @@ section('member-flow', { notes: '회원 혼자 처음부터 끝까지 할 수 �
     bullets(['하단 탭 4개 — 홈 · 예약하기 · 내 예약 · 내 정보', '공지 보기, 내 정보 수정, 비밀번호 변경', '데모 로그인 버튼, 오류마다 "해결:" 안내 한 줄'], 28)) +
   foot('결제는 모의 결제 — 실제 결제 연동은 범위 밖'));
 
-section('member-shot', { notes: '캡처 자리다. Worker 재배포 후 이수진(서초점 회원) 계정으로 휴대폰 폭에서 로그인(데모 버튼)·홈·예약 결제 화면을 찍어 교체한다. 교체 전에 발표하면 "화면은 시연 영상/실기기로 보여 드린다"로 대신한다. 관리자 웹 대용이 아니라 회원 전용 웹이다.' },
+section('member-shot', { notes: '실제 회원 웹 화면(로컬 실행, iPhone 13 에뮬레이션, 2026-10-11). 왼쪽부터 로그인(데모 회원 버튼, 아래에 가입·지점 회원 연결 링크), 홈(앱 설치 안내 카드, 지금 혼잡도, 공지), 내 예약(결제 대기 예약의 취소 버튼, 지난·취소한 예약의 환불 여부). 관리자 웹 대용이 아니라 회원 전용 웹이다. 실기기 설치는 아직 확인하지 않았다 — 에뮬레이션 화면이라고 말할 것. 내 예약에 같은 회차가 여러 줄인 것은 개발 중 예약·취소를 반복한 기록이다.' },
   head('회원 앱 · 화면', '휴대폰에서 이렇게 보입니다') +
   fill(`<div style="display:flex; gap:56px; justify-content:center; align-items:flex-start">` +
-    phonePH('로그인', '데모 계정 버튼 한 번') +
-    phonePH('홈', '혼잡도 · 최근 공지') +
-    phonePH('예약 · 결제', '회차 선택 → 모의 결제') +
+    phone(IMG.mLogin, '로그인', '데모 계정 버튼 한 번') +
+    phone(IMG.mHome, '홈', '혼잡도 · 최근 공지') +
+    phone(IMG.mMyres, '내 예약', '결제 상태 · 취소') +
     `</div>`) +
   foot('회원 이수진(서초점) 계정 · 회원 전용 모바일 웹'));
 
@@ -192,10 +211,10 @@ section('req-filled', { notes: '개인정보 가림: 목록에서는 전화번�
   ]))) +
   foot('근거: 제안요청서 Ⅳ 2. 세부 과업 · 요구사항추적표 §2'));
 
-section('req-shot', { notes: '캡처 자리. 정하늘(본사) 계정으로 변경 이력 화면에서 "전화번호 열람"과 "파견 종료(계약 종료)" 행이 보이게 찍어 교체한다. 기록 실패 시 상세도 실패 — 기록 없이 개인정보를 보는 경로가 없다(D47).' },
+section('req-shot', { notes: '실제 관리자 웹 변경 이력 화면(로컬 실행, 정하늘 본사 계정, 2026-10-11). 맨 위 행이 김민수 지점장이 회원 이수진 상세에서 전화번호를 연 기록(D47), 그 아래가 퇴사·파견(재배치)·권한 변경 기록(D44). 화면 위 개발용 설명 문구는 캡처에서 가렸다. 기록이 실패하면 상세 조회도 실패한다 — 기록 없이 개인정보를 보는 길이 없다.' },
   head('RFP 요구 · 화면', '누가 언제 무엇을 봤는지 남습니다') +
   fill(`<div style="display:flex; gap:40px; align-items:center">` +
-    browserPH('admin · 본사 정하늘 · 변경 이력', 1100, 560, '변경 이력 화면') +
+    browser(IMG.audit, 'admin · 본사 정하늘 · 변경 이력', 1100, 489, '변경 이력 화면 — 전화번호 열람, 퇴사, 파견(재배치), 권한 변경 기록') +
     `<div style="flex:1; display:flex; flex-direction:column; gap:20px">` +
     label('이렇게 구현했습니다') +
     bullets(['전화번호 열람 · 파견 변경이 한 목록에', '본사 계정만 조회합니다', '기록이 실패하면 열람도 실패 — 기록 없이 보는 길이 없습니다'], 28) +
@@ -247,10 +266,10 @@ section('rule-contract', { notes: 'ADR-STF-07·08. 프로젝트 규칙 문서에
     card(icon('Users', NAVY) + h3('동시 요청에도 안전하게', 34) + ptxt('같은 순간 들어온 채용 · 발령과 겹치지 않게 지점을 잠급니다. 잠금을 빼면 테스트가 <b>5번 중 5번</b> 실패합니다.', 28, INK), 'flex:1') +
     `</div>`));
 
-section('rule-shot', { notes: '캡처 자리. 정하늘(본사) 계정, 지점 상세 → 계약 상태 변경 모달의 "계약 종료" 안내 화면을 찍는다. 실제 종료 처리는 하지 말 것(운영 DB에 저장된다). 모달은 종료 전에 영향(파견 종료·재배치 대기)을 먼저 보여 주고, 처리 후에는 결과 화면(재배치 대기 직원·담당이 풀린 회원)으로 바뀐다. 계약 종료를 되돌릴 수는 있지만 끝난 파견은 되살아나지 않는다.' },
+section('rule-shot', { notes: '실제 관리자 웹 화면(로컬 실행, 정하늘 본사 계정, 서초점 상세 → 계약 상태 변경 → 계약 종료 선택, 2026-10-11). 처리 버튼은 누르지 않았다. 모달은 종료 전에 영향(파견 종료·재배치 대기)을 먼저 보여 주고, 처리 후에는 결과 화면(재배치 대기 직원·담당이 풀린 회원)으로 바뀐다. 계약 종료를 되돌릴 수는 있지만 끝난 파견은 되살아나지 않는다.' },
   head('계약 종료 · 화면', '본사는 지점 상세에서 계약 상태를 바꿉니다') +
   fill(`<div style="display:flex; gap:40px; align-items:center">` +
-    browserPH('admin · 본사 정하늘 · 지점 상세', 1100, 560, '계약 상태 변경 화면') +
+    browser(IMG.contract, 'admin · 본사 정하늘 · 지점 상세', 1100, 580, '서초점 계약 상태 변경 모달 — 계약 종료를 고르면 파견 종료·담당 해제·신규 활동 차단 안내가 먼저 보인다') +
     `<div style="flex:1; display:flex; flex-direction:column; gap:20px">` +
     label('이렇게 구현했습니다') +
     bullets(['종료 전에 무엇이 바뀌는지 먼저 보여 줍니다', '처리 결과로 재배치 대기 직원과 담당이 풀린 회원을 바로 보여 줍니다', '되돌릴 수 있지만, 끝난 파견은 되살리지 않습니다'], 28) +
