@@ -308,19 +308,19 @@ partSlide('p4', '04', '성능', '실제로 재 보니, 예상보다 두 배 느�
 
 const perfBar = (name, val, w, c) => `<div style="display:flex; flex-direction:column; gap:10px">${ptxt(name, 26, INK, 600)}<div style="display:flex; align-items:center; gap:18px"><div style="width:${w}px; height:72px; background:${c}; border-radius:8px"></div><p style="font-family:${DISPLAY}; font-size:44px; font-weight:800; color:${c}">${val}</p></div></div>`;
 const pstep = (k, t, d, c = NAVY) => `<div style="display:flex; gap:18px; align-items:flex-start"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${c}; width:120px">${k}</p><div style="flex:1; display:flex; flex-direction:column; gap:4px">${h3(t, 30)}${ptxt(d, 24)}</div></div>`;
-section('perf', { notes: 'D48·D49. 출발점: 10/4 k6 — 요청당 처리 약 110ms(가정 50ms), 실질 처리 한계 약 50 rps. 측정: 로컬에 왕복 지연을 넣어 홈 조회 4종을 재 보니 평균 DB 왕복 20.5회. 원인: 트랜잭션 풀러 호환 모드가 작업마다 시작·정리·종료를 덧붙여 왕복이 약 3.5배, 인증만으로 요청마다 왕복 10회. 대응 1단계(적용): 인증 조회를 하나로, 목록 조회를 묶음(D48). 2단계(준비 완료, 운영 전환 전): Session pooler로 접속 변경 → 왕복 약 6회, 처리 한계 약 2배(50→100 rps) 예상(D49). 주의: 100 rps와 "약 6회"는 계산값이다. 운영 전환과 k6 재측정은 아직 안 했다 — "두 배 빨라졌다"고 말하지 말 것.' },
+section('perf', { notes: 'D48·D49. 출발점: 10/4 k6 — 요청당 처리 약 110ms(가정 50ms), 실질 처리 한계 약 50 rps. 측정: 로컬에 왕복 지연을 넣어 홈 조회 4종을 재 보니 평균 DB 왕복 20.5회. 원인: 트랜잭션 풀러 호환 모드가 작업마다 시작·정리·종료를 덧붙여 왕복이 약 3.5배, 인증만으로 요청마다 왕복 10회. 대응 1단계(적용): 인증 조회를 하나로, 목록 조회를 묶음(D48). 2단계: Session pooler로 접속 변경(D49) — 운영 Lambda에 적용됨(10/11 배포, 2026-10-12 사용자가 환경 변수 5432·pgbouncer 없음 확인). 로컬 기준 왕복 약 6회, 처리 한계 약 2배(50→100 rps) 예상. 주의: 100 rps와 "약 6회"는 계산값이다. 운영 k6 재측정은 아직 안 했다 — "두 배 빨라졌다"고 말하지 말 것.' },
   head('성능 · 원인', '쿼리 수가 아니라, DB에 붙는 방식이 문제였습니다') +
   `<div style="position:absolute; right:96px; top:84px; display:flex">${statePill('part', '처리 한계 2배는 예상치')}</div>` +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(label('홈 조회 1번에 오가는 DB 왕복') +
-      perfBar('지금 접속 방식', '20.5회', 640, AMBER) +
-      perfBar('바꿀 접속 방식', '약 6회', 188, GREEN) +
+      perfBar('이전 접속 방식', '20.5회', 640, AMBER) +
+      perfBar('바꾼 접속 방식', '약 6회', 188, GREEN) +
       ptxt('작업마다 시작 · 정리 · 종료가 붙어 왕복이 약 <b>3.5배</b>였습니다. 로그인 확인만 10회.', 28, INK), 'flex:1.2; gap:24px') +
     card(label('측정 → 원인 → 대응') +
       pstep('측정', '요청당 약 110ms', '설계 가정(50ms)의 두 배') +
       pstep('원인', 'DB 왕복이 너무 많음', '쿼리가 아니라 접속 방식 탓') +
-      pstep('대응', '조회 묶기 · 접속 방식 전환', '묶기는 적용, 전환은 준비 완료') +
-      pstep('남은 것', '운영 전환 후 다시 재기', '2배는 그때 확인합니다', AMBER), 'flex:1') +
+      pstep('대응', '조회 묶기 · 접속 방식 전환', '둘 다 운영에 적용했습니다') +
+      pstep('남은 것', '운영에서 다시 재기', '2배는 그때 확인합니다', AMBER), 'flex:1') +
     `</div>`) +
   foot('왕복 횟수: 로컬에 지연을 넣어 홈 조회 4종 평균 · "약 6회"와 처리 한계 2배는 계산값'));
 
