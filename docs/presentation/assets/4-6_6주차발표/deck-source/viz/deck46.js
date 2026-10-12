@@ -237,20 +237,48 @@ section('screens-done', { notes: '지난 발표에서 "API로 구현, 화면은 
 // ════════════════════════════════════════════════════════════════════════
 partSlide('p3', '03', '핵심 규칙', '깨지면 안 되는 규칙은 더 단단해졌나?', '파트 3. 지점 격리 · 계약 종료 차단 · 인사 권한 분리 — 이 시스템에서 깨지면 계약이 흔들리는 규칙이다. 이번에는 사람의 기억이 아니라 구조와 테스트가 지키게 했다.');
 
-const miniBox = `<div style="display:flex; align-items:center; justify-content:center; height:72px; background:${AMBER_SOFT}; border:1px solid ${AMBER}; border-radius:8px"><p style="font-family:${MONO}; font-size:24px; color:${AMBER}">검사</p></div>`;
-const afterBox = (t, d, bg, bd, c) => `<div style="display:flex; flex-direction:column; gap:6px; padding:20px 24px; background:${bg}; border:2px solid ${bd}; border-radius:12px">${h3(t, 30, c)}${ptxt(d, 24)}</div>`;
-section('rule-isolation', { notes: 'D46. 전: 지점 검사가 컨트롤러 약 10곳에 복사돼 있었고, 새 화면·라우트가 검사를 빠뜨려도 막을 장치가 없었다. 후: 모든 요청이 지나는 공통 검사 한 곳 + 라우트마다 "무슨 리소스인지" 선언 한 줄. 선언이 빠진 라우트는 실제 라우트 표를 훑는 테스트가 실패시킨다. 변이 확인: 시설 수정의 선언 하나를 일부러 빼면 선언 누락 검사 1건 + 격리 공격 2건, 테스트 3건이 실패했다(log/095). 부수 효과: 남의 지점 id를 주면 조용히 자기 지점으로 바꿔 주던 목록들(자산·결제·근태 요약 등)이 이제 거부한다 — 화면은 남의 지점 id를 보내지 않아 영향 없음.' },
+// 요청 흐름 도식 — 전(기능마다 각자 검사, 하나가 빠지면 뚫림) / 후(들어오는 길목에서 한 번 + 기능마다 선언 한 줄).
+// 좌표는 슬라이드 캔버스 기준(px). 상자는 pinned div, 선은 x-connector.
+const nodeBox = (x, y, w, h, lines, { bg = SURFACE, bd = LINE_STRONG, c = INK, dash = false, sub = SOFT } = {}) =>
+  `<div style="position:absolute; left:${x}px; top:${y}px; width:${w}px; height:${h}px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; background:${bg}; border:2px ${dash ? 'dashed' : 'solid'} ${bd}; border-radius:12px">` +
+  lines.map((t, i) => `<p style="font-size:${i ? 24 : 28}px; font-weight:${i ? 400 : 700}; color:${i ? sub : c}; text-align:center; white-space:nowrap">${t}</p>`).join('') + `</div>`;
+const link = (x1, y1, x2, y2, c = LINE_STRONG, dash = false) => `<x-connector x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" head="end" style="color:${c}; border-width:3px${dash ? '; border-style:dashed' : ''}"></x-connector>`;
+const panel = (x, k, pillT, t) =>
+  `<div style="position:absolute; left:${x}px; top:236px; width:840px; height:632px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:14px; box-shadow:${SHADOW}"></div>` +
+  `<div style="position:absolute; left:${x + 32}px; top:262px; width:776px; display:flex; align-items:center; gap:16px">${statePill(k, pillT)}${h3(t, 34)}</div>`;
+const pinText = (x, y, w, t, c = INK, size = 28, align = 'left') => `<p style="position:absolute; left:${x}px; top:${y}px; width:${w}px; font-size:${size}px; line-height:1.45; color:${c}; text-align:${align}">${t}</p>`;
+function isolationFlow() {
+  // 전 — 왼쪽 패널(x 96~936), 요청 중심 x 516
+  let s = panel(96, 'part', '전', '기능마다 각자 검사');
+  s += nodeBox(386, 336, 260, 68, ['요청']);
+  const L = [246, 516, 786];
+  s += link(516, 404, 246, 462) + link(516, 404, 516, 462) + link(516, 404, 786, 462, RED);
+  s += nodeBox(136, 462, 220, 72, ['지점 검사'], { bg: AMBER_SOFT, bd: AMBER, c: AMBER });
+  s += nodeBox(406, 462, 220, 72, ['지점 검사'], { bg: AMBER_SOFT, bd: AMBER, c: AMBER });
+  s += nodeBox(676, 462, 220, 72, ['검사 빠짐'], { bg: SURFACE, bd: RED, c: RED, dash: true });
+  s += link(L[0], 534, L[0], 592) + link(L[1], 534, L[1], 592) + link(L[2], 534, L[2], 592, RED);
+  s += nodeBox(136, 592, 220, 72, ['회원 조회']);
+  s += nodeBox(406, 592, 220, 72, ['예약']);
+  s += nodeBox(676, 592, 220, 72, ['새 기능'], { bd: RED, c: RED });
+  s += pinText(656, 674, 260, '남의 지점 데이터가 보임', RED, 24, 'center');
+  s += pinText(128, 744, 776, '같은 검사가 <b>약 10곳</b>에 복사돼 있었고, 하나만 빠뜨려도 막을 장치가 없었습니다.');
+  // 후 — 오른쪽 패널(x 984~1824), 요청 중심 x 1404
+  s += panel(984, 'done', '후', '들어오는 길목에서 한 번');
+  s += nodeBox(1274, 336, 260, 68, ['요청']);
+  s += link(1404, 404, 1404, 446, NAVY);
+  s += nodeBox(1074, 446, 660, 96, ['공통 지점 검사 — 한 곳', '모든 요청이 여기를 지납니다'], { bg: NAVY, bd: NAVY, c: '#F4F5F3', sub: '#D7E0EA' });
+  const R = [1134, 1404, 1674];
+  s += link(1404, 542, R[0], 600, NAVY) + link(1404, 542, R[1], 600, NAVY) + link(1404, 542, R[2], 600, NAVY);
+  s += nodeBox(1024, 600, 220, 96, ['회원 조회', '선언: 회원']);
+  s += nodeBox(1294, 600, 220, 96, ['예약', '선언: 예약']);
+  s += nodeBox(1564, 600, 220, 96, ['새 기능', '선언 없으면 실패'], { bg: GREEN_SOFT, bd: GREEN, c: GREEN, sub: GREEN });
+  s += pinText(1016, 744, 776, '기능은 "무엇을 다루는지" <b>한 줄만 선언</b>합니다. 빠뜨리면 테스트가 찾아 실패시킵니다.');
+  return s;
+}
+section('rule-isolation', { notes: 'D46. 왼쪽(전): 요청이 들어오면 기능(컨트롤러)마다 지점 검사를 각자 했다 — 같은 검사가 약 10곳에 복사. 새 기능을 만들며 검사를 빠뜨리면(빨간 점선) 남의 지점 데이터가 보일 수 있었고, 그걸 막을 장치가 없었다. 오른쪽(후): 모든 요청이 지나는 공통 검사 한 곳에서 지점을 본다. 기능은 "무슨 리소스를 다루는지" 선언 한 줄만 붙인다. 선언이 빠진 기능은 실제 라우트 목록을 훑는 테스트가 실패시킨다. 변이 확인: 시설 수정의 선언 하나를 일부러 빼면 선언 누락 검사 1건 + 격리 공격 2건, 테스트 3건이 실패했다(log/095). 부수 효과: 남의 지점 id를 주면 조용히 자기 지점으로 바꿔 주던 목록들(자산·결제·근태 요약 등)이 이제 거부한다 — 화면은 남의 지점 id를 보내지 않아 영향 없음. 왼쪽 "새 기능"의 뚫림은 구조상 가능했던 위험을 그린 것이지, 실제로 뚫린 사고가 있었다는 뜻이 아니다 — 그렇게 말하지 말 것.' },
   head('지점 격리', '검사를 10곳에서 1곳으로 모았습니다') +
-  fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
-    card(pillRow(statePill('part', '전')) + h3('컨트롤러마다 따로', 36) +
-      `<div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:12px">${miniBox.repeat(10)}</div>` +
-      ptxt('새 기능이 검사를 빠뜨려도 <b>막을 장치가 없었습니다</b>.', 28, INK), 'flex:1') +
-    card(pillRow(statePill('done', '후')) + h3('공통 검사 한 곳', 36) +
-      afterBox('모든 요청이 지나는 검사 1곳', '지점이 맞는지 여기서만 봅니다', NAVY_SOFT, NAVY, NAVY) +
-      afterBox('라우트마다 선언 한 줄', '"이 요청은 어떤 리소스인가"', SURFACE, LINE_STRONG, INK) +
-      afterBox('선언이 빠지면 테스트 실패', '실제 라우트 목록을 훑어 찾습니다', GREEN_SOFT, GREEN, GREEN), 'flex:1') +
-    `</div>` + `<div style="height:20px"></div>` +
-    bridge('검사 하나를 일부러 빼 보니, 테스트 3건이 실패했습니다', GREEN, GREEN_SOFT, 'Verified')));
+  isolationFlow() +
+  `<div style="position:absolute; left:96px; top:892px; width:1728px; display:flex; align-items:center; gap:18px; padding:20px 30px; background:${GREEN_SOFT}; border-left:6px solid ${GREEN}; border-radius:10px">${icon('Verified', GREEN)}<p style="font-size:30px; font-weight:600; color:${GREEN}">검사 하나를 일부러 빼 보니, 테스트 3건이 실패했습니다</p></div>`);
 
 const chain = (no, t, d, c = NAVY, soft = SURFACE) => `<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:${soft}; border:2px solid ${c}; border-radius:14px; padding:28px 24px">${label(no, c)}${h3(t, 32)}${ptxt(d, 25)}</div>`;
 section('rule-contract', { notes: 'ADR-STF-07·08. 프로젝트 규칙 문서에 "설계만 있고 미구현"으로 남아 있던 항목을 해소했다. 본사가 지점을 계약 종료로 바꾸면 같은 트랜잭션에서: 그 지점 진행 중 파견 종료 → 그 직원들이 맡던 회원 담당 해제 → 재배치 대기 목록. 중간에 실패하면 전부 되돌린다. 동시에 들어온 채용·발령과 충돌하지 않게 지점 행을 잠근다 — 잠금을 빼면 동시 요청 테스트가 5회 중 5회 실패하는 것을 확인했다. 계약 종료 지점 직원은 본사도 퇴사 처리 가능. 과거 조회는 그대로. 만료·갱신 임박은 차단하지 않는다.' },
