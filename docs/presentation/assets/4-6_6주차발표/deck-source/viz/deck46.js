@@ -142,13 +142,14 @@ section('agenda', { notes: '오늘의 질문 네 개. 01~03은 두 주 동안 �
 partSlide('p1', '01', '회원 앱', '보류했던 회원 앱은?', '파트 1. 지난 발표까지 회원 화면은 회원 계정으로 로그인한 관리자 웹이었다. 이번 두 주에 회원 전용 모바일 웹을 처음부터 만들었다.');
 
 const stackBox = (t, d, bg, bd, c = INK) => `<div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:20px 24px; background:${bg}; border:2px solid ${bd}; border-radius:12px">${h3(t, 32, c)}${ptxt(d, 24)}</div>`;
-const barRow = (name, val, pct, c, valC = '#FFFFFF') => `<div style="display:flex; flex-direction:column; gap:10px">${ptxt(name, 26, INK, 600)}<div style="display:flex; width:640px; height:64px; background:${GRAY_SOFT}; border-radius:8px"><div style="width:${Math.round(640 * pct)}px; height:64px; display:flex; align-items:center; justify-content:flex-end; padding:0px 18px; background:${c}; border-radius:8px"><p style="font-family:${DISPLAY}; font-size:30px; font-weight:800; color:${valC}">${val}</p></div></div></div>`;
+// 18·19장 막대(perfBar)와 같은 크기 — 굵은 막대 72px, 값은 막대 오른쪽 44px
+const barRow = (name, val, w, c) => `<div style="display:flex; flex-direction:column; gap:10px">${ptxt(name, 26, INK, 600)}<div style="display:flex; align-items:center; gap:18px"><div style="width:${w}px; height:72px; background:${c}; border-radius:8px"></div><p style="font-family:${DISPLAY}; font-size:44px; font-weight:800; color:${c}">${val}</p></div></div>`;
 section('member-why', { notes: '결정(D40·D41): 네이티브 앱이 아니라 모바일 웹(/m/). 네이티브는 스토어 심사·빌드 파이프라인·인프라가 더 붙는다. 모바일 웹은 관리자 웹과 같은 Cloudflare Worker, 같은 Lambda API, 같은 DB를 쓴다 — 인프라 추가 0. 하루 요청 수는 계산값: 지점당 하루 100명 × 방문당 10건 + 관리자 웹 약 1만 건 = 수도권 83곳 약 9.3만 건, 무료 한도 10만 건 안(여유 약 7%). "계산값"이라고 말할 것.' },
   head('회원 앱 · 결정', '네이티브 앱 대신, 같은 서버에 붙는 모바일 웹') +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(label('하루 요청 수 · 계산값') +
-      barRow('엣지 무료 한도', '10만', 1, GRAY) +
-      barRow('수도권 83곳 + 회원 웹', '약 9.3만', 0.93, GREEN) +
+      barRow('엣지 무료 한도', '10만', 520, GRAY) +
+      barRow('수도권 83곳 + 회원 웹', '약 9.3만', 484, GREEN) +
       ptxt('회원 기능을 열어도 <b>무료 한도 안</b>에 듭니다.', 28, INK), 'flex:1; gap:24px') +
     card(`<div style="display:flex; justify-content:space-between; align-items:center">${label('구조')}${statePill('done', '인프라 추가 없음')}</div>` +
       `<div style="display:flex; gap:16px"><div style="flex:1; display:flex; flex-direction:column">${stackBox('관리자 웹', '본사 · 지점', SURFACE, LINE_STRONG)}</div><div style="flex:1; display:flex; flex-direction:column">${stackBox('회원 웹', '휴대폰 · 새로 만듦', NAVY_SOFT, NAVY, NAVY)}</div></div>` +
