@@ -25,7 +25,7 @@
     "rule-shot",
     "p4",
     "perf",
-    "p5",
+    "perf-tradeoff",
     "data-honest",
     "data-why",
     "data-plan",
@@ -33,7 +33,7 @@
   ],
   "sections": {
     "intro": {
-      "description": "표지, 지난 발표 이후 기반, 오늘의 질문 다섯 개",
+      "description": "표지, 지난 발표 이후 기반, 오늘의 질문 네 개",
       "start": "cover"
     },
     "member": {
@@ -49,12 +49,8 @@
       "start": "p3"
     },
     "perf": {
-      "description": "04 성능 — DB 왕복 측정으로 찾은 원인과 대응",
+      "description": "04 성능과 다음 방향 — DB 왕복의 원인과 대응, 빨라진 대신 내준 것, 같은 판단으로 본 시연 데이터와 5곳 계획",
       "start": "p4"
-    },
-    "data": {
-      "description": "05 데이터와 다음 방향 — 이름표뿐인 83곳, 방향 전환의 근거, 계약 상태별 5곳 계획",
-      "start": "p5"
     },
     "wrap": {
       "description": "마무리",
