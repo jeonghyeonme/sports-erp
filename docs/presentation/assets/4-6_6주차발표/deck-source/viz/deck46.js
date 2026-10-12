@@ -128,14 +128,13 @@ section('recap', { notes: '종합 발표(10/5)에서 이미 말한 내용이라 
   foot('종합 발표(10/5)에서 다룬 내용 — 짧게 되짚기'));
 
 const agendaRow = (no, name, q) => `<div style="display:flex; align-items:center; gap:28px; padding:20px 28px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:12px"><p style="font-family:${MONO}; font-size:28px; font-weight:700; color:${NAVY}; width:60px">${no}</p><p style="font-family:${DISPLAY}; font-size:34px; font-weight:700; color:${INK}; width:400px">${name}</p><p style="font-size:30px; color:${SOFT}">${q}</p></div>`;
-section('agenda', { notes: '오늘의 질문 다섯 개. 앞의 넷은 두 주 동안 한 일, 마지막 하나는 다음 방향이다.' },
-  head('오늘 순서', '다섯 개의 질문에 차례로 답합니다') +
+section('agenda', { notes: '오늘의 질문 네 개. 01~03은 두 주 동안 한 일, 04는 성능에서 내린 선택과 그 판단을 시연 데이터에도 적용한 다음 방향이다.' },
+  head('오늘 순서', '네 개의 질문에 차례로 답합니다') +
   fill(`<div style="display:flex; flex-direction:column; gap:14px">` +
     agendaRow('01', '회원 앱', '보류했던 회원 앱은?') +
     agendaRow('02', 'RFP 요구', 'RFP 중 빠진 건?') +
     agendaRow('03', '핵심 규칙', '깨지면 안 되는 규칙은 더 단단해졌나?') +
-    agendaRow('04', '성능', '재 보니 예상보다 두 배 느렸다 — 왜?') +
-    agendaRow('05', '데이터와 다음 방향', '이 데이터는 진짜인가?') +
+    agendaRow('04', '성능과 다음 방향', '두 배 느렸다 — 그래서 무엇을 택했나?') +
     `</div>`));
 
 // ════════════════════════════════════════════════════════════════════════
@@ -302,9 +301,9 @@ section('rule-shot', { notes: '실제 관리자 웹 화면(로컬 실행, 정하
     `</div></div>`));
 
 // ════════════════════════════════════════════════════════════════════════
-// ④ 성능
+// ④ 성능과 다음 방향 — 측정 → 원인 → 선택과 대가 → 같은 판단을 데이터에도 → 계획
 // ════════════════════════════════════════════════════════════════════════
-partSlide('p4', '04', '성능', '실제로 재 보니, 예상보다 두 배 느렸습니다. 왜일까?', '파트 4. 10/4 k6 실측에서 요청당 처리 시간이 설계 가정(50ms)의 두 배(약 110ms)였다. 추정하지 않고 쟀다.');
+partSlide('p4', '04', '성능과 다음 방향', '재 보니 예상보다 두 배 느렸습니다. 왜일까, 그리고 다음은?', '파트 4. 10/4 k6 실측에서 요청당 처리 시간이 설계 가정(50ms)의 두 배(약 110ms)였다. 추정하지 않고 쟀다. 이 파트는 원인 → 우리가 택한 것과 내준 것 → 같은 판단을 시연 데이터에도 적용한 다음 방향으로 이어진다.');
 
 const perfBar = (name, val, w, c) => `<div style="display:flex; flex-direction:column; gap:10px">${ptxt(name, 26, INK, 600)}<div style="display:flex; align-items:center; gap:18px"><div style="width:${w}px; height:72px; background:${c}; border-radius:8px"></div><p style="font-family:${DISPLAY}; font-size:44px; font-weight:800; color:${c}">${val}</p></div></div>`;
 const pstep = (k, t, d, c = NAVY) => `<div style="display:flex; gap:18px; align-items:flex-start"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${c}; width:120px">${k}</p><div style="flex:1; display:flex; flex-direction:column; gap:4px">${h3(t, 30)}${ptxt(d, 24)}</div></div>`;
@@ -324,15 +323,27 @@ section('perf', { notes: 'D48·D49. 출발점: 10/4 k6 — 요청당 처리 약 
     `</div>`) +
   foot('왕복 횟수: 로컬에 지연을 넣어 홈 조회 4종 평균 · "약 6회"와 처리 한계 2배는 계산값'));
 
-// ════════════════════════════════════════════════════════════════════════
-// ⑤ 데이터와 다음 방향
-// ════════════════════════════════════════════════════════════════════════
-partSlide('p5', '05', '데이터와 다음 방향', '이 데이터는 진짜인가?', '파트 5. 여기서부터는 한 일이 아니라 다음 방향이다. 지금 시연 데이터를 정직하게 보여 주고, 왜 방향을 바꾸는지 말한다.');
+const knob = (ic, t, d) => `<div style="display:flex; gap:16px; align-items:flex-start">${icon(ic, NAVY)}<div style="flex:1; display:flex; flex-direction:column; gap:4px">${h3(t, 30)}${ptxt(d, 25)}</div></div>`;
+section('perf-tradeoff', { notes: 'D49 "감수하는 것". 세션 모드는 Lambda 실행 환경 하나가 DB 연결 하나를 계속 쥔다(요청이 끝나도, 쉬는 동안에도). 그래서 동시에 처리할 수 있는 요청 수 ≈ 연결 수가 된다. 지금 먼저 걸리는 천장은 Lambda 동시 실행 상한 10이고, 그다음이 Supabase 풀러 연결 약 15개(Pool Size, 대시보드 값은 아직 확인 전). 11번째 동시 요청은 기다리지 않고 바로 "서버 바쁨"(503)으로 거절된다(D37·D42) — 느려지는 대신 빨리 실패. 처리 한계 약 100 rps(동시 10 × 요청당 약 50~60ms)는 추정, 예상 부하 피크 약 3 rps·몰림 약 8 rps는 계산값(D40). 이전(트랜잭션 모드)은 연결을 작업마다 빌렸다 반납해 상한만 올리면 됐지만, 지금은 상한을 올리려면 Pool Size(유료)부터 올려야 한다. 대안으로 트랜잭션 모드를 유지하며 왕복을 줄이는 Prisma driver adapter를 보류해 뒀다(D49 A3). "규모가 줄었다"고 말하지 말 것 — 같은 상한에서 처리 한계는 오히려 커졌고(추정), 줄어든 것은 상한을 공짜로 올릴 여지다.' },
+  head('성능 · 대가', '빨라진 대신, 동시에 받을 수 있는 수에 천장이 생겼습니다') +
+  `<div style="position:absolute; right:96px; top:84px; display:flex">${statePill('part', '한계는 추정치')}</div>` +
+  fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
+    card(label('초당 요청 · 예상 부하와 처리 한계') +
+      perfBar('몰릴 때 예상 부하', '약 8 rps', 52, NAVY) +
+      perfBar('지금 처리 한계(추정)', '약 100 rps', 560, GREEN) +
+      ptxt('예상 부하는 한계의 <b>10분의 1 이하</b>입니다. 지금 규모에서는 <b>빠르게</b>가 이득입니다.', 28, INK), 'flex:1.1; gap:24px') +
+    card(label('내준 것과 손잡이') +
+      knob('Lock', '연결을 계속 쥡니다', '처리 서버 하나가 DB 연결 하나를 붙잡아, 동시 처리 수 ≈ 연결 수(약 15)가 천장입니다') +
+      knob('Lightning', '넘치면 바로 거절', '동시 10개를 넘는 요청은 기다리지 않고 "서버 바쁨"으로 빠르게 실패합니다') +
+      knob('Settings', '천장은 돈으로 올리는 손잡이', '연결 수(Pool Size)와 동시 실행 상한 — 사용자가 늘면 올립니다'), 'flex:1; gap:24px') +
+    `</div>` +
+    bridge('같은 규모에서는 빠르게를 택했고, 규모는 돈으로 올릴 수 있는 손잡이로 남겼습니다', NAVY, NAVY_SOFT, 'Lightbulb')) +
+  foot('처리 한계는 동시 10 × 요청당 약 50~60ms로 계산한 추정치 · 예상 부하는 계산값(지점당 하루 100명 가정)'));
 
 const na = `<span style="color:${GRAY}">없음</span>`;
-section('data-honest', { notes: '시드 코드에서 센 값(apps/api/src/fixtures). 서초점·강남점은 데모 로그인 계정이 물려 있는 손으로 채운 지점, 나머지 81곳은 생성기가 만든 지점이다. 생성 지점은 직원 1~3명, 회원 0~4명, 강사 1명, 프로그램 1~2개. 예약·결제·출결 이력은 어느 지점에도 시드로 넣지 않았다 — 시연 중에 만든 것만 있다. 83곳이 운영된다고 말하지만, 한 지점 안에서 회원·직원·예약이 얽히는 장면은 보여 줄 수 없다.' },
+section('data-honest', { notes: '앞 장과 잇는 말: 속도는 잡았는데 그 속도를 보여 줄 데이터가 얕다. 시드 코드에서 센 값(apps/api/src/fixtures). 서초점·강남점은 데모 로그인 계정이 물려 있는 손으로 채운 지점, 나머지 81곳은 생성기가 만든 지점이다. 생성 지점은 직원 1~3명, 회원 0~4명, 강사 1명, 프로그램 1~2개. 예약·결제·출결 이력은 어느 지점에도 시드로 넣지 않았다 — 시연 중에 만든 것만 있다. 83곳이 운영된다고 말하지만, 한 지점 안에서 회원·직원·예약이 얽히는 장면은 보여 줄 수 없다.' },
   head('시연 데이터', '83곳 대부분은 이름표입니다') +
-  fill(tableCard(table(30, [34, 18, 18, 30], ['지점', '직원', '회원', '예약 · 결제 이력'], [
+  fill(ptxt('속도는 잡았는데, 그 속도를 보여 줄 <b>데이터가 얕습니다</b>.', 32, INK, 600) + tableCard(table(30, [34, 18, 18, 30], ['지점', '직원', '회원', '예약 · 결제 이력'], [
     ['<b>서초점</b> (데모)', '2명', '2명', na],
     ['<b>강남점</b>', '1명', '1명', na],
     ['<b>나머지 81곳</b>', '1~3명', '0~4명', na],
@@ -341,20 +352,20 @@ section('data-honest', { notes: '시드 코드에서 센 값(apps/api/src/fixtur
   foot('시드 코드 기준(2026-10-11) · 이력은 시연 중 직접 만든 것만 있음'));
 
 const flowLine = (items, c) => `<div style="display:flex; flex-direction:column; gap:10px">${items.map((t, i) => (i ? arrowD(c) : '') + `<div style="padding:18px 24px; background:${SURFACE}; border:2px solid ${c}; border-radius:12px"><p style="font-size:30px; font-weight:600; color:${INK}; text-align:center">${t}</p></div>`).join('')}</div>`;
-section('data-why', { notes: '이번 방향 전환의 판단 근거. 83곳으로 정한 이유는 무료 한도(하루 10만 요청)였다. 그런데 실제 서비스를 하려면 어차피 인프라에 투자가 들어가고, 그때 한도는 돈으로 푸는 문제라 의미가 없어진다. 실제로 쓰이려면 한 지점이 밀도 있고 빠르고 불편 없이 돌아가는 시스템이 먼저이고, 규모는 그 위에서 늘리는 것이 맞다고 판단했다. 범위 결정(83곳)을 뒤집는 것이 아니라, 시연 데이터의 초점을 바꾸는 것이다 — 지점 격리·처리 한계 측정 같은 규모 대비 설계는 그대로 둔다.' },
-  head('왜 바꾸나', '무료 한도는 시연의 제약이지, 서비스의 기준이 아닙니다') +
+section('data-why', { notes: '앞 장(성능의 대가)과 같은 판단이다: 연결 천장을 돈으로 올리는 손잡이로 남겼듯, 무료 한도도 시연의 제약일 뿐이다. 이번 방향 전환의 판단 근거. 83곳으로 정한 이유는 무료 한도(하루 10만 요청)였다. 그런데 실제 서비스를 하려면 어차피 인프라에 투자가 들어가고, 그때 한도는 돈으로 푸는 문제라 의미가 없어진다. 실제로 쓰이려면 한 지점이 밀도 있고 빠르고 불편 없이 돌아가는 시스템이 먼저이고, 규모는 그 위에서 늘리는 것이 맞다고 판단했다. 범위 결정(83곳)을 뒤집는 것이 아니라, 시연 데이터의 초점을 바꾸는 것이다 — 지점 격리·처리 한계 측정 같은 규모 대비 설계는 그대로 둔다.' },
+  head('왜 바꾸나', '무료 한도도 연결 천장도, 서비스의 기준은 아닙니다') +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(pillRow(statePill('out', '지금까지')) + h3('한도에 맞춘 규모', 36) + flowLine(['무료 한도 하루 10만', '83곳으로 넓게', '지점마다 얕은 데이터'], LINE_STRONG), 'flex:1') +
-    card(pillRow(statePill('plan', '실서비스라면')) + h3('쓰이는 시스템이 먼저', 36) + flowLine(['인프라 투자는 전제', '한도는 돈으로 푸는 문제', '한 지점이 불편 없이'], NAVY), 'flex:1') +
+    card(pillRow(statePill('plan', '실서비스라면')) + h3('쓰이는 시스템이 먼저', 36) + flowLine(['인프라 투자는 전제', '한도·천장은 돈으로 푸는 문제', '한 지점이 불편 없이'], NAVY), 'flex:1') +
     `</div>` +
     `<div style="display:flex; align-items:center; gap:20px; padding:28px 36px; background:${NAVY}; border-radius:14px">${icon('Lightbulb', '#F4F5F3', 36)}<p style="font-family:${DISPLAY}; font-size:38px; font-weight:800; color:#F4F5F3">밀도 있고 빠르고 불편 없는 시스템을 먼저, 규모는 그 위에서 늘립니다</p></div>`));
 
 const branchCard = (k, st, name, sc) => `<div style="flex:1; display:flex; flex-direction:column; gap:14px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:14px; padding:28px 24px; box-shadow:${SHADOW}">${pillRow(statePill(k, st))}${h3(name, 32)}${ptxt(sc, 25, INK)}</div>`;
-section('data-plan', { notes: '계획이다 — 아직 만들지 않았다. 지점을 계약 상태별로 하나씩, 정상은 두 곳(서초·강남, 격리 확인용). 지점마다 직원 4~6명, 회원 30~60명, 2~3개월치 예약·결제·출결 이력. 각 지점에 확인할 장면을 붙였다: 정상 A — 아침 동시 입장, 결제 중 관리자 취소, 몰림 시간 처리량 / 정상 B — 지점 격리, 파견 이동 중 근태 귀속, 두 기기 동시 로그인 / 갱신 임박 — 본사 집계 성능, 실적 데이터 신선도 / 만료 — 차단하지 않는 경계 / 계약 종료 — 종료와 채용·발령 동시 요청, 과거 조회. 점검 목록은 docs/architecture/engineering-risks.md(동시성·멱등성·부분 실패 등 17개 범주). 배포 DB를 다시 채우는 일은 별도 승인을 받는다.' },
+section('data-plan', { notes: '계획이다 — 아직 만들지 않았다. 지점을 계약 상태별로 하나씩, 정상은 두 곳(서초·강남, 격리 확인용). 지점마다 직원 4~6명, 회원 30~60명, 2~3개월치 예약·결제·출결 이력. 각 지점에 확인할 장면을 붙였다: 정상 A — 아침 동시 입장, 결제 중 관리자 취소, 몰림 시간 처리량(일부러 동시 10개를 넘겨 503과 해결 안내가 가는지, 재시도가 중복 처리를 만들지 않는지) / 정상 B — 지점 격리, 파견 이동 중 근태 귀속, 두 기기 동시 로그인 / 갱신 임박 — 본사 집계 성능, 실적 데이터 신선도 / 만료 — 차단하지 않는 경계 / 계약 종료 — 종료와 채용·발령 동시 요청, 과거 조회. 점검 목록은 docs/architecture/engineering-risks.md(동시성·멱등성·부분 실패 등 17개 범주). 배포 DB를 다시 채우는 일은 별도 승인을 받는다.' },
   head('다음 방향 · 계획', '계약 상태별 5곳을, 밀도 있게') +
   `<div style="position:absolute; right:96px; top:84px; display:flex">${statePill('part', '계획')}</div>` +
   fill(`<div style="display:flex; gap:16px; align-items:stretch">` +
-    branchCard('done', '정상', '서초점', '아침 동시 입장 · 결제 중 취소') +
+    branchCard('done', '정상', '서초점', '아침 몰림(동시 10개 초과) · 결제 중 취소') +
     branchCard('done', '정상', '강남점', '지점 격리 · 두 기기 동시 로그인') +
     branchCard('part', '갱신 임박', '지점 C', '본사 집계 · 실적 신선도') +
     branchCard('out', '만료', '지점 D', '막지 않아야 할 경계') +
@@ -393,12 +404,11 @@ const deck = {
   title: '스포이즘 ERP 6주차 발표',
   order,
   sections: {
-    intro: { description: '표지, 지난 발표 이후 기반, 오늘의 질문 다섯 개', start: 'cover' },
+    intro: { description: '표지, 지난 발표 이후 기반, 오늘의 질문 네 개', start: 'cover' },
     member: { description: '01 회원 앱 — 모바일 웹 결정, 기능 흐름, 화면, 설치와 요청량', start: 'p1' },
     rfp: { description: '02 RFP 요구 — 채운 요구 5개, 변경 이력 화면, 화면 후속 과제 5개 완료', start: 'p2' },
     rules: { description: '03 핵심 규칙 — 지점 격리 중앙화, 계약 종료 연쇄 처리와 화면', start: 'p3' },
-    perf: { description: '04 성능 — DB 왕복 측정으로 찾은 원인과 대응', start: 'p4' },
-    data: { description: '05 데이터와 다음 방향 — 이름표뿐인 83곳, 방향 전환의 근거, 계약 상태별 5곳 계획', start: 'p5' },
+    perf: { description: '04 성능과 다음 방향 — DB 왕복의 원인과 대응, 빨라진 대신 내준 것, 같은 판단으로 본 시연 데이터와 5곳 계획', start: 'p4' },
     wrap: { description: '마무리', start: 'closing' },
   },
   faces: {
