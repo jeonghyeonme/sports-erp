@@ -30,7 +30,8 @@ const eyebrow = (t) => `<p style="font-family:${MONO}; font-size:24px; font-weig
 const title = (t) => `<h2 style="font-family:${DISPLAY}; font-size:60px; font-weight:700; line-height:1.15; letter-spacing:-1px; color:${INK}">${t}</h2>`;
 const head = (e, t) => eyebrow(e) + title(t);
 const foot = (t) => `<p style="position:absolute; left:96px; bottom:40px; width:1728px; font-size:24px; color:${SOFT}">${t}</p>`;
-const fill = (inner, extra = '') => `<div style="flex:1; display:flex; flex-direction:column; justify-content:center; ${extra}">${inner}</div>`;
+// 덩어리 사이 간격은 빈 div가 아니라 gap으로 준다(Slides 렌더러는 높이만 준 빈 div를 버린다).
+const fill = (inner, extra = '') => `<div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:32px; ${extra}">${inner}</div>`;
 const card = (inner, extra = '') => `<div style="display:flex; flex-direction:column; gap:14px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:14px; padding:36px; box-shadow:${SHADOW}; ${extra}">${inner}</div>`;
 const pill = (t, bg, color, extra = '') => `<p style="font-family:${MONO}; font-size:24px; font-weight:600; color:${color}; background:${bg}; border-radius:999px; padding:4px 18px; white-space:nowrap; ${extra}">${t}</p>`;
 const label = (t, c = NAVY) => `<p style="font-family:${MONO}; font-size:24px; font-weight:600; letter-spacing:2px; color:${c}">${t}</p>`;
@@ -148,11 +149,9 @@ section('member-why', { notes: '결정(D40·D41): 네이티브 앱이 아니라 
   head('회원 앱 · 결정', '네이티브 앱 대신, 같은 서버에 붙는 모바일 웹') +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(label('하루 요청 수 · 계산값') +
-      `<div style="height:8px"></div>` +
       barRow('엣지 무료 한도', '10만', 1, GRAY) +
       barRow('수도권 83곳 + 회원 웹', '약 9.3만', 0.93, GREEN) +
-      `<div style="height:8px"></div>` +
-      ptxt('회원 기능을 열어도 <b>무료 한도 안</b>에 듭니다.', 28, INK), 'flex:1') +
+      ptxt('회원 기능을 열어도 <b>무료 한도 안</b>에 듭니다.', 28, INK), 'flex:1; gap:24px') +
     card(`<div style="display:flex; justify-content:space-between; align-items:center">${label('구조')}${statePill('done', '인프라 추가 없음')}</div>` +
       `<div style="display:flex; gap:16px"><div style="flex:1; display:flex; flex-direction:column">${stackBox('관리자 웹', '본사 · 지점', SURFACE, LINE_STRONG)}</div><div style="flex:1; display:flex; flex-direction:column">${stackBox('회원 웹', '휴대폰 · 새로 만듦', NAVY_SOFT, NAVY, NAVY)}</div></div>` +
       arrowD() + stackBox('같은 엣지', 'Cloudflare Worker', SURFACE2, LINE_STRONG) +
@@ -170,8 +169,7 @@ section('member-flow', { notes: '회원 혼자 처음부터 끝까지 할 수 �
     step('04', '결제', '모의 결제로 예약 확정') + arrowR() +
     step('05', '내 예약', '조회하고, 필요하면 취소') +
     `</div>` +
-    `<div style="height:32px"></div>` +
-    bullets(['하단 탭 4개 — 홈 · 예약하기 · 내 예약 · 내 정보', '공지 보기, 내 정보 수정, 비밀번호 변경', '데모 로그인 버튼, 오류마다 "해결:" 안내 한 줄'], 28)) +
+    bullets(['하단 탭 4개 — 홈 · 예약하기 · 내 예약 · 내 정보', '공지 보기, 내 정보 수정, 비밀번호 변경']  // 세 번째 줄(데모 로그인·해결 안내)은 사용자가 편집기에서 뺐다(2026-10-12), 28)) +
   foot('결제는 모의 결제 — 실제 결제 연동은 범위 밖'));
 
 section('member-shot', { notes: '실제 회원 웹 화면(로컬 실행, iPhone 13 에뮬레이션, 2026-10-11). 왼쪽부터 로그인(데모 회원 버튼, 아래에 가입·지점 회원 연결 링크), 홈(앱 설치 안내 카드, 지금 혼잡도, 공지), 내 예약(결제 대기 예약의 취소 버튼, 지난·취소한 예약의 환불 여부). 관리자 웹 대용이 아니라 회원 전용 웹이다. 실기기 설치는 아직 확인하지 않았다 — 에뮬레이션 화면이라고 말할 것. 내 예약에 같은 회차가 여러 줄인 것은 개발 중 예약·취소를 반복한 기록이다.' },
@@ -229,7 +227,7 @@ section('screens-done', { notes: '지난 발표에서 "API로 구현, 화면은 
     doneRow('회원 가입 · 연동', '회원 앱에서 본인 확인 후 기존 회원과 연결') +
     doneRow('결근 확정', '관리자가 미리보기를 보고 확정') +
     doneRow('자산 정보 수정', '취득 정보는 회계 기록이라 잠그고 나머지만') +
-    `</div>` + `<div style="height:20px"></div>` +
+    `</div>` +
     bridge('새로 만든 계약 상태 변경은 처음부터 API와 화면을 함께 만들었습니다', NAVY, NAVY_SOFT, 'Verified')));
 
 // ════════════════════════════════════════════════════════════════════════
@@ -288,7 +286,7 @@ section('rule-contract', { notes: 'ADR-STF-07·08. 프로젝트 규칙 문서에
     chain('02', '파견 종료', '그 지점에 나가 있던 직원 전원') + arrowR() +
     chain('03', '담당 회원 해제', '그 직원들이 맡던 회원') + arrowR() +
     chain('04', '재배치 대기', '본사 직원 목록에 따로 표시', GREEN, GREEN_SOFT) +
-    `</div>` + `<div style="height:28px"></div>` +
+    `</div>` +
     `<div style="display:flex; gap:20px; align-items:stretch">` +
     card(icon('Lock', NAVY) + h3('한 번에, 끝까지', 34) + ptxt('네 단계가 하나의 처리입니다. 중간에 실패하면 전부 되돌립니다.', 28, INK), 'flex:1') +
     card(icon('Users', NAVY) + h3('동시 요청에도 안전하게', 34) + ptxt('같은 순간 들어온 채용 · 발령과 겹치지 않게 지점을 잠급니다. 잠금을 빼면 테스트가 <b>5번 중 5번</b> 실패합니다.', 28, INK), 'flex:1') +
@@ -315,12 +313,9 @@ section('perf', { notes: 'D48·D49. 출발점: 10/4 k6 — 요청당 처리 약 
   `<div style="position:absolute; right:96px; top:84px; display:flex">${statePill('part', '처리 한계 2배는 예상치')}</div>` +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(label('홈 조회 1번에 오가는 DB 왕복') +
-      `<div style="height:12px"></div>` +
       perfBar('지금 접속 방식', '20.5회', 640, AMBER) +
-      `<div style="height:8px"></div>` +
       perfBar('바꿀 접속 방식', '약 6회', 188, GREEN) +
-      `<div style="height:8px"></div>` +
-      ptxt('작업마다 시작 · 정리 · 종료가 붙어 왕복이 약 <b>3.5배</b>였습니다. 로그인 확인만 10회.', 28, INK), 'flex:1.2') +
+      ptxt('작업마다 시작 · 정리 · 종료가 붙어 왕복이 약 <b>3.5배</b>였습니다. 로그인 확인만 10회.', 28, INK), 'flex:1.2; gap:24px') +
     card(label('측정 → 원인 → 대응') +
       pstep('측정', '요청당 약 110ms', '설계 가정(50ms)의 두 배') +
       pstep('원인', 'DB 왕복이 너무 많음', '쿼리가 아니라 접속 방식 탓') +
@@ -341,7 +336,7 @@ section('data-honest', { notes: '시드 코드에서 센 값(apps/api/src/fixtur
     ['<b>서초점</b> (데모)', '2명', '2명', na],
     ['<b>강남점</b>', '1명', '1명', na],
     ['<b>나머지 81곳</b>', '1~3명', '0~4명', na],
-  ])) + `<div style="height:28px"></div>` +
+  ])) +
     bridge('지점 수는 많지만, 한 지점 안에서 회원 · 직원 · 예약이 얽히는 장면은 보여 줄 수 없습니다', AMBER, AMBER_SOFT, 'Warning')) +
   foot('시드 코드 기준(2026-10-11) · 이력은 시연 중 직접 만든 것만 있음'));
 
@@ -351,7 +346,7 @@ section('data-why', { notes: '이번 방향 전환의 판단 근거. 83곳으로
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(pillRow(statePill('out', '지금까지')) + h3('한도에 맞춘 규모', 36) + flowLine(['무료 한도 하루 10만', '83곳으로 넓게', '지점마다 얕은 데이터'], LINE_STRONG), 'flex:1') +
     card(pillRow(statePill('plan', '실서비스라면')) + h3('쓰이는 시스템이 먼저', 36) + flowLine(['인프라 투자는 전제', '한도는 돈으로 푸는 문제', '한 지점이 불편 없이'], NAVY), 'flex:1') +
-    `</div>` + `<div style="height:28px"></div>` +
+    `</div>` +
     `<div style="display:flex; align-items:center; gap:20px; padding:28px 36px; background:${NAVY}; border-radius:14px">${icon('Lightbulb', '#F4F5F3', 36)}<p style="font-family:${DISPLAY}; font-size:38px; font-weight:800; color:#F4F5F3">밀도 있고 빠르고 불편 없는 시스템을 먼저, 규모는 그 위에서 늘립니다</p></div>`));
 
 const branchCard = (k, st, name, sc) => `<div style="flex:1; display:flex; flex-direction:column; gap:14px; background:${SURFACE}; border:1px solid ${LINE}; border-radius:14px; padding:28px 24px; box-shadow:${SHADOW}">${pillRow(statePill(k, st))}${h3(name, 32)}${ptxt(sc, 25, INK)}</div>`;
@@ -364,11 +359,9 @@ section('data-plan', { notes: '계획이다 — 아직 만들지 않았다. 지�
     branchCard('part', '갱신 임박', '지점 C', '본사 집계 · 실적 신선도') +
     branchCard('out', '만료', '지점 D', '막지 않아야 할 경계') +
     branchCard('navy', '계약 종료', '지점 E', '종료와 채용의 동시 요청') +
-    `</div>` + `<div style="height:20px"></div>` +
+    `</div>` +
     ptxt('지점마다 <b>직원 4~6명 · 회원 30~60명 · 2~3개월 이력</b>', 30, INK) +
-    `<div style="height:12px"></div>` +
     bridge('기능을 늘리기보다, 동시에 몰리고 · 두 번 오고 · 느려질 때도 맞게 도는지를 시나리오로 확인합니다', NAVY, NAVY_SOFT, 'Activity') +
-    `<div style="height:12px"></div>` +
     `<div style="display:flex"><div style="display:flex; align-items:center; gap:14px; padding:14px 22px; background:${GRAY_SOFT}; border-radius:10px">${icon('Lock', GRAY, 28)}<p style="font-size:26px; color:${INK}">규모를 견디는 설계(지점 격리 · 처리 한계 측정)는 그대로 둡니다</p></div></div>`));
 
 // ── 마무리 ───────────────────────────────────────────────────────────────
