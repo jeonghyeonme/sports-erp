@@ -134,7 +134,7 @@ section('agenda', { notes: '오늘의 질문 다섯 개. 앞의 넷은 두 주 �
     agendaRow('01', '회원 앱', '보류했던 회원 앱은?') +
     agendaRow('02', 'RFP 요구', 'RFP 중 빠진 건?') +
     agendaRow('03', '핵심 규칙', '깨지면 안 되는 규칙은 더 단단해졌나?') +
-    agendaRow('04', '성능', '왜 느렸나?') +
+    agendaRow('04', '성능', '재 보니 예상보다 두 배 느렸다 — 왜?') +
     agendaRow('05', '데이터와 다음 방향', '이 데이터는 진짜인가?') +
     `</div>`));
 
@@ -169,7 +169,7 @@ section('member-flow', { notes: '회원 혼자 처음부터 끝까지 할 수 �
     step('04', '결제', '모의 결제로 예약 확정') + arrowR() +
     step('05', '내 예약', '조회하고, 필요하면 취소') +
     `</div>` +
-    bullets(['하단 탭 4개 — 홈 · 예약하기 · 내 예약 · 내 정보', '공지 보기, 내 정보 수정, 비밀번호 변경']  // 세 번째 줄(데모 로그인·해결 안내)은 사용자가 편집기에서 뺐다(2026-10-12), 28)) +
+    bullets(['하단 탭 4개 — 홈 · 예약하기 · 내 예약 · 내 정보', '공지 보기, 내 정보 수정, 비밀번호 변경'], 28)) + // 세 번째 줄(데모 로그인·해결 안내)은 사용자가 편집기에서 뺐다(2026-10-12)
   foot('결제는 모의 결제 — 실제 결제 연동은 범위 밖'));
 
 section('member-shot', { notes: '실제 회원 웹 화면(로컬 실행, iPhone 13 에뮬레이션, 2026-10-11). 왼쪽부터 로그인(데모 회원 버튼, 아래에 가입·지점 회원 연결 링크), 홈(앱 설치 안내 카드, 지금 혼잡도, 공지), 내 예약(결제 대기 예약의 취소 버튼, 지난·취소한 예약의 환불 여부). 관리자 웹 대용이 아니라 회원 전용 웹이다. 실기기 설치는 아직 확인하지 않았다 — 에뮬레이션 화면이라고 말할 것. 내 예약에 같은 회차가 여러 줄인 것은 개발 중 예약·취소를 반복한 기록이다.' },
@@ -304,7 +304,7 @@ section('rule-shot', { notes: '실제 관리자 웹 화면(로컬 실행, 정하
 // ════════════════════════════════════════════════════════════════════════
 // ④ 성능
 // ════════════════════════════════════════════════════════════════════════
-partSlide('p4', '04', '성능', '왜 느렸나?', '파트 4. 10/4 k6 실측에서 요청당 처리 시간이 설계 가정(50ms)의 두 배(약 110ms)였다. 추정하지 않고 쟀다.');
+partSlide('p4', '04', '성능', '실제로 재 보니, 예상보다 두 배 느렸습니다. 왜일까?', '파트 4. 10/4 k6 실측에서 요청당 처리 시간이 설계 가정(50ms)의 두 배(약 110ms)였다. 추정하지 않고 쟀다.');
 
 const perfBar = (name, val, w, c) => `<div style="display:flex; flex-direction:column; gap:10px">${ptxt(name, 26, INK, 600)}<div style="display:flex; align-items:center; gap:18px"><div style="width:${w}px; height:72px; background:${c}; border-radius:8px"></div><p style="font-family:${DISPLAY}; font-size:44px; font-weight:800; color:${c}">${val}</p></div></div>`;
 const pstep = (k, t, d, c = NAVY) => `<div style="display:flex; gap:18px; align-items:flex-start"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${c}; width:120px">${k}</p><div style="flex:1; display:flex; flex-direction:column; gap:4px">${h3(t, 30)}${ptxt(d, 24)}</div></div>`;
