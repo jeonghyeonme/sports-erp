@@ -307,9 +307,9 @@ partSlide('p4', '04', '성능과 다음 방향', '재 보니 예상보다 두 �
 
 const perfBar = (name, val, w, c) => `<div style="display:flex; flex-direction:column; gap:10px">${ptxt(name, 26, INK, 600)}<div style="display:flex; align-items:center; gap:18px"><div style="width:${w}px; height:72px; background:${c}; border-radius:8px"></div><p style="font-family:${DISPLAY}; font-size:44px; font-weight:800; color:${c}">${val}</p></div></div>`;
 const pstep = (k, t, d, c = NAVY) => `<div style="display:flex; gap:18px; align-items:flex-start"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${c}; width:120px">${k}</p><div style="flex:1; display:flex; flex-direction:column; gap:4px">${h3(t, 30)}${ptxt(d, 24)}</div></div>`;
-section('perf', { notes: 'D48·D49. 출발점: 10/4 k6 — 요청당 처리 약 110ms(가정 50ms), 실질 처리 한계 약 50 rps. 측정: 로컬에 왕복 지연을 넣어 홈 조회 4종을 재 보니 평균 DB 왕복 20.5회. 원인: 트랜잭션 풀러 호환 모드가 작업마다 시작·정리·종료를 덧붙여 왕복이 약 3.5배, 인증만으로 요청마다 왕복 10회. 대응 1단계(적용): 인증 조회를 하나로, 목록 조회를 묶음(D48). 2단계: Session pooler로 접속 변경(D49) — 운영 Lambda에 적용됨(10/11 배포, 2026-10-12 사용자가 환경 변수 5432·pgbouncer 없음 확인). 로컬 기준 왕복 약 6회, 처리 한계 약 2배(50→100 rps) 예상. 주의: 100 rps와 "약 6회"는 계산값이다. 운영 k6 재측정은 아직 안 했다 — "두 배 빨라졌다"고 말하지 말 것.' },
+section('perf', { notes: 'D48·D49. 출발점: 10/4 k6 — 요청당 처리 약 110ms(가정 50ms), 실질 처리 한계 약 50 rps. 측정: 로컬에 왕복 지연을 넣어 홈 조회 4종을 재 보니 평균 DB 왕복 20.5회. 원인: 트랜잭션 풀러 호환 모드가 작업마다 시작·정리·종료를 덧붙여 왕복이 약 3.5배, 인증만으로 요청마다 왕복 10회. 대응 1단계(적용): 인증 조회를 하나로, 목록 조회를 묶음(D48). 2단계: Session pooler로 접속 변경(D49) — 운영 Lambda에 적용됨(10/11 배포, 2026-10-12 사용자가 환경 변수 5432·pgbouncer 없음 확인). 로컬 기준 왕복 약 6회. 운영 재측정(10/12, D50·log/109): 서버 처리 시간 p50 약 110 → 40ms, p95 약 165 → 51ms. 과부하(300 rps)에서 실제 처리 약 52 → 93 rps. "약 6회"는 로컬 측정이고 운영 왕복 수는 재지 않았다. 처리 시간은 서버 기준(CloudWatch)이고 사용자가 느끼는 시간은 네트워크가 더해진다(k6 50 rps 성공 p95 178 → 150ms).' },
   head('성능 · 원인', '쿼리 수가 아니라, DB에 붙는 방식이 문제였습니다') +
-  `<div style="position:absolute; right:96px; top:84px; display:flex">${statePill('part', '처리 한계 2배는 예상치')}</div>` +
+  `<div style="position:absolute; right:96px; top:84px; display:flex">${statePill('done', '운영 실측 110 → 40ms')}</div>` +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(label('홈 조회 1번에 오가는 DB 왕복') +
       perfBar('이전 접속 방식', '20.5회', 640, AMBER) +
@@ -319,26 +319,26 @@ section('perf', { notes: 'D48·D49. 출발점: 10/4 k6 — 요청당 처리 약 
       pstep('측정', '요청당 약 110ms', '설계 가정(50ms)의 두 배') +
       pstep('원인', 'DB 왕복이 너무 많음', '쿼리가 아니라 접속 방식 탓') +
       pstep('대응', '조회 묶기 · 접속 방식 전환', '둘 다 운영에 적용했습니다') +
-      pstep('남은 것', '운영에서 다시 재기', '2배는 그때 확인합니다', AMBER), 'flex:1') +
+      pstep('실측', '요청당 110ms → 약 40ms', '10/12 운영 재측정, 서버 기준', GREEN), 'flex:1') +
     `</div>`) +
-  foot('왕복 횟수: 로컬에 지연을 넣어 홈 조회 4종 평균 · "약 6회"와 처리 한계 2배는 계산값'));
+  foot('왕복 횟수: 로컬에 지연을 넣어 홈 조회 4종 평균("약 6회"는 로컬 측정) · 요청당 처리 시간: 운영 CloudWatch p50(10/4 → 10/12)'));
 
 const knob = (ic, t, d) => `<div style="display:flex; gap:16px; align-items:flex-start">${icon(ic, NAVY)}<div style="flex:1; display:flex; flex-direction:column; gap:4px">${h3(t, 30)}${ptxt(d, 25)}</div></div>`;
-section('perf-tradeoff', { notes: 'D49 "감수하는 것". 세션 모드는 Lambda 실행 환경 하나가 DB 연결 하나를 계속 쥔다(요청이 끝나도, 쉬는 동안에도). 그래서 동시에 처리할 수 있는 요청 수 ≈ 연결 수가 된다. 지금 먼저 걸리는 천장은 Lambda 동시 실행 상한 10이고, 그다음이 Supabase 풀러 연결 약 15개(Pool Size, 대시보드 값은 아직 확인 전). 11번째 동시 요청은 기다리지 않고 바로 "서버 바쁨"(503)으로 거절된다(D37·D42) — 느려지는 대신 빨리 실패. 처리 한계 약 100 rps(동시 10 × 요청당 약 50~60ms)는 추정, 예상 부하 피크 약 3 rps·몰림 약 8 rps는 계산값(D40). 이전(트랜잭션 모드)은 연결을 작업마다 빌렸다 반납해 상한만 올리면 됐지만, 지금은 상한을 올리려면 Pool Size(유료)부터 올려야 한다. 대안으로 트랜잭션 모드를 유지하며 왕복을 줄이는 Prisma driver adapter를 보류해 뒀다(D49 A3). "규모가 줄었다"고 말하지 말 것 — 같은 상한에서 처리 한계는 오히려 커졌고(추정), 줄어든 것은 상한을 공짜로 올릴 여지다.' },
+section('perf-tradeoff', { notes: 'D49 "감수하는 것". 세션 모드는 Lambda 실행 환경 하나가 DB 연결 하나를 계속 쥔다(요청이 끝나도, 쉬는 동안에도). 그래서 동시에 처리할 수 있는 요청 수 ≈ 연결 수가 된다. 지금 먼저 걸리는 천장은 Lambda 동시 실행 상한 10이고, 그다음이 Supabase 풀러 연결 약 15개(Pool Size, 대시보드 값은 아직 확인 전). 11번째 동시 요청은 기다리지 않고 바로 "서버 바쁨"(503)으로 거절된다(D37·D42) — 느려지는 대신 빨리 실패. 10/12 운영 실측(D50·log/109): 요청당 서버 처리 약 40ms, 과부하 300 rps에서 실제 처리 약 90 rps(k6를 돌린 PC가 먼저 막혀 실제 한계는 더 클 수 있음 — 이론값 250 rps는 말하지 말 것). 예상 부하 피크 약 3 rps·몰림 약 8 rps는 계산값(D40). 평균 rps보다 위험한 것은 같은 순간의 몰림: 로그인 사용자를 늘리는 동안 새 실행 환경 9개가 각 약 1.4초씩 뜨며 자리를 잡아 38건이 거절됐다(추정 원인). 50 rps 조회에서도 거절 47건이 났는데 원인은 아직 확인 중이다 — 질문이 나오면 그대로 말할 것. 이전(트랜잭션 모드)은 연결을 작업마다 빌렸다 반납해 상한만 올리면 됐지만, 지금은 상한을 올리려면 Pool Size(유료)부터 올려야 한다. 대안으로 트랜잭션 모드를 유지하며 왕복을 줄이는 Prisma driver adapter를 보류해 뒀다(D49 A3). "규모가 줄었다"고 말하지 말 것 — 같은 상한에서 처리량은 오히려 약 1.8배가 됐고(실측), 줄어든 것은 상한을 공짜로 올릴 여지다.' },
   head('성능 · 대가', '빨라진 대신, 동시에 받을 수 있는 수에 천장이 생겼습니다') +
-  `<div style="position:absolute; right:96px; top:84px; display:flex">${statePill('part', '한계는 추정치')}</div>` +
+  `<div style="position:absolute; right:96px; top:84px; display:flex">${statePill('done', '10/12 운영 실측')}</div>` +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(label('초당 요청 · 예상 부하와 처리 한계') +
-      perfBar('몰릴 때 예상 부하', '약 8 rps', 52, NAVY) +
-      perfBar('지금 처리 한계(추정)', '약 100 rps', 560, GREEN) +
-      ptxt('예상 부하는 한계의 <b>10분의 1 이하</b>입니다. 지금 규모에서는 <b>빠르게</b>가 이득입니다.', 28, INK), 'flex:1.1; gap:24px') +
+      perfBar('몰릴 때 예상 부하(계산)', '약 8 rps', 52, NAVY) +
+      perfBar('과부하에서 실제 처리(실측)', '약 90 rps', 520, GREEN) +
+      ptxt('평균은 여유롭지만, <b>위험은 같은 순간의 몰림</b>입니다. 로그인이 몰리자 새 서버가 뜨는 약 1.4초 사이에 <b>38건이 거절</b>됐습니다.', 28, INK), 'flex:1.1; gap:24px') +
     card(label('내준 것과 손잡이') +
       knob('Lock', '연결을 계속 쥡니다', '처리 서버 하나가 DB 연결 하나를 붙잡아, 동시 처리 수 ≈ 연결 수(약 15)가 천장입니다') +
       knob('Lightning', '넘치면 바로 거절', '동시 10개를 넘는 요청은 기다리지 않고 "서버 바쁨"으로 빠르게 실패합니다') +
       knob('Settings', '천장은 돈으로 올리는 손잡이', '연결 수(Pool Size)와 동시 실행 상한 — 사용자가 늘면 올립니다'), 'flex:1; gap:24px') +
     `</div>` +
     bridge('같은 규모에서는 빠르게를 택했고, 규모는 돈으로 올릴 수 있는 손잡이로 남겼습니다', NAVY, NAVY_SOFT, 'Lightbulb')) +
-  foot('처리 한계는 동시 10 × 요청당 약 50~60ms로 계산한 추정치 · 예상 부하는 계산값(지점당 하루 100명 가정)'));
+  foot('실측: 10/12 운영 k6 + CloudWatch(측정 PC가 먼저 막혀 실제 한계는 더 클 수 있음) · 예상 부하는 계산값(지점당 하루 100명 가정)'));
 
 const na = `<span style="color:${GRAY}">없음</span>`;
 section('data-honest', { notes: '앞 장과 잇는 말: 속도는 잡았는데 그 속도를 보여 줄 데이터가 얕다. 시드 코드에서 센 값(apps/api/src/fixtures). 서초점·강남점은 데모 로그인 계정이 물려 있는 손으로 채운 지점, 나머지 81곳은 생성기가 만든 지점이다. 생성 지점은 직원 1~3명, 회원 0~4명, 강사 1명, 프로그램 1~2개. 예약·결제·출결 이력은 어느 지점에도 시드로 넣지 않았다 — 시연 중에 만든 것만 있다. 83곳이 운영된다고 말하지만, 한 지점 안에서 회원·직원·예약이 얽히는 장면은 보여 줄 수 없다.' },
