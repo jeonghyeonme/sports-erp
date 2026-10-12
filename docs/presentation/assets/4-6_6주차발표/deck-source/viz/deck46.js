@@ -117,12 +117,11 @@ section('cover', { pad: '128px 176px', gap: 20, notes: '6주차 진행 발표. �
   `<div style="flex:1"></div>`);
 
 const tl = (date, t, d) => `<div style="flex:1; display:flex; flex-direction:column; gap:14px; background:${SURFACE}; border:1px solid ${LINE}; border-top:6px solid ${NAVY}; border-radius:14px; padding:32px; box-shadow:${SHADOW}">${label(date)}${h3(t, 36)}${ptxt(d, 26)}</div>`;
-section('recap', { notes: '종합 발표(10/5)에서 이미 말한 내용이라 30초 안에 넘긴다. 실DB 전환: 9/29~9/30, 9개 도메인을 차례로 Prisma(Supabase)로 옮기고 인메모리 mock 삭제(D36). Lambda: 10/5 운영 전환, Render 정지(D37·D42). dev 브랜치: 주 개발·배포 기준을 dev로 정리(D39). 범위 83곳: 지방 15곳을 빼야 회원 기능까지 열어도 엣지 무료 한도(하루 10만) 안(약 9.3만, 계산값)에 든다(D40) — 이것이 다음 파트 회원 앱의 출발점.' },
+section('recap', { notes: '종합 발표(10/5)에서 이미 말한 내용이라 30초 안에 넘긴다. 실DB 전환: 9/29~9/30, 9개 도메인을 차례로 Prisma(Supabase)로 옮기고 인메모리 mock 삭제(D36). Lambda: 10/5 운영 전환, Render 정지(D37·D42). (dev 브랜치 정리(D39)는 청중에게 의미가 약해 화면에서 뺐다.) 범위 83곳: 지방 15곳을 빼야 회원 기능까지 열어도 엣지 무료 한도(하루 10만) 안(약 9.3만, 계산값)에 든다(D40) — 이것이 다음 파트 회원 앱의 출발점.' },
   head('지난 발표 이후', '기반을 실DB와 Lambda 위로 옮겼습니다') +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     tl('9/30', '실DB 전환 완료', '9개 도메인을 실제 DB로 옮기고, 메모리 임시 데이터를 지웠습니다') +
     tl('10/5', 'Lambda 운영 전환', 'API를 서울 리전 Lambda로 옮겼습니다') +
-    tl('10/6', '개발 브랜치 정리', '개발·배포 기준을 하나의 브랜치로 맞췄습니다') +
     tl('10/6', '범위 83곳', '지방 15곳을 빼, 회원 기능까지 무료 한도 안에 넣었습니다') +
     `</div>`) +
   foot('종합 발표(10/5)에서 다룬 내용 — 짧게 되짚기'));
@@ -246,19 +245,19 @@ const panel = (x, k, pillT, t) =>
 const pinText = (x, y, w, t, c = INK, size = 28, align = 'left') => `<p style="position:absolute; left:${x}px; top:${y}px; width:${w}px; font-size:${size}px; line-height:1.45; color:${c}; text-align:${align}">${t}</p>`;
 function isolationFlow() {
   // 전 — 왼쪽 패널(x 96~936), 요청 중심 x 516
-  let s = panel(96, 'part', '전', '기능마다 각자 검사');
+  let s = panel(96, 'part', '전', '기능마다 각자 지점 검사');
   s += nodeBox(386, 336, 260, 68, ['요청']);
   const L = [246, 516, 786];
   s += link(516, 404, 246, 462) + link(516, 404, 516, 462) + link(516, 404, 786, 462, RED);
   s += nodeBox(136, 462, 220, 72, ['지점 검사'], { bg: AMBER_SOFT, bd: AMBER, c: AMBER });
   s += nodeBox(406, 462, 220, 72, ['지점 검사'], { bg: AMBER_SOFT, bd: AMBER, c: AMBER });
-  s += nodeBox(676, 462, 220, 72, ['검사 빠짐'], { bg: SURFACE, bd: RED, c: RED, dash: true });
+  s += nodeBox(666, 462, 240, 72, ['지점 검사 빠짐'], { bg: SURFACE, bd: RED, c: RED, dash: true });
   s += link(L[0], 534, L[0], 592) + link(L[1], 534, L[1], 592) + link(L[2], 534, L[2], 592, RED);
   s += nodeBox(136, 592, 220, 72, ['회원 조회']);
   s += nodeBox(406, 592, 220, 72, ['예약']);
   s += nodeBox(676, 592, 220, 72, ['새 기능'], { bd: RED, c: RED });
   s += pinText(656, 674, 260, '남의 지점 데이터가 보임', RED, 24, 'center');
-  s += pinText(128, 744, 776, '같은 검사가 <b>약 10곳</b>에 복사돼 있었고, 하나만 빠뜨려도 막을 장치가 없었습니다.');
+  s += pinText(128, 744, 776, '같은 지점 검사가 <b>약 10곳</b>에 복사돼 있었고, 하나만 빠뜨려도 막을 장치가 없었습니다.');
   // 후 — 오른쪽 패널(x 984~1824), 요청 중심 x 1404
   s += panel(984, 'done', '후', '들어오는 길목에서 한 번');
   s += nodeBox(1274, 336, 260, 68, ['요청']);
@@ -273,9 +272,9 @@ function isolationFlow() {
   return s;
 }
 section('rule-isolation', { notes: 'D46. 왼쪽(전): 요청이 들어오면 기능(컨트롤러)마다 지점 검사를 각자 했다 — 같은 검사가 약 10곳에 복사. 새 기능을 만들며 검사를 빠뜨리면(빨간 점선) 남의 지점 데이터가 보일 수 있었고, 그걸 막을 장치가 없었다. 오른쪽(후): 모든 요청이 지나는 공통 검사 한 곳에서 지점을 본다. 기능은 "무슨 리소스를 다루는지" 선언 한 줄만 붙인다. 선언이 빠진 기능은 실제 라우트 목록을 훑는 테스트가 실패시킨다. 변이 확인: 시설 수정의 선언 하나를 일부러 빼면 선언 누락 검사 1건 + 격리 공격 2건, 테스트 3건이 실패했다(log/095). 부수 효과: 남의 지점 id를 주면 조용히 자기 지점으로 바꿔 주던 목록들(자산·결제·근태 요약 등)이 이제 거부한다 — 화면은 남의 지점 id를 보내지 않아 영향 없음. 왼쪽 "새 기능"의 뚫림은 구조상 가능했던 위험을 그린 것이지, 실제로 뚫린 사고가 있었다는 뜻이 아니다 — 그렇게 말하지 말 것.' },
-  head('지점 격리', '검사를 10곳에서 1곳으로 모았습니다') +
+  head('지점 격리', '지점 검사를 10곳에서 1곳으로 모았습니다') +
   isolationFlow() +
-  `<div style="position:absolute; left:96px; top:892px; width:1728px; display:flex; align-items:center; gap:18px; padding:20px 30px; background:${GREEN_SOFT}; border-left:6px solid ${GREEN}; border-radius:10px">${icon('Verified', GREEN)}<p style="font-size:30px; font-weight:600; color:${GREEN}">검사 하나를 일부러 빼 보니, 테스트 3건이 실패했습니다</p></div>`);
+  `<div style="position:absolute; left:96px; top:892px; width:1728px; display:flex; align-items:center; gap:18px; padding:20px 30px; background:${GREEN_SOFT}; border-left:6px solid ${GREEN}; border-radius:10px">${icon('Verified', GREEN)}<p style="font-size:30px; font-weight:600; color:${GREEN}">지점 검사 선언 하나를 일부러 빼 보니, 테스트 3건이 실패했습니다</p></div>`);
 
 const chain = (no, t, d, c = NAVY, soft = SURFACE) => `<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:${soft}; border:2px solid ${c}; border-radius:14px; padding:28px 24px">${label(no, c)}${h3(t, 32)}${ptxt(d, 25)}</div>`;
 section('rule-contract', { notes: 'ADR-STF-07·08. 프로젝트 규칙 문서에 "설계만 있고 미구현"으로 남아 있던 항목을 해소했다. 본사가 지점을 계약 종료로 바꾸면 같은 트랜잭션에서: 그 지점 진행 중 파견 종료 → 그 직원들이 맡던 회원 담당 해제 → 재배치 대기 목록. 중간에 실패하면 전부 되돌린다. 동시에 들어온 채용·발령과 충돌하지 않게 지점 행을 잠근다 — 잠금을 빼면 동시 요청 테스트가 5회 중 5회 실패하는 것을 확인했다. 계약 종료 지점 직원은 본사도 퇴사 처리 가능. 과거 조회는 그대로. 만료·갱신 임박은 차단하지 않는다.' },
@@ -309,7 +308,6 @@ const perfBar = (name, val, w, c) => `<div style="display:flex; flex-direction:c
 const pstep = (k, t, d, c = NAVY) => `<div style="display:flex; gap:18px; align-items:flex-start"><p style="font-family:${MONO}; font-size:24px; font-weight:700; color:${c}; width:120px">${k}</p><div style="flex:1; display:flex; flex-direction:column; gap:4px">${h3(t, 30)}${ptxt(d, 24)}</div></div>`;
 section('perf', { notes: 'D48·D49. 출발점: 10/4 k6 — 요청당 처리 약 110ms(가정 50ms), 실질 처리 한계 약 50 rps. 측정: 로컬에 왕복 지연을 넣어 홈 조회 4종을 재 보니 평균 DB 왕복 20.5회. 원인: 트랜잭션 풀러 호환 모드가 작업마다 시작·정리·종료를 덧붙여 왕복이 약 3.5배, 인증만으로 요청마다 왕복 10회. 대응 1단계(적용): 인증 조회를 하나로, 목록 조회를 묶음(D48). 2단계: Session pooler로 접속 변경(D49) — 운영 Lambda에 적용됨(10/11 배포, 2026-10-12 사용자가 환경 변수 5432·pgbouncer 없음 확인). 로컬 기준 왕복 약 6회. 운영 재측정(10/12, D50·log/109): 서버 처리 시간 p50 약 110 → 40ms, p95 약 165 → 51ms. 과부하(300 rps)에서 실제 처리 약 52 → 93 rps. "약 6회"는 로컬 측정이고 운영 왕복 수는 재지 않았다. 처리 시간은 서버 기준(CloudWatch)이고 사용자가 느끼는 시간은 네트워크가 더해진다(k6 50 rps 성공 p95 178 → 150ms).' },
   head('성능 · 원인', '쿼리 수가 아니라, DB에 붙는 방식이 문제였습니다') +
-  `<div style="position:absolute; right:96px; top:84px; display:flex">${statePill('done', '운영 실측 110 → 40ms')}</div>` +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(label('홈 조회 1번에 오가는 DB 왕복') +
       perfBar('이전 접속 방식', '20.5회', 640, AMBER) +
@@ -324,20 +322,19 @@ section('perf', { notes: 'D48·D49. 출발점: 10/4 k6 — 요청당 처리 약 
   foot('왕복 횟수: 로컬에 지연을 넣어 홈 조회 4종 평균("약 6회"는 로컬 측정) · 요청당 처리 시간: 운영 CloudWatch p50(10/4 → 10/12)'));
 
 const knob = (ic, t, d) => `<div style="display:flex; gap:16px; align-items:flex-start">${icon(ic, NAVY)}<div style="flex:1; display:flex; flex-direction:column; gap:4px">${h3(t, 30)}${ptxt(d, 25)}</div></div>`;
-section('perf-tradeoff', { notes: 'D49 "감수하는 것". 세션 모드는 Lambda 실행 환경 하나가 DB 연결 하나를 계속 쥔다(요청이 끝나도, 쉬는 동안에도). 그래서 동시에 처리할 수 있는 요청 수 ≈ 연결 수가 된다. 지금 먼저 걸리는 천장은 Lambda 동시 실행 상한 10이고, 그다음이 Supabase 풀러 연결 약 15개(Pool Size, 대시보드 값은 아직 확인 전). 11번째 동시 요청은 기다리지 않고 바로 "서버 바쁨"(503)으로 거절된다(D37·D42) — 느려지는 대신 빨리 실패. 10/12 운영 실측(D50·log/109): 요청당 서버 처리 약 40ms, 과부하 300 rps에서 실제 처리 약 90 rps(1분 평균, 순간 최대 초당 약 120 — k6를 돌린 PC가 먼저 막혀 실제 한계는 더 클 수 있음 — 이론값 250 rps는 말하지 말 것). 예상 부하 피크 약 3 rps·몰림 약 8 rps는 계산값(D40). 평균 rps보다 위험한 것은 같은 순간의 몰림: 로그인 사용자를 늘리는 동안 새 실행 환경 9개가 각 약 1.4초씩 뜨며 자리를 잡아 38건이 거절됐다(추정 원인). 50 rps 조회에서도 거절 47건(약 0.3%)이 났다. 동시 실행이 매분 최대 10에 닿았지만 초당 도착은 고르게 50 안팎이라, 1초보다 짧은 몰림인지 호출당 부가 시간인지 아직 가리지 못했다 — 질문이 나오면 그대로 말할 것. 이전(트랜잭션 모드)은 연결을 작업마다 빌렸다 반납해 상한만 올리면 됐지만, 지금은 상한을 올리려면 Pool Size(유료)부터 올려야 한다. 대안으로 트랜잭션 모드를 유지하며 왕복을 줄이는 Prisma driver adapter를 보류해 뒀다(D49 A3). "규모가 줄었다"고 말하지 말 것 — 같은 상한에서 처리량은 오히려 약 1.8배가 됐고(실측), 줄어든 것은 상한을 공짜로 올릴 여지다.' },
+section('perf-tradeoff', { notes: 'D49 "감수하는 것". 세션 모드는 Lambda 실행 환경 하나가 DB 연결 하나를 계속 쥔다(요청이 끝나도, 쉬는 동안에도). 그래서 동시에 처리할 수 있는 요청 수 ≈ 연결 수가 된다. 지금 먼저 걸리는 천장은 Lambda 동시 실행 상한 10이고, 그다음이 Supabase 풀러 연결 15개(Pool Size — 무료 등급 Nano CPU 기준값, 2026-10-12 사용자 대시보드 확인). 11번째 동시 요청은 기다리지 않고 바로 "서버 바쁨"(503)으로 거절된다(D37·D42) — 느려지는 대신 빨리 실패. 10/12 운영 실측(D50·log/109): 요청당 서버 처리 약 40ms, 과부하 300 rps에서 실제 처리 약 90 rps(1분 평균, 순간 최대 초당 약 120 — k6를 돌린 PC가 먼저 막혀 실제 한계는 더 클 수 있음 — 이론값 250 rps는 말하지 말 것). 예상 부하 피크 약 3 rps·몰림 약 8 rps는 계산값(D40). 평균 rps보다 위험한 것은 같은 순간의 몰림: 로그인 사용자를 늘리는 동안 새 실행 환경 9개가 각 약 1.4초씩 뜨며 자리를 잡아 38건이 거절됐다(추정 원인). 50 rps 조회에서도 거절 47건(약 0.3%)이 났다. 동시 실행이 매분 최대 10에 닿았지만 초당 도착은 고르게 50 안팎이라, 1초보다 짧은 몰림인지 호출당 부가 시간인지 아직 가리지 못했다 — 질문이 나오면 그대로 말할 것. 이전(트랜잭션 모드)은 연결을 작업마다 빌렸다 반납해 상한만 올리면 됐지만, 지금은 상한을 올리려면 Pool Size(유료)부터 올려야 한다. 대안으로 트랜잭션 모드를 유지하며 왕복을 줄이는 Prisma driver adapter를 보류해 뒀다(D49 A3). "규모가 줄었다"고 말하지 말 것 — 같은 상한에서 처리량은 오히려 약 1.8배가 됐고(실측), 줄어든 것은 상한을 공짜로 올릴 여지다.' },
   head('성능 · 대가', '빨라진 대신, 동시에 받을 수 있는 수에 천장이 생겼습니다') +
-  `<div style="position:absolute; right:96px; top:84px; display:flex">${statePill('done', '10/12 운영 실측')}</div>` +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(label('초당 요청 · 예상 부하와 처리 한계') +
       perfBar('몰릴 때 예상 부하(계산)', '약 8 rps', 52, NAVY) +
       perfBar('과부하에서 실제 처리(실측)', '약 90 rps', 520, GREEN) +
       ptxt('평균은 여유롭지만, <b>위험은 같은 순간의 몰림</b>입니다. 로그인이 몰리자 새 서버가 뜨는 약 1.4초 사이에 <b>38건이 거절</b>됐습니다.', 28, INK), 'flex:1.1; gap:24px') +
-    card(label('내준 것과 손잡이') +
-      knob('Lock', '연결을 계속 쥡니다', '처리 서버 하나가 DB 연결 하나를 붙잡아, 동시 처리 수 ≈ 연결 수(약 15)가 천장입니다') +
+    card(label('내준 것과 늘리는 방법') +
+      knob('Lock', '연결을 계속 쥡니다', '처리 서버 하나가 DB 연결 하나를 붙잡아, 동시에 처리할 수 있는 수가 DB 연결 수(15개)를 넘지 못합니다') +
       knob('Lightning', '넘치면 바로 거절', '동시 10개를 넘는 요청은 기다리지 않고 "서버 바쁨"으로 빠르게 실패합니다') +
-      knob('Settings', '천장은 돈으로 올리는 손잡이', '연결 수(Pool Size)와 동시 실행 상한 — 사용자가 늘면 올립니다'), 'flex:1; gap:24px') +
+      knob('Settings', '늘릴 땐 DB 등급을 올립니다', 'DB 연결 수는 등급(지금은 무료 Nano)에 따라 정해져, 사용자가 늘면 등급과 동시 실행 상한을 함께 올립니다'), 'flex:1; gap:24px') +
     `</div>` +
-    bridge('같은 규모에서는 빠르게를 택했고, 규모는 돈으로 올릴 수 있는 손잡이로 남겼습니다', NAVY, NAVY_SOFT, 'Lightbulb')) +
+    bridge('지금 규모에서는 속도를 택했고, 사용자가 늘면 DB 등급을 올려 받아냅니다', NAVY, NAVY_SOFT, 'Lightbulb')) +
   foot('실측: 10/12 운영 k6 + CloudWatch(측정 PC가 먼저 막혀 실제 한계는 더 클 수 있음) · 예상 부하는 계산값(지점당 하루 100명 가정)'));
 
 const na = `<span style="color:${GRAY}">없음</span>`;
@@ -352,11 +349,11 @@ section('data-honest', { notes: '앞 장과 잇는 말: 속도는 잡았는데 �
   foot('시드 코드 기준(2026-10-11) · 이력은 시연 중 직접 만든 것만 있음'));
 
 const flowLine = (items, c) => `<div style="display:flex; flex-direction:column; gap:10px">${items.map((t, i) => (i ? arrowD(c) : '') + `<div style="padding:18px 24px; background:${SURFACE}; border:2px solid ${c}; border-radius:12px"><p style="font-size:30px; font-weight:600; color:${INK}; text-align:center">${t}</p></div>`).join('')}</div>`;
-section('data-why', { notes: '앞 장(성능의 대가)과 같은 판단이다: 연결 천장을 돈으로 올리는 손잡이로 남겼듯, 무료 한도도 시연의 제약일 뿐이다. 이번 방향 전환의 판단 근거. 83곳으로 정한 이유는 무료 한도(하루 10만 요청)였다. 그런데 실제 서비스를 하려면 어차피 인프라에 투자가 들어가고, 그때 한도는 돈으로 푸는 문제라 의미가 없어진다. 실제로 쓰이려면 한 지점이 밀도 있고 빠르고 불편 없이 돌아가는 시스템이 먼저이고, 규모는 그 위에서 늘리는 것이 맞다고 판단했다. 범위 결정(83곳)을 뒤집는 것이 아니라, 시연 데이터의 초점을 바꾸는 것이다 — 지점 격리·처리 한계 측정 같은 규모 대비 설계는 그대로 둔다.' },
+section('data-why', { notes: '앞 장(성능의 대가)과 같은 판단이다: 연결 수를 DB 등급으로 늘릴 수 있게 남겼듯, 무료 한도도 시연의 제약일 뿐이다. 이번 방향 전환의 판단 근거. 83곳으로 정한 이유는 무료 한도(하루 10만 요청)였다. 그런데 실제 서비스를 하려면 어차피 인프라에 투자가 들어가고, 그때 한도는 돈으로 푸는 문제라 의미가 없어진다. 실제로 쓰이려면 한 지점이 밀도 있고 빠르고 불편 없이 돌아가는 시스템이 먼저이고, 규모는 그 위에서 늘리는 것이 맞다고 판단했다. 범위 결정(83곳)을 뒤집는 것이 아니라, 시연 데이터의 초점을 바꾸는 것이다 — 지점 격리·처리 한계 측정 같은 규모 대비 설계는 그대로 둔다.' },
   head('왜 바꾸나', '무료 한도도 연결 천장도, 서비스의 기준은 아닙니다') +
   fill(`<div style="display:flex; gap:20px; align-items:stretch">` +
     card(pillRow(statePill('out', '지금까지')) + h3('한도에 맞춘 규모', 36) + flowLine(['무료 한도 하루 10만', '83곳으로 넓게', '지점마다 얕은 데이터'], LINE_STRONG), 'flex:1') +
-    card(pillRow(statePill('plan', '실서비스라면')) + h3('쓰이는 시스템이 먼저', 36) + flowLine(['인프라 투자는 전제', '한도·천장은 돈으로 푸는 문제', '한 지점이 불편 없이'], NAVY), 'flex:1') +
+    card(pillRow(statePill('plan', '실서비스라면')) + h3('쓰이는 시스템이 먼저', 36) + flowLine(['인프라 투자는 전제', '한도·연결 수는 등급으로 해결', '한 지점이 불편 없이'], NAVY), 'flex:1') +
     `</div>` +
     `<div style="display:flex; align-items:center; gap:20px; padding:28px 36px; background:${NAVY}; border-radius:14px">${icon('Lightbulb', '#F4F5F3', 36)}<p style="font-family:${DISPLAY}; font-size:38px; font-weight:800; color:#F4F5F3">밀도 있고 빠르고 불편 없는 시스템을 먼저, 규모는 그 위에서 늘립니다</p></div>`));
 
