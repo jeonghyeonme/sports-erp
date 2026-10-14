@@ -1,13 +1,13 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useToast } from '../lib/use-toast';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
-import { ApiEnvelope, BranchSummary, StaffAssignmentRow, StaffRow } from '../lib/types';
+import { ApiEnvelope, BranchSummary, StaffAssignmentRow, StaffRow, WorkLogRow } from '../lib/types';
 
 interface ApiErrorBody {
   code?: string;
@@ -330,6 +330,45 @@ function AssignmentHistory({ staffId }: { staffId: string }) {
   );
 }
 
+// ── 업무일지(GET /work-logs?staffId= — 근태관리 A-6 "관리자는 본인 지점 전 직원 업무일지 열람", RFP 개념도 현장→본사) ──
+// 범위는 전역 가드가 본다(D46 — 지점 관리자는 자기 지점 직원만, 본사는 전체). 최근 것부터 30일치만 보인다.
+const WORK_LOG_DAYS = 30;
+
+function WorkLogHistory({ staffId }: { staffId: string }) {
+  const logsQuery = useApiList<WorkLogRow>(['work-logs', 'staff', staffId], `/work-logs?staffId=${staffId}`);
+  const rows = [...(logsQuery.data ?? [])].sort((a, b) => b.date.localeCompare(a.date)).slice(0, WORK_LOG_DAYS);
+
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <h3 className="section-title" style={{ marginTop: 0 }}>
+        업무일지{' '}
+        <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--color-text-muted)' }}>최근 {WORK_LOG_DAYS}건</span>
+      </h3>
+      {logsQuery.isError && <div className="forbidden-note">{apiErrorMessage(logsQuery.error)}</div>}
+      {logsQuery.isLoading && <div className="loading-state">불러오는 중...</div>}
+      {logsQuery.isSuccess && rows.length === 0 && <div className="empty-state">작성한 업무일지가 없습니다.</div>}
+      {rows.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th style={{ width: 120 }}>날짜</th>
+              <th>내용</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((l) => (
+              <tr key={l.id}>
+                <td>{l.date}</td>
+                <td style={{ whiteSpace: 'pre-wrap' }}>{l.content}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 export function StaffDetailPage() {
   const { id = '' } = useParams();
   const { user } = useAuth();
@@ -360,9 +399,6 @@ export function StaffDetailPage() {
   return (
     <>
       <div className="page-header">
-        <Link className="back-link" to="/staff">
-          ← 직원 목록으로
-        </Link>
         <h2>{staff.name}</h2>
         <p className="page-desc" style={{ marginBottom: 0 }}>
           {staff.staffCode} · {staff.branchName}
@@ -432,6 +468,7 @@ export function StaffDetailPage() {
       </div>
 
       {user?.role !== 'STAFF' && <AssignmentHistory staffId={staff.id} />}
+      {user?.role !== 'STAFF' && <WorkLogHistory staffId={staff.id} />}
 
       {modal === 'resign' && <ResignModal staff={staff} onClose={() => setModal(null)} />}
       {modal === 'assign' && <AssignModal staff={staff} onClose={() => setModal(null)} />}

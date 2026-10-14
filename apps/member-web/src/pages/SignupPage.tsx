@@ -26,6 +26,7 @@ interface Form {
   password: string;
   confirm: string;
   guardianConsent: boolean;
+  privacyConsent: boolean;
 }
 
 const EMPTY: Form = {
@@ -39,6 +40,7 @@ const EMPTY: Form = {
   password: '',
   confirm: '',
   guardianConsent: false,
+  privacyConsent: false,
 };
 
 // 새 가입(POST /members/register, ADR-MEM-02). 사용자 결정(log/092):
@@ -72,6 +74,8 @@ export function SignupPage() {
     if (form.birthDate > todayKst()) return setError('생년월일이 오늘보다 늦습니다.');
     if (minor && !form.guardianConsent) return setError('만 19세 미만은 법정대리인 동의에 체크해야 합니다.');
     if (!email) return setError('이메일을 입력해 주세요.');
+    // D51 — 개인정보 수집·이용 동의는 화면에서 받는다. 동의 시각은 저장하지 않는다(스키마 변경이라 승인 대상).
+    if (!form.privacyConsent) return setError('개인정보 수집·이용에 동의해야 가입할 수 있습니다.');
     if (form.password.length < MIN_PASSWORD) return setError(`비밀번호는 ${MIN_PASSWORD}자 이상이어야 합니다.`);
     if (form.password !== form.confirm) return setError('비밀번호 확인이 일치하지 않습니다.');
 
@@ -218,6 +222,13 @@ export function SignupPage() {
             value={form.confirm}
             onChange={(e) => set({ confirm: e.target.value })}
           />
+        </label>
+
+        <label className="check-row">
+          <input type="checkbox" checked={form.privacyConsent} onChange={(e) => set({ privacyConsent: e.target.checked })} />
+          <span>
+            개인정보 수집·이용에 동의합니다. (<Link to="/privacy">개인정보처리방침</Link>)
+          </span>
         </label>
 
         {error && (

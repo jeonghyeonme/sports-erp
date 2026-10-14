@@ -1,4 +1,5 @@
 import { FormEvent, ReactNode, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useLoad } from '../lib/use-load';
@@ -174,6 +175,16 @@ export function MyInfoPage() {
       </section>
 
       <ChangePasswordSection />
+
+      {/* D51 — 이용 안내(RFP 과업4 매뉴얼 탑재)·개인정보처리방침 */}
+      <section className="panel stack-sm">
+        <Link to="/guide" className="text-link">
+          이용 안내
+        </Link>
+        <Link to="/privacy" className="text-link">
+          개인정보처리방침
+        </Link>
+      </section>
 
       {/* log/094 — 로그아웃은 앱처럼 내 정보 맨 아래에 둔다(상단 바에서 옮김). */}
       <button type="button" className="secondary-button danger-text" onClick={() => void logout()}>

@@ -5,6 +5,7 @@ import { Role } from '../lib/types';
 import { findScreenHelp } from '../lib/help-content';
 import { HelpPanel } from '../components/HelpPanel';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
+import { Breadcrumb, BreadcrumbNavItem } from '../components/Breadcrumb';
 
 interface NavLinkItem {
   to: string;
@@ -89,6 +90,13 @@ const ROLE_LABEL: Record<Role, string> = {
   STAFF: '지점 직원',
   MEMBER: '회원',
 };
+
+// 경로 표시(D51)가 쓰는 평평한 메뉴 목록 — 그룹 안 화면은 그룹 이름을 함께 넘긴다.
+function flattenNav(entries: NavEntry[]): BreadcrumbNavItem[] {
+  return entries.flatMap((e) =>
+    e.kind === 'link' ? [e.link] : e.group.items.map((item) => ({ ...item, group: e.group.label })),
+  );
+}
 
 function isPathActive(to: string, pathname: string): boolean {
   return to === '/' ? pathname === '/' : pathname.startsWith(to);
@@ -200,6 +208,7 @@ export function AppLayout() {
         </header>
         <div className={helpOpen ? 'content-row with-help' : 'content-row'}>
           <main className="content">
+            <Breadcrumb items={flattenNav(entries)} pathname={location.pathname} />
             <Outlet />
           </main>
           {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}

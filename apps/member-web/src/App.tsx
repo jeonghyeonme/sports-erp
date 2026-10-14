@@ -17,6 +17,8 @@ import { MyInfoPage } from './pages/MyInfoPage';
 import { JoinPage } from './pages/JoinPage';
 import { SignupPage } from './pages/SignupPage';
 import { LinkPage } from './pages/LinkPage';
+import { GuidePage } from './pages/GuidePage';
+import { PrivacyPage } from './pages/PrivacyPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, isRestoring, restoreOffline } = useAuth();
@@ -38,6 +40,9 @@ export default function App() {
           <Route path="/join" element={<JoinPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/link" element={<LinkPage />} />
+          {/* 안내 문서(D51) — 로그인 전에도 연다 */}
+          <Route path="/guide" element={<GuidePage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route
             element={
               <RequireAuth>

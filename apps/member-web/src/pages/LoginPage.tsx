@@ -102,6 +102,9 @@ export function LoginPage() {
       <p className="login-links">
         처음 오셨나요? <Link to="/join">가입·지점 회원 연결</Link>
       </p>
+      <p className="login-links">
+        <Link to="/guide">이용 안내</Link> · <Link to="/privacy">개인정보처리방침</Link>
+      </p>
     </div>
   );
 }
