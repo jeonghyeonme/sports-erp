@@ -43,6 +43,19 @@ describe('게시판 규칙 (D36)', () => {
     expect(res.body.data.map((p: { id: string }) => p.id)).toEqual(['post-hq-manual', 'post-seocho-event']); // 등록순
   });
 
+  it('분류 필터: category=TRAINING_MATERIAL은 교육자료만, 모르는 분류는 빈 목록(500 아님) — RFP 직원관리 탭(log/114)', async () => {
+    const token = await login(app, ACCOUNTS.seochoAdmin);
+    const training = await call(token, 'get', '/posts?category=TRAINING_MATERIAL');
+    expect(training.status).toBe(200);
+    expect(training.body.data.map((p: { id: string }) => p.id)).toEqual(['post-hq-manual']);
+    expect(training.body.meta.total).toBe(1);
+    const all = await call(token, 'get', '/posts');
+    expect(all.body.data).toHaveLength(2); // 대조군 — 필터 없으면 둘 다
+    const unknown = await call(token, 'get', '/posts?category=NOPE');
+    expect(unknown.status).toBe(200);
+    expect(unknown.body.data).toEqual([]);
+  });
+
   it('소프트 삭제: 작성자가 지우면 행은 남고 상세·목록에서 빠진다 — 두 번째 삭제와 삭제된 글 수정은 404', async () => {
     const author = await login(app, ACCOUNTS.seochoAdmin); // post-seocho-event 작성자
     expect((await call(author, 'delete', '/posts/post-seocho-event')).status).toBe(200);

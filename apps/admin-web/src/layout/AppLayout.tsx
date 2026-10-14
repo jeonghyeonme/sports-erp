@@ -30,6 +30,8 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
     link('/', '대시보드'),
     group('인사·권한', [
       { to: '/staff', label: '직원' },
+      // RFP 개념도 본사→현장 근태관리 — 본사는 조회만(근태관리 A-7 수정, log/114)
+      { to: '/attendance', label: '근태 현황' },
       { to: '/permissions', label: '권한 관리' },
       // D44 — 인사 변경 감사 기록(본사 전용)
       { to: '/audit-logs', label: '변경 이력' },
@@ -63,7 +65,7 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
       { to: '/documents', label: '문서함' },
     ]),
   ],
-  // 근태관리 A-7 — SUPER_ADMIN은 현장 근태 운영에 직접 개입하지 않는 원칙이라 근태관리는 STAFF·BRANCH_ADMIN에만 있다.
+  // 근태관리 A-7 — SUPER_ADMIN은 현장 근태를 조회만 한다(위 "근태 현황"). 출퇴근·승인·확정 화면은 STAFF·BRANCH_ADMIN만.
   STAFF: [
     link('/', '대시보드'),
     link('/staff', '내 정보'),

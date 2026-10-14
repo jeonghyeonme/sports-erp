@@ -34,6 +34,7 @@ export function CongestionCard() {
   }, [fetchedAt]);
 
   const facilities = data ?? [];
+  const staleCount = facilities.filter((f) => now - new Date(f.lastUpdatedAt).getTime() > 30 * 60_000).length;
   const latest = facilities.reduce<string | null>(
     (acc, f) => (acc === null || f.lastUpdatedAt > acc ? f.lastUpdatedAt : acc),
     null,
@@ -79,6 +80,12 @@ export function CongestionCard() {
             ))}
           </ul>
           {latest && <p className="muted">{sinceLabel(latest, now)}</p>}
+          {/* RFP "최대 30분 이내 반영" — 지점이 직접 입력하는 값이라 30분 넘게 그대로인 시설이 있으면 알린다(log/114). */}
+          {staleCount > 0 && (
+            <p className="muted" role="note">
+              일부 시설은 30분 넘게 갱신되지 않아 지금과 다를 수 있습니다.
+            </p>
+          )}
         </>
       )}
     </section>

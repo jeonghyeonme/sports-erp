@@ -39,6 +39,14 @@ describe('카탈로그 × 예약·회원 경로', () => {
     expect(await prisma.program.count({ where: { pricingType: 'PAID_SESSION', capacity: null } })).toBe(0);
   });
 
+  it('회원이 보는 프로그램 목록에 강사 이름·전문 종목이 함께 오고 연락처는 없다(log/114)', async () => {
+    const res = await api(await login(app, ACCOUNTS.seochoMember)).get('/programs');
+    expect(res.status).toBe(200);
+    const withInstructor = res.body.data.find((p: { instructorId?: string }) => p.instructorId === 'instructor-seoyeon');
+    expect(withInstructor).toMatchObject({ instructorName: '박서연', instructorSpecialty: '요가·필라테스' });
+    expect(JSON.stringify(res.body.data)).not.toContain('instructorPhone');
+  });
+
   it('프로그램을 PAUSED로 바꾸면 곧바로 예약이 PROGRAM_NOT_RUNNING으로 막힌다', async () => {
     const admin = api(await login(app, ACCOUNTS.seochoAdmin));
     const member = api(await login(app, ACCOUNTS.seochoMember));

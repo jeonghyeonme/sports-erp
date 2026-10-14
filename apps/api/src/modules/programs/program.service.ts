@@ -6,7 +6,14 @@ import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACTIVE_RESERVATION_STATUSES } from '../../prisma/integrity';
 
-export type ProgramView = MockProgram & { branchName?: string; instructorName?: string };
+// RFP 강사·프로그램 게시 "종목별 강사 정보 게시" — 회원 웹이 강사 목록을 따로 부르지 않게 소개·전문 종목을 함께 싣는다
+// (방문당 호출 수 design-constants ⑩, log/114). 연락처는 싣지 않는다.
+export type ProgramView = MockProgram & {
+  branchName?: string;
+  instructorName?: string;
+  instructorSpecialty?: string;
+  instructorBio?: string;
+};
 
 type ProgramInput = {
   name: string;
@@ -34,7 +41,10 @@ const PRICING_TYPES: MockProgram['pricingType'][] = ['FREE_ACCESS', 'PAID_SESSIO
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const dateOf = (d: string) => new Date(`${d}T00:00:00Z`);
-const withNames = { branch: { select: { name: true } }, instructor: { select: { name: true } } } as const;
+const withNames = {
+  branch: { select: { name: true } },
+  instructor: { select: { name: true, specialty: true, bio: true } },
+} as const;
 
 const ACTIVE = [...ACTIVE_RESERVATION_STATUSES] as Array<'REQUESTED' | 'CONFIRMED'>;
 
@@ -290,6 +300,17 @@ function toMockSlot(row: ScheduleSlot): MockScheduleSlot {
   };
 }
 
-function toView(row: Program & { branch: { name: string }; instructor: { name: string } | null }): ProgramView {
-  return { ...toMockProgram(row), branchName: row.branch.name, instructorName: row.instructor?.name };
+function toView(
+  row: Program & {
+    branch: { name: string };
+    instructor: { name: string; specialty: string | null; bio: string | null } | null;
+  },
+): ProgramView {
+  return {
+    ...toMockProgram(row),
+    branchName: row.branch.name,
+    instructorName: row.instructor?.name,
+    instructorSpecialty: row.instructor?.specialty ?? undefined,
+    instructorBio: row.instructor?.bio ?? undefined,
+  };
 }

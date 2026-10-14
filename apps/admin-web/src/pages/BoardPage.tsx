@@ -150,7 +150,8 @@ const toast = useToast();
 export function BoardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [scopeFilter, setScopeFilter] = useState<'ALL' | PostRow['scope']>('ALL');
+  // 'TRAINING' = RFP 게시판 "본사→현장 직원관리 탭(운영 교육 매뉴얼·자료)" — 본사 공지 중 교육자료만(log/114).
+  const [scopeFilter, setScopeFilter] = useState<'ALL' | 'TRAINING' | PostRow['scope']>('ALL');
   const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
 
@@ -168,7 +169,12 @@ export function BoardPage() {
   >({
     queryKey: ['posts', scopeFilter, page],
     queryFn: async () => {
-      const scopeParam = scopeFilter === 'ALL' ? '' : `&scope=${scopeFilter}`;
+      const scopeParam =
+        scopeFilter === 'ALL'
+          ? ''
+          : scopeFilter === 'TRAINING'
+            ? '&scope=HQ_TO_BRANCH&category=TRAINING_MATERIAL'
+            : `&scope=${scopeFilter}`;
       const res = await api.get<ApiEnvelope<PostRow[]>>(`/posts?page=${page}&limit=${PAGE_SIZE}${scopeParam}`);
       return { posts: res.data.data ?? [], total: res.data.meta?.total ?? 0 };
     },
@@ -214,6 +220,14 @@ export function BoardPage() {
         >
           지점 공지
         </button>
+        {user?.role !== 'MEMBER' && (
+          <button
+            className={scopeFilter === 'TRAINING' ? 'filter-chip active' : 'filter-chip'}
+            onClick={() => setScopeFilter('TRAINING')}
+          >
+            직원 교육자료
+          </button>
+        )}
       </div>
 
       {isError && <div className="forbidden-note">{apiErrorMessage(error)}</div>}

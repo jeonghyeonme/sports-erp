@@ -108,3 +108,45 @@ DI-01 원칙상 이번 CHECK에서 뺐다. 각 도메인을 이관할 때 앱 �
 - [ ] 프로그램 수정: 모든 검증을 끝낸 뒤 `update` 한 번(ADR-PRG-01 부분수정 결함 재발 방지).
 - [ ] CHECK 위반 에러(제약 이름 포함)가 500으로 새지 않는지 — 앱 검증이 먼저 걸러야 정상이다. 새면 앱 검증 누락이다.
 - [ ] §4 공백 규칙은 앱 검증을 추가한 뒤 CHECK를 붙인다.
+
+## 7. 오류 데이터 진단과 개선 절차 (RFP 데이터관리방안 "오류 데이터 진단방안 및 개선 절차", 2026-10-14 log/114)
+
+§1~5의 CHECK·트리거·부분 unique는 **들어오는 순간** 잘못된 값을 막는다. 아래는 그것으로 막지 못하는 **테이블 사이의 상태 어긋남**(앱 트랜잭션이 지켜야 하는 규칙)이 이미 들어간 데이터에 남아 있는지 찾는 점검이다. 모든 줄이 0이어야 정상이다(D9는 운영 점검이라 예외).
+
+**언제**: 배포 DB에서 월 1회, 그리고 시드·데이터 정리 SQL을 실행한 직후. 실행은 읽기만 하므로 승인 없이 SQL Editor에서 돌려도 된다(고치는 SQL은 아래 "개선"을 따른다).
+
+```sql
+-- 1. 직원 캐시 지점 ≠ 진행 중 파견 지점
+SELECT 'D1 직원 지점 캐시 불일치' AS 점검, count(*) FROM "Staff" s JOIN "StaffAssignment" a ON a."staffId" = s.id AND a."endDate" IS NULL WHERE a."branchId" <> s."branchId";
+-- 2. 퇴사 직원인데 계정이 살아 있음
+SELECT 'D2 퇴사자 계정 활성' AS 점검, count(*) FROM "Staff" s JOIN "Account" ac ON ac.id = s."accountId" WHERE s.status = 'RESIGNED' AND ac."isActive";
+-- 3. 퇴사 직원인데 진행 중 파견이 남음
+SELECT 'D3 퇴사자 진행 중 파견' AS 점검, count(*) FROM "Staff" s JOIN "StaffAssignment" a ON a."staffId" = s.id AND a."endDate" IS NULL WHERE s.status = 'RESIGNED';
+-- 4. 계약 종료 지점에 진행 중 파견(ADR-STF-07)
+SELECT 'D4 종료 지점 진행 중 파견' AS 점검, count(*) FROM "StaffAssignment" a JOIN "Branch" b ON b.id = a."branchId" WHERE a."endDate" IS NULL AND b."contractStatus" = 'TERMINATED';
+-- 5. 탈퇴 회원인데 계정이 살아 있음
+SELECT 'D5 탈퇴 회원 계정 활성' AS 점검, count(*) FROM "Member" m JOIN "Account" ac ON ac.id = m."accountId" WHERE m.status = 'WITHDRAWN' AND ac."isActive";
+-- 6. 퇴사 직원이 아직 회원 담당
+SELECT 'D6 퇴사자 담당 회원' AS 점검, count(*) FROM "Member" m JOIN "Staff" s ON s.id = m."assignedStaffId" WHERE s.status = 'RESIGNED';
+-- 7. 회차 정원 초과(활성 예약 수 > 정원)
+SELECT 'D7 회차 정원 초과' AS 점검, count(*) FROM (SELECT ss.id FROM "ScheduleSlot" ss JOIN "Reservation" r ON r."scheduleSlotId" = ss.id AND r.status IN ('REQUESTED','CONFIRMED') GROUP BY ss.id, ss.capacity HAVING count(*) > ss.capacity) x;
+-- 8. 예약 상태와 결제 상태가 어긋남(확정인데 결제 대기/실패, 취소인데 승인 유지)
+SELECT 'D8 예약·결제 상태 불일치' AS 점검, count(*) FROM "Reservation" r JOIN "Payment" p ON p."reservationId" = r.id WHERE (r.status = 'CONFIRMED' AND p.status IN ('PENDING','FAILED')) OR (r.status = 'CANCELLED' AND p.status = 'PENDING');
+-- 9. 혼잡도 30분 넘게 갱신 안 된 운영 중 시설(운영 점검)
+SELECT 'D9 혼잡도 30분 경과 시설' AS 점검, count(*) FROM "Facility" f WHERE f."isActive" AND (f."lastUpdatedAt" IS NULL OR f."lastUpdatedAt" < now() - interval '30 minutes');
+```
+
+| 점검 | 무엇이 어긋났나 | 지키는 규칙 | 개선(배포 DB 쓰기 — 사용자 승인) |
+|---|---|---|---|
+| D1 | 직원의 캐시 지점과 진행 중 파견 지점이 다르다 | 파견 발령 트랜잭션(ADR-STF-01) | 진행 중 파견의 지점으로 `Staff.branchId`를 맞춘다(담당 회원 트리거 확인) |
+| D2·D3 | 퇴사자 계정이 살아 있거나 파견이 안 끝났다 | 퇴사 트랜잭션(ADR-STF-01) | 계정 `isActive=false`, 파견 `endDate`=퇴사일 |
+| D4 | 계약 종료 지점에 진행 중 파견 | 종료 전이 트랜잭션(ADR-STF-07) | log/104의 정리 SQL 절차 |
+| D5 | 탈퇴 회원 계정이 살아 있다 | 회원 상태 전환(회원관리 A-6) | 계정 `isActive=false` |
+| D6 | 퇴사자가 회원 담당으로 남았다 | 퇴사 시 담당 해제(ADR-STF-06) | `assignedStaffId=null` 후 지점에 알림 |
+| D7 | 회차의 활성 예약이 정원보다 많다 | 회차 행 락(ADR-RSV-01) | 늦게 들어온 예약부터 취소·환불(지점과 협의) |
+| D8 | 확정 예약의 결제가 대기·실패이거나, 취소 예약의 결제가 대기로 남았다 | 모의 결제·취소 트랜잭션(ADR-RSV-03) | 결제 상태를 예약에 맞춘다(승인 기록 확인 후) |
+| D9 | 운영 중 시설 혼잡도가 30분 넘게 그대로 | RFP "최대 30분 이내 반영" | 지점에 보정 입력을 요청한다(화면에도 경고가 뜬다) |
+
+**개선 절차**: ① 위 점검을 돌려 0이 아닌 줄의 행을 `SELECT`로 뽑는다(같은 조건에서 `count(*)` 대신 id·이름) ② 원인(어느 쓰기 경로가 규칙을 건너뛰었나)을 찾아 코드부터 고치고 테스트를 더한다 ③ 데이터 수정 SQL은 로컬 복제 DB에서 2회 실행·재점검으로 확인한 뒤 사용자 승인을 받아 배포 DB에 적용한다(log/104와 같은 방식) ④ 적용 후 점검을 다시 돌려 0을 확인하고 `docs/log/`에 남긴다.
+
+**검증(2026-10-14, 로컬 PG16)**: 시드 상태에서 D1~D8은 0(D9는 시드 시각이 과거라 84). 한 트랜잭션 안에서 직원 1명을 RESIGNED로, 계정 있는 회원 1명을 WITHDRAWN으로 바꾸고 돌리면 D2·D3·D5·D6이 각각 1이 되고, ROLLBACK 후 다시 0이다. 배포 DB에서는 아직 돌리지 않았다 — STATUS 승인 대기의 종료 지점 데이터(파견 6건)가 D4에 잡힐 것으로 예상한다.

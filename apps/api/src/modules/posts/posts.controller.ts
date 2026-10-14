@@ -26,10 +26,12 @@ export class PostsController {
     @Query('page') pageQuery?: string,
     @Query('limit') limitQuery?: string,
     @Query('sort') sort?: string,
+    @Query('category') category?: string,
   ) {
     const page = Math.max(1, Math.trunc(Number(pageQuery)) || 1);
     const pageSize = Math.max(1, Math.trunc(Number(limitQuery)) || 20);
-    const { items, total } = await this.posts.list(user, { scope, page, pageSize, latestFirst: sort === 'latest' });
+    // RFP 게시판 "본사→현장 직원관리 탭(교육 매뉴얼·자료)" — category=TRAINING_MATERIAL로 교육자료만(log/114).
+    const { items, total } = await this.posts.list(user, { scope, category, page, pageSize, latestFirst: sort === 'latest' });
     return ok(items, { page, pageSize, total });
   }
 

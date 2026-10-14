@@ -11,7 +11,7 @@ import { MembersPage } from './pages/MembersPage';
 import { MemberDetailPage } from './pages/MemberDetailPage';
 import { StaffDetailPage } from './pages/StaffDetailPage';
 import { StaffPage } from './pages/StaffPage';
-import { AttendancePage } from './pages/AttendancePage';
+import { AttendanceEntry } from './pages/AttendanceEntry';
 import { ProgramsPage } from './pages/ProgramsPage';
 import { InstructorsPage } from './pages/InstructorsPage';
 import { BoardPage } from './pages/BoardPage';
@@ -47,7 +47,7 @@ export default function App() {
                   <Route path="/members/:id" element={<MemberDetailPage />} />
                   <Route path="/staff" element={<StaffPage />} />
                   <Route path="/staff/:id" element={<StaffDetailPage />} />
-                  <Route path="/attendance" element={<AttendancePage />} />
+                  <Route path="/attendance" element={<AttendanceEntry />} />
                   <Route path="/programs" element={<ProgramsPage />} />
                   <Route path="/instructors" element={<InstructorsPage />} />
                   <Route path="/board" element={<BoardPage />} />

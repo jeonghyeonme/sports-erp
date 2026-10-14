@@ -30,6 +30,12 @@ function formatFreshness(lastUpdatedAt: string): string {
   return `${Math.floor(hours / 24)}일 전 갱신`;
 }
 
+// RFP 혼잡도 "실시간 혹은 최대 30분 이내 반영" — 수동 보정이라 30분이 지나면 다시 입력하라고 알린다(log/114).
+const STALE_MINUTES = 30;
+function isStale(lastUpdatedAt: string): boolean {
+  return Date.now() - new Date(lastUpdatedAt).getTime() > STALE_MINUTES * 60000;
+}
+
 interface ApiErrorBody {
   code?: string;
   message?: string;
@@ -242,6 +248,11 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
       <div className="stat-row" style={{ marginTop: 4 }}>
         <span style={{ fontSize: 12, color: '#6b7280' }}>{formatFreshness(facility.lastUpdatedAt)}</span>
       </div>
+      {facility.isActive && isStale(facility.lastUpdatedAt) && (
+        <div className="forbidden-note" style={{ marginTop: 6 }}>
+          {STALE_MINUTES}분 넘게 갱신되지 않았습니다. 현재 인원을 다시 입력해 주세요(RFP 30분 이내 반영).
+        </div>
+      )}
 
       {canManage && facility.isActive && (
         <>

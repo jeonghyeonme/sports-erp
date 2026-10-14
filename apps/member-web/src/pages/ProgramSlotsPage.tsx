@@ -80,6 +80,15 @@ export function ProgramSlotsPage() {
         </p>
       </div>
 
+      {/* RFP 강사·프로그램 게시 "종목별 강사 정보"(log/114) — 프로그램 응답에 실려 와서 추가 호출이 없다. */}
+      {program.instructorName && (program.instructorSpecialty || program.instructorBio) && (
+        <section className="panel stack-sm" aria-label="강사 소개">
+          <h2 className="card-title">강사 {program.instructorName}</h2>
+          {program.instructorSpecialty && <p className="muted">전문 종목: {program.instructorSpecialty}</p>}
+          {program.instructorBio && <p className="notice-body">{program.instructorBio}</p>}
+        </section>
+      )}
+
       {upcoming.length === 0 && <p className="panel empty-state">예약할 수 있는 회차가 없습니다.</p>}
 
       {[...byDate.entries()].map(([date, daySlots]) => (
