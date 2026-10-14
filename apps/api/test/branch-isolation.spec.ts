@@ -186,6 +186,8 @@ describe('지점 데이터 격리', () => {
     { name: '자산 수정', method: 'patch', path: (c) => `/assets/${c.seocho.assetId}`, body: () => ({ note: 'x' }) },
     { name: '자산 상태 변경', method: 'patch', path: (c) => `/assets/${c.seocho.assetId}/status`, body: () => ({ status: 'NORMAL' }) },
     { name: '문서 상세 조회', method: 'get', path: (c) => `/documents/${c.seocho.documentId}` },
+    // ADR-RES-04 — 직원 상세의 인사서류 섹션(인사기록 한 화면)
+    { name: '직원 인사서류 목록(relatedStaffId=서초 직원)', method: 'get', path: (c) => `/documents?relatedStaffId=${c.seocho.staffId}` },
     { name: '예약 취소', method: 'patch', path: (c) => `/reservations/${c.seocho.reservationId}/cancel`, body: () => ({}) },
     { name: '예약 체크인', method: 'patch', path: (c) => `/reservations/${c.seocho.reservationId}/check-in` },
     { name: '직원 근태 조회', method: 'get', path: (c) => `/attendance?staffId=${c.seocho.staffId}` },
@@ -234,6 +236,7 @@ describe('지점 데이터 격리', () => {
     { name: '프로그램 수정', method: 'patch', path: (c) => `/programs/${c.gangnam.programId}`, body: () => ({ description: 'x' }) },
     { name: '시설 수정', method: 'patch', path: (c) => `/facilities/${c.gangnam.facilityId}`, body: () => ({ capacity: 10 }) },
     { name: '직원 근태 조회', method: 'get', path: (c) => `/attendance?staffId=${c.gangnam.staffId}` },
+    { name: '직원 인사서류 목록(relatedStaffId=강남 직원)', method: 'get', path: (c) => `/documents?relatedStaffId=${c.gangnam.staffId}` },
     { name: '회원 목록(branchId=강남)', method: 'get', path: () => `/members?branchId=${BRANCH.gangnam}` },
   ];
 

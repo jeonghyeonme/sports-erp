@@ -39,7 +39,12 @@ export class DocumentService {
   // ── 조회 ──────────────────────────────────────────────
 
   // BRANCH_ADMIN은 본인 지점 + 전사 문서(branchId null)만(자원문서관리 A-7).
-  async list(filter: { scopeBranchId?: string; branchId?: string; category?: string }): Promise<DocumentView[]> {
+  async list(filter: {
+    scopeBranchId?: string;
+    branchId?: string;
+    category?: string;
+    relatedStaffId?: string;
+  }): Promise<DocumentView[]> {
     // 예전 mock은 모르는 카테고리로 거르면 빈 목록이었다 — enum 밖 값을 DB로 보내 500이 나지 않게 유지.
     if (filter.category && !CATEGORIES.includes(filter.category as DocumentCategory)) return [];
     const rows = await this.prisma.document.findMany({
@@ -50,6 +55,7 @@ export class DocumentService {
           filter.branchId ? { branchId: filter.branchId } : {},
         ],
         category: filter.category as DocumentCategory | undefined,
+        relatedStaffId: filter.relatedStaffId,
       },
       include: withBranch,
       orderBy: { createdAt: 'asc' },

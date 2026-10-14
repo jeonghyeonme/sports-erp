@@ -39,6 +39,14 @@ const PROGRAM_STATUS_TRANSITIONS: Record<MockProgram['status'], MockProgram['sta
 const PROGRAM_STATUSES = Object.keys(PROGRAM_STATUS_TRANSITIONS);
 const PRICING_TYPES: MockProgram['pricingType'][] = ['FREE_ACCESS', 'PAID_SESSION', 'PT_PACKAGE'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const AGE_GROUPS: Program['ageGroup'][] = ['ALL', 'CHILD', 'TEEN', 'ADULT', 'SENIOR'];
+// 강사프로그램게시 ADR-PRG-04 — 시간대는 회차 시작 시각("HH:mm", 0 채움이라 문자열 비교가 시각 비교와 같다)으로 나눈다.
+export const TIME_BANDS = {
+  MORNING: { gte: '00:00', lt: '12:00' },
+  AFTERNOON: { gte: '12:00', lt: '18:00' },
+  EVENING: { gte: '18:00', lt: '24:00' },
+} as const;
+export type TimeBand = keyof typeof TIME_BANDS;
 
 const dateOf = (d: string) => new Date(`${d}T00:00:00Z`);
 const withNames = {
@@ -58,15 +66,32 @@ export class ProgramService {
 
   // ── 조회 ──────────────────────────────────────────────
 
-  async list(filter: { branchId?: string; status?: string; pricingType?: string }): Promise<ProgramView[]> {
+  async list(filter: {
+    branchId?: string;
+    status?: string;
+    pricingType?: string;
+    category?: string;
+    ageGroup?: string;
+    timeBand?: string;
+  }): Promise<ProgramView[]> {
     // 예전 mock은 모르는 값으로 거르면 빈 목록이었다 — enum 밖 값을 DB로 보내 500이 나지 않게 같은 동작을 유지한다.
     if (filter.status && !PROGRAM_STATUSES.includes(filter.status)) return [];
     if (filter.pricingType && !PRICING_TYPES.includes(filter.pricingType as MockProgram['pricingType'])) return [];
+    if (filter.ageGroup && !AGE_GROUPS.includes(filter.ageGroup as Program['ageGroup'])) return [];
+    if (filter.timeBand && !(filter.timeBand in TIME_BANDS)) return [];
+    // ADR-PRG-04 — 시간대: 오늘(KST) 이후 회차 중 그 시간대에 시작하는 회차가 하나라도 있는 프로그램.
+    // 회차가 없는 상시 이용(FREE_ACCESS) 프로그램은 시간대로 거르면 빠진다(시간이 정해져 있지 않다).
+    const band = filter.timeBand ? TIME_BANDS[filter.timeBand as TimeBand] : undefined;
     const rows = await this.prisma.program.findMany({
       where: {
         branchId: filter.branchId,
         status: filter.status as Program['status'] | undefined,
         pricingType: filter.pricingType as Program['pricingType'] | undefined,
+        category: filter.category || undefined,
+        ageGroup: filter.ageGroup as Program['ageGroup'] | undefined,
+        scheduleSlots: band
+          ? { some: { date: { gte: dateOf(todayKst()) }, startTime: { gte: band.gte, lt: band.lt } } }
+          : undefined,
       },
       include: withNames,
       orderBy: { id: 'asc' },

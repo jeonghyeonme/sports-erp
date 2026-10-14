@@ -1172,3 +1172,15 @@ h1 {
   color: var(--color-primary);
   font-weight: 600;
 }
+
+/* 예약하기 필터(ADR-PRG-04) — 360px에서 세 칸이 한 줄에 들어간다 */
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.filter-row select {
+  min-width: 0;
+  padding: 0 8px;
+}

@@ -13,18 +13,21 @@ import { DocumentService } from './document.service';
 export class DocumentsController {
   constructor(private readonly documents: DocumentService) {}
 
+  // ADR-RES-04 — relatedStaffId(직원 인사서류, 인사기록 한 화면)는 그 직원의 현재 파견 지점으로 범위를 본다.
   @Get()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
+  @ScopedResource('staff', { query: 'relatedStaffId' })
   async list(
     @CurrentUser() user: RequestUser,
     @Query('branchId') branchId?: string,
     @Query('category') category?: string,
+    @Query('relatedStaffId') relatedStaffId?: string,
   ) {
     if (user.role === 'BRANCH_ADMIN' && !user.branchId) return ok([]);
     // BRANCH_ADMIN은 본인 지점 + 전사 문서(scopeBranchId). 가드가 branchId 쿼리도 본인 지점으로 고정한다 —
     // 지점 필터를 걸면 전사 문서가 빠지므로 BRANCH_ADMIN에게는 branchId 필터를 넘기지 않는다(이관 전 동작 유지).
     const scopeBranchId = user.role === 'BRANCH_ADMIN' ? user.branchId : undefined;
-    return ok(await this.documents.list({ scopeBranchId, branchId: scopeBranchId ? undefined : branchId, category }));
+    return ok(await this.documents.list({ scopeBranchId, branchId: scopeBranchId ? undefined : branchId, category, relatedStaffId }));
   }
 
   // 정적 경로라 `:id`보다 먼저 선언해야 한다.
