@@ -19,7 +19,7 @@ import { createApp } from './helpers/app';
  * 리소스 id로 보는 것: 경로 파라미터 전부, 쿼리 staffId·memberId(다른 사람 데이터를 고르는 값).
  * 면제: @Public, SUPER_ADMIN 전용 라우트(지점 범위가 없다), 경로 파라미터가 branchId뿐인 라우트(가드 1단계가 본다).
  */
-const ID_QUERIES = ['staffId', 'memberId'];
+const ID_QUERIES = ['staffId', 'memberId', 'relatedStaffId'];
 
 interface Route {
   name: string;

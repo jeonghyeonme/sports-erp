@@ -34,11 +34,14 @@ export interface LoginResult extends SessionTokens {
 
 export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
 
+export type AgeGroup = 'ALL' | 'CHILD' | 'TEEN' | 'ADULT' | 'SENIOR';
+
 export interface Program {
   id: string;
   branchId: string;
   name: string;
   category: string;
+  ageGroup: AgeGroup;
   description?: string;
   pricingType: PricingType;
   price: number;

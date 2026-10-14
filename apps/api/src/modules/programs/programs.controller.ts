@@ -22,8 +22,12 @@ export class ProgramsController {
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,
     @Query('pricingType') pricingType?: string,
+    // 강사프로그램게시 ADR-PRG-04 — 종목·연령대·시간대(MORNING/AFTERNOON/EVENING) 필터.
+    @Query('category') category?: string,
+    @Query('ageGroup') ageGroup?: string,
+    @Query('timeBand') timeBand?: string,
   ) {
-    return ok(await this.programService.list({ branchId, status, pricingType }));
+    return ok(await this.programService.list({ branchId, status, pricingType, category, ageGroup, timeBand }));
   }
 
   // 강사프로그램게시 A-5 POST /programs — BRANCH_ADMIN 본인 지점에 등록.
