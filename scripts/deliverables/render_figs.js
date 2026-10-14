@@ -1,4 +1,4 @@
-// 산출물 Word 문서용 도식 PNG — 발표 덱의 도식 코드(figs-45.js)를 그대로 쓰고, 독립 SVG로 그려 Chromium으로 PNG를 뜬다.
+// 산출물 Word 문서용 도식 PNG — 발표 덱의 도식 코드(figs-45.js)를 쓰고(arch·iso만 figs-deliverables.js), 독립 SVG로 그려 Chromium으로 PNG를 뜬다.
 //   node scripts/deliverables/render_figs.js   → scripts/deliverables/figs/*.png
 const fs = require('fs');
 const path = require('path');
@@ -6,8 +6,9 @@ const VIZ = path.resolve(__dirname, '../../docs/presentation/assets/4-5_종합�
 const lib = require(path.join(VIZ, 'lib'));
 lib.setMode('file');
 const F = require(path.join(VIZ, 'figs-45'));
+const D = require('./figs-deliverables'); // arch·iso는 산출물 전용 사본(발표 이후 바뀐 구성, log/111)
 const OUT = path.join(__dirname, 'figs');
-const list = { biz: F.bizCycle, arch: F.sysArch, iso: F.isolationFlow, rsv: F.reservationFlow, erd: F.dataCore, memberapp: F.memberAppBar, docs: F.docTiers };
+const list = { biz: F.bizCycle, arch: D.sysArch, iso: D.isolationFlow, rsv: F.reservationFlow, erd: F.dataCore, memberapp: F.memberAppBar, docs: F.docTiers };
 (async () => {
   let chromium;
   try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('/opt/node22/lib/node_modules/playwright')); }

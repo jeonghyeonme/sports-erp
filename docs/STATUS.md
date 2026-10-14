@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-14 · [log/110](log/110.md)(문서 정합성 전수 정리), [log/109](log/109.md)(운영 재측정 W 약 40ms), [log/108](log/108.md)(Session pooler 운영 전환 확인), [log/107](log/107.md)(6주차 발표 덱), [log/106](log/106.md)(RFP 원본 재대조·고밀도화 계획), [log/105](log/105.md)(Session pooler 전환 준비), [log/102](log/102.md)(처리 한계 원인 측정과 1단계 대응), [log/101](log/101.md)(열람 기록 정리 절차), [log/103](log/103.md)(계약 상태 변경 화면·재배치 대기·종료 지점 퇴사), [log/104](log/104.md)(종료 지점 정리 SQL 준비)
+> 마지막 갱신: 2026-10-14 · [log/111](log/111.md)(산출물 4종 재생성), [log/110](log/110.md)(문서 정합성 전수 정리), [log/109](log/109.md)(운영 재측정 W 약 40ms), [log/108](log/108.md)(Session pooler 운영 전환 확인), [log/107](log/107.md)(6주차 발표 덱), [log/106](log/106.md)(RFP 원본 재대조·고밀도화 계획), [log/105](log/105.md)(Session pooler 전환 준비), [log/102](log/102.md)(처리 한계 원인 측정과 1단계 대응), [log/101](log/101.md)(열람 기록 정리 절차), [log/103](log/103.md)(계약 상태 변경 화면·재배치 대기·종료 지점 퇴사), [log/104](log/104.md)(종료 지점 정리 SQL 준비)
 
 ## 현재 상태
 
@@ -12,7 +12,7 @@
 | api 호스팅 | **AWS Lambda(서울) 운영 중** — Worker origin을 Function URL(별칭 `live`)로 전환했다. 배포는 `dev` push 또는 Actions 수동 실행(OIDC). k6 운영 재측정(2026-10-12, Session pooler 전환 후): 요청당 처리 W 약 40ms, 과부하 실제 처리 약 80~90 rps(D50, 측정 PC 한계 포함). 동시 실행 상한 10·1,024MB 유지(D42). DB 접속은 Session pooler 5432(D49). Render `sports-erp-api`는 2026-10-06 일시정지(롤백은 Lambda 별칭으로) | [D37](decisions/D37.md), [D42](decisions/D42.md), [D49](decisions/D49.md), [D50](decisions/D50.md) |
 | admin-web·엣지 | Cloudflare Worker(정적 자산 + 프록시 + rate limit). `API_ORIGIN`·`ORIGIN_SECRET`은 Worker secret | [D25](decisions/D25.md), [D37](decisions/D37.md) |
 | 저장소 | 주 개발·배포 브랜치 = `dev`(기본 브랜치), `main` = 완성본(완료 시 병합). 작업은 임시 브랜치 → `dev` PR → 병합 후 삭제. 2026-10-06 전환 완료(`dev`에서 배포 성공), 원격에는 `dev`·`main`만 남김 | [D39](decisions/D39.md), [log/067](log/067.md) |
-| 산출물 | 요구사항 정의서·데이터 정의서(Excel), 기업 분석·제안서·아키텍처 설계서(Word) — `scripts/deliverables/`로 재생성 | [log/061](log/061.md), [log/062](log/062.md) |
+| 산출물 | 요구사항 정의서·데이터 정의서(Excel), 기업 분석·제안서·아키텍처 설계서(Word) — `scripts/deliverables/`로 재생성. 2026-10-14 기준으로 다시 만듦(회원 웹 화면 판정, D46~D50 반영) | [log/061](log/061.md), [log/111](log/111.md) |
 | 범위 | **지점 수도권 83곳 + 회원 모바일 웹으로 재설정(2026-10-06)**. 덱·문서·산출물·시드·테스트·관리자 웹·배포 DB 모두 83곳(2026-10-06) | [D40](decisions/D40.md), [log/074](log/074.md) |
 | 회원 웹 | `apps/member-web`(`/m/`, 같은 Worker) — 로그인·세션 복원, 하단 탭 4개(홈·예약하기·내 예약·내 정보). 홈 혼잡도·최근 공지(60초 캐시), 예약·모의 결제·취소, 공지, 내 정보 조회·수정·비밀번호 변경, 가입·지점 회원 연동(`/join`). **PWA**(홈 화면 설치·오프라인 셸·앱 셸, D45). CI·커밋 hook이 lint·빌드를 본다(자동 테스트 없음). 로컬 Worker 경유 확인·실측(방문당 api 3~11회). **Worker 배포 완료(2026-10-09, 사용자)** — log/092 이후 변경은 다시 배포해야 반영된다. 배포 DB에 시연 회차(서초 아침 요가 평일, 12/31까지) | [D41](decisions/D41.md), [log/083](log/083.md)~[085](log/085.md) |
 | admin-web 도움말 | 상단 "도움말" 버튼 → 오른쪽 패널(화면 17개, 역할별 순서·자주 나는 오류). 오류 문구 아래 "해결" 한 줄(코드 → 문구 표 `lib/error-hints.ts`) | [log/089](log/089.md), 디자인시스템 §5 |
@@ -30,8 +30,7 @@
 2. **시연 데이터 고밀도화(계획, 2026-10-11 사용자 방향 — 착수 전)** — 83곳 시드(대부분 직원 1~3명·회원 0~4명·이력 없음)를 계약 상태별 지점 5곳(정상 2·갱신 임박·만료·종료)으로 줄이고, 지점당 직원 4~6명(파견 이력)·회원 30~60명·2~3개월치 예약·결제·근태를 넣는다. 근거: 실서비스는 인프라 투자가 전제라 무료 한도는 기준이 아니고, 밀도·속도·사용성을 먼저 갖춘 뒤 규모를 늘린다(사용자 판단). 설계 규모(83곳 기준 요청량·처리 한계)는 숫자로 유지. 지점별 시나리오를 돌리며 요구사항추적표 §2-3의 남은 RFP 항목(2026-10-11 원본 재대조로 업무지원 요청 등 5건 추가)을 채운다. 이때 기능보다 실제 문제 상황(동시성·멱등성·성능·관측성 등)을 [engineering-risks](architecture/engineering-risks.md) 점검표로 챙긴다 — 결제·취소 경합(R1)·갱신 토큰 재사용(R2)은 코드로 확인한 미해결 결함. 시드 재작성·테스트 수정 필요, 배포 DB 재시드는 승인 대상([log/106](log/106.md))
 3. **6주차 발표 덱 마무리** — 23장 게시·캡처 5장 반영([log/107](log/107.md)), 2026-10-14 사용자 수정 2건(5장 막대 크기, 19장 로그인 거절 1,866건 중 38건 노트) `dev` 병합(PR #57). 남은 것: 사용자 최종 확인, 필요하면 재게시. 소스·재게시 방법은 `presentation/assets/4-6_6주차발표/deck-source/README.md`
 4. **S2 거절 원인(미확인, 보류)** — 운영 재측정 완료([D50](decisions/D50.md), [log/109](log/109.md): W 110 → 약 40ms). 50 rps에서 거절 47건: 동시 실행이 매분 최대 10에 닿았으나 초당 도착은 고름(최대 58) → 1초보다 짧은 몰림인지 호출당 부가 시간인지 미확인. 측정 PC가 아닌 곳에서 재거나 고밀도화 몰림 시나리오(engineering-risks §4)에서 함께 본다. Pool Size는 15(무료 등급 Nano CPU 기준값, 2026-10-12 사용자 확인) — 상한 10 + 여유 5
-5. **산출물 4종 재생성** — `docs/deliverables/`(2026-10-06 이후 그대로)를 `scripts/deliverables/`로 다시 만든다. 원천 문서는 log/110에서 맞췄다. 그림 원본(발표자료 보호 영역) 수정 전 사용자 확인
-6. 사용자(선택): 폐기된 Render `sports-erp-web` 삭제, 병합된 원격 작업 브랜치(`claude/deck-week6-bars`·`claude/doc-consistency`) 삭제. (Supabase 커넥터는 2026-10-08 정상 동작 확인 — log/084)
+5. 사용자(선택): 산출물 4종(`docs/deliverables/`)을 열어 표·그림 확인. 폐기된 Render `sports-erp-web` 삭제, 병합된 원격 작업 브랜치(`claude/deck-week6-bars`·`claude/doc-consistency`·`claude/deliverables-regen`) 삭제. (Supabase 커넥터는 2026-10-08 정상 동작 확인 — log/084)
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 
