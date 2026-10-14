@@ -24,3 +24,4 @@ node viz/deck46.js deck-out    # 끝에 린트(24px·<text>·SVG 52KB·요소 20
 
 - **캡처는 로컬 실행 화면이다**(api + admin-web + member-web, 로컬 `sports_erp_dev` DB). 배포본(Worker 재배포 전)이 아니다. Playwright로 데모 로그인 버튼을 눌러 찍었고, 회원 화면은 iPhone 13 에뮬레이션(실기기 아님), 관리자 화면은 개발용 안내 문구를 숨겼다. 홈 혼잡도는 찍기 전에 로컬 DB에서 현재 인원을 다시 입력해 갱신 시각을 맞췄다. 캡처 이미지는 아티팩트 자산(`/_blob/<id>`)이라 새 아티팩트로 옮기면 `screenshots/`에서 다시 올린다.
 - 게시 후 렌더 결과를 눈으로 확인하지 않았다(4-0 §7 마지막 항목은 발표자가 확인).
+- **편집기에서 직접 고친 슬라이드가 있다**(`member-flow`·`member-shot`·`perf-tradeoff`, 2026-10-12~14). `deck-out/`의 `member-flow`·`perf-tradeoff`는 게시본을 받아 온 것이고, `node viz/deck46.js deck-out`을 다시 돌리면 이 장들이 생성기 판으로 덮어써진다. 재생성 후에는 이 장을 게시하지 않거나, 게시본을 다시 받아 온다(`member-shot`은 게시본을 받아 오지 않았다).
