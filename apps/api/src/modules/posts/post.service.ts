@@ -11,6 +11,7 @@ type PostRow = Post & { branch: { name: string } | null; author: { name: string 
 export type PostView = MockPost & { authorName?: string; branchName?: string };
 
 const SCOPES: PostScope[] = ['HQ_TO_BRANCH', 'BRANCH_TO_MEMBER'];
+const CATEGORIES: PostCategory[] = ['NOTICE', 'TRAINING_MATERIAL', 'EVENT', 'OTHER'];
 // 작성자 이름도 같은 작업에서 읽는다(Post.author 관계, log/093) — 따로 조회하면 작업이 하나 늘어 순차 왕복이 는다(log/102).
 const withBranch = { branch: { select: { name: true } }, author: { select: { name: true } } } as const;
 
@@ -36,13 +37,22 @@ export class PostService {
   }
 
   // ADR-BRD-02 — 걸러낸 뒤 자르는 것이 아니라 조건 그대로 count + skip/take(D36 결정 1). 순서는 mock처럼 등록순.
-  async list(user: RequestUser, filter: { scope?: string; page: number; pageSize: number; latestFirst?: boolean }) {
+  async list(user: RequestUser, filter: { scope?: string; category?: string; page: number; pageSize: number; latestFirst?: boolean }) {
     // 예전 mock은 모르는 scope로 거르면 빈 목록이었다 — enum 밖 값을 DB로 보내 500이 나지 않게 유지.
     if (filter.scope && !SCOPES.includes(filter.scope as PostScope)) {
       return { items: [] as PostView[], total: 0 };
     }
+    // 분류도 같은 규칙 — 모르는 값은 빈 목록(enum 밖 값을 DB로 보내지 않는다).
+    if (filter.category && !CATEGORIES.includes(filter.category as PostCategory)) {
+      return { items: [] as PostView[], total: 0 };
+    }
     const where: Prisma.PostWhereInput = {
-      AND: [{ deletedAt: null }, filter.scope ? { scope: filter.scope as PostScope } : {}, this.visibleWhere(user)],
+      AND: [
+        { deletedAt: null },
+        filter.scope ? { scope: filter.scope as PostScope } : {},
+        filter.category ? { category: filter.category as PostCategory } : {},
+        this.visibleWhere(user),
+      ],
     };
     const [total, rows] = await Promise.all([
       this.prisma.post.count({ where }),

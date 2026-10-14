@@ -166,6 +166,13 @@
 **관측**:
 - [ ] CloudWatch → 로그 그룹 `/aws/lambda/sports-erp-api` → 보존 기간 **14일**
 - [ ] CloudWatch 경보: `Throttles` > 0(5분), `Errors` > 0(5분), `Duration` p95 > 1000ms. 알림은 이메일(SNS)로 받는다.
+- [ ] **메모리 85% 경보**(RFP 시스템 가용성 "메모리 평균 85% 이하", log/114) — Lambda 기본 지표에는 메모리가 없어 로그의 REPORT 줄에서 뽑는다.
+  1. 로그 그룹 `/aws/lambda/sports-erp-api` → 지표 필터 생성 → 패턴(공백 구분):
+     `[report="REPORT", rid_label, rid, dur_label, dur, dur_unit, billed_label1, billed_label2, billed, billed_unit, size_label1, size_label2, size, size_unit, max_label1, max_label2, max_label3, max_mem, max_unit, ...]`
+  2. 지표 이름 `MaxMemoryUsedMB`, 네임스페이스 `sports-erp`, 지표 값 `$max_mem`
+  3. 이 지표로 경보: 통계 **평균**, 기간 5분, 조건 > **870**(1,024MB의 85%), 같은 SNS 이메일
+  - CPU는 요청마다 실행 환경이 따로라 공유 CPU 경합이 없다(D37). 처리 시간 경보(`Duration` p95)가 CPU 부족의 대리 지표다.
+  - **검증되지 않음** — 콘솔에서 필터 테스트(최근 로그로 "패턴 테스트")를 돌려 `max_mem`에 숫자가 잡히는지 확인한다. 잡히지 않으면 최근 REPORT 줄을 보고 필드 위치를 맞춘다.
 
 **비용**:
 - [ ] Billing → Budgets → 월 **$1** 비용 예산 + 이메일 알림

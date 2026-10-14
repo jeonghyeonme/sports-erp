@@ -9,9 +9,11 @@ interface ApiErrorBody {
   message?: string;
 }
 
-export function useApiList<T>(key: unknown[], url: string) {
+// enabled=false면 부르지 않는다 — 앞선 조회(예: 지점 목록)가 끝나야 주소가 정해지는 화면용.
+export function useApiList<T>(key: unknown[], url: string, enabled = true) {
   return useQuery<T[], AxiosError<ApiErrorBody>>({
     queryKey: key,
+    enabled,
     queryFn: async () => {
       const res = await api.get<ApiEnvelope<T[]>>(url);
       return res.data.data ?? [];

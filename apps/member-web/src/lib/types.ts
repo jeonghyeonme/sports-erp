@@ -45,6 +45,8 @@ export interface Program {
   capacity?: number;
   status: string;
   instructorName?: string;
+  instructorSpecialty?: string;
+  instructorBio?: string;
 }
 
 export interface ScheduleSlot {
