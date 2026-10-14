@@ -147,7 +147,7 @@ node -e 'console.log(JSON.stringify({API_ORIGIN:process.argv[1].replace(/\/$/,""
 (cd cloudflare-worker && npx wrangler deploy --secrets-file ~/worker-secrets.json); rm -f ~/worker-secrets.json
 ```
 
-Worker 주소에서 로그인을 확인한다(`kim.minsu@spoism.example` / `demo-password-1234`). 문제가 있으면 `API_ORIGIN`만 Render 주소로 바꿔 같은 방법으로 다시 배포한다.
+Worker 주소에서 로그인을 확인한다(`kim.minsu@spoism.example` / `demo-password-1234`). 문제가 있으면 `API_ORIGIN`만 Render 주소로 바꿔 같은 방법으로 다시 배포한다(전환 당시 절차 — Render가 2026-10-06 일시정지된 지금은 해당 없고, 롤백은 Lambda 별칭 `live`를 이전 버전으로 되돌린다. `aws-lambda/README.md` 참고).
 - 기존 배포에 남은 일반 변수 `API_ORIGIN`과 이름이 충돌한다는 에러가 나면, 대시보드 → Worker → Settings → Variables and Secrets에서 그 변수를 지우고 다시 실행한다(아직 확인되지 않음).
 - Function URL은 STATUS·log·D37·발표자료 등 문서에 적지 않는다. "Function URL(별칭 live)"로만 쓴다.
 

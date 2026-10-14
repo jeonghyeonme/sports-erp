@@ -8,7 +8,7 @@
 사용자
  ├─ 본사 관리자(SUPER_ADMIN)  ─┐
  ├─ 지점 관리자(BRANCH_ADMIN) ─┼─→  admin-web (React, 브라우저)
- └─ 회원(MEMBER)              ──→  member-web (React, 모바일 웹 — 개발 예정, D40)
+ └─ 회원(MEMBER)              ──→  member-web (React, 모바일 웹 /m/ — D40·D41)
                                           │
                                           ▼
                                    api (NestJS, REST)
@@ -51,10 +51,10 @@
 | 토큰 | 수명 | 저장 위치 |
 |---|---|---|
 | Access Token (JWT) | 30분 | 클라이언트 메모리/헤더(Authorization: Bearer) |
-| Refresh Token | 14일 | httpOnly Cookie(admin-web, member-web 모두 — 같은 출처) |
+| Refresh Token | 14일 | 쿠키가 아니라 **응답 본문**으로 주고 요청 본문으로 받는다(`/auth/refresh`·`/auth/logout`). admin-web은 저장하지 않는다(새로고침하면 다시 로그인). member-web은 `localStorage`에 둔다(D41 결정 3 — 휴대폰 새로고침에도 로그인 유지, XSS 시 탈취 위험은 STATUS 열린 위험) |
 
 - 비밀번호는 bcrypt(cost 10~12)로 해시 저장
-- 로그인 5회 연속 실패 시 15분 잠금(간단한 무차별대입 방지 — 포트폴리오 완성도용 최소 구현)
+- 로그인 5회 연속 실패 시 15분 잠금 — **범위 제외**(권한관리 A-8, 필드만 있음). 무차별 대입은 Worker 로그인 rate limit(log/079)과 Lambda 상한이 늦춘다
 - `isActive=false`(퇴사/탈퇴)인 계정은 로그인 시점과 매 요청의 인증 미들웨어에서 즉시 차단 → 원본 요구사항 "퇴사처리 이후 시스템 접근 통제" 충족
 
 ### 3.3 인가(Authorization) 구현 방식 (NestJS 기준)
@@ -97,15 +97,15 @@
 
 ## 5. 공통 비기능 설계 (성능/데이터관리/보안 요구사항의 실현 방식)
 
-원본 요구사항의 "CPU 90% 이하", "메모리 85% 이하" 같은 실측 인프라 목표는 포트폴리오 규모에서 의미가 없으므로, **아래 설계 원칙으로 대체**하고 문서/발표에서는 "확장을 고려한 설계"로 어필합니다.
+원본 요구사항의 "CPU 90% 이하", "메모리 85% 이하"는 처음에 설계 원칙으로 대체했다(D14). 이후 실제로 측정했다 — Render 공유 CPU에서 로그인이 무너지는 것을 k6로 확인(D24)하고 AWS Lambda로 옮겨 요청마다 CPU를 따로 쓰게 했다(D37). 처리 시간·처리 한계는 운영 실측으로 본다(W 약 40ms, 과부하 실제 처리 약 80~90 rps — [D50](../decisions/D50.md)). 아래 표는 그 밖의 요구를 어떻게 실현했는지다.
 
 | 원본 요구사항 | 대체 구현 |
 |---|---|
-| 시스템 가용성/성능 | 목록 API 페이지네이션, 자주 조회되는 값(혼잡도 등) 캐싱(선택: Redis 또는 인메모리), DB 인덱스 설계(각 문서에 명시) |
-| 데이터 관리방안(변경이력) | `AuditLog` 테이블 — 주요 쓰기 작업(회원 정보 수정, 예약 취소, 결제 상태 변경 등)마다 기록 |
+| 시스템 가용성/성능 | Lambda 동시 실행 상한 10 + 넘치면 503 `SERVER_BUSY`(D37), 목록 API 페이지네이션(D43), 혼잡도 자동 폴링 없음(혼잡도관리 ADR-FAC-04)·회원 웹 홈 카드 60초 캐시(D41), DB 인덱스 설계(각 문서에 명시), k6 실측(D42·D50) |
+| 데이터 관리방안(변경이력) | `AuditLog` 테이블 — 지금은 인사 변경 4종(역할 전환·퇴사·파견 발령·파견 종료)과 상세 전화번호 열람만 기록한다(D44·D47, [entities](entities.md) §2-3). 회원 정보 수정·예약 취소·결제 상태 변경 등은 기록하지 않는다(요구사항추적표 §2-3) |
 | 오류 데이터 진단 | API 레벨 유효성 검증(class-validator), DB 제약조건(FK, NOT NULL, CHECK) |
 | 온라인 도움말 / 상호작용 메시지 | 프론트엔드 공통 Toast/Modal 컴포넌트로 성공/실패 메시지 일관 처리. 툴팁 대신 화면별 도움말 패널(역할별 순서·오류 해결)과 오류 아래 해결 한 줄(log/089) |
-| 사용자 인터페이스 보안 | 응답 DTO에서 비밀번호 해시 등 민감정보 제외(class-transformer `@Exclude`), 전화번호 등은 관리자 화면에서도 마스킹 옵션 |
+| 사용자 인터페이스 보안 | 응답에서 비밀번호 해시 등 민감정보 제외, 목록 응답 전화번호 마스킹(전 역할, 회원관리 ADR-MEM-04), 상세 열람 기록(D47) |
 | 보안요건(개인정보보호법 26조) | 개인정보 처리방침 문서화(형식적 산출물), 접근로그(AuditLog)로 오남용 추적 가능 |
 
 ## 6. 폴더 구조 (모노레포)
@@ -115,22 +115,24 @@ sports-erp/
 ├── apps/
 │   ├── api/
 │   │   ├── src/
-│   │   │   ├── modules/
-│   │   │   │   ├── auth/
-│   │   │   │   ├── branch/
-│   │   │   │   ├── staff/
-│   │   │   │   ├── attendance/
-│   │   │   │   ├── board/
-│   │   │   │   ├── member/
-│   │   │   │   ├── program/
-│   │   │   │   ├── reservation/
-│   │   │   │   ├── payment/
-│   │   │   │   └── congestion/
-│   │   │   ├── common/ (guards, filters, interceptors, decorators)
-│   │   │   └── prisma/
-│   │   └── prisma/schema.prisma
+│   │   │   ├── modules/   (2026-10-14 실제 이름)
+│   │   │   │   ├── auth/ · permissions/          권한관리
+│   │   │   │   ├── branches/                     지점·계약 상태·공개 지점 목록
+│   │   │   │   ├── staff/                        인사정보관리
+│   │   │   │   ├── attendance/                   근태관리
+│   │   │   │   ├── posts/                        게시판
+│   │   │   │   ├── members/                      회원관리
+│   │   │   │   ├── programs/ · instructors/      강사프로그램게시
+│   │   │   │   ├── reservations/ · payments/     예약및결제
+│   │   │   │   ├── facilities/                   혼잡도관리
+│   │   │   │   ├── assets/ · documents/          자원문서관리
+│   │   │   │   └── audit-logs/                   변경 이력 조회(D44)
+│   │   │   ├── common/ (config, date, decorators, exceptions, filters, guards, http, privacy)
+│   │   │   └── prisma/ (PrismaService, audit, integrity 헬퍼)
+│   │   └── prisma/schema.prisma (+ migrations/)
 │   ├── admin-web/
-│   └── member-web/   (개발 예정, D40)
+│   ├── member-web/   (회원 모바일 웹 /m/, D41)
+│   └── member-app/   (README만 — 네이티브 앱은 만들지 않음, D40)
 ├── packages/types/   (공유 DTO 타입)
 └── docs/             (본 문서들 + ERD 이미지 + 발표자료)
 ```
