@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
@@ -87,9 +87,6 @@ const toast = useToast();
   return (
     <>
       <div className="page-header">
-        <Link className="back-link" to="/board">
-          ← 게시판으로
-        </Link>
       </div>
 
       <div className="card">

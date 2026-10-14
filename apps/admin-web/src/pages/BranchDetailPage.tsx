@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
@@ -124,9 +124,6 @@ export function BranchDetailPage() {
   return (
     <>
       <div className="page-header">
-        <Link className="back-link" to="/">
-          ← 대시보드로
-        </Link>
         <h2>{branchName}</h2>
         <p className="page-desc">
           지점 → 직원 → 회원, 지점 → 프로그램 → 혼잡도 순서로 소속 데이터를 확인합니다.

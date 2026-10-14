@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
@@ -491,9 +491,6 @@ export function MemberDetailPage() {
   return (
     <>
       <div className="page-header">
-        <Link className="back-link" to="/members">
-          ← 회원 목록으로
-        </Link>
         <h2>{member.name}</h2>
         <p className="page-desc" style={{ marginBottom: 0 }}>
           {member.memberNo} · {member.branchName}
