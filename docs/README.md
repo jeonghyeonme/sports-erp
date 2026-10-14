@@ -7,7 +7,7 @@
 | 계층 | 언제 읽나 | 문서 |
 |---|---|---|
 | T0 상주 | 매 턴 | 루트 `CLAUDE.md` — 사업 구조·불변식·명령어·라우팅 표 |
-| T1 조건부 | 그 폴더 파일을 다룰 때 자동 | `apps/api/CLAUDE.md`, `apps/admin-web/CLAUDE.md` |
+| T1 조건부 | 그 폴더 파일을 다룰 때 자동 | `apps/api/CLAUDE.md`, `apps/admin-web/CLAUDE.md`, `apps/member-web/CLAUDE.md` |
 | T2 진입점 | 세션·작업 시작 | [STATUS.md](STATUS.md), 각 도메인 문서 맨 위 **요약 카드** |
 | T3 보관 | ID로 찾을 때만 | 도메인 문서 본문·부록, `decisions/D<번호>.md`, `log/NNN.md`, `architecture/` |
 
@@ -24,7 +24,7 @@
 | [reference/](reference/) | 바깥에서 온 원본·사람이 판단할 때 쓰는 자료 | 원본 RFP PDF · 요구사항추적표 · 차별화전략 · 기업 구조 분석 · 시스템 비유 설명 |
 | [design/](design/디자인시스템.md) | 화면은 어떤 규칙으로 그리나 | admin-web 작업 전 필독 |
 | [presentation/](presentation/) | 주간 발표 | 발표 작업을 요청받았을 때만 수정 |
-| [deliverables/](deliverables/) | RFP 산출물 제출본 | 자기완결형 HTML — 다른 문서와 링크로 얽지 않는다 |
+| [deliverables/](deliverables/) | RFP 산출물 제출본 | 자기완결형 Word(docx)·Excel(xlsx) — `scripts/deliverables/`로 재생성, 다른 문서와 링크로 얽지 않는다 |
 
 ## 인용 규칙
 

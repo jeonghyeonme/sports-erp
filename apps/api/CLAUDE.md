@@ -36,4 +36,4 @@ npm run test    # jest — HTTP 통합 테스트(test/), 실제 AppModule + supe
 
 ## 배포 (D37 — 진행 상태는 docs/STATUS.md)
 
-진입점 `src/lambda.ts`, 묶음 `bash scripts/package-lambda.sh`, 자동 배포 `.github/workflows/deploy-api-lambda.yml`(`dev` push, D39). 배포 환경에서 `JWT_ACCESS_SECRET`·`JWT_REFRESH_SECRET`·`ORIGIN_SECRET`이 없으면 부팅이 실패한다(`src/common/config/secrets.ts`). 동시 실행 상한 10과 풀러 `connection_limit=1`은 D37 결정 1의 요청량 설계이므로 바꾸려면 D37을 먼저 본다. 콘솔 절차는 `aws-lambda/README.md`.
+진입점 `src/lambda.ts`, 묶음 `bash scripts/package-lambda.sh`, 자동 배포 `.github/workflows/deploy-api-lambda.yml`(`dev` push, D39). 배포 환경에서 `JWT_ACCESS_SECRET`·`JWT_REFRESH_SECRET`·`ORIGIN_SECRET`이 없으면 부팅이 실패한다(`src/common/config/secrets.ts`). 동시 실행 상한 10과 풀러 `connection_limit=1`은 D37 결정 1의 요청량 설계이므로 바꾸려면 D37을 먼저 본다. DB 접속은 Session pooler(5432, `pgbouncer=true` 없음)이고(D49 — D37의 6543 접속 문자열을 대체), 세션 모드에서는 실행 환경 수 ≈ DB 연결 수라 상한을 올리려면 Pool Size부터 본다. `set-lambda-env.sh`가 형식을 검사한다. 콘솔 절차는 `aws-lambda/README.md`.

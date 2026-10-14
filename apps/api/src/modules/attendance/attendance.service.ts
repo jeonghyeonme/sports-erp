@@ -298,8 +298,8 @@ export class AttendanceService {
 
   // ── 업무일지 ───────────────────────────────────────────
 
-  // 하루 1건(근태관리 A-3) — 같은 날 다시 쓰면 덮어쓴다. WorkLog에는 (staffId, date) unique가 없어서
-  // 트랜잭션 advisory lock으로 같은 직원·날짜의 upsert를 직렬화한다(D33 결정 1 — unique 추가는 스키마 변경이라 후속).
+  // 하루 1건(근태관리 A-3) — 같은 날 다시 쓰면 덮어쓴다. (staffId, date) unique(log/093)가 최종 방어선이고,
+  // 트랜잭션 advisory lock으로 같은 직원·날짜의 upsert를 직렬화해 동시 첫 작성이 unique 위반으로 실패하지 않게 한다(D33 결정 1).
   async upsertWorkLog(staffId: string, date: string, content: string): Promise<MockWorkLog> {
     const d = dateOf(date);
     return this.prisma.$transaction(async (tx) => {

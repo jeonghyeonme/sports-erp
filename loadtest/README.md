@@ -1,5 +1,8 @@
 # 부하테스트 (k6)
 
+> **지금 쓰는 것은 `k6-lambda.js`다**(AWS Lambda Function URL 직접, S1 로그인·S2 50 rps 조회·S3 과부하 — 실행법은 파일 머리 주석). 결과: 2026-10-04 [D42](../docs/decisions/D42.md)·[log/056](../docs/log/056.md), 2026-10-12 운영 재측정 [D50](../docs/decisions/D50.md)·[log/109](../docs/log/109.md)(W 약 40ms, 과부하 실제 처리 약 80~90 rps). Lambda 서버 처리 시간은 CloudWatch Logs Insights(REPORT 줄)로 본다(`aws-lambda/README.md`).
+> 아래는 Render 시절(2026-09-27)의 `k6-scenarios.js` 기록이다. Render `sports-erp-api`는 2026-10-06 일시정지돼 이 스크립트의 기본 대상은 더 이상 동작하지 않는다(`-e BASE_URL`로 로컬 대상은 가능). 당시 결과는 D24.
+
 docs/decisions/D14.md가 "포트폴리오 규모에서 실측 인프라 수치는 무의미하다"고 판단해 설계 원칙으로 대체했던 부분을, 실제 배포(Render) 이후 다시 열어 실측하기로 한 것이다(2026-09-27 결정). 실측 결과가 나오면 D14를 갱신할 것.
 
 ## 실행 전 확인

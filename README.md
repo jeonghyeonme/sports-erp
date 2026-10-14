@@ -29,7 +29,7 @@
 | 영역 | 스택 |
 |---|---|
 | 관리자 웹 | React + TypeScript + Vite |
-| 회원 웹 | 모바일 웹으로 개발 예정(D40) — 관리자 웹과 같은 React + Vite, 같은 Cloudflare Worker. 회원 기능 API는 구현 완료 |
+| 회원 웹 | 모바일 웹(`/m/`, PWA — D40·D41·D45) — 관리자 웹과 같은 React + Vite, 같은 Cloudflare Worker |
 | API | NestJS + TypeScript |
 | DB / ORM | PostgreSQL(Supabase, 서울) + Prisma |
 | 인증 | JWT(Access/Refresh) + RBAC |
@@ -42,7 +42,8 @@
 apps/
   api/          NestJS + Prisma + PostgreSQL — 백엔드 API
   admin-web/    React + Vite — 본사/지점 관리자 웹
-  member-app/   네이티브 앱은 만들지 않음 — 회원 기능은 모바일 웹으로 개발 예정(D40). README만 있음
+  member-web/   React + Vite — 회원 모바일 웹(/m/, D41)
+  member-app/   네이티브 앱은 만들지 않음 — 회원 기능은 member-web(D40). README만 있음
 packages/
   types/        클라이언트-서버가 공유하는 타입
 docs/
@@ -70,9 +71,9 @@ docs/
 | 폴더 | 내용 |
 |---|---|
 | [domains/](docs/domains/) | [권한관리](docs/domains/권한관리.md) · [인사정보관리](docs/domains/인사정보관리.md) · [근태관리](docs/domains/근태관리.md) · [회원관리](docs/domains/회원관리.md) · [예약및결제](docs/domains/예약및결제.md) · [강사프로그램게시](docs/domains/강사프로그램게시.md) · [게시판](docs/domains/게시판.md) · [혼잡도관리](docs/domains/혼잡도관리.md) · [자원문서관리](docs/domains/자원문서관리.md) |
-| [architecture/](docs/architecture/) | [공유 엔티티](docs/architecture/entities.md) · [시스템 개요](docs/architecture/system-overview.md) · [데이터 정합성](docs/architecture/data-integrity.md) · [날짜·시간](docs/architecture/date-time-handling.md) · [설계 상수](docs/architecture/design-constants.md) · [트래픽·인프라 검토](docs/architecture/traffic-infra-review.md) |
+| [architecture/](docs/architecture/) | [공유 엔티티](docs/architecture/entities.md) · [시스템 개요](docs/architecture/system-overview.md) · [데이터 정합성](docs/architecture/data-integrity.md) · [날짜·시간](docs/architecture/date-time-handling.md) · [설계 상수](docs/architecture/design-constants.md) · [트래픽·인프라 검토](docs/architecture/traffic-infra-review.md) · [공학적 위험 점검표](docs/architecture/engineering-risks.md) · [데이터 보존](docs/architecture/data-retention.md) |
 | [decisions/](docs/decisions/README.md) | 횡단 결정 D1~ — 요약표·종합 평가 |
-| [process/](docs/process/) | [RFP 분류](docs/process/01_RFP_분류와_되묻기.md) · [도메인 우선순위](docs/process/02_도메인별_우선순위.md) · [도메인 사이클 템플릿](docs/process/03_도메인_사이클_템플릿.md) |
+| [process/](docs/process/) | [RFP 분류](docs/process/01_RFP_분류와_되묻기.md) · [도메인 우선순위](docs/process/02_도메인별_우선순위.md) · [도메인 사이클 템플릿](docs/process/03_도메인_사이클_템플릿.md) · [작업 브리프](docs/process/04_작업_브리프.md) |
 | [log/](docs/log/README.md) | 진행 기록(왜 이렇게 일하게 됐나) · [트러블슈팅](docs/log/troubleshooting.md) |
 | [reference/](docs/reference/) | [요구사항추적표](docs/reference/요구사항추적표.md)(RFP ↔ 설계 ↔ 코드) · [차별화전략](docs/reference/차별화전략.md) · [기업 구조 분석](docs/reference/기업구조및관리시스템분석.md) · [시스템 비유 설명](docs/reference/시스템_비유_설명.md) · 원본 RFP PDF |
 | [design/](docs/design/디자인시스템.md) | admin-web 디자인 토큰·레이아웃 원칙(고밀도 엔터프라이즈 라이트). 새 화면 작업 전 필독 |
@@ -129,25 +130,23 @@ npm run dev:web     # http://localhost:5173
 
 ## 배포
 
-현재 구성과 진행 상태는 [docs/STATUS.md](docs/STATUS.md)를 보세요. 결정 경위는 [D23](docs/decisions/D23.md)(Render+Supabase) → [D24](docs/decisions/D24.md)·[D25](docs/decisions/D25.md)(Cloudflare Worker 엣지 + admin-web 정적 자산) → [D37](docs/decisions/D37.md)(api를 AWS Lambda로 이전, 진행 중)입니다.
+현재 구성과 진행 상태는 [docs/STATUS.md](docs/STATUS.md)를 보세요. 결정 경위는 [D23](docs/decisions/D23.md)(Render+Supabase) → [D24](docs/decisions/D24.md)·[D25](docs/decisions/D25.md)(Cloudflare Worker 엣지 + admin-web 정적 자산) → [D37](docs/decisions/D37.md)(api를 AWS Lambda로 이전, 운영 중) → [D49](docs/decisions/D49.md)(DB 접속을 Session pooler로)입니다.
 
 | 구성 요소 | 위치 | 설정 문서 |
 |---|---|---|
-| api | AWS Lambda(서울, Function URL, 별칭 `live`) — `dev` push 시 [deploy-api-lambda.yml](.github/workflows/deploy-api-lambda.yml)이 배포. 이전 완료 전까지 Render([render.yaml](render.yaml))가 병행 | [aws-lambda/README.md](aws-lambda/README.md) |
-| admin-web + 앞단 프록시 | Cloudflare Worker(정적 자산 + API 프록시 + rate limit, SPA 404는 `not_found_handling`으로 처리) | [cloudflare-worker/README.md](cloudflare-worker/README.md) |
+| api | AWS Lambda(서울, Function URL, 별칭 `live`) — `dev` push 시 [deploy-api-lambda.yml](.github/workflows/deploy-api-lambda.yml)이 배포. Render는 2026-10-06 일시정지했고 롤백은 Lambda 별칭으로 한다 | [aws-lambda/README.md](aws-lambda/README.md) |
+| admin-web·member-web + 앞단 프록시 | Cloudflare Worker(정적 자산 + API 프록시 + rate limit, SPA 404는 `not_found_handling`으로 처리). 배포는 수동(`npm run build:web` → `wrangler deploy`) | [cloudflare-worker/README.md](cloudflare-worker/README.md) |
 | DB | Supabase Postgres(서울) — 무료 프로젝트는 7일 미사용 시 일시정지되니 시연 전 한 번 깨워 둘 것 | `.env.example`, [진행 기록 044~050](docs/log/README.md)(시드 적용 절차) |
 
 ## 로드맵
 
-`docs/architecture/entities.md` §7의 Phase 구성을 따릅니다. 각 Phase는 세로로(기능 하나씩) 완성하며, 끝날 때마다 실제로 눌러볼 수 있는 데모가 나오는 것을 목표로 합니다.
+처음 계획(Phase 0~6, [system-overview](docs/architecture/system-overview.md) §7)은 모두 지나왔다. 지금 무엇이 남았는지는 [docs/STATUS.md](docs/STATUS.md)의 "다음 할 일"이 기준이고, RFP 대비 구현 현황은 [요구사항추적표](docs/reference/요구사항추적표.md) §2가 기준이다.
 
-- [x] **Phase 0 — 프로젝트 셋업**: 모노레포 구조, Git, 환경설정, Prisma 스타터 스키마
-- [ ] **Phase 1 — 권한관리 + 회원관리**: 로그인/JWT/RBAC, BranchScopeGuard, 회원 CRUD ([1-2](docs/domains/권한관리.md), [1-6](docs/domains/회원관리.md)) — 로그인·토큰갱신·Role전환과 회원 등록/수정/상태전환 API+화면 모두 완료. **수강내역·PT잔여세션·예약결제 탭만 백엔드 미구현이라 안내 문구만 노출(데모 기준 미완료)**
-- [ ] **Phase 2 — 인사정보관리 + 근태관리**: 직원 CRUD, 파견 모델, 출퇴근/휴가 ([1-3](docs/domains/인사정보관리.md), [1-4](docs/domains/근태관리.md)) — 근태관리는 API+화면 모두 완료. 인사정보관리는 API는 완료(채용/파견/퇴사)했지만 **화면이 아직 없어 데모 기준 미완료**
-- [ ] **Phase 3 — 강사·프로그램 + 예약/결제**: pricingType, 정원 동시성 처리, 모의 결제, 회원 모바일 웹 착수(D40) ([1-8](docs/domains/강사프로그램게시.md), [1-7](docs/domains/예약및결제.md)) — 강사·프로그램게시(회차 등록 포함)와 예약/결제(모의결제·부가세분리 포함) 모두 Phase 1+2 핵심 API+화면 완료(2026-09-18). 강사 정산·노쇼 자동처리는 범위 제외(2026-09-20, 향후 확장 가능). **PT 패키지(회원 PT 잔여세션 포함)와 회원 앱(React Native)은 아직 미착수**
-- [ ] **Phase 4 — 게시판 + 혼잡도관리**: 계층형 게시판, 혼잡도 자동계산 ([1-5](docs/domains/게시판.md), [1-9](docs/domains/혼잡도관리.md)) — 게시판은 API+화면 모두 완료(2026-09-18, 첨부파일·상단고정·교육 실시 기록만 미구현). 혼잡도관리도 Phase 1(시설 등록/수정, 수동 보정) API+화면 완료(2026-09-18). QR 체크인·5분 주기 자동계산은 범위 제외(향후 확장 가능). **남은 건 게시판 교육자료 첨부(URL 방식)뿐**
-- [ ] **Phase 5 — 통합·배포·발표 준비**: 통합 테스트, UI 폴리싱, 배포, 시연 시나리오
-- [ ] **Phase 6(확장) — 자산·비품관리 + 문서관리 + 매출/정산**: 원본 산출물2(기업 분석 자료) 대응 ([1-10](docs/reference/기업구조및관리시스템분석.md)) + 부가세 분리·매출 집계·강사 정산 ([1-7](docs/domains/예약및결제.md)) — 자산·비품(CRUD·자동판정·상태전이)과 문서함(CRUD·보존기한 자동계산·임박 목록) Phase 1 API+화면 완료(2026-09-19), 부가세 분리도 완료. 감가상각·강사 정산은 범위 제외(향후 확장 가능), 재물조사는 보류(선택)
+- [x] 9개 도메인 API + 관리자 웹 화면, 실DB(Prisma·Supabase) 전환(D26~D36)
+- [x] 회원 모바일 웹(로그인·예약·모의 결제·공지·혼잡도·내 정보·가입/연동, D41)
+- [x] 배포: Cloudflare Worker + AWS Lambda + Supabase, 운영 k6 실측(D42·D50)
+- [ ] RFP 미구현 항목(인사 변경 신청 승인·교육자료 첨부·업무지원 요청 등 — 요구사항추적표 §2-3)
+- [ ] 시연 데이터 고밀도화(STATUS)
 
 ## License
 

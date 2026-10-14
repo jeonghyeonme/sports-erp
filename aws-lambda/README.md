@@ -153,7 +153,7 @@
   cd cloudflare-worker && npx wrangler deploy --secrets-file ~/worker-secrets.json; rm ~/worker-secrets.json
   ```
   - 기존 배포에 `API_ORIGIN`이 secret이 아닌 일반 변수로 남아 있어 충돌 에러가 나면, Cloudflare 대시보드 → Worker → Settings → Variables and Secrets에서 그 변수를 지우고 다시 실행한다(이 경우는 아직 확인되지 않았다).
-  - 되돌릴 때는 `API_ORIGIN`만 Render 주소로 바꿔 같은 방법으로 다시 배포한다.
+  - (전환 당시 절차) 되돌릴 때는 `API_ORIGIN`만 Render 주소로 바꿔 같은 방법으로 다시 배포한다. **지금은 해당 없음** — Render는 2026-10-06 일시정지됐고 D26 코드에 멈춰 있어 롤백 대상이 아니다. 지금의 롤백은 Lambda 별칭 `live`를 이전 버전으로 되돌린다(§2 끝·§8).
 - [ ] Worker 주소에서 화면이 뜨고 로그인이 되는지 확인한다(데모 계정 `kim.minsu@spoism.example` / `demo-password-1234`).
 
 ## 6. 워밍·관측·비용 안전장치

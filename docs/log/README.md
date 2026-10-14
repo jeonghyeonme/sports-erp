@@ -115,5 +115,6 @@
 | [107](107.md) | 2026-10-11 | 6주차 발표 덱(23장) 제작 — 두 주 진행 + 5곳 고밀도화 계획, 로컬 실행 화면 캡처 5장 |
 | [108](108.md) | 2026-10-12 | Session pooler 운영 전환 확인 — Lambda `DATABASE_URL` 5432·`pgbouncer` 없음, 운영 k6 재측정은 아직 |
 | [109](109.md) | 2026-10-12 | Session pooler 전환 후 운영 k6·CloudWatch 재측정 — W 110 → 약 40ms, 순간 몰림 거절 증가 (D50) |
+| [110](110.md) | 2026-10-14 | 문서 정합성 전수 정리 — 상태·숫자·화면 목록·ERD를 코드와 D50 기준으로 (D38) |
 
 그 밖의 기록: [troubleshooting.md](troubleshooting.md)(구현 중 부딪힌 문제), [archive/](archive/)(끝난 과정 문서).
