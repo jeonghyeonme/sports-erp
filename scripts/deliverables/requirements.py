@@ -4,7 +4,7 @@
 
 - RFP 추적·미구현·범위 제외: docs/reference/요구사항추적표.md §1·§2-3·§2-4
 - 도메인별 원문 요구(기능·품질)·불변규칙·설계 결정·범위 제외: docs/domains/<도메인>.md
-- 기능 명세: apps/api/src의 실제 컨트롤러 라우트(경로·권한) + 관리자 웹이 실제로 부르는 경로(화면 유무)
+- 기능 명세: apps/api/src의 실제 컨트롤러 라우트(경로·권한) + 관리자 웹·회원 웹이 실제로 부르는 경로(화면 유무)
   — 설명(ROUTE_DESC)만 사람이 쓴다. 라우트가 추가되면 설명이 비어 경고가 뜬다.
 - 자동 테스트: apps/api/test/*.spec.ts 파일명
 """
@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DOMAINS = ROOT / 'docs/domains'
 TRACE = ROOT / 'docs/reference/요구사항추적표.md'
 API = ROOT / 'apps/api/src'
-WEB = ROOT / 'apps/admin-web/src'
+WEBS = {'관리자 웹': ROOT / 'apps/admin-web/src', '회원 웹': ROOT / 'apps/member-web/src'}
 TESTS = ROOT / 'apps/api/test'
 OUT = ROOT / 'docs/deliverables/요구사항정의서.xlsx'
 
@@ -37,23 +37,23 @@ DOMAIN_LIST = [
     ('혼잡도관리', '혼잡도관리.md', 'FAC', ['/facilities']),
     ('자원문서관리', '자원문서관리.md', 'RES', ['/assets', '/documents']),
 ]
-COMMON_PREFIX = ['/branches', '/health']
+COMMON_PREFIX = ['/branches', '/audit-logs', '/health']  # 도메인에 안 묶이는 것 — /audit-logs는 공통(사용자 결정 2026-10-14)
 
 ROUTE_DESC = {
     'POST /auth/login': '이메일·비밀번호 로그인 — 액세스·리프레시 토큰 발급, 비활성 계정 차단',
     'POST /auth/refresh': '리프레시 토큰으로 재발급(1회용 교체)',
     'POST /auth/logout': '로그아웃 — 리프레시 토큰 폐기',
     'GET /auth/me': '내 계정 정보',
-    'PATCH /auth/password': '비밀번호 변경',
+    'PATCH /auth/password': '비밀번호 변경 — 현재 비밀번호 확인, 변경 시 리프레시 토큰 전부 폐기, 데모 계정 403(ADR-AUTH-05)',
     'GET /permissions/staff': '직원 계정과 역할 목록(본사)',
     'PATCH /permissions/staff/:staffId/role': '직원 역할 전환(지점 관리자 ↔ 직원, 본사)',
-    'GET /staff': '직원 목록(본사 전체, 지점 관리자는 자기 지점)',
+    'GET /staff': '직원 목록(본사 전체, 지점 관리자는 자기 지점) — 전화번호 마스킹, ?unassigned=true는 재배치 대기(ADR-STF-08)',
     'GET /staff/me': '내 직원 정보',
-    'GET /staff/:id': '직원 상세',
+    'GET /staff/:id': '직원 상세 — 관리자가 열면 열람 기록(PHONE_VIEWED, D47)',
     'POST /staff': '직원 채용 — 계정·직원·첫 파견을 함께 생성(본사만)',
     'PATCH /staff/:id': '직원 정보 수정',
-    'PATCH /staff/:id/resign': '퇴사 처리 — 계정 비활성화, 파견 종료, 인사서류 보존기한 재계산',
-    'POST /staff/:id/assignments': '파견 발령(재배치) — 옛 지점 담당 회원 해제(본사만)',
+    'PATCH /staff/:id/resign': '퇴사 처리 — 계정 비활성화, 파견 종료, 담당 회원 해제, 인사서류 보존기한 재계산(지점 관리자. 계약 종료 지점 직원은 본사도 — ADR-STF-08)',
+    'POST /staff/:id/assignments': '파견 발령(재배치) — 옛 지점 담당 회원 해제, 계약 종료 지점으로는 409(본사만)',
     'GET /staff/:id/assignments': '파견 이력',
     'POST /attendance/check-in': '출근 체크 — 하루 1회, 지각 자동 판정',
     'POST /attendance/check-out': '퇴근 체크',
@@ -73,10 +73,10 @@ ROUTE_DESC = {
     'POST /posts': '게시글 작성 — 계약 종료 지점 차단',
     'PATCH /posts/:id': '게시글 수정(작성자)',
     'DELETE /posts/:id': '게시글 삭제(소프트, 작성자 또는 본사)',
-    'POST /members/register': '회원 자체 가입(공개) — 회원 모바일 웹에서 화면 개발 예정',
-    'POST /members/link': '오프라인 회원 ↔ 온라인 계정 연동(공개, 시도 제한) — 회원 모바일 웹에서 화면 개발 예정',
-    'GET /members': '회원 목록(지점 범위)',
-    'GET /members/:id': '회원 상세 + 요약(수강·PT·예약)',
+    'POST /members/register': '회원 자체 가입(공개) — 회원 웹 /signup(지점 선택은 공개 지점 목록, ADR-MEM-05)',
+    'POST /members/link': '오프라인 회원 ↔ 온라인 계정 연동(공개, 회원번호+전화번호 동시 일치, 시도 제한) — 회원 웹 /link',
+    'GET /members': '회원 목록(지점 범위) — 페이지네이션(D43), 전화번호 마스킹(ADR-MEM-04)',
+    'GET /members/:id': '회원 상세 + 요약(수강·PT·예약) — 관리자가 열면 열람 기록(PHONE_VIEWED, D47)',
     'POST /members': '회원 등록 — 미성년 보호자 동의 확인, 계약 종료 지점 차단',
     'PATCH /members/:id': '회원 정보 수정',
     'PATCH /members/:id/status': '회원 상태 전환(활성·휴면·탈퇴)',
@@ -85,12 +85,12 @@ ROUTE_DESC = {
     'GET /members/:id/pt-sessions': 'PT 세션권 목록',
     'POST /members/:id/pt-sessions': 'PT 세션권 등록',
     'POST /members/:id/pt-sessions/:sessionId/use': 'PT 1회 차감',
-    'POST /reservations': '회차 예약 — 회차 잠금, 지점·계약·정원·중복 확인',
-    'GET /reservations': '예약 목록(범위별)',
+    'POST /reservations': '회차 예약 — 회차 잠금, 지점·계약·지난 회차(409)·중복·정원 확인',
+    'GET /reservations': '예약 목록(범위별, 페이지네이션 D43)',
     'PATCH /reservations/:id/cancel': '예약 취소 — 마감 전이면 환불',
     'PATCH /reservations/:id/check-in': '현장 체크인(완료 처리)',
     'POST /payments/:reservationId/mock-pay': '모의 결제 승인 → 예약 확정(대기일 때 한 번만)',
-    'GET /payments': '결제 내역(매출)',
+    'GET /payments': '결제 내역(매출, 기간 필터·페이지네이션)',
     'GET /programs': '프로그램 목록',
     'POST /programs': '프로그램 등록',
     'PATCH /programs/:id': '프로그램 수정',
@@ -107,7 +107,7 @@ ROUTE_DESC = {
     'POST /facilities': '시설 등록',
     'PATCH /facilities/:id': '시설 수정·비활성화',
     'POST /facilities/:id/congestion/manual': '혼잡도 수동 보정(인원 입력 → 5단계 자동 계산)',
-    'GET /assets': '자산·비품 목록',
+    'GET /assets': '자산·비품 목록(페이지네이션 D43)',
     'POST /assets': '자산 등록 — 자산코드 자동 채번, 계약 종료 지점 차단',
     'PATCH /assets/:id': '자산 정보 수정',
     'PATCH /assets/:id/status': '자산 상태 전이(사용·수리·폐기 등)',
@@ -117,6 +117,9 @@ ROUTE_DESC = {
     'POST /documents': '문서 등록 — 계약서 보존기한 필수, 계약 종료 지점 차단',
     'DELETE /documents/:id': '문서 삭제(소프트, 본사)',
     'GET /branches': '지점 목록(계약 정보 포함)',
+    'GET /branches/public': '공개 지점 목록(이름·지역만, 계약 종료 지점 제외) — 회원 웹 가입용(ADR-MEM-05)',
+    'PATCH /branches/:branchId/contract-status': '계약 상태 변경(본사) — TERMINATED 전이 시 진행 중 파견 종료·재배치 대기 반환(ADR-STF-07)',
+    'GET /audit-logs': '변경 이력 조회(본사) — 역할 전환·퇴사·파견 발령·파견 종료·전화번호 열람(D44·D47)',
     'GET /health': '헬스체크(DB 미경유)',
 }
 ROLE_KO = {'SUPER_ADMIN': '본사', 'BRANCH_ADMIN': '지점', 'STAFF': '직원', 'MEMBER': '회원'}
@@ -188,10 +191,11 @@ def api_routes():
     return routes
 
 
-def web_paths():
-    """관리자 웹이 부르는 API 경로. 쓰기(POST/PATCH/DELETE)는 api.<method>(경로) 호출로, 조회(GET)는
-    경로 문자열이 코드에 나오면(useApiList 같은 조회 헬퍼가 경로를 인자로 받는다) 화면이 있다고 본다."""
-    s = '\n'.join(read(p) for p in list(WEB.rglob('*.tsx')) + list(WEB.rglob('*.ts')))
+def web_paths(web_root):
+    """한 웹 앱이 부르는 API 경로. 쓰기(POST/PATCH/DELETE)는 api.<method>(경로) 호출로, 조회(GET)는
+    경로 문자열이 코드에 나오면(useApiList 같은 조회 헬퍼가 경로를 인자로 받는다) 화면이 있다고 본다.
+    회원 웹의 화면 경로(/notices 등)는 API 경로와 겹치지 않아 오탐이 없다."""
+    s = '\n'.join(read(p) for p in list(web_root.rglob('*.tsx')) + list(web_root.rglob('*.ts')))
     norm = lambda x: re.sub(r'\$\{[^}]+\}', ':p', x).split('?')[0].rstrip('/') or '/'
     out = set()
     for m in re.finditer(r"api\.(get|post|patch|put|delete)(?:<[^(]*>)?\(\s*[`']([^`']+)[`']", s):
@@ -202,14 +206,25 @@ def web_paths():
 
 
 def has_screen(method, path, web):
+    """web = {앱 이름: 경로 집합}. 이 라우트를 부르는 앱 이름 목록을 돌려준다.
+    웹 쪽 변수(:p)는 라우트의 고정 세그먼트와도 맞출 수 있지만, 그 앞에 라우트 변수가 있을 때만이다
+    (`/leave-requests/${id}/${action}` → /leave-requests/:id/approve). 앞에 변수가 없으면 맞추지 않는다 —
+    `/branches/${id}`가 /branches/public으로 잡히던 오탐."""
     seg = path.strip('/').split('/')
-    for wm, wp in web:
-        if wm != method:
-            continue
-        ws_ = wp.strip('/').split('/')
-        if len(ws_) == len(seg) and all(a == b or a == ':p' or b.startswith(':') for a, b in zip(ws_, seg)):
-            return True
-    return False
+
+    def seg_ok(i, a, b):
+        return a == b or b.startswith(':') or (a == ':p' and any(x.startswith(':') for x in seg[:i]))
+
+    apps = []
+    for app, paths in web.items():
+        for wm, wp in paths:
+            if wm != method:
+                continue
+            ws_ = wp.strip('/').split('/')
+            if len(ws_) == len(seg) and all(seg_ok(i, a, b) for i, (a, b) in enumerate(zip(ws_, seg))):
+                apps.append(app)
+                break
+    return apps
 
 
 def tests():
@@ -260,7 +275,7 @@ def parse_trace():
 # ── 작성 ──────────────────────────────────────────────────────────────────
 def main():
     routes = api_routes()
-    web = web_paths()
+    web = {app: web_paths(root) for app, root in WEBS.items()}
     commit = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], cwd=ROOT, capture_output=True, text=True).stdout.strip()
     s11, s12, s13, s23, s24, api_only, design_only, member_app = parse_trace()
     missing_desc = [f'{m} {p}' for m, p, _ in routes if f'{m} {p}' not in ROUTE_DESC]
@@ -323,16 +338,17 @@ def main():
             used.add((m, p))
             rid = f'{code}-FN-{k:02d}'
             desc = ROUTE_DESC.get(f'{m} {p}', '(설명 없음)')
-            if has_screen(m, p, web):
-                st = '구현(API+화면)'
-            elif '/register' in p or '/link' in p:
-                st = 'API만(회원 모바일 웹 예정)'
+            screens = has_screen(m, p, web)
+            if p in ('/auth/refresh', '/auth/logout', '/auth/me'):
+                st = '구현(API, 화면 불필요)'
+            elif screens:
+                st = f'구현(API+화면: {"·".join(screens)})'
             elif p.startswith('/auth/') and p != '/auth/login':
                 st = '구현(API, 화면 불필요)' if p in ('/auth/refresh', '/auth/logout', '/auth/me') else 'API만(화면 없음)'
             else:
                 st = 'API만(화면 없음)'
             data.append([rid, desc, m, p, who, st])
-            all_rows.append([rid, name, '기능', desc, '구현', '있음' if '화면' in st and 'API만' not in st else ('불필요' if '불필요' in st else '없음'), f'{m} {p}'])
+            all_rows.append([rid, name, '기능', desc, '구현', '불필요' if '불필요' in st else ('있음' if st.startswith('구현(API+화면') else '없음'), f'{m} {p}'])
         r = X.rows(sh, r, data, status_col=5)
         r += 1
         # 설계 결정
@@ -448,7 +464,7 @@ def main():
         ('기준', f'{date.today().isoformat()} 저장소(dev 브랜치) — 도메인 문서·요구사항추적표·실제 API 라우트에서 자동 생성'),
         ('규모', f'도메인 {len(DOMAIN_LIST)}개 · 기능(API) {n_fn}개 · 불변규칙 {sum(1 for x in all_rows if x[2]=="불변규칙")}개 · '
                f'RFP 미구현 {len(s23)}건 · 자동 테스트 파일 {len(tests())}개'),
-        ('범위', '관리자 웹(본사·지점 관리자·직원) + 회원 모바일 웹(개발 예정) + REST API. 대상 지점은 수도권 83곳(지방 15곳 제외). 회원 기능 API는 구현 완료'),
+        ('범위', '관리자 웹(본사·지점 관리자·직원) + 회원 모바일 웹(/m/, 2026-10-09 배포) + REST API. 대상 지점은 수도권 83곳(지방 15곳 제외)'),
     ])
     r += 1
     r = X.section(ws, r, '요구사항 ID 규칙', 2)
@@ -462,11 +478,11 @@ def main():
     r += 1
     r = X.section(ws, r, '상태 표기', 2)
     r = X.kv(ws, r, [
-        ('구현(API+화면)', 'API와 관리자 웹 화면이 모두 있다'),
+        ('구현(API+화면)', 'API와 그것을 부르는 화면이 있다 — 괄호에 관리자 웹·회원 웹 중 어느 쪽인지 적는다'),
         ('API만', 'API는 있고 화면이 없다(사유를 괄호에 적음)'),
         ('미구현', 'RFP 요구인데 아직 없다'),
         ('범위 제외', '근거를 두고 의도적으로 만들지 않았다'),
-        ('검증', '자동 테스트는 API(jest)만 있다. 관리자 웹은 lint·빌드(타입체크)까지만 검증된다'),
+        ('검증', '자동 테스트는 API(jest)만 있다. 관리자 웹·회원 웹은 lint·빌드(타입체크)까지만 검증된다'),
     ])
     X.widths(ws, [20, 110])
     ws.sheet_view.showGridLines = False

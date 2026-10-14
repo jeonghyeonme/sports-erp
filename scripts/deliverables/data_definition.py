@@ -27,32 +27,32 @@ TABLES = {
     'Branch': ('지점(위탁계약 현장)', '아파트·오피스텔과 맺은 위탁운영 계약 현장. 계약 상대방·기간·상태를 가진다'),
     'Staff': ('직원', '본사가 채용한 인력. 현재 파견 지점을 캐시로 가진다'),
     'StaffAssignment': ('파견 이력', '직원이 언제 어느 지점에 파견됐는지. 진행 중 파견은 직원당 1건'),
-    'StaffProfileChangeRequest': ('인사 변경 신청', '직원 본인의 인사정보 변경 신청과 관리자 승인'),
+    'StaffProfileChangeRequest': ('인사 변경 신청', '직원 본인의 인사정보 변경 신청과 관리자 1단계 승인(D11). 미사용 — 신청·승인 API와 화면이 아직 없다(RFP 미구현)'),
     'AttendanceRecord': ('근태 기록', '직원별 하루 1건의 출퇴근·상태 기록'),
     'LeaveRequest': ('휴가 신청', '연차·병가 등 휴가 신청과 승인·반려'),
     'LeaveBalance': ('연차 잔여', '직원·연도별 부여 일수와 사용 일수'),
     'WorkLog': ('업무일지', '직원별 하루 업무 기록'),
     'Post': ('게시글', '본사→현장, 현장→이용자 공지'),
-    'Attachment': ('첨부파일', '게시글 첨부(교육자료 등)'),
-    'PostReadReceipt': ('읽음 확인', '게시글별 열람 기록'),
+    'Attachment': ('첨부파일', '게시글 첨부(교육자료 등). 미사용 — 파일 저장소를 정하지 않아 첨부 API가 없다(RFP 미구현)'),
+    'PostReadReceipt': ('읽음 확인', '게시글별 열람 기록. 미사용 — 읽음 확인은 범위 제외(게시판 A-8)'),
     'Member': ('회원', '지점에 등록된 이용자'),
     'CourseEnrollment': ('수강 등록', '회원의 프로그램 수강 내역'),
     'PTSession': ('PT 세션권', '회원이 구매한 PT 횟수와 사용 횟수'),
     'PTSessionLog': ('PT 사용 기록', 'PT 세션 1회 차감 기록'),
     'Instructor': ('강사', '지점 강사 프로필'),
     'Program': ('프로그램', '지점이 운영하는 프로그램. 이용 방식(자유이용·회차 예약·PT)과 상태를 가진다'),
-    'ProgramScheduleTemplate': ('프로그램 시간표 틀', '요일별 반복 회차 틀'),
+    'ProgramScheduleTemplate': ('프로그램 시간표 틀', '요일별 반복 회차 틀. 미사용 — 회차는 하나씩 등록하고 일괄 생성은 아직 없다'),
     'ScheduleSlot': ('회차', '날짜·시간·정원이 정해진 예약 단위'),
     'Reservation': ('예약', '회원의 회차 예약. 신청→확정→완료/취소/노쇼'),
     'Payment': ('결제', '예약당 1건의 모의 결제. 공급가액·부가세 분리'),
     'Facility': ('시설', '헬스장·수영장 등 지점 시설과 현재 혼잡도'),
-    'CongestionSnapshot': ('혼잡도 기록', '시설별 혼잡도 시계열'),
-    'FacilityCheckIn': ('시설 입퇴장', '회원의 시설 체크인·체크아웃'),
+    'CongestionSnapshot': ('혼잡도 기록', '시설별 혼잡도 시계열. 미사용 — 5분 주기 자동계산이 범위 제외라 쌓지 않는다(혼잡도관리 A-8)'),
+    'FacilityCheckIn': ('시설 입퇴장', '회원의 시설 체크인·체크아웃. 미사용 — QR 체크인은 범위 제외(혼잡도관리 A-8)'),
     'Asset': ('자산·비품', '지점 자산(고정자산·소모품)과 상태'),
     'Document': ('문서', '계약서·인사서류 등 문서와 보존기한'),
     'CodeSequence': ('채번 시퀀스', '지점·종류별 코드(회원번호·직원코드·자산코드) 일련번호'),
     'MemberLinkAttempt': ('회원 연동 시도', '오프라인 회원↔앱 계정 연동 실패 기록(시도 제한용)'),
-    'AuditLog': ('변경 이력', '주요 엔티티 변경 기록'),
+    'AuditLog': ('변경 이력', '인사 변경 4종(역할 전환·퇴사·파견 발령·파견 종료)과 관리자의 상세 전화번호 열람을 쓰기와 같은 트랜잭션에서 기록한다(D44·D47). 본사만 조회. 다른 쓰기는 기록하지 않는다'),
 }
 
 # 주석이 없는 컬럼의 일반 설명(이름 기준)
@@ -86,7 +86,7 @@ GLOSSARY = {
     'currentCount': '현재 인원', 'lastUpdatedAt': '혼잡도 갱신 일시', 'recordedAt': '기록 일시', 'source': '기록 출처',
     'assetType': '자산 유형', 'acquiredAt': '취득일', 'acquisitionCost': '취득가액(원)', 'location': '보관 위치',
     'prefix': '코드 접두어', 'lastValue': '마지막 발급 번호', 'attemptedAt': '시도 일시',
-    'action': '행위', 'entity': '대상 테이블', 'before': '변경 전(JSON)', 'after': '변경 후(JSON)',
+    'action': '행위 — ROLE_CHANGED(역할 전환)·RESIGNED(퇴사)·ASSIGNED(파견 발령)·ASSIGNMENT_ENDED(계약 종료로 파견 종료)·PHONE_VIEWED(상세 전화번호 열람)', 'entity': '대상 테이블', 'before': '변경 전(JSON)', 'after': '변경 후(JSON)',
 }
 
 DB_TYPE = {'String': 'text', 'Int': 'integer', 'Boolean': 'boolean', 'DateTime': 'timestamp(3)', 'Float': 'double precision',
@@ -259,7 +259,7 @@ def main():
         ('작성일', date.today().isoformat()),
         ('기준', f'{date.today().isoformat()} 저장소(dev 브랜치) — apps/api/prisma/schema.prisma, migrations/*.sql에서 자동 생성'),
         ('규모', f'테이블 {len(models)}개 · 컬럼 {len(cols)}개 · 코드(enum) {len(enums)}종 · CHECK {len(checks)}개 · 트리거 {len(trigs)}개'),
-        ('미사용 테이블', ', '.join(f'{TABLES[n][0]}({n})' for n in models if not used[n]) + ' — 스키마에만 있고 코드가 읽거나 쓰지 않는다(요구사항 정의서 "미구현" 탭 참고)'),
+        ('미사용 테이블', ', '.join(f'{TABLES[n][0]}({n})' for n in models if not used[n]) + ' — 스키마에만 있고 코드가 읽거나 쓰지 않는다. 사유는 테이블 목록의 설명(요구사항 정의서 "미구현"·"범위 제외" 탭)'),
     ])
     r += 1
     r = X.section(ws, r, '시트 구성', 2)
