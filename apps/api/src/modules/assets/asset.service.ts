@@ -3,6 +3,7 @@ import { Asset, AssetCategory, AssetStatus, AssetType, Prisma } from '@prisma/cl
 import { AppException } from '../../common/exceptions/app.exception';
 import { toKstDateString } from '../../common/date/kst-date';
 import { PageRequest } from '../../common/http/pagination';
+import { recordAudit } from '../../prisma/audit';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode } from '../../prisma/integrity';
 import { MockAsset } from '../../fixtures/mock-data.types';
@@ -144,12 +145,25 @@ export class AssetService {
   }
 
   // 전이표 검사는 앱에서, 쓰기는 "읽은 상태 그대로일 때만"(D35 결정 2) — 동시 전이 중 하나는 409.
-  async updateStatus(id: string, status: AssetStatus): Promise<AssetView> {
+  // D52 — 전이와 변경 이력(ASSET_STATUS_CHANGED)을 한 트랜잭션에서. 조건부 갱신이 0건이면 이력도 남지 않는다.
+  async updateStatus(id: string, status: AssetStatus, actorId: string): Promise<AssetView> {
     const asset = await this.prisma.asset.findUnique({ where: { id } });
     if (!asset) throw assetNotFound();
     if (!STATUS_TRANSITIONS[asset.status].includes(status)) throw invalidTransition(asset.status, status);
-    const { count } = await this.prisma.asset.updateMany({ where: { id, status: asset.status }, data: { status } });
-    if (count === 0) {
+    const changed = await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.asset.updateMany({ where: { id, status: asset.status }, data: { status } });
+      if (count === 0) return false;
+      await recordAudit(tx, {
+        actorId,
+        entity: 'Asset',
+        entityId: id,
+        action: 'ASSET_STATUS_CHANGED',
+        before: { status: asset.status },
+        after: { status, branchId: asset.branchId },
+      });
+      return true;
+    });
+    if (!changed) {
       const current = await this.prisma.asset.findUniqueOrThrow({ where: { id } });
       throw invalidTransition(current.status, status);
     }

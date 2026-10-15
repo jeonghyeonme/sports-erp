@@ -8,16 +8,49 @@ import { useAuth } from '../lib/use-auth';
 
 const PAGE_SIZE = 20;
 
-// D44 — 지금 기록하는 이벤트 5종(파견 종료는 ADR-STF-07, 전화번호 열람은 D47). 늘릴 때는 api `prisma/audit.ts`의 AuditAction과 함께 고친다.
+// D44 — 지금 기록하는 이벤트 8종(파견 종료는 ADR-STF-07, 전화번호 열람은 D47, 근태 정정·회원/자산 상태는 D52).
+// 늘릴 때는 api `prisma/audit.ts`의 AuditAction과 함께 고친다.
 const ACTION_LABEL: Record<string, string> = {
   ROLE_CHANGED: '권한 변경',
   RESIGNED: '퇴사 처리',
   ASSIGNED: '파견(재배치)',
   ASSIGNMENT_ENDED: '파견 종료(계약 종료)',
   PHONE_VIEWED: '전화번호 열람',
+  ATTENDANCE_CORRECTED: '근태 정정',
+  MEMBER_STATUS_CHANGED: '회원 상태 변경',
+  ASSET_STATUS_CHANGED: '자산 상태 변경',
 };
 
-const ENTITY_LABEL: Record<string, string> = { Staff: '직원', Member: '회원' };
+const ATTENDANCE_LABEL: Record<string, string> = {
+  NORMAL: '정상',
+  LATE: '지각',
+  EARLY_LEAVE: '조퇴',
+  ABSENT: '결근',
+  ON_LEAVE: '휴가',
+};
+const MEMBER_STATUS_LABEL: Record<string, string> = { ACTIVE: '활성', DORMANT: '휴면', WITHDRAWN: '탈퇴' };
+const ASSET_STATUS_LABEL: Record<string, string> = {
+  NORMAL: '정상',
+  REPAIRING: '수리 중',
+  DISPOSAL_PENDING: '폐기 대기',
+  DISPOSED: '폐기',
+};
+
+function kstHhmm(iso: unknown): string {
+  if (typeof iso !== 'string') return '';
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false }).format(
+    new Date(iso),
+  );
+}
+
+// 근태 정정 한쪽(이전·이후) — "지각 09:40~18:02", 기록이 없던 날은 "기록 없음"
+function attendanceSide(v: Record<string, unknown>): string {
+  if (!v.status) return '기록 없음';
+  const times = v.checkInAt ? ` ${kstHhmm(v.checkInAt)}~${kstHhmm(v.checkOutAt)}` : '';
+  return `${ATTENDANCE_LABEL[String(v.status)] ?? v.status}${times}`;
+}
+
+const ENTITY_LABEL: Record<string, string> = { Staff: '직원', Member: '회원', Asset: '자산' };
 
 const ROLE_LABEL: Record<string, string> = {
   SUPER_ADMIN: '본사 관리자',
@@ -86,6 +119,18 @@ export function AuditLogsPage() {
       // D47 — 상세 화면을 열어 원문 번호가 보인 기록. 번호 자체는 남기지 않는다.
       return `${branchName(after.branchId)} · ${ENTITY_LABEL[r.entity] ?? r.entity} 상세 화면`;
     }
+    if (r.action === 'ATTENDANCE_CORRECTED') {
+      // ADR-ATT-04 — 그날 근태의 이전 → 이후와 사유
+      return `${after.date ?? before.date} · ${attendanceSide(before)} → ${attendanceSide(after)} · 사유: ${after.reason ?? '-'}`;
+    }
+    if (r.action === 'MEMBER_STATUS_CHANGED') {
+      const label = (v: unknown) => MEMBER_STATUS_LABEL[String(v)] ?? String(v);
+      return `${branchName(after.branchId)} · ${label(before.status)} → ${label(after.status)}`;
+    }
+    if (r.action === 'ASSET_STATUS_CHANGED') {
+      const label = (v: unknown) => ASSET_STATUS_LABEL[String(v)] ?? String(v);
+      return `${branchName(after.branchId)} · ${label(before.status)} → ${label(after.status)}`;
+    }
     return '-';
   };
 
@@ -109,7 +154,7 @@ export function AuditLogsPage() {
       <div className="page-header">
         <h2>변경 이력</h2>
         <p className="page-desc">
-          D44 — 직원 권한 변경·퇴사 처리·파견·파견 종료를 누가 언제 했는지 남긴 기록입니다. 본사 관리자만 볼 수 있고, 변경과 같은
+          D44 — 직원 권한 변경·퇴사 처리·파견·파견 종료와 근태 정정·회원 상태·자산 상태 변경(D52)을 누가 언제 했는지 남긴 기록입니다. 본사 관리자만 볼 수 있고, 변경과 같은
           트랜잭션에서 기록되어 실패한 요청은 남지 않습니다. 관리자가 회원·직원 상세를 열어 전화번호 원문을 본 기록도 함께
           남습니다(D47, 보존 1년).
         </p>

@@ -10,7 +10,7 @@ import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
  * 이 테스트는 "의도된 규칙"(타 지점 접근 불가)을 검증한다. 현재 동작에 맞추려고 기대값을 바꾸지 말 것.
  */
 
-type Method = 'get' | 'post' | 'patch' | 'delete';
+type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
 interface Ctx {
   seocho: {
     memberId: string;
@@ -191,6 +191,13 @@ describe('지점 데이터 격리', () => {
     { name: '예약 취소', method: 'patch', path: (c) => `/reservations/${c.seocho.reservationId}/cancel`, body: () => ({}) },
     { name: '예약 체크인', method: 'patch', path: (c) => `/reservations/${c.seocho.reservationId}/check-in` },
     { name: '직원 근태 조회', method: 'get', path: (c) => `/attendance?staffId=${c.seocho.staffId}` },
+    // ADR-ATT-04 — 근태 정정·누락일 등록
+    {
+      name: '직원 근태 정정',
+      method: 'put',
+      path: (c) => `/attendance/${c.seocho.staffId}/2026-09-01`,
+      body: () => ({ status: 'NORMAL', checkInTime: '09:00', reason: '격리 확인' }),
+    },
     { name: '직원 휴가 잔여 조회', method: 'get', path: (c) => `/leave-balance/${c.seocho.staffId}` },
     { name: '직원 휴가 신청 목록 조회', method: 'get', path: (c) => `/leave-requests?staffId=${c.seocho.staffId}` },
     { name: '휴가 승인', method: 'patch', path: (c) => `/leave-requests/${c.seocho.leaveId}/approve` },

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
@@ -9,6 +9,7 @@ import { ok } from '../../common/http/api-response';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { CreateWorkLogDto } from './dto/create-work-log.dto';
 import { ConfirmAbsencesDto } from './dto/confirm-absences.dto';
+import { CorrectAttendanceDto } from './dto/correct-attendance.dto';
 
 // 근태관리 A-7 — BRANCH_ADMIN도 Staff 레코드를 가지므로(architecture/system-overview.md §3.1) 본인 근태/휴가/업무일지는
 // STAFF와 동일하게 셀프서비스한다. "본인 지점 조회 + 휴가 승인"은 그 위에 얹히는 관리 권한이다.
@@ -71,6 +72,24 @@ export class AttendanceController {
       throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
     }
     return ok(await this.attendance.confirmAbsences(user.branchId, dto.month, dto.note));
+  }
+
+  // ADR-ATT-04 — 관리자 근태 정정·누락일 등록. 지점 관리자만(결근 확정과 같은 주체, 근태관리 A-7).
+  // 직원 범위는 가드(D46), 그날 기록의 지점(ADR-ATT-03)은 서비스가 본다.
+  @Put('attendance/:staffId/:date')
+  @Roles('BRANCH_ADMIN')
+  @ScopedResource('staff', { param: 'staffId', code: 'ATTENDANCE_SCOPE_VIOLATION' })
+  async correct(
+    @Param('staffId') staffId: string,
+    @Param('date') date: string,
+    @Body() dto: CorrectAttendanceDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    if (!user.branchId) {
+      throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
+    }
+    // 지점 관리자 본인 기록도 고칠 수 있다(정정 권한이 지점 관리자뿐이라 막으면 고칠 사람이 없다). 변경 이력에 행위자=대상으로 남아 본사가 본다.
+    return ok(await this.attendance.correct({ accountId: user.accountId, branchId: user.branchId }, staffId, date, dto));
   }
 
   @Post('leave-requests')

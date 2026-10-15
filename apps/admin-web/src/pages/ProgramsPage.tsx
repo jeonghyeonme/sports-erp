@@ -1,13 +1,13 @@
-import { FormEvent, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AxiosError } from "axios";
-import { api } from "../lib/api";
-import { useAuth } from "../lib/use-auth";
-import { apiErrorMessage, useApiList } from "../lib/use-api-list";
-import { groupByBranch } from "../lib/group-by-branch";
-import { CollapsibleBranchSection } from "../components/CollapsibleBranchSection";
-import { Modal } from "../components/Modal";
-import { useToast } from "../lib/use-toast";
+import { FormEvent, useMemo, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
+import { api } from '../lib/api';
+import { useAuth } from '../lib/use-auth';
+import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { groupByBranch } from '../lib/group-by-branch';
+import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
+import { Modal } from '../components/Modal';
+import { useToast } from '../lib/use-toast';
 import {
   AffectedReservations,
   AgeGroup,
@@ -17,7 +17,7 @@ import {
   PricingType,
   ProgramRow,
   ProgramStatus,
-} from "../lib/types";
+} from '../lib/types';
 
 const AUTO_EXPAND_THRESHOLD = 3;
 
@@ -27,31 +27,31 @@ interface ApiErrorBody {
 }
 
 const PRICING_LABEL: Record<PricingType, string> = {
-  FREE_ACCESS: "자유이용",
-  PAID_SESSION: "회차 예약",
-  PT_PACKAGE: "PT 패키지",
+  FREE_ACCESS: '자유이용',
+  PAID_SESSION: '회차 예약',
+  PT_PACKAGE: 'PT 패키지',
 };
 
 const AGE_GROUP_LABEL: Record<AgeGroup, string> = {
-  ALL: "전체",
-  CHILD: "유아동",
-  TEEN: "청소년",
-  ADULT: "성인",
-  SENIOR: "시니어",
+  ALL: '전체',
+  CHILD: '유아동',
+  TEEN: '청소년',
+  ADULT: '성인',
+  SENIOR: '시니어',
 };
 
 const STATUS_LABEL: Record<ProgramStatus, string> = {
-  PREPARING: "준비중",
-  RUNNING: "진행중",
-  PAUSED: "휴강",
-  ENDED: "종료",
+  PREPARING: '준비중',
+  RUNNING: '진행중',
+  PAUSED: '휴강',
+  ENDED: '종료',
 };
 
 // 강사프로그램게시 A-3 전이표 — 허용되지 않은 전이를 굳이 서버까지 보내지 않고 드롭다운에서부터 막는다.
 const STATUS_TRANSITIONS: Record<ProgramStatus, ProgramStatus[]> = {
-  PREPARING: ["RUNNING", "ENDED"],
-  RUNNING: ["PAUSED", "ENDED"],
-  PAUSED: ["RUNNING", "ENDED"],
+  PREPARING: ['RUNNING', 'ENDED'],
+  RUNNING: ['PAUSED', 'ENDED'],
+  PAUSED: ['RUNNING', 'ENDED'],
   ENDED: [],
 };
 
@@ -71,17 +71,17 @@ interface ProgramForm {
 
 function toForm(p?: ProgramRow): ProgramForm {
   return {
-    name: p?.name ?? "",
-    category: p?.category ?? "",
-    ageGroup: p?.ageGroup ?? "ALL",
-    pricingType: p?.pricingType ?? "PAID_SESSION",
-    price: p ? String(p.price) : "",
-    capacity: p?.capacity != null ? String(p.capacity) : "",
-    facilityId: p?.facilityId ?? "",
-    instructorId: p?.instructorId ?? "",
-    startDate: p?.startDate ?? "",
-    endDate: p?.endDate ?? "",
-    description: p?.description ?? "",
+    name: p?.name ?? '',
+    category: p?.category ?? '',
+    ageGroup: p?.ageGroup ?? 'ALL',
+    pricingType: p?.pricingType ?? 'PAID_SESSION',
+    price: p ? String(p.price) : '',
+    capacity: p?.capacity != null ? String(p.capacity) : '',
+    facilityId: p?.facilityId ?? '',
+    instructorId: p?.instructorId ?? '',
+    startDate: p?.startDate ?? '',
+    endDate: p?.endDate ?? '',
+    description: p?.description ?? '',
   };
 }
 
@@ -98,22 +98,12 @@ function ProgramFormModal({
   const toast = useToast();
   const [form, setForm] = useState<ProgramForm>(toForm(program));
   const isEdit = !!program;
-  const isFree = form.pricingType === "FREE_ACCESS";
+  const isFree = form.pricingType === 'FREE_ACCESS';
 
-  const facilitiesQuery = useApiList<FacilityRow>(
-    ["facilities", branchId],
-    `/facilities?branchId=${branchId}`,
-  );
-  const instructorsQuery = useApiList<InstructorRow>(
-    ["instructors", branchId],
-    `/instructors?branchId=${branchId}`,
-  );
+  const facilitiesQuery = useApiList<FacilityRow>(['facilities', branchId], `/facilities?branchId=${branchId}`);
+  const instructorsQuery = useApiList<InstructorRow>(['instructors', branchId], `/instructors?branchId=${branchId}`);
 
-  const saveMutation = useMutation<
-    ProgramRow,
-    AxiosError<ApiErrorBody>,
-    ProgramForm
-  >({
+  const saveMutation = useMutation<ProgramRow, AxiosError<ApiErrorBody>, ProgramForm>({
     mutationFn: async (dto) => {
       const payload = {
         name: dto.name,
@@ -121,34 +111,21 @@ function ProgramFormModal({
         ageGroup: dto.ageGroup,
         description: dto.description || undefined,
         pricingType: dto.pricingType,
-        price: dto.pricingType === "FREE_ACCESS" ? 0 : Number(dto.price || 0),
-        capacity:
-          dto.pricingType === "FREE_ACCESS"
-            ? undefined
-            : dto.capacity
-              ? Number(dto.capacity)
-              : undefined,
+        price: dto.pricingType === 'FREE_ACCESS' ? 0 : Number(dto.price || 0),
+        capacity: dto.pricingType === 'FREE_ACCESS' ? undefined : dto.capacity ? Number(dto.capacity) : undefined,
         facilityId: dto.facilityId || undefined,
         instructorId: dto.instructorId || undefined,
         startDate: dto.startDate,
         endDate: dto.endDate || undefined,
       };
       if (isEdit) {
-        return (
-          await api.patch<ApiEnvelope<ProgramRow>>(
-            `/programs/${program!.id}`,
-            payload,
-          )
-        ).data.data!;
+        return (await api.patch<ApiEnvelope<ProgramRow>>(`/programs/${program!.id}`, payload)).data.data!;
       }
-      return (await api.post<ApiEnvelope<ProgramRow>>("/programs", payload))
-        .data.data!;
+      return (await api.post<ApiEnvelope<ProgramRow>>('/programs', payload)).data.data!;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
-      toast.success(
-        isEdit ? "프로그램을 수정했습니다." : "프로그램을 등록했습니다.",
-      );
+      queryClient.invalidateQueries({ queryKey: ['programs'] });
+      toast.success(isEdit ? '프로그램을 수정했습니다.' : '프로그램을 등록했습니다.');
       onClose();
     },
   });
@@ -157,29 +134,23 @@ function ProgramFormModal({
     e.preventDefault();
     if (!form.name.trim() || !form.category.trim() || !form.startDate) return;
     // ADR-PRG-01 — 회차 생성 시점이 아니라 여기서 바로 막아 원인-증상 거리를 줄인다(백엔드도 동일 검증).
-    if (form.pricingType === "PAID_SESSION" && !form.capacity) return;
+    if (form.pricingType === 'PAID_SESSION' && !form.capacity) return;
     saveMutation.mutate(form);
   }
 
   return (
-    <Modal title={isEdit ? "프로그램 수정" : "프로그램 등록"} onClose={onClose}>
+    <Modal title={isEdit ? '프로그램 수정' : '프로그램 등록'} onClose={onClose}>
       <form onSubmit={submit}>
         <div className="form-row">
           <div className="field">
             <label>프로그램명 *</label>
-            <input
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              required
-            />
+            <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
           </div>
           <div className="field">
             <label>종목 *</label>
             <input
               value={form.category}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, category: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
               required
             />
           </div>
@@ -189,9 +160,7 @@ function ProgramFormModal({
             <label>연령대</label>
             <select
               value={form.ageGroup}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, ageGroup: e.target.value as AgeGroup }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, ageGroup: e.target.value as AgeGroup }))}
             >
               {(Object.keys(AGE_GROUP_LABEL) as AgeGroup[]).map((g) => (
                 <option key={g} value={g}>
@@ -221,45 +190,36 @@ function ProgramFormModal({
         </div>
         <div className="form-row" style={{ marginTop: 12 }}>
           <div className="field">
-            <label>가격{isFree && " (자유이용은 항상 무료)"}</label>
+            <label>가격{isFree && ' (자유이용은 항상 무료)'}</label>
             <input
               type="number"
               min={0}
-              value={isFree ? "0" : form.price}
+              value={isFree ? '0' : form.price}
               disabled={isFree}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, price: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
             />
           </div>
           <div className="field">
             <label>
               정원
-              {isFree && " (자유이용은 시설 정원으로 관리)"}
-              {form.pricingType === "PAID_SESSION" && " *"}
+              {isFree && ' (자유이용은 시설 정원으로 관리)'}
+              {form.pricingType === 'PAID_SESSION' && ' *'}
             </label>
             <input
               type="number"
               min={1}
-              value={isFree ? "" : form.capacity}
+              value={isFree ? '' : form.capacity}
               disabled={isFree}
-              required={form.pricingType === "PAID_SESSION"}
-              placeholder={isFree ? "-" : undefined}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, capacity: e.target.value }))
-              }
+              required={form.pricingType === 'PAID_SESSION'}
+              placeholder={isFree ? '-' : undefined}
+              onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
             />
           </div>
         </div>
         <div className="form-row" style={{ marginTop: 12 }}>
           <div className="field">
             <label>시설</label>
-            <select
-              value={form.facilityId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, facilityId: e.target.value }))
-              }
-            >
+            <select value={form.facilityId} onChange={(e) => setForm((f) => ({ ...f, facilityId: e.target.value }))}>
               <option value="">선택 안 함</option>
               {(facilitiesQuery.data ?? []).map((f) => (
                 <option key={f.id} value={f.id}>
@@ -272,9 +232,7 @@ function ProgramFormModal({
             <label>강사</label>
             <select
               value={form.instructorId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, instructorId: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, instructorId: e.target.value }))}
             >
               <option value="">배정 안 함</option>
               {(instructorsQuery.data ?? [])
@@ -293,9 +251,7 @@ function ProgramFormModal({
             <input
               type="date"
               value={form.startDate}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, startDate: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
               required
             />
           </div>
@@ -304,9 +260,7 @@ function ProgramFormModal({
             <input
               type="date"
               value={form.endDate}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, endDate: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
             />
           </div>
         </div>
@@ -315,9 +269,7 @@ function ProgramFormModal({
           <textarea
             rows={2}
             value={form.description}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, description: e.target.value }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           />
         </div>
 
@@ -327,19 +279,12 @@ function ProgramFormModal({
           </div>
         )}
 
-        <div
-          className="action-row"
-          style={{ marginTop: 16, justifyContent: "flex-end" }}
-        >
+        <div className="action-row" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
           <button type="button" className="btn-secondary" onClick={onClose}>
             취소
           </button>
-          <button
-            type="submit"
-            className="btn-secondary primary"
-            disabled={saveMutation.isPending}
-          >
-            {isEdit ? "저장" : "등록"}
+          <button type="submit" className="btn-secondary primary" disabled={saveMutation.isPending}>
+            {isEdit ? '저장' : '등록'}
           </button>
         </div>
       </form>
@@ -354,59 +299,49 @@ function affectedReservationsMessage(
 ): string | null {
   // 안내가 필요한 것은 예약을 받을 수 없게 되는 전이(휴강·종료)뿐이다 — 진행중으로 되돌릴 때도 api가 건수를 주지만
   // 그때 "직접 안내하라"고 띄우면 틀린 지시가 된다(옛 window.alert도 같은 결함, log/087).
-  if (updated.status !== "PAUSED" && updated.status !== "ENDED") return null;
+  if (updated.status !== 'PAUSED' && updated.status !== 'ENDED') return null;
   const affected = updated.affectedReservations;
   if (!affected || affected.count === 0) return null;
-  const names = affected.items
-    .map((i) => `${i.memberName ?? "이름 미상"}(${i.date})`)
-    .join(", ");
+  const names = affected.items.map((i) => `${i.memberName ?? '이름 미상'}(${i.date})`).join(', ');
   return (
     `'${updated.name}' 프로그램에 앞으로 예정된 예약이 ${affected.count}건 있습니다: ${names}\n` +
-    "자동 알림은 발송되지 않으니 직접 안내해주세요."
+    '자동 알림은 발송되지 않으니 직접 안내해주세요.'
   );
 }
 
 // 강사프로그램게시 ADR-PRG-04 — 시간대는 오늘 이후 회차의 시작 시각 기준(오전 ~12시, 오후 12~18시, 저녁 18시~).
 const TIME_BAND_LABEL = {
-  MORNING: "오전",
-  AFTERNOON: "오후",
-  EVENING: "저녁",
+  MORNING: '오전',
+  AFTERNOON: '오후',
+  EVENING: '저녁',
 } as const;
 type TimeBand = keyof typeof TIME_BAND_LABEL;
 
 export function ProgramsPage() {
   const { user } = useAuth();
   // 종목 선택지는 거르지 않은 목록에서 뽑는다(종목은 자유 입력 문자열). 필터를 걸면 서버가 거른 목록을 따로 받는다.
-  const allQuery = useApiList<ProgramRow>(["programs"], "/programs");
-  const [category, setCategory] = useState("");
-  const [ageGroup, setAgeGroup] = useState<AgeGroup | "">("");
-  const [timeBand, setTimeBand] = useState<TimeBand | "">("");
+  const allQuery = useApiList<ProgramRow>(['programs'], '/programs');
+  const [category, setCategory] = useState('');
+  const [ageGroup, setAgeGroup] = useState<AgeGroup | ''>('');
+  const [timeBand, setTimeBand] = useState<TimeBand | ''>('');
   const filterQs = new URLSearchParams(
-    Object.entries({ category, ageGroup, timeBand }).filter(
-      ([, v]) => v !== "",
-    ),
+    Object.entries({ category, ageGroup, timeBand }).filter(([, v]) => v !== ''),
   ).toString();
   const filteredQuery = useApiList<ProgramRow>(
-    ["programs", "filtered", filterQs],
+    ['programs', 'filtered', filterQs],
     `/programs?${filterQs}`,
-    filterQs !== "",
+    filterQs !== '',
   );
-  const { data, isLoading, isError, error } =
-    filterQs !== "" ? filteredQuery : allQuery;
+  const { data, isLoading, isError, error } = filterQs !== '' ? filteredQuery : allQuery;
   const categories = useMemo(
-    () =>
-      [...new Set((allQuery.data ?? []).map((p) => p.category))].sort((a, b) =>
-        a.localeCompare(b, "ko"),
-      ),
+    () => [...new Set((allQuery.data ?? []).map((p) => p.category))].sort((a, b) => a.localeCompare(b, 'ko')),
     [allQuery.data],
   );
-  const [search, setSearch] = useState("");
-  const [modalProgram, setModalProgram] = useState<ProgramRow | "new" | null>(
-    null,
-  );
+  const [search, setSearch] = useState('');
+  const [modalProgram, setModalProgram] = useState<ProgramRow | 'new' | null>(null);
   const queryClient = useQueryClient();
   const toast = useToast();
-  const canManage = user?.role === "BRANCH_ADMIN";
+  const canManage = user?.role === 'BRANCH_ADMIN';
 
   // ADR-PRG-02 — 응답에 딸려오는 affectedReservations를 화면에서 즉시 보여줘야 "관리자가 즉시 인지"라는
   // 결정 취지가 실제로 성립한다(값만 내려주고 화면에서 안 보이면 ADR-BRD-01·ADR-FAC-01과 같은 문제가 재발).
@@ -417,14 +352,13 @@ export function ProgramsPage() {
   >({
     mutationFn: async ({ id, status }) =>
       (
-        await api.patch<
-          ApiEnvelope<
-            ProgramRow & { affectedReservations?: AffectedReservations }
-          >
-        >(`/programs/${id}/status`, { status })
+        await api.patch<ApiEnvelope<ProgramRow & { affectedReservations?: AffectedReservations }>>(
+          `/programs/${id}/status`,
+          { status },
+        )
       ).data.data!,
     onSuccess: (updated) => {
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
+      queryClient.invalidateQueries({ queryKey: ['programs'] });
       toast.success(`'${updated.name}' 상태를 바꿨습니다.`);
       const warning = affectedReservationsMessage(updated);
       if (warning) toast.warning(warning);
@@ -438,15 +372,10 @@ export function ProgramsPage() {
     string
   >({
     mutationFn: async (id) =>
-      (
-        await api.delete<
-          ApiEnvelope<
-            ProgramRow & { affectedReservations?: AffectedReservations }
-          >
-        >(`/programs/${id}`)
-      ).data.data!,
+      (await api.delete<ApiEnvelope<ProgramRow & { affectedReservations?: AffectedReservations }>>(`/programs/${id}`))
+        .data.data!,
     onSuccess: (updated) => {
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
+      queryClient.invalidateQueries({ queryKey: ['programs'] });
       toast.success(`'${updated.name}' 프로그램을 종료했습니다.`);
       const warning = affectedReservationsMessage(updated);
       if (warning) toast.warning(warning);
@@ -456,50 +385,38 @@ export function ProgramsPage() {
   const groups = useMemo(() => {
     const all = groupByBranch(data ?? []);
     const term = search.trim().toLowerCase();
-    return term
-      ? all.filter((g) => g.branchName.toLowerCase().includes(term))
-      : all;
+    return term ? all.filter((g) => g.branchName.toLowerCase().includes(term)) : all;
   }, [data, search]);
 
-  const autoExpand =
-    groups.length > 0 && groups.length <= AUTO_EXPAND_THRESHOLD;
+  const autoExpand = groups.length > 0 && groups.length <= AUTO_EXPAND_THRESHOLD;
 
   return (
     <>
       <div
         className="page-header"
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
       >
         <div>
           <h2>프로그램</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
-            강사프로그램게시 문서 기준 더미 데이터입니다. status와 pricingType이
-            실제로 구분되어 내려옵니다. 지점별로 묶어서 보여줍니다(83개 지점
-            규모 대응 — 지점명으로 검색해 좁혀보세요).
+            강사프로그램게시 문서 기준 더미 데이터입니다. status와 pricingType이 실제로 구분되어 내려옵니다. 지점별로
+            묶어서 보여줍니다(83개 지점 규모 대응 — 지점명으로 검색해 좁혀보세요).
           </p>
         </div>
         {canManage && user?.branchId && (
-          <button
-            className="btn-secondary primary"
-            style={{ flexShrink: 0 }}
-            onClick={() => setModalProgram("new")}
-          >
+          <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setModalProgram('new')}>
             + 프로그램 등록
           </button>
         )}
       </div>
 
-      {isError && (
-        <div className="forbidden-note">{apiErrorMessage(error)}</div>
-      )}
+      {isError && <div className="forbidden-note">{apiErrorMessage(error)}</div>}
       {(statusMutation.isError || endMutation.isError) && (
-        <div className="forbidden-note">
-          {apiErrorMessage(statusMutation.error ?? endMutation.error ?? null)}
-        </div>
+        <div className="forbidden-note">{apiErrorMessage(statusMutation.error ?? endMutation.error ?? null)}</div>
       )}
       {isLoading && <div className="loading-state">불러오는 중...</div>}
 
@@ -528,7 +445,7 @@ export function ProgramsPage() {
             className="role-select"
             aria-label="연령대"
             value={ageGroup}
-            onChange={(e) => setAgeGroup(e.target.value as AgeGroup | "")}
+            onChange={(e) => setAgeGroup(e.target.value as AgeGroup | '')}
           >
             <option value="">연령대 전체</option>
             {(Object.keys(AGE_GROUP_LABEL) as AgeGroup[]).map((g) => (
@@ -541,7 +458,7 @@ export function ProgramsPage() {
             className="role-select"
             aria-label="시간대"
             value={timeBand}
-            onChange={(e) => setTimeBand(e.target.value as TimeBand | "")}
+            onChange={(e) => setTimeBand(e.target.value as TimeBand | '')}
           >
             <option value="">시간대 전체</option>
             {(Object.keys(TIME_BAND_LABEL) as TimeBand[]).map((b) => (
@@ -555,17 +472,14 @@ export function ProgramsPage() {
 
       {!isLoading && !isError && (data?.length ?? 0) === 0 && (
         <div className="empty-state">
-          {filterQs !== ""
-            ? "조건에 맞는 프로그램이 없습니다. 시간대는 오늘 이후 회차가 있는 프로그램만 거릅니다."
-            : "표시할 프로그램이 없습니다."}
+          {filterQs !== ''
+            ? '조건에 맞는 프로그램이 없습니다. 시간대는 오늘 이후 회차가 있는 프로그램만 거릅니다.'
+            : '표시할 프로그램이 없습니다.'}
         </div>
       )}
-      {!isLoading &&
-        !isError &&
-        (data?.length ?? 0) > 0 &&
-        groups.length === 0 && (
-          <div className="empty-state">검색 결과가 없습니다.</div>
-        )}
+      {!isLoading && !isError && (data?.length ?? 0) > 0 && groups.length === 0 && (
+        <div className="empty-state">검색 결과가 없습니다.</div>
+      )}
 
       {!isError &&
         groups.map((group) => (
@@ -599,12 +513,12 @@ export function ProgramsPage() {
                           <button
                             className="branch-row-name"
                             style={{
-                              background: "none",
-                              border: "none",
+                              background: 'none',
+                              border: 'none',
                               padding: 0,
-                              cursor: "pointer",
-                              color: "inherit",
-                              font: "inherit",
+                              cursor: 'pointer',
+                              color: 'inherit',
+                              font: 'inherit',
                             }}
                             onClick={() => setModalProgram(p)}
                           >
@@ -616,10 +530,8 @@ export function ProgramsPage() {
                       </td>
                       <td>{p.category}</td>
                       <td>{PRICING_LABEL[p.pricingType]}</td>
-                      <td>
-                        {p.price > 0 ? `${p.price.toLocaleString()}원` : "무료"}
-                      </td>
-                      <td>{p.instructorName ?? "-"}</td>
+                      <td>{p.price > 0 ? `${p.price.toLocaleString()}원` : '무료'}</td>
+                      <td>{p.instructorName ?? '-'}</td>
                       <td>
                         {canManage && nextStatuses.length > 0 ? (
                           <select
@@ -633,9 +545,7 @@ export function ProgramsPage() {
                               })
                             }
                           >
-                            <option value={p.status}>
-                              {STATUS_LABEL[p.status]}
-                            </option>
+                            <option value={p.status}>{STATUS_LABEL[p.status]}</option>
                             {nextStatuses.map((s) => (
                               <option key={s} value={s}>
                                 {STATUS_LABEL[s]}(으)로 전환
@@ -643,15 +553,13 @@ export function ProgramsPage() {
                             ))}
                           </select>
                         ) : (
-                          <span className={`badge ${p.status}`}>
-                            {STATUS_LABEL[p.status]}
-                          </span>
+                          <span className={`badge ${p.status}`}>{STATUS_LABEL[p.status]}</span>
                         )}
                       </td>
                       <td>{p.startDate}</td>
                       {canManage && (
                         <td>
-                          {p.status !== "ENDED" && (
+                          {p.status !== 'ENDED' && (
                             <button
                               className="btn-danger-outline"
                               disabled={endMutation.isPending}
@@ -673,7 +581,7 @@ export function ProgramsPage() {
       {modalProgram && user?.branchId && (
         <ProgramFormModal
           branchId={user.branchId}
-          program={modalProgram === "new" ? undefined : modalProgram}
+          program={modalProgram === 'new' ? undefined : modalProgram}
           onClose={() => setModalProgram(null)}
         />
       )}

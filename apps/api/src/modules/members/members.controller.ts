@@ -123,8 +123,8 @@ export class MembersController {
   @Patch(':id/status')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('member')
-  async updateStatus(@Param('id') id: string, @Body() dto: UpdateMemberStatusDto) {
-    return ok(await this.memberService.updateStatus(id, dto.status));
+  async updateStatus(@Param('id') id: string, @Body() dto: UpdateMemberStatusDto, @CurrentUser() user: RequestUser) {
+    return ok(await this.memberService.updateStatus(id, dto.status, user.accountId));
   }
 
   // ADR-MEM-03 — 수강내역 탭. 예약(Reservation)과 별개로 "이 회원이 이 프로그램을 듣고 있다"는 등록 사실.

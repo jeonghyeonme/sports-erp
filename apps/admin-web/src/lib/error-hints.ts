@@ -19,7 +19,7 @@ export const ERROR_HINTS: Record<string, string> = {
   INSTRUCTOR_SCOPE_VIOLATION: '다른 지점 강사입니다. 자기 지점 강사를 고르세요.',
   FACILITY_SCOPE_VIOLATION: '다른 지점 시설입니다. 자기 지점 시설을 고르세요.',
   RESERVATION_SCOPE_VIOLATION: '다른 지점(또는 다른 회원)의 예약입니다. 목록을 새로고침해 다시 고르세요.',
-  ATTENDANCE_SCOPE_VIOLATION: '다른 지점 근태 기록입니다. 자기 지점 신청만 처리할 수 있습니다.',
+  ATTENDANCE_SCOPE_VIOLATION: '다른 지점 근태 기록입니다. 그날 근무한 지점의 관리자만 처리할 수 있습니다.',
   POST_SCOPE_VIOLATION: '이 글을 볼 수 있는 지점이 아닙니다. 게시판 목록으로 돌아가세요.',
   ASSET_SCOPE_VIOLATION: '다른 지점 자산입니다. 이관이 필요하면 본사 관리자에게 요청하세요.',
   DOCUMENT_SCOPE_VIOLATION: '이 문서를 볼 수 있는 지점이 아닙니다. 본사 관리자에게 요청하세요.',
@@ -72,6 +72,11 @@ export const ERROR_HINTS: Record<string, string> = {
   // 근태
   ALREADY_CHECKED_IN: '오늘은 이미 체크인했습니다. 퇴근할 때 체크아웃을 누르세요.',
   ALREADY_CHECKED_OUT: '오늘은 이미 체크아웃했습니다. 정정이 필요하면 지점 관리자에게 요청하세요.',
+  // 관리자 정정(ADR-ATT-04)
+  CHECK_IN_REQUIRED: '정상·지각·조퇴는 출근 시각을 넣으세요. 출근하지 않은 날이면 결근이나 휴가를 고르세요.',
+  INVALID_TIME_RANGE: '퇴근 시각을 출근 시각보다 늦게 넣으세요. 다음 날 새벽 퇴근은 그날 23:59로 적고 사유에 남기세요.',
+  FUTURE_ATTENDANCE: '오늘까지의 근태만 고칠 수 있습니다. 앞으로 쉴 날은 휴가 신청으로 처리하세요.',
+  ATTENDANCE_CONFLICT: '같은 날 기록이 방금 생겼습니다. 화면을 새로고침한 뒤 그 기록을 "정정"하세요.',
   NOT_CHECKED_IN: '체크인을 먼저 하세요.',
 
   // 프로그램·예약·결제
