@@ -10,6 +10,7 @@ import { groupByBranch } from '../lib/group-by-branch';
 import { DEMO_PASSWORD } from '../lib/demo-account';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { Modal } from '../components/Modal';
+import { ChangeRequestInbox, MyChangeRequests } from '../components/StaffChangeRequests';
 import { ApiEnvelope, BranchSummary, StaffRow } from '../lib/types';
 
 const AUTO_EXPAND_THRESHOLD = 3;
@@ -265,6 +266,9 @@ export function StaffPage() {
 
       {showHire && <HireStaffModal onClose={() => setShowHire(false)} />}
 
+      {/* ADR-STF-09 — 직원 본인 신청(이름·연락처)을 지점 관리자가 승인한다. 대기 건이 있을 때만 보인다. */}
+      {user?.role === 'BRANCH_ADMIN' && <ChangeRequestInbox />}
+
       {!isSelfServiceOnly && (
         <div className="list-toolbar" style={{ gap: 8 }}>
           <button className={tab === 'active' ? 'filter-chip active' : 'filter-chip'} onClick={() => setTab('active')}>
@@ -300,6 +304,8 @@ export function StaffPage() {
       {isLoading && <div className="loading-state">불러오는 중...</div>}
 
       {!isError && isSelfServiceOnly && rows.length > 0 && <StaffTable rows={rows} />}
+      {/* ADR-STF-09 — 직원 본인은 이름·연락처를 신청으로 바꾼다(지점 관리자 승인). */}
+      {!isError && isSelfServiceOnly && meQuery.data && <MyChangeRequests staff={meQuery.data} />}
 
       {!isError && !isSelfServiceOnly && !isLoading && rows.length === 0 && (
         <div className="empty-state">

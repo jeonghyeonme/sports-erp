@@ -24,6 +24,7 @@ interface Ctx {
     postId: string;
     reservationId: string;
     leaveId: string;
+    changeRequestId: string;
     ids: string[]; // 서초점 소유 리소스 id 전체 (목록 누수 스캔용)
   };
   gangnam: { memberId: string; staffId: string; programId: string; facilityId: string; ids: string[] };
@@ -86,6 +87,8 @@ describe('지점 데이터 격리', () => {
       endDate: '2026-12-02',
     });
     if (leave.status !== 201) throw new Error(`픽스처 실패(휴가 신청): ${leave.status} ${JSON.stringify(leave.body)}`);
+    const changeReq = await call(tok.seochoStaff, 'post', '/staff-change-requests', { field: 'phone', newValue: '010-9999-0000' });
+    if (changeReq.status !== 201) throw new Error(`픽스처 실패(인사 변경 신청): ${changeReq.status} ${JSON.stringify(changeReq.body)}`);
     await call(tok.seochoStaff, 'post', '/attendance/check-in');
     await call(tok.seochoStaff, 'post', '/work-logs', { date: '2026-09-20', content: '격리 테스트 업무일지' });
 
@@ -123,6 +126,7 @@ describe('지점 데이터 격리', () => {
         postId: seochoPost.id,
         reservationId: resv.body.data.reservation?.id ?? resv.body.data.id,
         leaveId: leave.body.data.id,
+        changeRequestId: changeReq.body.data.id,
         ids: [...ownedBy(BRANCH.seocho), ...seochoSlots.map((s) => s.id)],
       },
       gangnam: { memberId: gm.id, staffId: gs.id, programId: gp.id, facilityId: gf.id, ids: ownedBy(BRANCH.gangnam) },
@@ -203,6 +207,9 @@ describe('지점 데이터 격리', () => {
     { name: '휴가 승인', method: 'patch', path: (c) => `/leave-requests/${c.seocho.leaveId}/approve` },
     { name: '휴가 반려', method: 'patch', path: (c) => `/leave-requests/${c.seocho.leaveId}/reject`, body: () => ({ reason: 'x' }) },
     { name: '직원 업무일지 조회', method: 'get', path: (c) => `/work-logs?staffId=${c.seocho.staffId}` },
+    // ADR-STF-09 — 인사 변경 신청 승인·반려
+    { name: '인사 변경 신청 승인', method: 'patch', path: (c) => `/staff-change-requests/${c.seocho.changeRequestId}/approve` },
+    { name: '인사 변경 신청 반려', method: 'patch', path: (c) => `/staff-change-requests/${c.seocho.changeRequestId}/reject` },
     { name: '게시글 상세 조회', method: 'get', path: (c) => `/posts/${c.seocho.postId}` },
     { name: '게시글 수정', method: 'patch', path: (c) => `/posts/${c.seocho.postId}`, body: () => ({ title: 'x' }) },
     { name: '게시글 삭제', method: 'delete', path: (c) => `/posts/${c.seocho.postId}` },

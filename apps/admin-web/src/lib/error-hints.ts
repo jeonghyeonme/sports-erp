@@ -68,6 +68,9 @@ export const ERROR_HINTS: Record<string, string> = {
   INVALID_STATUS_TRANSITION: '지금 상태에서는 그 상태로 바꿀 수 없습니다. 화면에 보이는 전환 버튼만 쓰세요.',
   STAFF_ALREADY_RESIGNED: '이미 퇴사 처리된 직원입니다.',
   LEAVE_REQUEST_ALREADY_REVIEWED: '이미 승인·반려된 신청입니다. 화면을 새로고침하세요.',
+  CHANGE_REQUEST_ALREADY_REVIEWED: '이미 처리됐거나 직원이 취소한 신청입니다. 화면을 새로고침하세요.',
+  CHANGE_REQUEST_PENDING: '같은 항목에 대기 중인 신청이 있습니다. 아래 목록에서 그 신청을 취소한 뒤 다시 신청하세요.',
+  CHANGE_REQUEST_NO_CHANGE: '지금 값과 같습니다. 바꿀 값을 다시 확인하세요.',
 
   // 근태
   ALREADY_CHECKED_IN: '오늘은 이미 체크인했습니다. 퇴근할 때 체크아웃을 누르세요.',

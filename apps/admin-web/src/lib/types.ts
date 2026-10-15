@@ -378,3 +378,17 @@ export interface AuditLogRow {
   before?: Record<string, unknown>;
   after?: Record<string, unknown>;
 }
+
+// 인사정보관리 ADR-STF-09 — 인사 변경 신청(이름·연락처). 신청함 목록의 연락처는 마스킹돼 온다(ADR-MEM-04).
+export interface ChangeRequestRow {
+  id: string;
+  staffId: string;
+  staffName?: string;
+  field: 'name' | 'phone';
+  oldValue?: string;
+  newValue: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+}
