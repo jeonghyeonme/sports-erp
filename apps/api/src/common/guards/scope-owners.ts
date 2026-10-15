@@ -16,7 +16,8 @@ export type ScopedKind =
   | 'asset'
   | 'document'
   | 'reservation'
-  | 'leaveRequest';
+  | 'leaveRequest'
+  | 'staffChangeRequest';
 
 export interface ScopeOwner {
   branchId: string | null;
@@ -51,6 +52,12 @@ export const SCOPED_KINDS: Record<ScopedKind, KindInfo> = {
     label: '휴가 신청',
     notFound: ['LEAVE_REQUEST_NOT_FOUND', '휴가 신청을 찾을 수 없습니다.'],
     violation: 'ATTENDANCE_SCOPE_VIOLATION',
+  },
+  // ADR-STF-09 — 인사 변경 신청은 신청자의 현재 소속 지점 관리자가 처리한다(휴가 신청과 같은 규칙).
+  staffChangeRequest: {
+    label: '인사 변경 신청',
+    notFound: ['CHANGE_REQUEST_NOT_FOUND', '변경 신청을 찾을 수 없습니다.'],
+    violation: 'STAFF_SCOPE_VIOLATION',
   },
 };
 
@@ -92,6 +99,13 @@ export class ScopeOwners {
       case 'leaveRequest': {
         // 근태관리 A-7 — 휴가 신청은 신청자의 "현재" 소속 지점 관리자가 처리한다.
         const row = await p.leaveRequest.findUnique({
+          where: { id },
+          select: { staffId: true, staff: { select: { branchId: true } } },
+        });
+        return row ? { branchId: row.staff.branchId, staffId: row.staffId } : null;
+      }
+      case 'staffChangeRequest': {
+        const row = await p.staffProfileChangeRequest.findUnique({
           where: { id },
           select: { staffId: true, staff: { select: { branchId: true } } },
         });

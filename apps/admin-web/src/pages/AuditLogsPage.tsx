@@ -8,7 +8,8 @@ import { useAuth } from '../lib/use-auth';
 
 const PAGE_SIZE = 20;
 
-// D44 — 지금 기록하는 이벤트 8종(파견 종료는 ADR-STF-07, 전화번호 열람은 D47, 근태 정정·회원/자산 상태는 D52).
+// D44 — 지금 기록하는 이벤트 9종(파견 종료는 ADR-STF-07, 전화번호 열람은 D47, 근태 정정·회원/자산 상태는 D52,
+// 인사 정보 변경 신청 승인은 ADR-STF-09).
 // 늘릴 때는 api `prisma/audit.ts`의 AuditAction과 함께 고친다.
 const ACTION_LABEL: Record<string, string> = {
   ROLE_CHANGED: '권한 변경',
@@ -19,6 +20,7 @@ const ACTION_LABEL: Record<string, string> = {
   ATTENDANCE_CORRECTED: '근태 정정',
   MEMBER_STATUS_CHANGED: '회원 상태 변경',
   ASSET_STATUS_CHANGED: '자산 상태 변경',
+  STAFF_PROFILE_CHANGED: '인사 정보 변경(신청 승인)',
 };
 
 const ATTENDANCE_LABEL: Record<string, string> = {
@@ -126,6 +128,10 @@ export function AuditLogsPage() {
     if (r.action === 'MEMBER_STATUS_CHANGED') {
       const label = (v: unknown) => MEMBER_STATUS_LABEL[String(v)] ?? String(v);
       return `${branchName(after.branchId)} · ${label(before.status)} → ${label(after.status)}`;
+    }
+    if (r.action === 'STAFF_PROFILE_CHANGED') {
+      // ADR-STF-09 — 연락처는 값을 남기지 않는다(D44 결정 4)
+      return after.field === 'name' ? `이름 ${before.name ?? '-'} → ${after.name ?? '-'}` : '연락처 변경(값은 남기지 않음)';
     }
     if (r.action === 'ASSET_STATUS_CHANGED') {
       const label = (v: unknown) => ASSET_STATUS_LABEL[String(v)] ?? String(v);
