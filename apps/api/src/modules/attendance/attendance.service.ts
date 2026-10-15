@@ -12,6 +12,7 @@ import {
 import { AppException } from '../../common/exceptions/app.exception';
 import { kstHoursMinutes, todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
+import { recordAudit } from '../../prisma/audit';
 import {
   MockAttendanceRecord,
   MockLeaveBalance,
@@ -201,6 +202,79 @@ export class AttendanceService {
       skipDuplicates: true,
     });
     return created.map(toMockAttendance).sort((a, b) => a.staffId.localeCompare(b.staffId) || a.date.localeCompare(b.date));
+  }
+
+  // ── 관리자 정정(ADR-ATT-04) ─────────────────────────────
+
+  /**
+   * 그날 근태를 관리자가 정한 값으로 바꾼다. 기록이 없으면 만든다(체크인을 잊은 날 — RFP "현장별>개인별 근태 등록").
+   * - 지점: 기록의 지점(ADR-ATT-03 스냅샷), 기록이 없으면 그날 파견 지점이 요청자 지점이어야 한다. 직원의 현재 지점은 가드가 본다(D46).
+   * - 상태는 관리자가 고른다. 출근 상태(정상·지각·조퇴)는 출근 시각이 필요하고, 결근·휴가는 시각을 비운다.
+   * - 변경 이력(entity=Staff, ATTENDANCE_CORRECTED)을 같은 트랜잭션에 남긴다(D44·D52). 바뀐 것이 없으면 쓰지도 남기지도 않는다.
+   * - 같은 날을 두 관리자가 동시에 고치면 행 락으로 줄을 세운다. 둘 다 새로 만들려 하면 한쪽은 409.
+   */
+  async correct(
+    actor: { accountId: string; branchId: string },
+    staffId: string,
+    date: string,
+    input: { status: AttendanceStatus; checkInTime?: string; checkOutTime?: string; reason: string },
+  ): Promise<MockAttendanceRecord> {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || day(dateOf(date)) !== date) {
+      throw new AppException('VALIDATION_ERROR', '날짜는 YYYY-MM-DD 형식이어야 합니다.', 400);
+    }
+    if (date > todayKst()) throw new AppException('FUTURE_ATTENDANCE', '오늘 이후 날짜의 근태는 정정할 수 없습니다.', 400);
+    const worked = input.status === 'NORMAL' || input.status === 'LATE' || input.status === 'EARLY_LEAVE';
+    if (worked && !input.checkInTime) {
+      throw new AppException('CHECK_IN_REQUIRED', '정상·지각·조퇴는 출근 시각이 필요합니다.', 400);
+    }
+    if (!worked && (input.checkInTime || input.checkOutTime)) {
+      throw new AppException('VALIDATION_ERROR', '결근·휴가에는 출퇴근 시각을 넣지 않습니다.', 400);
+    }
+    if (input.checkInTime && input.checkOutTime && input.checkOutTime < input.checkInTime) {
+      throw new AppException('INVALID_TIME_RANGE', '퇴근 시각이 출근 시각보다 빠릅니다.', 400);
+    }
+    const kst = (hhmm?: string) => (hhmm ? new Date(`${date}T${hhmm}:00+09:00`) : null);
+    const next = { status: input.status, checkInAt: kst(input.checkInTime), checkOutAt: kst(input.checkOutTime) };
+    const reason = input.reason.trim();
+
+    const staff = await this.prisma.staff.findUnique({ where: { id: staffId }, select: { branchId: true } });
+    if (!staff) throw staffNotFound();
+
+    try {
+      const row = await this.prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "AttendanceRecord" WHERE "staffId" = ${staffId} AND "date" = ${dateOf(date)} FOR UPDATE`;
+        const existing = await tx.attendanceRecord.findUnique({ where: { staffId_date: { staffId, date: dateOf(date) } } });
+        const branchId = existing?.branchId ?? (await this.branchIdForStaffOnDate(staffId, date)) ?? staff.branchId;
+        if (branchId !== actor.branchId) {
+          throw new AppException('ATTENDANCE_SCOPE_VIOLATION', '다른 지점에서 근무한 날의 근태는 정정할 수 없습니다.', 403);
+        }
+        const snapshot = (r: { status: AttendanceStatus; checkInAt: Date | null; checkOutAt: Date | null }) => ({
+          status: r.status,
+          checkInAt: r.checkInAt?.toISOString() ?? null,
+          checkOutAt: r.checkOutAt?.toISOString() ?? null,
+        });
+        if (existing && JSON.stringify(snapshot(existing)) === JSON.stringify(snapshot(next))) return existing;
+
+        const saved = existing
+          ? await tx.attendanceRecord.update({ where: { id: existing.id }, data: { ...next, note: reason } })
+          : await tx.attendanceRecord.create({ data: { staffId, branchId, date: dateOf(date), ...next, note: reason } });
+        await recordAudit(tx, {
+          actorId: actor.accountId,
+          entity: 'Staff',
+          entityId: staffId,
+          action: 'ATTENDANCE_CORRECTED',
+          before: existing ? { date, ...snapshot(existing) } : { date, status: null },
+          after: { date, ...snapshot(saved), reason, branchId },
+        });
+        return saved;
+      });
+      return toMockAttendance(row);
+    } catch (e) {
+      if (isUniqueViolation(e)) {
+        throw new AppException('ATTENDANCE_CONFLICT', '같은 날 근태가 방금 다른 요청으로 만들어졌습니다. 다시 불러와 확인하세요.', 409);
+      }
+      throw e;
+    }
   }
 
   // ── 휴가·연차 잔여 ──────────────────────────────────────

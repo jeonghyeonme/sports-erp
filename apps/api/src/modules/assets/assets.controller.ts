@@ -53,7 +53,7 @@ export class AssetsController {
 
   @Patch(':id/status')
   @ScopedResource('asset')
-  async updateStatus(@Param('id') id: string, @Body() dto: UpdateAssetStatusDto) {
-    return ok(await this.assets.updateStatus(id, dto.status));
+  async updateStatus(@Param('id') id: string, @Body() dto: UpdateAssetStatusDto, @CurrentUser() user: RequestUser) {
+    return ok(await this.assets.updateStatus(id, dto.status, user.accountId));
   }
 }

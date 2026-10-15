@@ -44,21 +44,26 @@ export class AuditLogService {
         take: filter.pageSize,
       }),
     ]);
-    // 대상 이름은 쪽 단위로 한 번에 모은다(행마다 조회하지 않는다). entity는 Staff·Member(D47 열람 기록).
+    // 대상 이름은 쪽 단위로 한 번에 모은다(행마다 조회하지 않는다). entity는 Staff·Member(D47 열람 기록)·Asset(D52).
     const idsOf = (entity: string) => [...new Set(rows.filter((r) => r.entity === entity).map((r) => r.entityId))];
     const staffIds = idsOf('Staff');
     const memberIds = idsOf('Member');
-    const [staff, members] = await Promise.all([
+    const assetIds = idsOf('Asset');
+    const [staff, members, assets] = await Promise.all([
       staffIds.length
         ? this.prisma.staff.findMany({ where: { id: { in: staffIds } }, select: { id: true, name: true } })
         : [],
       memberIds.length
         ? this.prisma.member.findMany({ where: { id: { in: memberIds } }, select: { id: true, name: true } })
         : [],
+      assetIds.length
+        ? this.prisma.asset.findMany({ where: { id: { in: assetIds } }, select: { id: true, name: true, assetCode: true } })
+        : [],
     ]);
     const names = new Map<string, string>([
       ...staff.map((x) => [`Staff:${x.id}`, x.name] as const),
       ...members.map((x) => [`Member:${x.id}`, x.name] as const),
+      ...assets.map((x) => [`Asset:${x.id}`, `${x.name}(${x.assetCode})`] as const),
     ]);
     const items = rows.map((r) => ({
       id: r.id,

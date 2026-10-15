@@ -12,7 +12,7 @@ import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PageRequest } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode } from '../../prisma/integrity';
-import { recordPhoneView } from '../../prisma/audit';
+import { recordAudit, recordPhoneView } from '../../prisma/audit';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchService } from '../branches/branch.service';
 import { MockCourseEnrollment, MockMember, MockPTSession, MockPTSessionLog } from '../../fixtures/mock-data.types';
@@ -246,12 +246,23 @@ export class MemberService {
 
   // 회원관리 A-5 PATCH /members/:id/status, 회원관리 A-6 "탈퇴 시 소프트 삭제 + Account.isActive=false".
   // WITHDRAWN이 아니면 다시 로그인 가능하게 푼다 — 안 풀면 탈퇴 취소 후에도 영구히 로그인 불가로 남는다.
-  async updateStatus(id: string, status: MemberStatus): Promise<MemberView> {
+  // D52 — 상태가 실제로 바뀔 때만 변경 이력(MEMBER_STATUS_CHANGED)을 같은 트랜잭션에 남긴다.
+  async updateStatus(id: string, status: MemberStatus, actorId: string): Promise<MemberView> {
     const member = await this.requireMember(id);
     await this.prisma.$transaction(async (tx) => {
       await tx.member.update({ where: { id }, data: { status } });
       if (member.accountId) {
         await tx.account.update({ where: { id: member.accountId }, data: { isActive: status !== 'WITHDRAWN' } });
+      }
+      if (member.status !== status) {
+        await recordAudit(tx, {
+          actorId,
+          entity: 'Member',
+          entityId: id,
+          action: 'MEMBER_STATUS_CHANGED',
+          before: { status: member.status },
+          after: { status, branchId: member.branchId },
+        });
       }
     });
     return this.view(id);
