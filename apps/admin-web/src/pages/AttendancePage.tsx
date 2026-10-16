@@ -6,6 +6,8 @@ import { useAuth } from '../lib/use-auth';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { useToast } from '../lib/use-toast';
 import { AbsenceConfirmSection } from '../components/AbsenceConfirmSection';
+import { ExportCsvButton } from '../components/ExportCsvButton';
+import { ATTENDANCE_SUMMARY_COLUMNS } from '../lib/export-columns';
 import {
   ApiEnvelope,
   AttendanceRecordRow,
@@ -393,7 +395,15 @@ export function AttendancePage() {
       {isAdmin && (
         <>
           <div className="detail-section">
-            <h3 className="section-title">지점 근태 요약(이번 달)</h3>
+            <div className="action-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 className="section-title">지점 근태 요약(이번 달)</h3>
+              <ExportCsvButton
+                filename={`attendance-summary_${user?.branchId ?? 'branch'}_${month}.csv`}
+                columns={ATTENDANCE_SUMMARY_COLUMNS}
+                disabled={(summaryQuery.data?.length ?? 0) === 0}
+                load={async () => ({ rows: summaryQuery.data ?? [] })}
+              />
+            </div>
             {(summaryQuery.data?.length ?? 0) === 0 ? (
               <div className="empty-state">표시할 데이터가 없습니다.</div>
             ) : (

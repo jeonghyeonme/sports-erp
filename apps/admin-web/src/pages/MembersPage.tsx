@@ -7,6 +7,9 @@ import { apiErrorMessage, useApiPage } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
 import { Pager } from '../components/Pager';
 import { BranchFilter } from '../components/BranchFilter';
+import { ExportCsvButton } from '../components/ExportCsvButton';
+import { fetchAllPages, kstDateStamp } from '../lib/csv';
+import { MEMBER_COLUMNS } from '../lib/export-columns';
 import { ApiEnvelope, MemberRow } from '../lib/types';
 import { useAuth } from '../lib/use-auth';
 import { useToast } from '../lib/use-toast';
@@ -225,6 +228,19 @@ export function MembersPage() {
         <button type="submit" className="btn-secondary">
           검색
         </button>
+        {/* M6 — 지금 조건(지점·상태·검색) 그대로 전체 쪽을 받는다. 연락처는 마스킹 값 그대로(ADR-MEM-04). */}
+        <ExportCsvButton
+          filename={`members_${kstDateStamp()}.csv`}
+          columns={MEMBER_COLUMNS}
+          disabled={total === 0}
+          load={() => {
+            const p = new URLSearchParams();
+            if (branchId) p.set('branchId', branchId);
+            if (status) p.set('status', status);
+            if (q) p.set('q', q);
+            return fetchAllPages<MemberRow>('/members', p);
+          }}
+        />
       </form>
 
       {isError && <div className="forbidden-note">{apiErrorMessage(error)}</div>}

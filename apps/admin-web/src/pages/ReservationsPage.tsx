@@ -4,7 +4,11 @@ import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
+import { ExportCsvButton } from '../components/ExportCsvButton';
+import { fetchAllPages, kstDateStamp } from '../lib/csv';
+import { PAYMENT_COLUMNS } from '../lib/export-columns';
 import { Pager } from '../components/Pager';
+import { WeeklyTimetable } from '../components/WeeklyTimetable';
 import { ApiEnvelope, PaymentRow, ProgramRow, ReservationRow, ReservationStatus, ScheduleSlotRow } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
@@ -449,6 +453,11 @@ export function ReservationsPage() {
           </div>
 
           <div className="detail-section">
+            <h3 className="section-title">주간 시간표</h3>
+            {!branchProgramsQuery.isError && <WeeklyTimetable programs={branchProgramsQuery.data ?? []} />}
+          </div>
+
+          <div className="detail-section">
             <h3 className="section-title">회차 관리</h3>
             {branchProgramsQuery.isError ? (
               <div className="forbidden-note">{apiErrorMessage(branchProgramsQuery.error)}</div>
@@ -458,7 +467,15 @@ export function ReservationsPage() {
           </div>
 
           <div className="detail-section">
-            <h3 className="section-title">결제 내역</h3>
+            <div className="action-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 className="section-title">결제 내역</h3>
+              <ExportCsvButton
+                filename={`payments_${kstDateStamp()}.csv`}
+                columns={PAYMENT_COLUMNS}
+                disabled={(paymentsQuery.data?.total ?? 0) === 0}
+                load={() => fetchAllPages<PaymentRow>('/payments', new URLSearchParams())}
+              />
+            </div>
             {paymentsQuery.isError && <div className="forbidden-note">{apiErrorMessage(paymentsQuery.error)}</div>}
             {paymentRows.length === 0 ? (
               <div className="empty-state">결제 내역이 없습니다.</div>

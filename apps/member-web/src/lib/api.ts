@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ApiEnvelope, SessionTokens } from './types';
+import { trackRequest } from './slow-requests';
 
 // D41 — 같은 Worker의 /m/에서 서빙되므로 api는 같은 오리진의 상대경로다(D25). 개발 서버는 vite 프록시가 넘긴다.
 export const api = axios.create({ baseURL: '/api/v1' });
@@ -56,10 +57,24 @@ export function setSessionExpiredHandler(handler: (() => void) | null) {
 
 api.interceptors.request.use((config) => {
   if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+  // M8 — 느린 요청 안내(slow-requests.ts). 아래 첫 응답 인터셉터가 성공·실패 모두 지운다(재시도는 새로 잰다).
+  (config as RetriableConfig)._slowDone = trackRequest();
   return config;
 });
 
-type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
+type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean; _slowDone?: () => void };
+
+// 401 재시도 인터셉터보다 먼저 등록해야 원래 요청의 측정이 먼저 끝난다.
+api.interceptors.response.use(
+  (res) => {
+    (res.config as RetriableConfig)._slowDone?.();
+    return res;
+  },
+  (error: AxiosError) => {
+    (error.config as RetriableConfig | undefined)?._slowDone?.();
+    throw error;
+  },
+);
 
 api.interceptors.response.use(undefined, async (error: AxiosError) => {
   const config = error.config as RetriableConfig | undefined;

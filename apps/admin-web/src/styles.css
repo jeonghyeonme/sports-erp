@@ -1199,3 +1199,82 @@ tbody tr:hover td {
   color: var(--color-text);
   font-weight: 600;
 }
+
+/* M8 — 느린 요청 안내 띠(SlowRequestNotice) */
+.slow-notice {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.slow-notice.is-stalled {
+  border-color: #d97706;
+  background: #fffbeb;
+}
+
+/* M5 — 지점 주간 시간표(WeeklyTimetable) */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(110px, 1fr));
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.week-col {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  min-height: 120px;
+  background: var(--color-surface);
+}
+
+.week-col.is-today {
+  border-color: var(--color-primary);
+}
+
+.week-col-head {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.week-col-head span {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.week-empty {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.week-slot {
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-surface-alt, #f1f5f9);
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.week-slot.is-full {
+  border-left-color: #d97706;
+}
+
+.week-slot-time {
+  font-weight: 600;
+}
+
+.week-slot-count {
+  color: var(--color-text-muted);
+}

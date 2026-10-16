@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { InternalAxiosRequestConfig } from 'axios';
+import { trackRequest } from './slow-requests';
 
 // 로컬 개발(vite dev)은 .env.development의 VITE_API_BASE_URL이 적용된다.
 // 프로덕션 빌드(vite build)는 값이 없어 상대경로 폴백을 쓴다 — admin-web이 Cloudflare
@@ -23,5 +24,20 @@ api.interceptors.request.use((config) => {
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
+  // M8 — 느린 요청 안내(slow-requests.ts). 끝나면 성공·실패 모두 아래 응답 인터셉터가 지운다.
+  (config as TrackedConfig)._slowDone = trackRequest();
   return config;
 });
+
+type TrackedConfig = InternalAxiosRequestConfig & { _slowDone?: () => void };
+
+api.interceptors.response.use(
+  (res) => {
+    (res.config as TrackedConfig)._slowDone?.();
+    return res;
+  },
+  (error) => {
+    (error?.config as TrackedConfig | undefined)?._slowDone?.();
+    throw error;
+  },
+);

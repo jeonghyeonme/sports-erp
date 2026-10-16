@@ -22,6 +22,8 @@ export function ProgramSlotsPage() {
   // 렌더 중 Date.now()를 부르지 않도록 화면 진입 시각을 한 번 잡는다(react-hooks purity).
   const [now] = useState(() => Date.now());
   const [selected, setSelected] = useState<SlotWithCount | null>(null);
+  // M5(RFP UI/UX "달력, 스케줄표 형태") — 날짜 띠에서 고른 날. null이면 회차가 있는 첫날.
+  const [pickedDate, setPickedDate] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sheetError, setSheetError] = useState<string | null>(null);
 
@@ -69,6 +71,9 @@ export function ProgramSlotsPage() {
   const upcoming = (slots.data ?? []).filter((s) => slotStartMs(s) > now);
   const byDate = new Map<string, SlotWithCount[]>();
   for (const s of upcoming) byDate.set(s.date, [...(byDate.get(s.date) ?? []), s]);
+  const stripDates = dateStrip(now, [...byDate.keys()]);
+  const activeDate = pickedDate && byDate.has(pickedDate) ? pickedDate : (stripDates.find((d) => byDate.has(d)) ?? null);
+  const daySlots = activeDate ? (byDate.get(activeDate) ?? []) : [];
 
   return (
     <div className="stack">
@@ -91,9 +96,34 @@ export function ProgramSlotsPage() {
 
       {upcoming.length === 0 && <p className="panel empty-state">예약할 수 있는 회차가 없습니다.</p>}
 
-      {[...byDate.entries()].map(([date, daySlots]) => (
-        <section key={date} className="stack-sm">
-          <h2 className="section-title">{dateLabel(date)}</h2>
+      {upcoming.length > 0 && (
+        <div className="date-strip" role="tablist" aria-label="날짜 선택">
+          {stripDates.map((d) => {
+            const count = byDate.get(d)?.length ?? 0;
+            const [, m, day] = d.split('-').map(Number);
+            return (
+              <button
+                key={d}
+                type="button"
+                role="tab"
+                aria-selected={d === activeDate}
+                aria-label={`${dateLabel(d)} 회차 ${count}개`}
+                className={d === activeDate ? 'date-chip is-active' : 'date-chip'}
+                disabled={count === 0}
+                onClick={() => setPickedDate(d)}
+              >
+                <span className="date-chip-week">{dateLabel(d).slice(-2, -1)}</span>
+                <span className="date-chip-day">{day === 1 ? `${m}/${day}` : day}</span>
+                <span className={count > 0 ? 'date-chip-dot' : 'date-chip-dot is-empty'} aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {activeDate && (
+        <section className="stack-sm">
+          <h2 className="section-title">{dateLabel(activeDate)}</h2>
           <ul className="list">
             {daySlots.map((s) => {
               const left = Math.max(s.capacity - s.bookedCount, 0);
@@ -117,7 +147,7 @@ export function ProgramSlotsPage() {
             })}
           </ul>
         </section>
-      ))}
+      )}
 
       {selected && (
         <BottomSheet title="예약 확인" onClose={closeSheet} busy={submitting}>
@@ -152,4 +182,19 @@ export function ProgramSlotsPage() {
       )}
     </div>
   );
+}
+
+// 날짜 띠 — 오늘(KST)부터 2주, 회차가 그 뒤에도 있으면 마지막 회차 날까지(최대 62일).
+function dateStrip(now: number, slotDates: string[]): string[] {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date(now));
+  const last = slotDates.reduce((a, b) => (b > a ? b : a), today);
+  const out: string[] = [];
+  const d = new Date(`${today}T00:00:00Z`);
+  for (let i = 0; i < 62; i++) {
+    const s = d.toISOString().slice(0, 10);
+    if (i >= 14 && s > last) break;
+    out.push(s);
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return out;
 }
