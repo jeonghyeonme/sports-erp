@@ -19,6 +19,7 @@ import { SignupPage } from './pages/SignupPage';
 import { LinkPage } from './pages/LinkPage';
 import { GuidePage } from './pages/GuidePage';
 import { PrivacyPage } from './pages/PrivacyPage';
+import { SlowRequestNotice } from './components/SlowRequestNotice';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, isRestoring, restoreOffline } = useAuth();
@@ -33,6 +34,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
+      <SlowRequestNotice />
       <BrowserRouter basename="/m/">
         <Routes>
           <Route path="/login" element={<LoginPage />} />

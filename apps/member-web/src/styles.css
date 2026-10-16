@@ -1184,3 +1184,82 @@ h1 {
   min-width: 0;
   padding: 0 8px;
 }
+
+/* M8 — 느린 요청 안내 띠(SlowRequestNotice) */
+.slow-notice {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.slow-notice.is-stalled {
+  border-color: #d97706;
+  background: #fffbeb;
+}
+
+/* M5 — 예약하기 날짜 띠(가로 스크롤). 회차 있는 날에 점, 없는 날은 누를 수 없다. */
+.date-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.date-chip {
+  flex: 0 0 44px;
+  min-height: var(--touch-min);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  scroll-snap-align: start;
+}
+
+.date-chip:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.date-chip.is-active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.date-chip-week {
+  font-size: 12px;
+}
+
+.date-chip-day {
+  font-size: 16px;
+}
+
+.date-chip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.date-chip-dot.is-empty {
+  background: transparent;
+}

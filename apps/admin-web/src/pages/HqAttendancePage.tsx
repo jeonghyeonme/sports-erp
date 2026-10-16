@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { AbsenceCandidateRow, AttendanceSummaryRow, BranchSummary } from '../lib/types';
+import { ExportCsvButton } from '../components/ExportCsvButton';
+import { ATTENDANCE_SUMMARY_COLUMNS } from '../lib/export-columns';
 
 // 본사 근태 조회 — RFP 개념도 "본사→현장 근태관리"(요구사항추적표 §2-3, D51·log/114).
 // 근태관리 A-7을 "본사는 조회만"으로 좁혔다: 출퇴근·휴가 승인·결근 확정은 지금처럼 지점(관리자·직원)이 하고,
@@ -62,6 +64,12 @@ export function HqAttendancePage() {
           <label>
             월 <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} />
           </label>
+          <ExportCsvButton
+            filename={`attendance-summary_${branchId}_${month}.csv`}
+            columns={ATTENDANCE_SUMMARY_COLUMNS}
+            disabled={rows.length === 0}
+            load={async () => ({ rows })}
+          />
         </div>
 
         {branchesQuery.isError && <div className="forbidden-note">{apiErrorMessage(branchesQuery.error)}</div>}
