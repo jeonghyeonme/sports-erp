@@ -17,7 +17,8 @@ export type ScopedKind =
   | 'document'
   | 'reservation'
   | 'leaveRequest'
-  | 'staffChangeRequest';
+  | 'staffChangeRequest'
+  | 'supportRequest';
 
 export interface ScopeOwner {
   branchId: string | null;
@@ -58,6 +59,12 @@ export const SCOPED_KINDS: Record<ScopedKind, KindInfo> = {
     label: '인사 변경 신청',
     notFound: ['CHANGE_REQUEST_NOT_FOUND', '변경 신청을 찾을 수 없습니다.'],
     violation: 'STAFF_SCOPE_VIOLATION',
+  },
+  // D56 — 업무지원 요청은 요청한 지점 것이다.
+  supportRequest: {
+    label: '업무지원 요청',
+    notFound: ['SUPPORT_REQUEST_NOT_FOUND', '업무지원 요청을 찾을 수 없습니다.'],
+    violation: 'BRANCH_SCOPE_VIOLATION',
   },
 };
 
@@ -104,6 +111,8 @@ export class ScopeOwners {
         });
         return row ? { branchId: row.staff.branchId, staffId: row.staffId } : null;
       }
+      case 'supportRequest':
+        return branchOnly(await p.supportRequest.findUnique({ where: { id }, select: { branchId: true } }));
       case 'staffChangeRequest': {
         const row = await p.staffProfileChangeRequest.findUnique({
           where: { id },

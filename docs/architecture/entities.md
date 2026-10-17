@@ -13,8 +13,9 @@ Branch(지점) 1─N Facility(시설: 헬스장/수영장/골프장/독서실 �
 Branch 1─N StaffAssignment(파견 이력) N─1 Staff(직원, 본사 소속 — §2-2)
 Branch 1─N Member(회원)
 Branch 1─N Instructor(강사), Branch 1─N Program(프로그램/강좌)
-Branch 1─N Post(게시글, branchId nullable — 본사 전체 공지는 null) 1─N Attachment(첨부 — 미사용), Post 1─N PostReadReceipt(읽음 — 미사용)
+Branch 1─N Post(게시글, branchId nullable — 본사 전체 공지는 null) 1─N Attachment(첨부 — url에 저장소 경로, 게시판 ADR-BRD-04·D57), Post 1─N PostReadReceipt(읽음 — 미사용)
 Branch 1─N Asset(자산·비품 — 자원문서관리 문서)
+Branch 1─N SupportRequest(업무지원 요청, 현장→본사 — D56) N─1 Account(requesterId 지점 관리자, handlerId 본사 nullable)
 Branch 1─N CodeSequence(지점·종류·연도별 채번 — staffCode·memberNo·assetCode, D28)
 Document(문서 — 자원문서관리 문서) N─1 Branch(nullable, 전사 문서는 null), Document N─1 Staff(nullable, 인사서류인 경우), Document N─1 Account(올린 사람)
 
@@ -26,7 +27,7 @@ MemberLinkAttempt(회원 연동 실패 횟수 — 회원관리 ADR-MEM-01, 관�
 Staff 1─N AttendanceRecord(근태기록, branchId 스냅샷 — 근태관리 ADR-ATT-03)
 Staff 1─N LeaveRequest(휴가신청), Staff 1─N LeaveBalance(연도별 연차 잔여)
 Staff 1─N WorkLog(업무일지, staffId+date unique)
-Staff 1─N StaffProfileChangeRequest(변경 신청 — 미사용, 인사정보관리 A-8 미구현)
+Staff 1─N StaffProfileChangeRequest(이름·연락처 변경 신청 — 인사정보관리 ADR-STF-09)
 Staff 0..1─1 Instructor(직원 겸임 강사, 선택)
 Staff 1─N Member(담당 회원, assignedStaffId)
 
@@ -44,7 +45,7 @@ ScheduleSlot 1─N Reservation
 Reservation 1─0..1 Payment(결제 — "매출 인식의 원천", reservationId 필수·unique) N─1 Member
   — PT 패키지 구매 결제는 담지 않는다(예약및결제 A-8 범위 제외). `FREE_ACCESS`는 예약·결제 개념 자체가 없다
 
-AuditLog(변경 이력) N─1 Account(actorId, nullable) — 모든 엔티티가 아니라 5개 action만 기록한다(아래 §2-3)
+AuditLog(변경 이력) N─1 Account(actorId, nullable) — 모든 엔티티가 아니라 정한 action만 기록한다(아래 §2-3)
 ```
 
 **핵심 설계 원칙(멀티테넌시 격리)**: `Branch`에 속한 엔티티(Staff, Member, Program, Post 등)는 반드시 `branchId`를 가지며, `BRANCH_ADMIN` 역할의 모든 조회/수정 API는 **자신의 branchId로 자동 필터링**됩니다(요구사항 5번 "타현장 정보 조회 불가능" 구현). `SUPER_ADMIN`만 전체 지점을 넘나들 수 있습니다.
@@ -100,7 +101,7 @@ AuditLog(변경 이력) N─1 Account(actorId, nullable) — 모든 엔티티가
 | actorId | FK → Account, nullable | 변경한 사람 |
 | entity | string | 대상 종류(예: `Staff`, `Member`) |
 | entityId | string | 대상 id |
-| action | string | 아래 5종 |
+| action | string | 아래 표 |
 | before / after | JSON, nullable | 바뀐 값 |
 | createdAt | timestamp | |
 
@@ -113,5 +114,28 @@ AuditLog(변경 이력) N─1 Account(actorId, nullable) — 모든 엔티티가
 | `ASSIGNED` | 파견 발령 | D44 |
 | `ASSIGNMENT_ENDED` | 지점 TERMINATED 전이로 진행 중 파견 종료 | 인사정보관리 ADR-STF-07 |
 | `PHONE_VIEWED` | 관리자가 회원·직원 상세를 열 때(본인 조회 제외) | D47 |
+| `ATTENDANCE_CORRECTED` | 지점 관리자의 근태 정정·누락일 등록(entity=Staff) | D52, 근태관리 ADR-ATT-04 |
+| `MEMBER_STATUS_CHANGED` | 회원 상태가 실제로 바뀔 때 | D52 |
+| `ASSET_STATUS_CHANGED` | 자산 상태 전이 | D52 |
+| `STAFF_PROFILE_CHANGED` | 인사 변경 신청 승인(연락처는 값 없이 항목만) | 인사정보관리 ADR-STF-09 |
 
-그 밖의 쓰기(회원·자산 상태 변경, 근태 정정 등)는 기록하지 않는다(요구사항추적표 §2-3). 보존·삭제 규칙은 [data-retention](data-retention.md).
+그 밖의 쓰기는 기록하지 않는다. 업무지원 요청(D56)은 요청 행 자체에 처리자·처리 시각·답변이 남아 따로 기록하지 않는다. 보존·삭제 규칙은 [data-retention](data-retention.md).
+
+### 2-4. SupportRequest(업무지원 요청, D56)
+
+현장(지점 관리자)이 본사에 올리는 지원 요청 — RFP 개념도(p.4) 현장→본사 흐름. 처리는 본사(SUPER_ADMIN)만.
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| id | UUID (PK) | |
+| branchId | FK → Branch | 요청한 지점(요청자 소속, 서버가 정한다) |
+| requesterId | FK → Account | 요청한 지점 관리자 |
+| category | enum | FACILITY(시설)·STAFFING(인력)·SUPPLIES(물품)·IT(전산)·OTHER |
+| title / content | string | 제목(2~100자)·내용(2~2,000자) |
+| status | enum | REQUESTED → IN_PROGRESS → DONE, 또는 REJECTED(REQUESTED·IN_PROGRESS에서). DONE·REJECTED는 종결 |
+| handlerId | FK → Account, nullable | 마지막으로 상태를 바꾼 본사 관리자 |
+| response | string, nullable | 본사 답변 — REJECTED면 필수 |
+| resolvedAt | timestamp, nullable | DONE·REJECTED일 때만 값이 있다 |
+| createdAt / updatedAt | timestamp | |
+
+인덱스: `(branchId, status)`, `(status, createdAt)`. **DB CHECK**(마이그레이션 SQL에만, D28 방식): 반려면 답변이 비어 있지 않다(`SupportRequest_rejected_response_ck`), 종결 상태와 `resolvedAt` 유무가 일치한다(`SupportRequest_resolved_at_ck`). 계약 종료 지점은 새 요청 409.

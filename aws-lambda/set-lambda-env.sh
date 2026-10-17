@@ -3,6 +3,7 @@
 # Claude는 .env를 읽지 않는다(전역 가드레일·guard-bash hook) — 그래서 이 단계만 사용자 실행으로 나눴다(docs/log/055).
 # aws-lambda/.env 의 ORIGIN_SECRET, LAMBDA_DATABASE_URL 을 Lambda $LATEST 환경 변수에 넣는다.
 # JWT 비밀값은 아직 없을 때만 새로 만든다(다시 실행해도 로그인 토큰이 무효화되지 않게).
+# D57 — .env에 SUPABASE_URL·SUPABASE_SERVICE_ROLE_KEY(선택 SUPABASE_STORAGE_BUCKET)가 있으면 첨부 저장소 값도 넣는다(없으면 기존 값 유지).
 # 별칭 live가 가리키는 버전에는 반영되지 않는다 — 다음 배포(GitHub Actions)가 발행하는 새 버전부터 적용된다.
 set -euo pipefail
 export AWS_PROFILE=sports-erp AWS_REGION=ap-northeast-2
@@ -27,6 +28,7 @@ const c=require("crypto"); const cur=JSON.parse(process.env.CURRENT||"null")||{}
 const v={...cur, NODE_ENV:"production", DATABASE_URL:process.env.LAMBDA_DATABASE_URL, ORIGIN_SECRET:process.env.ORIGIN_SECRET,
   JWT_ACCESS_SECRET:cur.JWT_ACCESS_SECRET||c.randomBytes(32).toString("hex"),
   JWT_REFRESH_SECRET:cur.JWT_REFRESH_SECRET||c.randomBytes(32).toString("hex")};
+for (const k of ["SUPABASE_URL","SUPABASE_SERVICE_ROLE_KEY","SUPABASE_STORAGE_BUCKET"]) if (process.env[k]) v[k]=process.env[k];
 console.log(JSON.stringify({Variables:v}));')
 aws lambda update-function-configuration --function-name sports-erp-api --environment "$ENVJSON" >/dev/null
 unset ENVJSON CURRENT

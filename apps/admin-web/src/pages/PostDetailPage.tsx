@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { PostAttachments } from '../components/PostAttachments';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { apiErrorMessage } from '../lib/use-api-list';
@@ -106,6 +107,14 @@ const toast = useToast();
               </span>
             </div>
             <p style={{ whiteSpace: 'pre-wrap', marginTop: 16 }}>{post.content}</p>
+
+            {/* 게시판 ADR-BRD-04 — 첨부(올리기는 작성자, 지우기는 작성자·본사) */}
+            <PostAttachments
+              postId={post.id}
+              attachments={post.attachments ?? []}
+              canUpload={isAuthor}
+              canDelete={canDelete}
+            />
 
             {deleteMutation.isError && (
               <div className="forbidden-note" style={{ marginTop: 12 }}>

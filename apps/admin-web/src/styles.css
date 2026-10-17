@@ -1278,3 +1278,28 @@ tbody tr:hover td {
 .week-slot-count {
   color: var(--color-text-muted);
 }
+
+/* 게시판 ADR-BRD-04 — 첨부 목록 */
+.attachment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+
+.attachment-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
