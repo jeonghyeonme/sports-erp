@@ -22,6 +22,7 @@ import { ReservationsPage } from './pages/ReservationsPage';
 import { AssetsPage } from './pages/AssetsPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { PermissionsPage } from './pages/PermissionsPage';
+import { SupportRequestsPage } from './pages/SupportRequestsPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ export default function App() {
                   <Route path="/documents" element={<DocumentsPage />} />
                   <Route path="/permissions" element={<PermissionsPage />} />
                   <Route path="/audit-logs" element={<AuditLogsPage />} />
+                  <Route path="/support-requests" element={<SupportRequestsPage />} />
                 </Route>
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -25,6 +25,7 @@ interface Ctx {
     reservationId: string;
     leaveId: string;
     changeRequestId: string;
+    supportRequestId: string;
     ids: string[]; // 서초점 소유 리소스 id 전체 (목록 누수 스캔용)
   };
   gangnam: { memberId: string; staffId: string; programId: string; facilityId: string; ids: string[] };
@@ -89,6 +90,8 @@ describe('지점 데이터 격리', () => {
     if (leave.status !== 201) throw new Error(`픽스처 실패(휴가 신청): ${leave.status} ${JSON.stringify(leave.body)}`);
     const changeReq = await call(tok.seochoStaff, 'post', '/staff-change-requests', { field: 'phone', newValue: '010-9999-0000' });
     if (changeReq.status !== 201) throw new Error(`픽스처 실패(인사 변경 신청): ${changeReq.status} ${JSON.stringify(changeReq.body)}`);
+    const supportReq = await call(tok.seochoAdmin, 'post', '/support-requests', { category: 'OTHER', title: '격리 확인', content: '격리 테스트 요청' });
+    if (supportReq.status !== 201) throw new Error(`픽스처 실패(업무지원 요청): ${supportReq.status} ${JSON.stringify(supportReq.body)}`);
     await call(tok.seochoStaff, 'post', '/attendance/check-in');
     await call(tok.seochoStaff, 'post', '/work-logs', { date: '2026-09-20', content: '격리 테스트 업무일지' });
 
@@ -127,11 +130,12 @@ describe('지점 데이터 격리', () => {
         reservationId: resv.body.data.reservation?.id ?? resv.body.data.id,
         leaveId: leave.body.data.id,
         changeRequestId: changeReq.body.data.id,
+        supportRequestId: supportReq.body.data.id,
         ids: [...ownedBy(BRANCH.seocho), ...seochoSlots.map((s) => s.id)],
       },
       gangnam: { memberId: gm.id, staffId: gs.id, programId: gp.id, facilityId: gf.id, ids: ownedBy(BRANCH.gangnam) },
     };
-    ctx.seocho.ids.push(ctx.seocho.reservationId, ctx.seocho.leaveId);
+    ctx.seocho.ids.push(ctx.seocho.reservationId, ctx.seocho.leaveId, ctx.seocho.supportRequestId);
   });
 
   afterAll(async () => {
@@ -210,6 +214,9 @@ describe('지점 데이터 격리', () => {
     // ADR-STF-09 — 인사 변경 신청 승인·반려
     { name: '인사 변경 신청 승인', method: 'patch', path: (c) => `/staff-change-requests/${c.seocho.changeRequestId}/approve` },
     { name: '인사 변경 신청 반려', method: 'patch', path: (c) => `/staff-change-requests/${c.seocho.changeRequestId}/reject` },
+    // D56 — 업무지원 요청
+    { name: '업무지원 요청 상세 조회', method: 'get', path: (c) => `/support-requests/${c.seocho.supportRequestId}` },
+    { name: '업무지원 요청 목록(branchId=서초)', method: 'get', path: () => `/support-requests?branchId=${BRANCH.seocho}` },
     { name: '게시글 상세 조회', method: 'get', path: (c) => `/posts/${c.seocho.postId}` },
     { name: '게시글 수정', method: 'patch', path: (c) => `/posts/${c.seocho.postId}`, body: () => ({ title: 'x' }) },
     { name: '게시글 삭제', method: 'delete', path: (c) => `/posts/${c.seocho.postId}` },
@@ -358,7 +365,7 @@ describe('지점 데이터 격리', () => {
   describe('목록 응답에 타 지점 리소스가 섞이지 않는다', () => {
     const lists = [
       '/members', '/staff', '/programs', '/facilities', '/instructors', '/assets', '/documents',
-      '/reservations', '/payments', '/attendance', '/leave-requests', '/work-logs', '/posts',
+      '/reservations', '/payments', '/attendance', '/leave-requests', '/work-logs', '/posts', '/support-requests',
     ];
     // 쿼리 없이 + 타 지점 branchId를 붙여서 둘 다 확인한다(가드 없는 컨트롤러도 있으므로).
     const variants = lists.flatMap((p) => [p, `${p}?branchId=${BRANCH.seocho}`]);

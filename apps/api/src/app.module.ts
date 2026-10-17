@@ -15,6 +15,8 @@ import { FacilitiesModule } from './modules/facilities/facilities.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { SupportRequestsModule } from './modules/support-requests/support-requests.module';
+import { StorageModule } from './modules/storage/storage.module';
 import { AssetsModule } from './modules/assets/assets.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
@@ -44,6 +46,8 @@ import { ScopeOwners } from './common/guards/scope-owners';
     AssetsModule,
     DocumentsModule,
     AuditLogsModule,
+    SupportRequestsModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [

@@ -7,6 +7,8 @@ import { ok } from '../../common/http/api-response';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PostService } from './post.service';
+import { PostAttachmentService } from './post-attachment.service';
+import { ConfirmAttachmentDto, RequestUploadDto } from './dto/attachment.dto';
 
 // 게시판 A-5·A-7 — 전체 HQ 공지 + 본인 소속 지점의 BRANCH_TO_MEMBER 게시글만 노출.
 // 작성: SUPER_ADMIN→HQ_TO_BRANCH, BRANCH_ADMIN→BRANCH_TO_MEMBER(본인 지점 강제). 수정/삭제는 작성자 본인만(삭제는 SUPER_ADMIN도 가능).
@@ -15,7 +17,10 @@ import { PostService } from './post.service';
 const POST_VISIBILITY = 'PostService.findVisible·viewDetail의 가시성 규칙(게시판 A-7)이 범위를 본다';
 @Controller('posts')
 export class PostsController {
-  constructor(private readonly posts: PostService) {}
+  constructor(
+    private readonly posts: PostService,
+    private readonly attachments: PostAttachmentService,
+  ) {}
 
   // ADR-BRD-02 — page/limit로 잘라 돌려준다. 기본 limit=20, meta.total/page/pageSize를 함께 내린다.
   // ADR-BRD-03 — sort=latest면 최신 글부터. 그 밖의 값·생략은 기존 순서(오래된 글부터)라 admin-web은 그대로다.
@@ -38,7 +43,34 @@ export class PostsController {
   @Get(':id')
   @BranchScopeExempt(POST_VISIBILITY)
   async detail(@Param('id') id: string, @CurrentUser() user: RequestUser) {
-    return ok(await this.posts.viewDetail(id, user));
+    const post = await this.posts.viewDetail(id, user);
+    // 게시판 ADR-BRD-04 — 첨부 목록(이름·형식·크기)을 상세에 함께 싣는다. 파일 자체는 다운로드 URL로 받는다.
+    return ok({ ...post, attachments: await this.attachments.list(id) });
+  }
+
+  // ── 첨부(게시판 ADR-BRD-04, 저장소 D57) ────────────────────
+  @Post(':id/attachments/upload-url')
+  @BranchScopeExempt(POST_VISIBILITY)
+  async requestUpload(@Param('id') id: string, @Body() dto: RequestUploadDto, @CurrentUser() user: RequestUser) {
+    return ok(await this.attachments.requestUpload(id, user, dto));
+  }
+
+  @Post(':id/attachments')
+  @BranchScopeExempt(POST_VISIBILITY)
+  async confirmAttachment(@Param('id') id: string, @Body() dto: ConfirmAttachmentDto, @CurrentUser() user: RequestUser) {
+    return ok(await this.attachments.confirm(id, user, dto));
+  }
+
+  @Get(':id/attachments/:attachmentId/download')
+  @BranchScopeExempt(POST_VISIBILITY)
+  async download(@Param('id') id: string, @Param('attachmentId') attachmentId: string, @CurrentUser() user: RequestUser) {
+    return ok(await this.attachments.downloadUrl(id, attachmentId, user));
+  }
+
+  @Delete(':id/attachments/:attachmentId')
+  @BranchScopeExempt(POST_VISIBILITY)
+  async removeAttachment(@Param('id') id: string, @Param('attachmentId') attachmentId: string, @CurrentUser() user: RequestUser) {
+    return ok(await this.attachments.remove(id, attachmentId, user));
   }
 
   @Post()

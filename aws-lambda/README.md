@@ -41,6 +41,7 @@
 
 - JWT 비밀값을 새로 만들면 기존 로그인 토큰은 무효가 된다. 데모 사용자는 다시 로그인하면 된다.
 - `DIRECT_URL`은 마이그레이션 전용이라 Lambda에는 필요 없다.
+- 첨부 저장소([D57](../docs/decisions/D57.md)): `SUPABASE_URL`(대시보드 → Project Settings → API의 URL), `SUPABASE_SERVICE_ROLE_KEY`(같은 화면의 service_role 키 — **브라우저·Worker에 두지 않는다**), 선택 `SUPABASE_STORAGE_BUCKET`(기본 `attachments`). `aws-lambda/.env`에 넣고 `set-lambda-env.sh`를 다시 실행한다. 없으면 첨부 기능만 503 `STORAGE_NOT_CONFIGURED`이고 나머지는 동작한다.
 
 ## 2. Lambda 함수 만들기(빈 껍데기)
 

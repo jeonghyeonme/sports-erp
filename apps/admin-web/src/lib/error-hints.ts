@@ -70,6 +70,14 @@ export const ERROR_HINTS: Record<string, string> = {
   LEAVE_REQUEST_ALREADY_REVIEWED: '이미 승인·반려된 신청입니다. 화면을 새로고침하세요.',
   CHANGE_REQUEST_ALREADY_REVIEWED: '이미 처리됐거나 직원이 취소한 신청입니다. 화면을 새로고침하세요.',
   CHANGE_REQUEST_PENDING: '같은 항목에 대기 중인 신청이 있습니다. 아래 목록에서 그 신청을 취소한 뒤 다시 신청하세요.',
+  ATTACHMENT_TYPE_NOT_ALLOWED: 'PDF·이미지(png·jpg·webp)·오피스(docx·xlsx·pptx)·한글(hwp) 파일로 바꿔 올리세요.',
+  ATTACHMENT_TOO_LARGE: '10MB 이하로 줄이거나(PDF 압축 등) 나눠서 올리세요.',
+  ATTACHMENT_LIMIT: '글 하나에 5개까지입니다. 필요 없는 첨부를 지우거나 묶어서(zip 불가 — PDF로 합치기) 올리세요.',
+  ATTACHMENT_NOT_UPLOADED: '파일 전송이 끝나지 않았습니다. 다시 첨부하세요.',
+  STORAGE_NOT_CONFIGURED: '파일 저장소 설정 전입니다. 본사 관리자에게 알려 주세요(D57 설정 절차).',
+  STORAGE_ERROR: '파일 저장소 응답이 실패했습니다. 잠시 뒤 다시 시도하세요.',
+  RESPONSE_REQUIRED: '반려할 때는 답변(사유)을 적어야 지점이 무엇을 할지 압니다.',
+  SUPPORT_REQUEST_NOT_FOUND: '요청을 찾을 수 없습니다. 목록을 새로고침하세요.',
   CHANGE_REQUEST_NO_CHANGE: '지금 값과 같습니다. 바꿀 값을 다시 확인하세요.',
 
   // 근태

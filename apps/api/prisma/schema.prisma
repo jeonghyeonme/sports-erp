@@ -60,14 +60,16 @@ model Account {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  staff                Staff?
-  member               Member?
-  refreshTokens        RefreshToken[]
-  auditLogs            AuditLog[]
-  staffAssignmentsMade StaffAssignment[] // 이 계정이 SUPER_ADMIN으로서 발령한 파견 이력(assignedBy)
+  staff                  Staff?
+  member                 Member?
+  refreshTokens          RefreshToken[]
+  auditLogs              AuditLog[]
+  staffAssignmentsMade   StaffAssignment[] // 이 계정이 SUPER_ADMIN으로서 발령한 파견 이력(assignedBy)
   // log/093(사용자 결정 3) — 작성자·업로더 외래키. 계정은 지우지 않고 비활성화하므로(D27) Restrict로 둔다.
-  postsAuthored        Post[]
-  documentsUploaded    Document[]        @relation("DocumentUploader")
+  postsAuthored          Post[]
+  documentsUploaded      Document[]        @relation("DocumentUploader")
+  supportRequestsMade    SupportRequest[]  @relation("SupportRequestRequester") // D56 — 지점 관리자가 올린 업무지원 요청
+  supportRequestsHandled SupportRequest[]  @relation("SupportRequestHandler") // D56 — 본사가 처리한 요청
 
   @@index([email])
   @@index([role])
@@ -115,6 +117,7 @@ model Branch {
   assets            Asset[]
   documents         Document[]
   codeSequences     CodeSequence[]
+  supportRequests   SupportRequest[]
 
   @@index([isActive])
   @@index([contractStatus])
@@ -731,13 +734,54 @@ model Document {
   createdAt      DateTime         @default(now())
   deletedAt      DateTime? // 소프트 삭제(D9)
 
-  branch       Branch?  @relation(fields: [branchId], references: [id])
+  branch       Branch? @relation(fields: [branchId], references: [id])
   // D34 숙제 → log/093: 대상 직원·업로더 외래키. 직원·계정은 지우지 않으므로(퇴사·비활성화) Restrict.
-  relatedStaff Staff?   @relation("DocumentRelatedStaff", fields: [relatedStaffId], references: [id], onDelete: Restrict)
-  uploader     Account  @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
+  relatedStaff Staff?  @relation("DocumentRelatedStaff", fields: [relatedStaffId], references: [id], onDelete: Restrict)
+  uploader     Account @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
 
   @@index([branchId])
   @@index([relatedStaffId])
+}
+
+// ── 업무지원 요청(현장 → 본사, D56) ─────────────────────
+// RFP 개념도(p.4) 현장→본사 흐름. 지점 관리자가 요청하고 본사가 처리한다. 상태 전이는 앱이 조건부 갱신으로 지킨다(D56).
+
+enum SupportRequestCategory {
+  FACILITY // 시설
+  STAFFING // 인력
+  SUPPLIES // 물품
+  IT // 전산
+  OTHER
+}
+
+enum SupportRequestStatus {
+  REQUESTED // 요청
+  IN_PROGRESS // 처리중
+  DONE // 완료
+  REJECTED // 반려(답변 필수)
+}
+
+model SupportRequest {
+  id          String                 @id @default(uuid())
+  branchId    String
+  requesterId String // FK → Account(지점 관리자)
+  category    SupportRequestCategory
+  title       String
+  content     String
+  status      SupportRequestStatus   @default(REQUESTED)
+  handlerId   String? // FK → Account(마지막으로 상태를 바꾼 본사 관리자)
+  response    String? // 본사 답변(반려 시 필수)
+  resolvedAt  DateTime? // 완료·반려 시각
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  // 계정은 지우지 않으므로(퇴사·비활성화) Restrict — log/093과 같은 규칙
+  requester Account  @relation("SupportRequestRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  handler   Account? @relation("SupportRequestHandler", fields: [handlerId], references: [id], onDelete: Restrict)
+
+  @@index([branchId, status])
+  @@index([status, createdAt])
 }
 
 // ── 공통: 변경 이력 ─────────────────────────────────────

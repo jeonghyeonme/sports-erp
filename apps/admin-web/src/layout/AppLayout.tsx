@@ -44,6 +44,8 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
       { to: '/facilities', label: '시설·혼잡도' },
       { to: '/assets', label: '자산·비품' },
       { to: '/documents', label: '문서함' },
+      // D56 — 현장이 올린 업무지원 요청 처리
+      { to: '/support-requests', label: '업무지원 요청' },
     ]),
   ],
   BRANCH_ADMIN: [
@@ -63,6 +65,7 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
       { to: '/facilities', label: '시설·혼잡도' },
       { to: '/assets', label: '자산·비품' },
       { to: '/documents', label: '문서함' },
+      { to: '/support-requests', label: '업무지원 요청' },
     ]),
   ],
   // 근태관리 A-7 — SUPER_ADMIN은 현장 근태를 조회만 한다(위 "근태 현황"). 출퇴근·승인·확정 화면은 STAFF·BRANCH_ADMIN만.

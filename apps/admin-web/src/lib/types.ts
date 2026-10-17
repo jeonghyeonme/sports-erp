@@ -250,6 +250,15 @@ export interface PostRow {
   viewCount: number;
   publishedAt: string;
   visibleToMember: boolean;
+  // 게시판 ADR-BRD-04 — 상세(GET /posts/:id)에만 실린다.
+  attachments?: AttachmentRow[];
+}
+
+export interface AttachmentRow {
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
 }
 
 export type AttendanceStatus = 'NORMAL' | 'LATE' | 'EARLY_LEAVE' | 'ABSENT' | 'ON_LEAVE';
@@ -391,4 +400,26 @@ export interface ChangeRequestRow {
   reviewedBy?: string;
   reviewedAt?: string;
   createdAt: string;
+}
+
+// D56 — 업무지원 요청(현장 → 본사).
+export type SupportCategory = 'FACILITY' | 'STAFFING' | 'SUPPLIES' | 'IT' | 'OTHER';
+export type SupportStatus = 'REQUESTED' | 'IN_PROGRESS' | 'DONE' | 'REJECTED';
+
+export interface SupportRequestRow {
+  id: string;
+  branchId: string;
+  branchName?: string;
+  requesterId: string;
+  requesterName?: string;
+  category: SupportCategory;
+  title: string;
+  content: string;
+  status: SupportStatus;
+  handlerId?: string;
+  handlerName?: string;
+  response?: string;
+  resolvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }

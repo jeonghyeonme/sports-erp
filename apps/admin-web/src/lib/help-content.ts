@@ -289,9 +289,21 @@ const HELP_ROUTES: HelpRoute[] = [
     path: '/board/:id',
     help: {
       title: '게시글',
-      summary: '공지 한 건을 읽고, 쓴 사람이면 고치거나 지웁니다.',
-      common: ['"수정"으로 제목·카테고리·내용을 고치고 저장합니다(쓴 사람만).', '"삭제"는 쓴 사람과 본사 관리자만 할 수 있습니다.'],
-      errors: ['POST_NOT_FOUND', 'POST_SCOPE_VIOLATION', 'POST_FORBIDDEN_ROLE'],
+      summary: '공지 한 건을 읽고, 첨부 파일을 받고, 쓴 사람이면 고치거나 지웁니다.',
+      common: [
+        '"수정"으로 제목·카테고리·내용을 고치고 저장합니다(쓴 사람만).',
+        '"삭제"는 쓴 사람과 본사 관리자만 할 수 있습니다.',
+        '첨부 파일 이름을 누르면 내려받습니다. 쓴 사람은 "+ 파일 첨부"로 PDF·이미지·오피스·한글 파일을 올립니다(파일당 10MB, 글당 5개).',
+      ],
+      errors: [
+        'POST_NOT_FOUND',
+        'POST_SCOPE_VIOLATION',
+        'POST_FORBIDDEN_ROLE',
+        'ATTACHMENT_TYPE_NOT_ALLOWED',
+        'ATTACHMENT_TOO_LARGE',
+        'ATTACHMENT_LIMIT',
+        'STORAGE_NOT_CONFIGURED',
+      ],
     },
   },
   {
@@ -375,6 +387,25 @@ const HELP_ROUTES: HelpRoute[] = [
         '바꾼 기록은 "변경 이력"에 남습니다.',
       ],
       errors: ['STAFF_NOT_FOUND', 'STAFF_ALREADY_RESIGNED'],
+    },
+  },
+  {
+    path: '/support-requests',
+    help: {
+      title: '업무지원 요청',
+      summary: '현장(지점)이 본사에 지원을 요청하고, 본사가 처리 상태와 답변을 남깁니다(D56).',
+      byRole: {
+        BRANCH_ADMIN: [
+          '"+ 요청하기"에서 분류(시설·인력·물품·전산·기타)·제목·내용을 넣고 요청합니다.',
+          '목록에서 상태(요청·처리중·완료·반려)를 보고, 행을 누르면 본사 답변을 봅니다.',
+          '계약이 종료된 지점은 새 요청을 올릴 수 없습니다(지난 요청은 볼 수 있음).',
+        ],
+        SUPER_ADMIN: [
+          '처음에는 "요청" 상태만 보입니다. 상태를 바꿔 전체·처리중·완료를 봅니다.',
+          '행을 눌러 처리중·완료·반려로 바꿉니다. 반려는 답변(사유)이 필수이고, 완료·반려는 되돌릴 수 없습니다.',
+        ],
+      },
+      errors: ['BRANCH_TERMINATED', 'RESPONSE_REQUIRED', 'INVALID_STATUS_TRANSITION', 'SUPPORT_REQUEST_NOT_FOUND', 'VALIDATION_ERROR'],
     },
   },
   {
