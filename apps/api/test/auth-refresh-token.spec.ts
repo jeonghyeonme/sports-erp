@@ -3,6 +3,7 @@ import request from 'supertest';
 import { ACCOUNTS, createApp, db } from './helpers/app';
 import { MOCK_DEMO_PASSWORD } from '../src/fixtures/demo-password';
 import { resetWorkerDb } from './helpers/worker-db';
+import { holdRowLock, waitForLockWaiters } from './helpers/row-lock';
 
 /**
  * Refresh Token — 권한관리 A-6 "1회용(rotate)"과 ADR-AUTH-04(발급 시 만료·폐기 토큰 정리).
@@ -87,5 +88,22 @@ describe('Refresh Token 회전과 정리', () => {
     await loginRaw(ACCOUNTS.seochoMember);
     expect(await prisma.refreshToken.count({ where: { accountId, revokedAt: { not: null } } })).toBe(0);
     expect((await refresh(first.refreshToken)).status).toBe(401);
+  });
+
+  // engineering-risks R2 — 같은 갱신 토큰의 동시 요청(두 기기·두 탭, docs/log/123). 테스트가 토큰 행을 먼저 잡아 두고
+  // 두 요청이 모두 "폐기 안 됨"을 읽은 뒤 폐기 단계에서 기다리게 한다. 고치기 전에는 둘 다 200을 받아 1회용(권한관리 A-6)이 깨졌다.
+  it('같은 토큰으로 동시에 갱신하면 한 요청만 성공하고 나머지는 401이다', async () => {
+    const first = await loginRaw(ACCOUNTS.seochoMember);
+    const { jti } = JSON.parse(Buffer.from(first.refreshToken.split('.')[1], 'base64url').toString()) as { jti: string };
+    const lock = await holdRowLock('RefreshToken', jti);
+    const a = refresh(first.refreshToken).then((r) => r);
+    const b = refresh(first.refreshToken).then((r) => r);
+    await waitForLockWaiters(2);
+    await lock.release();
+    const results = await Promise.all([a, b]);
+
+    expect(results.map((r) => r.status).sort()).toEqual([200, 401]);
+    const live = await db(app).refreshToken.count({ where: { accountId: first.user.accountId, revokedAt: null } });
+    expect(live).toBe(1); // 이긴 요청이 받은 새 토큰 하나
   });
 });

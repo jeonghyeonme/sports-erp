@@ -79,7 +79,13 @@ export class AuthService {
     if (!account || account.isActive === false) {
       throw new AppException('ACCOUNT_INACTIVE', '비활성화된 계정입니다. 관리자에게 문의하세요.', 401);
     }
-    await this.prisma.refreshToken.update({ where: { id: payload.jti }, data: { revokedAt: new Date() } });
+    // R2(docs/log/123) — "폐기 안 된 경우에만 폐기"를 한 문장으로 한다. 위의 확인과 폐기가 따로 실행돼, 같은 토큰의
+    // 동시 요청 둘이 모두 "폐기 안 됨"을 읽고 둘 다 새 토큰을 받았다(1회용 깨짐, 권한관리 A-6). 바뀐 행이 0이면 진 쪽이다.
+    const { count } = await this.prisma.refreshToken.updateMany({
+      where: { id: payload.jti, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    if (count === 0) throw new AppException('INVALID_REFRESH_TOKEN', '유효하지 않은 갱신 토큰입니다.', 401);
     return {
       accessToken: this.signAccessToken(account.id),
       refreshToken: await this.issuePrismaRefreshToken(account.id),

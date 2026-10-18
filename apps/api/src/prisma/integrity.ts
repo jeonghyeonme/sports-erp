@@ -69,6 +69,18 @@ export async function lockScheduleSlot(
   return rows[0] ?? null;
 }
 
+/**
+ * 예약 행 락 — engineering-risks R1(docs/log/123). 결제 승인(mockPay)과 취소(cancel)가 트랜잭션 처음에 같은 예약 행을
+ * FOR UPDATE로 잠근다. 둘이 같은 행을 같은 순서로 먼저 잡으므로 직렬화되고(교착 없음), 나중 쪽은 앞쪽이 커밋한
+ * 결제·예약 상태를 락 뒤에 다시 읽는다. 잠금 순서는 예약 → 결제다 — 이 둘을 함께 바꾸는 경로는 이 순서를 지킨다.
+ * 없는 예약이면 null.
+ */
+export async function lockReservation(tx: Tx, reservationId: string): Promise<{ id: string } | null> {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id" FROM "Reservation" WHERE "id" = ${reservationId} FOR UPDATE`;
+  return rows[0] ?? null;
+}
+
 /** ADR-RSV-02와 같은 "활성 예약" 정의(부분 unique 인덱스의 WHERE 절과 동일). */
 export const ACTIVE_RESERVATION_STATUSES = ['REQUESTED', 'CONFIRMED'] as const;
 

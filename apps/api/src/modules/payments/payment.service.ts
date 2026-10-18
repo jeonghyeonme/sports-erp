@@ -5,6 +5,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { kstDayRange } from '../../common/date/kst-date';
 import { PageRequest } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
+import { lockReservation } from '../../prisma/integrity';
 import { MockPayment } from '../../fixtures/mock-data.types';
 import { ReservationService, ReservationView, splitVat, toMockPayment } from '../reservations/reservation.service';
 
@@ -21,9 +22,13 @@ export class PaymentService {
   /**
    * 예약및결제 A-5 POST /payments/:reservationId/mock-pay — 예약 당사자 본인만(컨트롤러가 먼저 확인).
    * 결제 승인과 예약 확정을 한 트랜잭션에서, "PENDING일 때만" 바꿔 두 번 눌러도 한 번만 승인된다.
+   * R1(docs/log/123) — 취소와 같은 순서(예약 → 결제)로 예약 행을 먼저 잠근다. 예전엔 결제 행을 먼저 잡고 예약을
+   * 나중에 잡아, 예약 → 결제 순서인 취소와 겹치면 교착(40P01)으로 한쪽이 500을 받았다. 취소가 먼저 끝났으면
+   * 락 뒤에 읽는 결제가 이미 FAILED라 409다.
    */
   async mockPay(reservationId: string): Promise<{ reservation: ReservationView; payment: MockPayment }> {
     await this.prisma.$transaction(async (tx) => {
+      if (!(await lockReservation(tx, reservationId))) throw notPending();
       const payment = await tx.payment.findUnique({ where: { reservationId } });
       if (!payment || payment.status !== 'PENDING') throw notPending();
       // 예약및결제 A-6 부가세 분리 — 생성 시점에 이미 나눴지만 승인 시점 금액으로 다시 확정한다(같은 계산).
