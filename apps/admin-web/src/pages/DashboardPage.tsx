@@ -15,46 +15,17 @@ const STATUS_FILTERS: Array<{ value: BranchContractStatus | 'ALL'; label: string
   { value: 'TERMINATED', label: '종료' },
 ];
 
-// 히스토리 시계열 API가 아직 없어(디자인시스템 §5 예고 항목), 현재값에서 역산한 임시 추세를 스파크라인에 표시한다.
-// 실제 기간별 집계가 붙기 전까지의 디자인 확인용 자리값.
-function mockTrend(current: number): number[] {
-  const shape = [0.86, 0.9, 0.83, 0.94, 0.97, 0.92, 1];
-  return shape.map((ratio) => Math.round(current * ratio));
-}
-
-function Sparkline({ points }: { points: number[] }) {
-  const width = 64;
-  const height = 22;
-  const max = Math.max(...points);
-  const min = Math.min(...points);
-  const range = max - min || 1;
-  const step = width / (points.length - 1);
-  const d = points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(height - ((p - min) / range) * height).toFixed(1)}`)
-    .join(' ');
-  return (
-    <svg className="sparkline" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-      <path d={d} fill="none" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
-}
-
-function KpiTile({ icon, label, value, current }: { icon: ReactNode; label: string; value: string; current: number }) {
-  const trend = mockTrend(current);
-  const delta = trend[0] === 0 ? 0 : ((trend[trend.length - 1] - trend[0]) / trend[0]) * 100;
-  const up = delta >= 0;
+// log/125 F4 — 예전엔 현재값에서 역산한 가짜 증감률·추세선(mockTrend)을 붙였다. 시연 데이터가 진짜처럼 보일수록
+// 오해가 커져 뺐다. 기간별 집계 API가 생기면 그때 추세를 다시 붙인다(지점별 월 실적은 지점 상세, log/129).
+function KpiTile({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     <div className="kpi-panel">
       <div className="kpi-panel-top">
         <span className="icon-chip">{icon}</span>
-        <span className={`kpi-delta ${up ? 'up' : 'down'}`}>
-          {up ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}%
-        </span>
       </div>
       <div className="kpi-label">{label}</div>
       <div className="kpi-panel-bottom">
         <div className="kpi-value">{value}</div>
-        <Sparkline points={trend} />
       </div>
     </div>
   );
@@ -225,8 +196,8 @@ export function DashboardPage() {
 
       {showTable && totals && (
         <div className="kpi-grid">
-          <KpiTile icon={<BuildingIcon />} label="전체 지점 수" value={`${branchCount}개`} current={branchCount} />
-          <KpiTile icon={<BriefcaseIcon />} label="전체 직원 수" value={`${totals.staffCount}명`} current={totals.staffCount} />
+          <KpiTile icon={<BuildingIcon />} label="전체 지점 수" value={`${branchCount}개`} />
+          <KpiTile icon={<BriefcaseIcon />} label="전체 직원 수" value={`${totals.staffCount}명`} />
           <AlertKpiTile
             label="계약 갱신 임박 지점"
             value={`${totals.renewalDueCount}개`}

@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { toMockProgram } from '../programs/program.service';
 import { BranchService } from './branch.service';
 import { ChangeContractStatusDto } from './dto/change-contract-status.dto';
+import { branchPerformance } from './branch-performance';
 
 @Controller('branches')
 export class BranchesController {
@@ -47,6 +48,14 @@ export class BranchesController {
     @CurrentUser() user: RequestUser,
   ) {
     return ok(await this.branchService.changeContractStatus(branchId, dto.status, user.accountId));
+  }
+
+  // log/125 F3 — 지점 운영 실적(최근 3개월, 월별). 본사가 계약 갱신 판단에 쓴다. 지점 관리자는 자기 지점만(전역 가드).
+  @Get(':branchId/performance')
+  @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
+  @BranchScopeExempt('경로 파라미터가 branchId라 전역 BranchScopeGuard의 branchId 검사가 본다')
+  async performance(@Param('branchId') branchId: string) {
+    return ok(await branchPerformance(this.prisma, branchId));
   }
 
   // 강사프로그램게시 A-5 — 지점별 진행중 프로그램 현황판

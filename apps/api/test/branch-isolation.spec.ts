@@ -229,6 +229,8 @@ describe('지점 데이터 격리', () => {
     { name: '게시글 수정', method: 'patch', path: (c) => `/posts/${c.seocho.postId}`, body: () => ({ title: 'x' }) },
     { name: '게시글 삭제', method: 'delete', path: (c) => `/posts/${c.seocho.postId}` },
     { name: '서초점 프로그램 요약 조회', method: 'get', path: () => `/branches/${BRANCH.seocho}/programs/summary` },
+    // log/129 F3 — 지점 운영 실적
+    { name: '서초점 운영 실적 조회', method: 'get', path: () => `/branches/${BRANCH.seocho}/performance` },
     // ADR-STF-07 — 계약 상태 변경은 본사 전용(지점 관리자는 자기 지점도 403 — contract-termination.spec).
     { name: '서초점 계약 상태 변경', method: 'patch', path: () => `/branches/${BRANCH.seocho}/contract-status`, body: () => ({ status: 'TERMINATED' }) },
     // D44 — 변경 이력은 본사 감사 기록이라 지점 관리자는 자기 지점 직원 것도 볼 수 없다(403).

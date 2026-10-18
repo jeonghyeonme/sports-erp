@@ -787,23 +787,6 @@ tbody tr:hover td {
   height: 14px;
 }
 
-.kpi-delta {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: var(--radius-pill);
-}
-
-.kpi-delta.up {
-  color: #15803d;
-  background: #dcfce7;
-}
-
-.kpi-delta.down {
-  color: #b91c1c;
-  background: #fee2e2;
-}
-
 .kpi-label {
   font-size: 12px;
   color: var(--color-text-muted);
@@ -821,13 +804,6 @@ tbody tr:hover td {
   font-size: 20px;
   font-weight: 700;
   color: var(--color-text);
-}
-
-.sparkline {
-  width: 64px;
-  height: 22px;
-  color: var(--color-primary);
-  flex-shrink: 0;
 }
 
 /* 계약 갱신 임박처럼 "지금 리스크 건수"를 보는 카드 — 값이 있으면 경고 톤으로 눈에 띄게 */

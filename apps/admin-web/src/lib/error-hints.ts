@@ -100,6 +100,7 @@ export const ERROR_HINTS: Record<string, string> = {
   ALREADY_RESERVED: '이미 예약한 회차입니다. 내 예약 목록에서 확인하세요.',
   RESERVATION_NOT_CANCELLABLE: '이미 취소됐거나 이용이 끝난 예약입니다. 목록을 새로고침하세요.',
   RESERVATION_NOT_CONFIRMED: '확정(결제 완료)된 예약만 체크인할 수 있습니다. 결제부터 확인하세요.',
+  CHECK_IN_NOT_TODAY: '체크인은 회차 당일에만 됩니다. 예약 현황의 날짜를 오늘로 두고 다시 하세요.',
   PAYMENT_NOT_PENDING: '이미 결제됐거나 취소된 예약입니다. 목록을 새로고침하세요.',
   PT_SESSION_EXHAUSTED: '남은 PT 세션이 없습니다. 새 PT 패키지를 등록하세요.',
 

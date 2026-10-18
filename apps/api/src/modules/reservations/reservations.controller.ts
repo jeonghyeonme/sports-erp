@@ -37,11 +37,14 @@ export class ReservationsController {
     @CurrentUser() user: RequestUser,
     @Query('page') pageQuery?: string,
     @Query('limit') limitQuery?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ) {
     // D43 — offset 페이지네이션(page·limit, 상한 100), 최근 것부터.
     const page = parsePage(pageQuery, limitQuery);
+    // ADR-RSV-08 — dateFrom·dateTo(회차 날짜, KST)는 모든 역할에 같은 뜻이다.
     const paged = async (filter: { memberId?: string; branchId?: string; status?: string }) => {
-      const { items, total } = await this.reservationService.list(filter, page);
+      const { items, total } = await this.reservationService.list({ ...filter, dateFrom, dateTo }, page);
       return ok(items, pageMeta(page, total));
     };
     if (user.role === 'MEMBER') {
