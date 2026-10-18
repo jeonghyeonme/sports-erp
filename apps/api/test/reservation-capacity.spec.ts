@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
 import { resetWorkerDb, useDenseTemplate } from './helpers/worker-db';
+import { holdRowLock, waitForLockWaiters } from './helpers/row-lock';
 
 // D58 — 시연 데이터 층(고밀도 템플릿) 위에서 돈다. 기대값은 시드 개수를 박지 않고 DB에서 센다.
 useDenseTemplate();
@@ -279,5 +280,75 @@ describe('취소 정책 — 마감시간(24시간) 기준 환불 분기', () => 
   it('대조군: 1시간 뒤(KST) 시작하는 회차는 예약할 수 있다', async () => {
     await createSlot('slot-test-soon', kstAfterHours(1));
     expect((await reserve('slot-test-soon')).status).toBe(201);
+  });
+});
+
+/**
+ * engineering-risks R1 — 결제와 취소 경합(docs/log/123). 회원의 결제 승인과 관리자 취소가 같은 예약에 겹친다.
+ * 테스트가 예약 행을 먼저 잡아 두고(holdRowLock) 두 요청이 모두 그 행에서 기다리게 한 뒤 놓아, 순서를 매번 같게 만든다.
+ * 고치기 전: 결제가 먼저면 취소가 트랜잭션 처음에 읽은 PENDING으로 결제를 FAILED로 덮어써 "승인된 돈이 실패·환불 없음",
+ * 취소가 먼저면 두 트랜잭션이 예약·결제 행을 반대 순서로 잠가 교착 → 한쪽 500.
+ */
+describe('결제와 취소 경합 — R1', () => {
+  let app: INestApplication;
+  let token: string;
+  let adminToken: string;
+
+  beforeEach(async () => {
+    await resetWorkerDb();
+    app = await createApp();
+    token = await login(app, ACCOUNTS.seochoMember);
+    adminToken = await login(app, ACCOUNTS.seochoAdmin);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  const reserve = async () => {
+    const resv = await request(app.getHttpServer())
+      .post('/api/v1/reservations')
+      .set('Authorization', token)
+      .send({ scheduleSlotId: 'slot-seocho-yoga-1' }); // 7일 뒤 회차 — 취소 마감(24시간) 전이라 승인 건은 환불 대상
+    expect(resv.status).toBe(201);
+    return resv.body.data.id as string;
+  };
+  const pay = (id: string) => request(app.getHttpServer()).post(`/api/v1/payments/${id}/mock-pay`).set('Authorization', token);
+  const cancel = (id: string) =>
+    request(app.getHttpServer()).patch(`/api/v1/reservations/${id}/cancel`).set('Authorization', adminToken).send({});
+
+  it('결제가 먼저 잠금을 얻으면 취소는 승인된 결제를 환불(REFUNDED)한다 — FAILED로 덮어쓰지 않는다', async () => {
+    const id = await reserve();
+    const lock = await holdRowLock('Reservation', id);
+    const paying = pay(id).then((r) => r);
+    await waitForLockWaiters(1);
+    const cancelling = cancel(id).then((r) => r);
+    await waitForLockWaiters(2);
+    await lock.release();
+    const [payRes, cancelRes] = await Promise.all([paying, cancelling]);
+
+    expect(payRes.status).toBe(201);
+    expect(cancelRes.status).toBe(200);
+    const payment = await db(app).payment.findUniqueOrThrow({ where: { reservationId: id } });
+    expect(payment.approvedAt).not.toBeNull();
+    expect(payment.status).toBe('REFUNDED');
+    expect(cancelRes.body.data.payment.status).toBe('REFUNDED');
+  });
+
+  it('취소가 먼저 잠금을 얻으면 결제는 409로 거절되고 교착(500)이 나지 않는다', async () => {
+    const id = await reserve();
+    const lock = await holdRowLock('Reservation', id);
+    const cancelling = cancel(id).then((r) => r);
+    await waitForLockWaiters(1);
+    const paying = pay(id).then((r) => r);
+    await waitForLockWaiters(2);
+    await lock.release();
+    const [cancelRes, payRes] = await Promise.all([cancelling, paying]);
+
+    expect(cancelRes.status).toBe(200);
+    expect(payRes.status).toBe(409);
+    const reservation = await db(app).reservation.findUniqueOrThrow({ where: { id }, include: { payment: true } });
+    expect(reservation.status).toBe('CANCELLED');
+    expect(reservation.payment?.status).toBe('FAILED');
+    expect(reservation.payment?.approvedAt).toBeNull();
   });
 });

@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Payment, Prisma, Reservation, ReservationStatus, ScheduleSlot } from '@prisma/client';
+import { Payment, PaymentStatus, Prisma, Reservation, ReservationStatus, ScheduleSlot } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { toKstDateString } from '../../common/date/kst-date';
 import { PageRequest } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ACTIVE_RESERVATION_STATUSES, lockScheduleSlot } from '../../prisma/integrity';
+import { ACTIVE_RESERVATION_STATUSES, lockReservation, lockScheduleSlot } from '../../prisma/integrity';
 import { BranchService } from '../branches/branch.service';
 import { MockPayment, MockReservation, MockScheduleSlot } from '../../fixtures/mock-data.types';
 
@@ -143,11 +143,13 @@ export class ReservationService {
    */
   async cancel(id: string, cancelReason?: string): Promise<ReservationView> {
     await this.prisma.$transaction(async (tx) => {
-      const reservation = await tx.reservation.findUnique({
+      // R1(docs/log/123) — 결제 승인과 같은 순서로 예약 행을 먼저 잠그고, 결제 상태는 락 뒤에 읽는다.
+      // 락 전에 읽으면 그사이 커밋된 승인(APPROVED)을 모른 채 FAILED로 덮어써 "승인된 돈이 실패·환불 없음"이 됐다.
+      if (!(await lockReservation(tx, id))) throw new AppException('RESERVATION_NOT_FOUND', '예약을 찾을 수 없습니다.', 404);
+      const reservation = await tx.reservation.findUniqueOrThrow({
         where: { id },
         include: { payment: true, scheduleSlot: { include: { program: { include: { branch: true } } } } },
       });
-      if (!reservation) throw new AppException('RESERVATION_NOT_FOUND', '예약을 찾을 수 없습니다.', 404);
       const { count } = await tx.reservation.updateMany({
         where: { id, status: { in: ACTIVE } },
         data: { status: 'CANCELLED', cancelledAt: new Date(), cancelReason },
@@ -156,13 +158,20 @@ export class ReservationService {
         throw new AppException('RESERVATION_NOT_CANCELLABLE', '취소할 수 없는 예약 상태입니다.', 409);
       }
       const payment = reservation.payment;
+      // 결제 상태는 읽은 상태일 때만 바꾼다 — 락을 거치지 않는 쓰기가 생겨도 덮어쓰지 않고 롤백한다.
+      const changePayment = async (from: PaymentStatus, data: Prisma.PaymentUpdateManyMutationInput) => {
+        const changed = await tx.payment.updateMany({ where: { id: payment!.id, status: from }, data });
+        if (changed.count === 0) {
+          throw new AppException('RESERVATION_NOT_CANCELLABLE', '결제 상태가 바뀌었습니다. 다시 시도해 주세요.', 409);
+        }
+      };
       if (payment?.status === 'PENDING') {
-        await tx.payment.update({ where: { id: payment.id }, data: { status: 'FAILED' } });
+        await changePayment('PENDING', { status: 'FAILED' });
       } else if (payment?.status === 'APPROVED') {
         const slot = reservation.scheduleSlot;
         const deadlineHours = slot.program.branch.cancellationDeadlineHours ?? 24;
         if (kstSlotStart(slot).getTime() - Date.now() >= deadlineHours * 60 * 60 * 1000) {
-          await tx.payment.update({ where: { id: payment.id }, data: { status: 'REFUNDED', refundedAt: new Date() } });
+          await changePayment('APPROVED', { status: 'REFUNDED', refundedAt: new Date() });
         }
         // 마감 이내 취소는 환불 없이 Payment.status=APPROVED가 그대로 남는다(예약및결제 A-6 "환불 불가").
       }
