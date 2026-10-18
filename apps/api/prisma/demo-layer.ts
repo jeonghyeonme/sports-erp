@@ -741,12 +741,18 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
       if (rng.chance(0.6)) workLogs.push({ id: `demo-worklog-${s.key}-${d}`, staffId: s.id, date: asDate(d), content: rng.pick(WORK_LOG_LINES), createdAt: kstAt(d, outMin - 10) });
     }
   }
-  // 연차 사용 일수 — 올해 승인된 연차만(근태관리 A-3)
-  for (const lb of leaveBalances) {
-    lb.usedDays = leaveRequests
-      .filter((l) => l.staffId === lb.staffId && l.status === 'APPROVED' && l.type === 'ANNUAL' && (l.startDate as Date).getUTCFullYear() === year)
+  // 연차 사용 일수 — 올해 승인된 연차만(근태관리 A-3, ADR-ATT-01: 승인 때 ANNUAL만 차감)
+  const approvedAnnualDays = (staffId: string) =>
+    leaveRequests
+      .filter((l) => l.staffId === staffId && l.status === 'APPROVED' && l.type === 'ANNUAL' && (l.startDate as Date).getUTCFullYear() === year)
       .reduce((sum, l) => sum + (l.days as number), 0);
-  }
+  for (const lb of leaveBalances) lb.usedDays = approvedAnnualDays(lb.staffId);
+  // 기준 시드 직원에게 얹은 승인 연차도 잔여에 반영한다(log/127 — 빠지면 화면이 "사용 0일"인데 승인 연차가 보였다).
+  // 잔여 행이 있으면 그만큼 더하고, 없으면 앱이 처음 조회할 때 만드는 것과 같은 총일수로 만든다.
+  const baseLeaveUsage = allStaff
+    .filter((s) => !s.id.startsWith('demo-'))
+    .map((s) => ({ staffId: s.id, hireDate: s.hireDate, days: approvedAnnualDays(s.id) }))
+    .filter((x) => x.days > 0);
 
   // ── 게시글 읽음·인사 변경 신청 ──
   const staffAccounts = staffRows.map((s) => s.accountId);
@@ -831,6 +837,13 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
       await insertMany('staff', staffRows, (c) => tx.staff.createMany({ data: c }), counts);
       await insertMany('staffAssignment', assignments, (c) => tx.staffAssignment.createMany({ data: c }), counts);
       await insertMany('leaveBalance', leaveBalances, (c) => tx.leaveBalance.createMany({ data: c }), counts);
+      for (const u of baseLeaveUsage) {
+        await tx.leaveBalance.upsert({
+          where: { staffId_year: { staffId: u.staffId, year } },
+          update: { usedDays: { increment: u.days } },
+          create: { staffId: u.staffId, year, totalDays: annualLeaveTotal(u.hireDate, year), usedDays: u.days },
+        });
+      }
       await insertMany('facility', facilities, (c) => tx.facility.createMany({ data: c }), counts);
       await insertMany('instructor', instructors, (c) => tx.instructor.createMany({ data: c }), counts);
       await insertMany('program', programs, (c) => tx.program.createMany({ data: c }), counts);
