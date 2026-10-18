@@ -44,13 +44,15 @@ const REQUEST_STATUS_LABEL: Record<LeaveRequestRow['status'], string> = {
   REJECTED: '반려',
 };
 
+// KST 오늘 — toISOString()은 UTC라 00:00~08:59 KST에 어제가 된다(date-time-handling, log/127).
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 function formatTime(iso?: string): string {
   if (!iso) return '-';
-  return new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  // 기기 시간대가 아니라 KST로 보인다 — 직원 상세(StaffDetailPage)와 같다(log/125 F1).
+  return new Date(iso).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' });
 }
 
 export function AttendancePage() {
