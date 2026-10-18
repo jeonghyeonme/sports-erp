@@ -13,6 +13,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
+    "seed:demo": "prisma db seed && ts-node prisma/seed-demo.ts",
     "prisma:studio": "prisma studio"
   },
   "prisma": {

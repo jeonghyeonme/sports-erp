@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { dropDatabase, withDatabase, workerDatabaseName } from './test-db';
+import { denseDatabaseName, dropDatabase, withDatabase, workerDatabaseName } from './test-db';
 
 export default async function globalTeardown(globalConfig: { maxWorkers: number }): Promise<void> {
   const base = process.env.TEST_BASE_DATABASE_URL;
@@ -9,6 +9,7 @@ export default async function globalTeardown(globalConfig: { maxWorkers: number 
     for (let i = 1; i <= globalConfig.maxWorkers; i++) {
       await dropDatabase(admin, workerDatabaseName(base, i));
     }
+    await dropDatabase(admin, denseDatabaseName(base));
   } finally {
     await admin.$disconnect();
   }

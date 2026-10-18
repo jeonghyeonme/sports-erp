@@ -1,4 +1,4 @@
-import { generateLightBranches } from './branch-generator';
+import { sideBranchDataset } from './side-branch-fixtures';
 import { MockFacility, MockInstructor, MockProgram, MockScheduleSlot } from './mock-data.types';
 
 /**
@@ -160,9 +160,9 @@ export interface CatalogSeed {
   slots: MockScheduleSlot[];
 }
 
-/** 시드가 DB에 넣는 시설·강사·프로그램·회차 전체(히어로 + 생성 81개 지점분). */
+/** 시드가 DB에 넣는 시설·강사·프로그램·회차 전체(히어로 + 대조군 지점 3곳분, D58). */
 export function catalogSeed(): CatalogSeed {
-  const g = generateLightBranches();
+  const g = sideBranchDataset();
   return {
     facilities: [...HERO_FACILITIES, ...g.facilities],
     instructors: [...HERO_INSTRUCTORS, ...g.instructors],

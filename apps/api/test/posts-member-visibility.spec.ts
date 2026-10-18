@@ -1,7 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, createApp, login } from './helpers/app';
-import { resetWorkerDb } from './helpers/worker-db';
+import { resetWorkerDb, useDenseTemplate } from './helpers/worker-db';
+
+// D58 — 시연 데이터 층(고밀도 템플릿) 위에서 돈다. 기대값은 시드 개수를 박지 않고 DB에서 센다.
+useDenseTemplate();
 
 /**
  * ADR-BRD-01 — 회원은 본인 지점 BRANCH_TO_MEMBER 게시글 + visibleToMember=true인 HQ 공지만 볼 수 있다.
@@ -100,37 +103,46 @@ describe('회원 대상 게시글 가시성(visibleToMember)', () => {
       }
     }
 
+    // D58 — 고밀도 템플릿이라 시드 글 수를 박지 않고, 만들기 전 total(seeded)에서 센다.
+    const totalNow = async (query = '') => (await api(superAdmin).get(`/posts${query}`)).body.meta.total as number;
+
     it('기본 limit=20으로 잘려서 응답하고 meta에 total/page/pageSize가 붙는다', async () => {
+      const seeded = await totalNow();
       await createPosts(25);
       const res = await api(superAdmin).get('/posts');
       expect(res.status).toBe(200);
       expect(res.body.data.length).toBe(20);
-      // 시드 2건 + 신규 25건 = 27건
-      expect(res.body.meta).toEqual({ page: 1, pageSize: 20, total: 27 });
+      expect(res.body.meta).toEqual({ page: 1, pageSize: 20, total: seeded + 25 });
     });
 
-    it('page=2를 주면 나머지가 내려온다', async () => {
+    it('마지막 쪽에는 나머지가 내려온다', async () => {
+      const seeded = await totalNow();
       await createPosts(25);
-      const res = await api(superAdmin).get('/posts?page=2');
+      const total = seeded + 25;
+      const last = Math.ceil(total / 20);
+      const res = await api(superAdmin).get(`/posts?page=${last}`);
       expect(res.status).toBe(200);
-      expect(res.body.data.length).toBe(7);
-      expect(res.body.meta).toEqual({ page: 2, pageSize: 20, total: 27 });
+      expect(res.body.data.length).toBe(total - 20 * (last - 1));
+      expect(res.body.meta).toEqual({ page: last, pageSize: 20, total });
     });
 
     it('limit을 지정하면 그 크기로 잘린다', async () => {
+      const seeded = await totalNow();
       await createPosts(5);
       const res = await api(superAdmin).get('/posts?limit=3');
       expect(res.status).toBe(200);
       expect(res.body.data.length).toBe(3);
-      expect(res.body.meta).toEqual({ page: 1, pageSize: 3, total: 7 });
+      expect(res.body.meta).toEqual({ page: 1, pageSize: 3, total: seeded + 5 });
     });
 
     it('scope 필터와 함께 써도 total은 필터링 이후 기준이다', async () => {
+      const seeded = await totalNow('?scope=BRANCH_TO_MEMBER');
+      expect(seeded).toBeGreaterThan(0);
       await createPosts(25); // 전부 scope=HQ_TO_BRANCH(SUPER_ADMIN 작성)
       const res = await api(superAdmin).get('/posts?scope=BRANCH_TO_MEMBER');
       expect(res.status).toBe(200);
-      // 시드된 BRANCH_TO_MEMBER 공지 1건뿐 — 대량 생성분은 전부 HQ_TO_BRANCH라 안 섞인다.
-      expect(res.body.meta.total).toBe(1);
+      // 대량 생성분은 전부 HQ_TO_BRANCH라 안 섞인다.
+      expect(res.body.meta.total).toBe(seeded);
     });
 
     // ADR-BRD-03 — 회원 웹 홈의 최근 공지. 최신순도 가시성(ADR-BRD-01)·페이지(ADR-BRD-02)를 그대로 따른다.
@@ -147,9 +159,11 @@ describe('회원 대상 게시글 가시성(visibleToMember)', () => {
 
     it('대조군: sort를 생략하거나 모르는 값이면 기존 순서(오래된 글부터)다', async () => {
       await createPosts(2);
-      const plain = await api(superAdmin).get('/posts');
-      const unknown = await api(superAdmin).get('/posts?sort=oldest');
-      const latest = await api(superAdmin).get('/posts?sort=latest');
+      // 시드 글이 한 쪽(20)을 넘으므로 한 쪽에 다 담아 순서를 비교한다
+      const plain = await api(superAdmin).get('/posts?limit=100');
+      expect(plain.body.meta.total).toBeLessThanOrEqual(100);
+      const unknown = await api(superAdmin).get('/posts?sort=oldest&limit=100');
+      const latest = await api(superAdmin).get('/posts?sort=latest&limit=100');
       const titles = (r: request.Response) => r.body.data.map((p: { title: string }) => p.title);
       expect(titles(plain).at(-1)).toBe('대량 공지 1');
       expect(titles(unknown)).toEqual(titles(plain));

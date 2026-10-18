@@ -351,7 +351,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
       expect(res.status).toBe(200);
       return (res.body.data as Array<{ id: string; branchId: string }>).map((s) => s.id);
     };
-    const SEED_TERMINATED_STAFF = ['staff-gen-094-1', 'staff-gen-095-1', 'staff-gen-095-2', 'staff-gen-096-1', 'staff-gen-096-2', 'staff-gen-096-3'];
+    const SEED_TERMINATED_STAFF = ['staff-nowon-1', 'staff-nowon-2']; // D58 — 계약 종료 대조군 노원점 직원(side-branch-fixtures.ts)
 
     it('시드의 계약 종료 지점에는 진행 중 파견·담당 회원이 없고, 그 직원들이 재배치 대기로 보인다', async () => {
       const prisma = db(app);

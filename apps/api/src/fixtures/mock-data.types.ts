@@ -24,7 +24,7 @@ export type AssetStatus = 'NORMAL' | 'REPAIRING' | 'DISPOSAL_PENDING' | 'DISPOSE
 export type DocumentCategory = 'CONTRACT' | 'HR_RECORD' | 'MANUAL' | 'OTHER';
 
 // 지점 원천 레코드 — D29부터 원천은 DB(Prisma Branch)다. 이 형태는 시드(prisma/seed.ts)와 mock 사본이
-// 같은 원천(branch-fixtures.ts의 HERO_BRANCHES + branch-generator.ts)에서 만들어지도록 공유하는 입력 형식이다.
+// 같은 원천(branch-fixtures.ts의 HERO_BRANCHES + side-branch-fixtures.ts)에서 만들어지도록 공유하는 입력 형식이다.
 export interface BranchRecord {
   id: string;
   name: string;

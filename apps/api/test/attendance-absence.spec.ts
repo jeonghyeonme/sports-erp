@@ -2,7 +2,10 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { todayKst } from '../src/common/date/kst-date';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
-import { resetWorkerDb } from './helpers/worker-db';
+import { resetWorkerDb, useDenseTemplate } from './helpers/worker-db';
+
+// D58 — 시연 데이터 층(고밀도 템플릿) 위에서 돈다. 기대값은 시드 개수를 박지 않고 DB에서 센다.
+useDenseTemplate();
 
 function daysBeforeToday(n: number): string {
   const d = new Date(`${todayKst()}T00:00:00Z`);
@@ -31,6 +34,10 @@ describe('결근 미리보기·확정 (ADR-ATT-02)', () => {
     adminToken = await login(app, ACCOUNTS.seochoAdmin);
     // 이 테스트에서는 모든 날짜를 근무일로 취급(요일 계산 자체는 kst-date.spec.ts가 별도 검증)
     await db(app).staff.update({ where: { id: STAFF_ID }, data: { employmentType: '정규직', offDays: [] } });
+    // D58 — 고밀도 템플릿에는 이 직원의 근태·휴가 이력이 있다. 어제를 "체크인·승인휴가 없는 근무일"로 비워 둔다.
+    const yesterday = new Date(`${daysBeforeToday(1)}T00:00:00Z`);
+    await db(app).attendanceRecord.deleteMany({ where: { staffId: STAFF_ID, date: yesterday } });
+    await db(app).leaveRequest.deleteMany({ where: { staffId: STAFF_ID, startDate: { lte: yesterday }, endDate: { gte: yesterday } } });
   });
   afterEach(async () => {
     await app.close();

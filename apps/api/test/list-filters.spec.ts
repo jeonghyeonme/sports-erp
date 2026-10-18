@@ -2,6 +2,10 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { todayKst } from '../src/common/date/kst-date';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
+import { useDenseTemplate } from './helpers/worker-db';
+
+// D58 — 시연 데이터 층(고밀도 템플릿) 위에서 돈다. 기대값은 시드 개수를 박지 않고 DB에서 센다.
+useDenseTemplate();
 
 /**
  * RFP 중간 작업 M1·M3(D51, 작업 브리프 B2).
