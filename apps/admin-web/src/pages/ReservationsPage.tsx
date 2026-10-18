@@ -12,6 +12,7 @@ import { WeeklyTimetable } from '../components/WeeklyTimetable';
 import { ApiEnvelope, PaymentRow, ProgramRow, ReservationRow, ReservationStatus, ScheduleSlotRow } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
+import { kstToday } from '../lib/kst-date';
 interface ApiErrorBody {
   code?: string;
   message?: string;
@@ -26,10 +27,6 @@ const STATUS_LABEL: Record<ReservationStatus, string> = {
 };
 
 const PAGE_SIZE = 20;
-
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function slotLabel(slot?: ScheduleSlotRow): string {
   if (!slot) return '-';
@@ -55,7 +52,7 @@ function ProgramSlotsCard({ program }: { program: ProgramRow }) {
     },
   });
 
-  const slots = (slotsQuery.data ?? []).filter((s) => s.date >= todayStr());
+  const slots = (slotsQuery.data ?? []).filter((s) => s.date >= kstToday());
 
   return (
     <div className="card">
@@ -176,7 +173,7 @@ function SlotManager({ programs }: { programs: ProgramRow[] }) {
   const toast = useToast();
   const reservablePrograms = programs.filter((p) => p.pricingType === 'PAID_SESSION');
   const [programId, setProgramId] = useState(reservablePrograms[0]?.id ?? '');
-  const [form, setForm] = useState({ date: todayStr(), startTime: '10:00', endTime: '11:00', capacity: '' });
+  const [form, setForm] = useState({ date: kstToday(), startTime: '10:00', endTime: '11:00', capacity: '' });
 
   const slotsQuery = useQuery<ScheduleSlotRow[], AxiosError<ApiErrorBody>>({
     queryKey: ['slots', programId],

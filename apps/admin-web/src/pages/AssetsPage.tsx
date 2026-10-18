@@ -9,6 +9,7 @@ import { Pager } from '../components/Pager';
 import { BranchFilter } from '../components/BranchFilter';
 import { ApiEnvelope, AssetCategory, AssetRow, AssetStatus, AssetType, BranchSummary } from '../lib/types';
 import { useToast } from '../lib/use-toast';
+import { kstToday } from '../lib/kst-date';
 
 const PAGE_SIZE = 20;
 const FIXED_ASSET_THRESHOLD = 1_000_000;
@@ -66,7 +67,7 @@ const EMPTY_FORM: AssetForm = {
   branchId: '',
   name: '',
   category: 'EXERCISE_EQUIPMENT',
-  acquiredAt: new Date().toISOString().slice(0, 10),
+  acquiredAt: kstToday(),
   acquisitionCost: '',
   assetType: '',
   usefulLifeYears: '',

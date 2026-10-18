@@ -19,6 +19,7 @@ import {
   StaffRow,
   WorkLogRow,
 } from '../lib/types';
+import { kstToday } from '../lib/kst-date';
 
 interface ApiErrorBody {
   code?: string;
@@ -439,10 +440,6 @@ function formatTime(iso?: string): string {
 // 그날 근태를 고른 값으로 바꾼다(없으면 만든다). 사유는 필수이고 변경 이력에 남는다(D52).
 
 const WORKED_STATUSES: AttendanceRecordRow['status'][] = ['NORMAL', 'LATE', 'EARLY_LEAVE'];
-
-function kstToday(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
-}
 
 function kstHhmm(iso?: string): string {
   if (!iso) return '';

@@ -8,6 +8,7 @@ import { Modal } from '../components/Modal';
 import { ApiEnvelope, BranchSummary, DocumentCategory, DocumentRow, StaffRow } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
+import { kstToday } from '../lib/kst-date';
 interface ApiErrorBody {
   code?: string;
   message?: string;
@@ -29,7 +30,7 @@ const RETENTION_HINT: Record<DocumentCategory, string> = {
 };
 
 function daysUntil(date: string): number {
-  const today = new Date(new Date().toISOString().slice(0, 10)).getTime();
+  const today = new Date(kstToday()).getTime();
   return Math.round((new Date(date).getTime() - today) / 86_400_000);
 }
 

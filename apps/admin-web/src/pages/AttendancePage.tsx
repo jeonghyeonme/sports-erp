@@ -17,6 +17,7 @@ import {
   LeaveType,
   WorkLogRow,
 } from '../lib/types';
+import { kstToday } from '../lib/kst-date';
 
 interface ApiErrorBody {
   code?: string;
@@ -44,11 +45,6 @@ const REQUEST_STATUS_LABEL: Record<LeaveRequestRow['status'], string> = {
   REJECTED: '반려',
 };
 
-// KST 오늘 — toISOString()은 UTC라 00:00~08:59 KST에 어제가 된다(date-time-handling, log/127).
-function todayStr(): string {
-  return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-
 function formatTime(iso?: string): string {
   if (!iso) return '-';
   // 기기 시간대가 아니라 KST로 보인다 — 직원 상세(StaffDetailPage)와 같다(log/125 F1).
@@ -61,14 +57,14 @@ export function AttendancePage() {
   const toast = useToast();
   const isAdmin = user?.role === 'BRANCH_ADMIN';
   const staffId = user?.staffId;
-  const month = useMemo(() => todayStr().slice(0, 7), []);
+  const month = useMemo(() => kstToday().slice(0, 7), []);
 
-  const [leaveForm, setLeaveForm] = useState({ type: 'ANNUAL' as LeaveType, startDate: todayStr(), endDate: todayStr(), reason: '' });
-  const [workLogForm, setWorkLogForm] = useState({ date: todayStr(), content: '' });
+  const [leaveForm, setLeaveForm] = useState({ type: 'ANNUAL' as LeaveType, startDate: kstToday(), endDate: kstToday(), reason: '' });
+  const [workLogForm, setWorkLogForm] = useState({ date: kstToday(), content: '' });
 
   // 근태관리 A-5 GET /attendance — staffId 생략 시 API가 본인 기준으로 응답한다.
   const myAttendance = useApiList<AttendanceRecordRow>(['attendance', 'mine', month], `/attendance?month=${month}`);
-  const todayRecord = myAttendance.data?.find((r) => r.date === todayStr());
+  const todayRecord = myAttendance.data?.find((r) => r.date === kstToday());
 
   const balanceQuery = useQuery<LeaveBalanceRow | undefined, AxiosError<ApiErrorBody>>({
     queryKey: ['leave-balance', staffId],
@@ -138,7 +134,7 @@ export function AttendancePage() {
     mutationFn: async (dto) => (await api.post<ApiEnvelope<WorkLogRow>>('/work-logs', dto)).data.data!,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['work-logs'] });
-      setWorkLogForm({ date: todayStr(), content: '' });
+      setWorkLogForm({ date: kstToday(), content: '' });
       toast.success('업무일지를 저장했습니다.');
     },
   });
