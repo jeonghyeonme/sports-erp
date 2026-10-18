@@ -759,6 +759,71 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
     changeRequests.push({ id: `demo-change-request-${ci + 1}`, staffId: st.id!, field: 'phone', oldValue: st.phone ?? null, newValue: phone(), status: 'PENDING', createdAt: notAfterNow(kstAt(addDays(today, -rng.int(1, 5)), 13 * 60)) });
   }
 
+  // ── 변경 이력(AuditLog) — 위에서 만든 상태에서 역으로 만든다(log/124). 이력의 "바뀐 뒤" 값은 항상 지금 데이터와 같다.
+  // 별도 난수(SEED + 1)라 위 데이터는 이 절이 있든 없든 똑같다. 기록 모양은 각 도메인의 recordAudit 호출과 같다(D44·D52).
+  const audits: Prisma.AuditLogCreateManyInput[] = [];
+  {
+    const arng = new Rng(SEED + 1);
+    const branchById = new Map(branches.map((b) => [b.id, b]));
+    const adminByBranch = new Map(
+      (await prisma.staff.findMany({ where: { account: { role: 'BRANCH_ADMIN' } }, select: { branchId: true, accountId: true }, orderBy: { id: 'asc' } }))
+        .map((x) => [x.branchId, x.accountId] as const),
+    );
+    const endOf = (branchId: string) => windowOf(branchById.get(branchId)!).end;
+    // from~to(KST 날짜) 중 하루의 업무 시간(09~18시). 지금보다 늦지 않게.
+    const at = (from: string, to: string) => {
+      const span = Math.max(0, dayDiff(to, from));
+      return notAfterNow(kstAt(addDays(from, arng.int(0, span)), arng.int(9 * 60, 18 * 60)));
+    };
+    const later = (a: string, b: string) => (a > b ? a : b);
+    const push = (row: Omit<Prisma.AuditLogCreateManyInput, 'id'>) => audits.push({ id: `demo-audit-${pad(audits.length + 1, 4)}`, ...row });
+
+    // 재배치(staff.service assign) — "인력 재배치"로 끝나는 파견 이력마다 한 건
+    for (const a of assignments.filter((x) => x.note === '인력 재배치')) {
+      const prev = assignments.find((x) => x.staffId === a.staffId && x.endDate);
+      const day = (a.startDate as Date).toISOString().slice(0, 10);
+      push({ actorId: hq.id, entity: 'Staff', entityId: a.staffId, action: 'ASSIGNED', before: { branchId: prev?.branchId ?? null }, after: { branchId: a.branchId, note: '인력 재배치', releasedMemberCount: 0 }, createdAt: kstAt(day, 10 * 60) });
+    }
+    // 계약 종료 지점 파견 종료(terminated-branch-assignments) — 기준 시드 직원과 새 직원 모두, 종료일에
+    for (const b of planned.filter((x) => x.contractStatus === 'TERMINATED')) {
+      const end = windowOf(b).end;
+      const ended = [
+        ...(await prisma.staffAssignment.findMany({ where: { branchId: b.id, endDate: asDate(end) }, select: { staffId: true }, orderBy: { id: 'asc' } })),
+        ...assignments.filter((x) => x.branchId === b.id && x.endDate && (x.endDate as Date).toISOString().slice(0, 10) === end),
+      ];
+      for (const [i, a] of ended.entries()) {
+        push({ actorId: hq.id, entity: 'Staff', entityId: a.staffId, action: 'ASSIGNMENT_ENDED', before: { branchId: b.id }, after: { reason: 'BRANCH_TERMINATED', endDate: end, releasedMemberCount: 0 }, createdAt: new Date(kstAt(end, 17 * 60).getTime() + i * 1000) });
+      }
+    }
+    // 회원 상태(member.service updateStatus — 지점 관리자만). 휴면·탈퇴 회원마다 ACTIVE에서 바꾼 한 건
+    for (const m of members.filter((x) => x.status !== 'ACTIVE')) {
+      const branchId = m.branchId as string;
+      const end = endOf(branchId);
+      const joined = (m.joinedAt as Date).toISOString().slice(0, 10);
+      push({ actorId: adminByBranch.get(branchId) ?? hq.id, entity: 'Member', entityId: m.id!, action: 'MEMBER_STATUS_CHANGED', before: { status: 'ACTIVE' }, after: { status: m.status, branchId }, createdAt: at(later(addDays(joined, 1), addDays(end, -(HISTORY_DAYS - 1))), end) });
+    }
+    // 자산 상태(asset.service changeStatus — STATUS_TRANSITIONS를 따른다). 폐기는 폐기 대기를 거친다.
+    // 계약 종료 지점의 폐기 대기는 종료 뒤 본사가 정리한 것으로 둔다.
+    for (const a of assets.filter((x) => x.status !== 'NORMAL')) {
+      const branchId = a.branchId as string;
+      const b = branchById.get(branchId)!;
+      const terminated = b.contractStatus === 'TERMINATED';
+      const acquired = (a.acquiredAt as Date).toISOString().slice(0, 10);
+      const from = terminated ? later(windowOf(b).end, acquired) : later(addDays(acquired, 1), addDays(yesterday, -(HISTORY_DAYS - 1)));
+      const to = terminated ? later(addDays(windowOf(b).end, 10), from) : yesterday;
+      const actorId = terminated ? hq.id : (adminByBranch.get(branchId) ?? hq.id);
+      const record = (before: string, after: string, createdAt: Date) =>
+        push({ actorId, entity: 'Asset', entityId: a.id!, action: 'ASSET_STATUS_CHANGED', before: { status: before }, after: { status: after, branchId }, createdAt });
+      if (a.status === 'DISPOSED') {
+        const first = at(from, to);
+        record('NORMAL', 'DISPOSAL_PENDING', first);
+        record('DISPOSAL_PENDING', 'DISPOSED', notAfterNow(new Date(first.getTime() + arng.int(1, 14) * DAY_MS)));
+      } else {
+        record('NORMAL', a.status as string, at(from, to));
+      }
+    }
+  }
+
   // ── 쓰기 — 참조 순서대로. 한 트랜잭션이라 중간에 실패하면 아무것도 남지 않는다 ──
   await prisma.$transaction(
     async (tx) => {
@@ -787,6 +852,7 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
       await insertMany('leaveRequest', leaveRequests, (c) => tx.leaveRequest.createMany({ data: c }), counts);
       await insertMany('attendanceRecord', attendance, (c) => tx.attendanceRecord.createMany({ data: c }), counts);
       await insertMany('workLog', workLogs, (c) => tx.workLog.createMany({ data: c }), counts);
+      await insertMany('auditLog', audits, (c) => tx.auditLog.createMany({ data: c }), counts);
       // 채번 시퀀스를 새 번호의 최대 순번으로(첫 앱 채번이 시드 번호와 충돌하지 않게, data-integrity §5)
       for (const s of seq.values()) {
         await tx.codeSequence.upsert({
