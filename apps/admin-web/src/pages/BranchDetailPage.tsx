@@ -20,6 +20,7 @@ import { BriefcaseIcon } from '../components/icons';
 import { CONTRACT_STATUS_LABEL, contractRemainingLabel } from '../lib/contract-status';
 import { useAuth } from '../lib/use-auth';
 import { ContractStatusModal } from '../components/ContractStatusModal';
+import { MEMBER_STATUS_LABEL } from '../lib/status-labels';
 
 const PRICING_LABEL: Record<ProgramRow['pricingType'], string> = {
   FREE_ACCESS: '자유이용',
@@ -82,7 +83,7 @@ function MemberTable({ rows }: { rows: MemberRow[] }) {
             <td>{m.name}</td>
             <td>{m.phone ?? '-'}</td>
             <td>
-              <span className={`badge ${m.status}`}>{m.status}</span>
+              <span className={`badge ${m.status}`}>{MEMBER_STATUS_LABEL[m.status] ?? m.status}</span>
             </td>
             <td>{m.joinedAt}</td>
           </tr>
@@ -177,7 +178,7 @@ export function BranchDetailPage() {
         )}
         <p className="page-desc">
           계약서 스캔본을 업로드하면 OCR·AI가 이 필드들을 자동으로 채우는 기능은 설계돼 있습니다(차별화전략 §1-1,
-          Phase 2~3 예정) — 지금은 mock 값을 그대로 보여줍니다.
+          Phase 2~3 예정) — 지금은 본사가 입력한 계약 정보를 보여 줍니다.
         </p>
       </section>
 
@@ -319,7 +320,7 @@ export function BranchDetailPage() {
                   <td>{p.price > 0 ? `${p.price.toLocaleString()}원` : '무료'}</td>
                   <td>{p.instructorName ?? '-'}</td>
                   <td>
-                    <span className={`badge ${p.status}`}>{p.status}</span>
+                    <span className={`badge ${p.status}`}>{STATUS_LABEL[p.status] ?? p.status}</span>
                   </td>
                   <td>{p.startDate}</td>
                 </tr>

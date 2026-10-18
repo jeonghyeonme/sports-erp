@@ -7,6 +7,8 @@ import { AlertTriangleIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, UsersIcon
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_RANK } from '../lib/contract-status';
 
+const AUTO_EXPAND_MAX_BRANCHES = 10;
+
 const STATUS_FILTERS: Array<{ value: BranchContractStatus | 'ALL'; label: string }> = [
   { value: 'ALL', label: '전체' },
   { value: 'ACTIVE', label: '정상' },
@@ -130,7 +132,8 @@ function BranchTable({ branches, statusFilter, onStatusFilterChange }: {
           branchName={g.region}
           count={g.rows.length}
           countLabel="개 지점"
-          defaultExpanded={filtering}
+          // log/125 F7 — 지점이 적으면(시연 5곳) 접혀 있을 이유가 없다. 83곳처럼 많으면 지역별로 접어 둔다.
+          defaultExpanded={filtering || branches.length <= AUTO_EXPAND_MAX_BRANCHES}
         >
           <table>
             <thead>

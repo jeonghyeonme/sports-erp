@@ -312,13 +312,22 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
     staffByBranch.set(b.id, branchStaff);
 
     // ── 시설·강사·프로그램·회차 ──
-    const baseGym = await prisma.facility.findFirst({ where: { branchId: b.id, type: 'GYM' }, orderBy: { id: 'asc' } });
+    // log/130 F10 — 기준 시드에 같은 종류 시설이 있으면 새로 만들지 않고 그것을 쓴다(예전엔 "서초점 수영장"이 두 개였다).
+    const baseFacilities = await prisma.facility.findMany({ where: { branchId: b.id }, orderBy: { id: 'asc' } });
+    const baseGym = baseFacilities.find((f) => f.type === 'GYM');
+    const reusedBase = new Map<string, { id: string; capacity: number }>();
     const classes = rng.sample(CLASS_POOL, plan.classes);
     const facilityIdByKind = new Map<string, string>();
     if (baseGym) facilityIdByKind.set('gym', baseGym.id);
     for (const kind of new Set(classes.map((c) => c.facility))) {
       if (facilityIdByKind.has(kind) || kind === 'gym') continue;
       const spec = FACILITY_SPECS[kind as keyof typeof FACILITY_SPECS];
+      const existing = baseFacilities.find((f) => f.type === spec.type);
+      if (existing) {
+        facilityIdByKind.set(kind, existing.id);
+        reusedBase.set(existing.id, { id: existing.id, capacity: existing.capacity });
+        continue;
+      }
       const fid = `demo-facility-${key}-${kind}`;
       const current = win.terminated ? 0 : rng.int(2, Math.floor(spec.capacity * 0.8));
       facilities.push({
@@ -408,14 +417,14 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
     }
 
     // 회차 — 지난 90일 + 앞으로 3주. 히어로 '아침 요가'에도 지난 회차를 더한다(미래 회차는 히어로 2건 그대로).
-    const slotSpecs: Array<{ programId: string; days: number[]; start: string; end: string; capacity: number; price: number; futureToo: boolean }> =
-      classPrograms.map((c) => ({ programId: c.id, days: c.tpl.days, start: c.tpl.start, end: c.tpl.end, capacity: c.tpl.capacity, price: c.price, futureToo: true }));
+    const slotSpecs: Array<{ programId: string; days: number[]; start: string; end: string; capacity: number; price: number; futureToo: boolean; ageGroup: ProgramTemplate['ageGroup'] }> =
+      classPrograms.map((c) => ({ programId: c.id, days: c.tpl.days, start: c.tpl.start, end: c.tpl.end, capacity: c.tpl.capacity, price: c.price, futureToo: true, ageGroup: c.tpl.ageGroup }));
     if (b.id === 'branch-seocho') {
-      slotSpecs.push({ programId: 'program-seocho-yoga', days: [1, 3], start: '07:00', end: '08:00', capacity: 15, price: 30000, futureToo: false });
+      slotSpecs.push({ programId: 'program-seocho-yoga', days: [1, 3], start: '07:00', end: '08:00', capacity: 15, price: 30000, futureToo: false, ageGroup: 'ADULT' });
     }
 
     // ── 회원 ──
-    const branchMembers: Array<{ id: string; status: string; joinedAt: string }> = [];
+    const branchMembers: Array<{ id: string; status: string; joinedAt: string; age: number }> = [];
     for (let n = 1; n <= plan.members; n++) {
       const id = `demo-member-${key}-${n}`;
       const joinedAt = addDays(win.end, -rng.int(5, 700));
@@ -445,11 +454,12 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
         memo: rng.chance(0.12) ? rng.pick(['허리 통증 이력 — 무리한 동작 주의', '평일 저녁만 이용 가능', '수영 초급', '재등록 3회차']) : null,
         createdAt: kstAt(joinedAt, 10 * 60),
       });
-      branchMembers.push({ id, status, joinedAt });
+      branchMembers.push({ id, status, joinedAt, age: year - birthYear });
     }
     // 히어로 회원(활성)도 지난 회차 예약 이력에 섞는다 — 회원 웹 "지난 예약"이 비지 않게
-    for (const hero of await prisma.member.findMany({ where: { branchId: b.id, status: 'ACTIVE' }, select: { id: true, joinedAt: true } })) {
-      branchMembers.push({ id: hero.id, status: 'HERO', joinedAt: hero.joinedAt.toISOString().slice(0, 10) });
+    for (const hero of await prisma.member.findMany({ where: { branchId: b.id, status: 'ACTIVE' }, select: { id: true, joinedAt: true, birthDate: true } })) {
+      const age = hero.birthDate ? year - hero.birthDate.getUTCFullYear() : 30; // 생년월일이 없으면 성인으로 본다
+      branchMembers.push({ id: hero.id, status: 'HERO', joinedAt: hero.joinedAt.toISOString().slice(0, 10), age });
     }
     memberPoolByBranch.set(b.id, branchMembers);
 
@@ -467,7 +477,8 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
         slots.push({ id: slotId, programId: spec.programId, date: asDate(d), startTime: spec.start, endTime: spec.end, capacity: spec.capacity });
         const startAt = kstAt(d, toMinutes(spec.start));
         const fill = future ? rng.float() * 0.85 * Math.max(0.3, 1 - dayDiff(d, today) / FUTURE_DAYS) : 0.45 + rng.float() * 0.55;
-        const candidates = (future ? futurePool : pastPool).filter((m) => m.joinedAt <= d);
+        // log/130 F11 — 연령대에 맞는 회원만(성인이 어린이 수영을 예약하던 802건). 보호자 대리 예약은 만들지 않는다.
+        const candidates = (future ? futurePool : pastPool).filter((m) => m.joinedAt <= d && fitsAgeGroup(m.age, spec.ageGroup));
         const chosen = rng.sample(candidates, Math.round(spec.capacity * fill));
         for (const m of chosen) {
           const rid = `demo-reservation-${key}-${slotNo}-${m.id.replace(/^demo-/, 'd')}`;
@@ -623,7 +634,7 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
 
     // ── 혼잡도 스냅샷 — 운영 중 지점 시설의 최근 7일, 06~22시 매시 ──
     if (!win.terminated) {
-      const branchFacilities = [...(baseGym ? [{ id: baseGym.id, capacity: baseGym.capacity }] : []), ...facilities.filter((f) => f.branchId === b.id).map((f) => ({ id: f.id!, capacity: f.capacity }))];
+      const branchFacilities = [...(baseGym ? [{ id: baseGym.id, capacity: baseGym.capacity }] : []), ...reusedBase.values(), ...facilities.filter((f) => f.branchId === b.id).map((f) => ({ id: f.id!, capacity: f.capacity }))];
       for (const f of branchFacilities) {
         for (let d = addDays(today, -7); d < today; d = addDays(d, 1)) {
           for (let h = 6; h <= 22; h++) {
@@ -878,6 +889,16 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
     { timeout: 120_000, maxWait: 10_000 },
   );
   return { today, counts };
+}
+
+// 강사프로그램게시 ADR-PRG-04의 연령대 — 시연 데이터가 예약을 만들 때만 쓴다(API는 연령대를 막지 않는다, log/130).
+// 성인 프로그램에는 시니어도 들어간다.
+function fitsAgeGroup(age: number, group: ProgramTemplate['ageGroup']): boolean {
+  if (group === 'CHILD') return age <= 12;
+  if (group === 'TEEN') return age >= 13 && age <= 18;
+  if (group === 'ADULT') return age >= 19;
+  if (group === 'SENIOR') return age >= 60;
+  return true;
 }
 
 // 혼잡도관리 A-6 5단계 매핑 — facility.service의 congestionLevel과 같은 구간
