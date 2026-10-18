@@ -1,6 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { todayKst } from '../src/common/date/kst-date';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
+import { useDenseTemplate } from './helpers/worker-db';
+
+// D58 — 시연 데이터 층(고밀도 템플릿) 위에서 돈다. 기대값은 시드 개수를 박지 않고 DB에서 센다.
+useDenseTemplate();
 
 /**
  * 지점 데이터 격리 — 원본 RFP 핵심 요구사항("타 지점 조회 불가", CLAUDE.md 프로젝트 가드레일).
@@ -75,7 +80,10 @@ describe('지점 데이터 격리', () => {
       where: { programId: { in: seochoProgramIds } },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { id: 'asc' }],
     });
-    const slot = seochoSlots[0];
+    // D58 — 고밀도 템플릿에는 지난 회차가 많다. 예약 픽스처는 내일 이후 첫 회차로 만든다.
+    const tomorrow = new Date(`${todayKst()}T00:00:00Z`);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const slot = seochoSlots.find((s) => s.date >= tomorrow);
     if (!slot) throw new Error('테스트 전제 위반: 서초점 회차(slot) 시드 데이터가 없다');
     const runningSeochoProgram = programs.find((p) => p.id === slot.programId)!;
 

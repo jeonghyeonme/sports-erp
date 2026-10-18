@@ -20,12 +20,12 @@ describe('지점 원천(DB)과 시드 원천', () => {
     await app.close();
   });
 
-  it('시드 원천의 모든 이름표 필드가 DB 지점과 같다(83개, D40 수도권)', async () => {
+  it('시드 원천의 모든 이름표 필드가 DB 지점과 같다(5개, D58)', async () => {
     const rows = await app.get(PrismaService).branch.findMany();
     const db = new Map(rows.map((r) => [r.id, r]));
     const mock = allBranchRecords().map(toMockBranch);
 
-    expect(mock).toHaveLength(83);
+    expect(mock).toHaveLength(5);
     expect(rows).toHaveLength(mock.length);
     // DB의 null과 mock의 undefined(필드 생략)는 같은 뜻이라 맞춰서 비교한다.
     const fromDb = (id: string) => {
@@ -54,7 +54,7 @@ describe('지점 원천(DB)과 시드 원천', () => {
         ?.contractStatus;
     };
 
-    expect(await statusOf()).toBe('RENEWAL_DUE'); // 시드 값(대조군)
+    expect(await statusOf()).toBe('ACTIVE'); // 시드 값(대조군)
     await setBranchStatus(BRANCH.gangnam, 'TERMINATED'); // DB만 바꾼다
     expect(await statusOf()).toBe('TERMINATED');
   });

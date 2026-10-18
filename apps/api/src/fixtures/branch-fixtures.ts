@@ -1,4 +1,4 @@
-import { generateLightBranches } from './branch-generator';
+import { sideBranchDataset } from './side-branch-fixtures';
 import { BranchRecord, MockBranch } from './mock-data.types';
 
 /**
@@ -6,8 +6,8 @@ import { BranchRecord, MockBranch } from './mock-data.types';
  * **같은 목록**에서 만들어지도록 한 곳에 뒀다. D36으로 mock이 사라져 지금은 시드와 test/branch-parity.spec.ts만 쓴다. 예전에는 seed.ts가 서초·강남을 따로 적어
  * 계약 종료일 등이 mock과 달랐다.
  *
- * 서초점·강남점은 손으로 채운 "히어로" 지점(데모 로그인 계정이 여기 물려 있음)이고, 나머지 81개는
- * branch-generator.ts가 인덱스 기반으로 결정적으로 만든다(계약 날짜만 실행 시각 기준 상대값).
+ * 서초점·강남점은 손으로 채운 "히어로" 지점(데모 로그인 계정이 여기 물려 있음)이고, 나머지 3곳은
+ * side-branch-fixtures.ts의 계약 상태 대조군(갱신임박·만료·계약종료, 계약 날짜만 실행일 기준 상대값)이다(D58).
  */
 export const HERO_BRANCHES: readonly BranchRecord[] = [
   {
@@ -33,14 +33,15 @@ export const HERO_BRANCHES: readonly BranchRecord[] = [
     cancellationDeadlineHours: 24,
     contractPartner: '강남 OO오피스텔 관리사무소',
     contractStartAt: '2023-10-01',
-    contractEndAt: '2026-10-15',
-    contractStatus: 'RENEWAL_DUE',
+    // D58 — 갱신임박 대조군은 마포점이 맡는다(고정 날짜 2026-10-15가 지나 상태와 어긋났었다).
+    contractEndAt: '2027-09-30',
+    contractStatus: 'ACTIVE',
   },
 ];
 
-/** 시드가 DB에 넣는 83개 지점 전체(수도권, D40). */
+/** 시드가 DB에 넣는 5개 지점 전체(D58 — 예전 수도권 83곳, D40). */
 export function allBranchRecords(): BranchRecord[] {
-  return [...HERO_BRANCHES, ...generateLightBranches().branches];
+  return [...HERO_BRANCHES, ...sideBranchDataset().branches];
 }
 
 /** 계약 필드를 뺀 mock 사본 — 계약 상태는 DB에서만 읽는다(BranchGate). */

@@ -1,4 +1,4 @@
-import { generateLightBranches } from './branch-generator';
+import { sideBranchDataset } from './side-branch-fixtures';
 import { MockCourseEnrollment, MockMember, MockPTSession, MockPTSessionLog } from './mock-data.types';
 
 /**
@@ -90,10 +90,10 @@ export interface MemberSeed {
   ptSessionLogs: MockPTSessionLog[];
 }
 
-/** 시드가 DB에 넣는 회원 전체(히어로 3 + 생성 지점분)와 회원 계정·수강·PT. */
+/** 시드가 DB에 넣는 회원 전체(히어로 3 + 대조군 지점분, D58)와 회원 계정·수강·PT. */
 export function memberSeed(): MemberSeed {
   return {
-    members: [...HERO_MEMBERS, ...generateLightBranches().members],
+    members: [...HERO_MEMBERS, ...sideBranchDataset().members],
     accounts: [...MEMBER_ACCOUNTS],
     enrollments: [...ENROLLMENTS],
     ptSessions: [...PT_SESSIONS],

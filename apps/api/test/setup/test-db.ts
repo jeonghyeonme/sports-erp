@@ -34,6 +34,11 @@ export function workerDatabaseName(base: string, workerId: string | number): str
   return `${databaseName(base)}_w${workerId}`;
 }
 
+/** D58 — 기준 DB에 시연 데이터 층(prisma/demo-layer.ts)을 얹은 고밀도 템플릿. globalSetup이 한 번 만든다. */
+export function denseDatabaseName(base: string): string {
+  return `${databaseName(base)}_dense`;
+}
+
 type RawExecutor = { $executeRawUnsafe(query: string): Promise<number> };
 const errorCode = (e: unknown) => (e as { meta?: { code?: string } }).meta?.code ?? String(e);
 

@@ -1,8 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { catalogSeed } from '../src/fixtures/catalog-fixtures';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { ACCOUNTS, BRANCH, createApp, login } from './helpers/app';
-import { resetWorkerDb } from './helpers/worker-db';
+import { resetWorkerDb, useDenseTemplate } from './helpers/worker-db';
+
+// D58 — 시연 데이터 층(고밀도 템플릿) 위에서 돈다. 기대값은 시드 개수를 박지 않고 DB에서 센다.
+useDenseTemplate();
 
 /**
  * 시설·강사·프로그램·회차(D31)와 예약·회원(D32)이 도메인을 넘나드는 경로.
@@ -28,7 +32,9 @@ describe('카탈로그 × 예약·회원 경로', () => {
   });
 
   it('시드 원천(catalog-fixtures)이 예전 mock 히어로 값 그대로 DB에 있다', async () => {
-    expect(await prisma.facility.count()).toBe(84); // 히어로 3 + 생성 지점 81곳 × 1(D40 수도권 83곳)
+    // D58 — 시드 원천의 시설이 전부 DB에 있다(고밀도 템플릿은 시연 데이터 층의 시설이 더 있다)
+    const seeded = catalogSeed().facilities.map((f) => f.id);
+    expect(await prisma.facility.count({ where: { id: { in: seeded } } })).toBe(seeded.length);
     const pool = await prisma.facility.findUniqueOrThrow({ where: { id: 'facility-seocho-pool' } });
     expect(pool).toMatchObject({ branchId: BRANCH.seocho, name: '서초점 수영장', capacity: 30, currentCount: 26, level: 5 });
     expect(pool.lastUpdatedAt!.toISOString()).toBe('2026-09-01T09:00:00.000Z');
@@ -101,12 +107,12 @@ describe('카탈로그 × 예약·회원 경로', () => {
   it('지점 목록 건수는 DB 집계다(회원·직원 전부, 프로그램은 RUNNING만)', async () => {
     const hq = api(await login(app, ACCOUNTS.superAdmin));
     const res = await hq.get('/branches');
-    const seocho = (res.body.data as Array<{ id: string }>).find((b) => b.id === BRANCH.seocho);
+    const seocho = (res.body.data as Array<{ id: string; memberCount: number }>).find((b) => b.id === BRANCH.seocho);
     expect(seocho).toMatchObject({
       memberCount: await prisma.member.count({ where: { branchId: BRANCH.seocho } }),
       staffCount: await prisma.staff.count({ where: { branchId: BRANCH.seocho } }),
       runningProgramCount: await prisma.program.count({ where: { branchId: BRANCH.seocho, status: 'RUNNING' } }),
     });
-    expect(seocho).toMatchObject({ memberCount: 2, runningProgramCount: 3 });
+    expect(seocho?.memberCount).toBeGreaterThan(30); // 고밀도 데이터에서도 집계가 실제 양을 센다
   });
 });

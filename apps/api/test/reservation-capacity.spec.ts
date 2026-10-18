@@ -1,7 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
-import { resetWorkerDb } from './helpers/worker-db';
+import { resetWorkerDb, useDenseTemplate } from './helpers/worker-db';
+
+// D58 — 시연 데이터 층(고밀도 템플릿) 위에서 돈다. 기대값은 시드 개수를 박지 않고 DB에서 센다.
+useDenseTemplate();
 
 /**
  * 예약및결제 도메인의 핵심 불변규칙 — domains/예약및결제.md §11 "검증되지 않음" 항목 해소.

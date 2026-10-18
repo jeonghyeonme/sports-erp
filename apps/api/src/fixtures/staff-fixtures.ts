@@ -1,4 +1,4 @@
-import { generateLightBranches } from './branch-generator';
+import { sideBranchDataset } from './side-branch-fixtures';
 import { MockStaff, MockStaffAssignment, Role } from './mock-data.types';
 
 /**
@@ -69,12 +69,11 @@ export interface StaffSeed {
 }
 
 /**
- * 시드가 DB에 넣는 직원 전체(히어로 3 + 생성 192)와 그 계정·최초 파견.
- * 생성 직원은 mock 시절 계정 id만 있고 계정 레코드가 없었다 — D30에서 계정을 새로 만든다
- * (`staff-gen-001-1` → `gen-001-1@staff.spoism.example`, 역할 STAFF, 데모 비밀번호).
+ * 시드가 DB에 넣는 직원 전체(히어로 3 + 대조군 지점 6, D58)와 그 계정·최초 파견.
+ * 대조군 직원 계정은 `staff-mapo-1` → `mapo-1@staff.spoism.example`(지점장은 BRANCH_ADMIN, 나머지 STAFF, 데모 비밀번호)이다.
  */
 export function staffSeed(): StaffSeed {
-  const dataset = generateLightBranches();
+  const dataset = sideBranchDataset();
   const generated = dataset.staff;
   // 인사정보관리 ADR-STF-07 — 계약 종료 지점의 파견은 종료 전이 때 끝났어야 하므로 계약 종료일로 닫아 둔다(log/103).
   // 이 직원들은 활성 파견이 없는 재직 직원 = 재배치 대기로 보인다.
@@ -87,7 +86,8 @@ export function staffSeed(): StaffSeed {
     ...generated.map<StaffAccountRecord>((s) => ({
       id: s.accountId,
       email: `${s.id.replace(/^staff-/, '')}@staff.spoism.example`,
-      role: 'STAFF',
+      // D58 — 대조군 지점의 지점장은 지점 관리자 계정(업무지원 요청·휴가 승인 등 지점 관리자 흐름이 지점마다 보이게)
+      role: s.position === '지점장' ? 'BRANCH_ADMIN' : 'STAFF',
       name: s.name,
     })),
   ];

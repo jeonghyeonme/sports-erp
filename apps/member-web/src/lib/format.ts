@@ -19,7 +19,7 @@ export function slotStartMs(slot: Pick<ScheduleSlot, 'date' | 'startTime'>): num
 }
 
 // 예약및결제 A-6 — 회차 시작 cancellationDeadlineHours 전까지 취소해야 전액 환불. 회원 웹은 지점 설정을 따로 부르지 않고
-// 기본값 24시간으로 안내한다(시드 83곳 모두 24, 지점 조회 1회를 아낀다 — design-constants ⑩). 실제 판정은 서버가 한다.
+// 기본값 24시간으로 안내한다(시드 지점 모두 24, 지점 조회 1회를 아낀다 — design-constants ⑩). 실제 판정은 서버가 한다.
 export const CANCEL_DEADLINE_HOURS = 24;
 
 export function isBeforeCancelDeadline(slot: Pick<ScheduleSlot, 'date' | 'startTime'>, now = Date.now()): boolean {

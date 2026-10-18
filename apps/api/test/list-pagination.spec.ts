@@ -1,7 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
-import { resetWorkerDb } from './helpers/worker-db';
+import { resetWorkerDb, useDenseTemplate } from './helpers/worker-db';
+
+// D58 — 시연 데이터 층(고밀도 템플릿) 위에서 돈다. 기대값은 시드 개수를 박지 않고 DB에서 센다.
+useDenseTemplate();
 
 /**
  * D43 — 쌓이는 목록 4개(회원·예약·결제·자산)의 offset 페이지네이션과 필터를 DB 조건으로 내린 것(ADR-RSV-04).
@@ -53,8 +56,11 @@ describe('목록 페이지네이션 — D43·ADR-RSV-04', () => {
       expect(mine.body.data.map((m: { id: string }) => m.id)).toEqual(['member-sujin']);
       expect(mine.body.meta.total).toBe(1);
 
-      const none = await get('seochoAdmin', '/members?assignedStaffId=none');
-      expect(none.body.data.map((m: { id: string }) => m.id)).toEqual(['member-dormant']);
+      const none = await get('seochoAdmin', '/members?assignedStaffId=none&limit=100');
+      const unassigned = await db(app).member.findMany({ where: { branchId: BRANCH.seocho, assignedStaffId: null }, select: { id: true } });
+      expect(none.body.meta.total).toBe(unassigned.length);
+      expect(none.body.data.map((m: { id: string }) => m.id).sort()).toEqual(unassigned.map((m) => m.id).sort());
+      expect(none.body.data.map((m: { id: string }) => m.id)).toContain('member-dormant');
     });
 
     it('지점 관리자의 total은 자기 지점 회원 수다', async () => {
@@ -66,26 +72,30 @@ describe('목록 페이지네이션 — D43·ADR-RSV-04', () => {
   describe('자산 GET /assets', () => {
     it('기본 목록은 폐기(DISPOSED)를 빼고, status=DISPOSED로 따로 본다', async () => {
       await db(app).asset.update({ where: { id: 'asset-seocho-sanitizer' }, data: { status: 'DISPOSED' } });
+      const count = (status: { not: 'DISPOSED' } | 'DISPOSED') => db(app).asset.count({ where: { branchId: BRANCH.seocho, status } });
 
-      const base = await get('seochoAdmin', '/assets');
+      const base = await get('seochoAdmin', '/assets?limit=100');
       expect(base.status).toBe(200);
       expect(base.body.data.map((a: { id: string }) => a.id)).not.toContain('asset-seocho-sanitizer');
-      expect(base.body.meta.total).toBe(2);
+      expect(base.body.data.every((a: { status: string }) => a.status !== 'DISPOSED')).toBe(true);
+      expect(base.body.meta.total).toBe(await count({ not: 'DISPOSED' }));
 
-      const disposed = await get('seochoAdmin', '/assets?status=DISPOSED');
-      expect(disposed.body.data.map((a: { id: string }) => a.id)).toEqual(['asset-seocho-sanitizer']);
-      expect(disposed.body.meta.total).toBe(1);
+      const disposed = await get('seochoAdmin', '/assets?status=DISPOSED&limit=100');
+      expect(disposed.body.data.map((a: { id: string }) => a.id)).toContain('asset-seocho-sanitizer');
+      expect(disposed.body.data.every((a: { status: string }) => a.status === 'DISPOSED')).toBe(true);
+      expect(disposed.body.meta.total).toBe(await count('DISPOSED'));
     });
   });
 
   describe('예약 GET /reservations — 최근 것부터', () => {
     it('회원 본인 목록이 최근 예약부터 오고 total이 붙는다', async () => {
+      const before = (await get('seochoMember', '/reservations?limit=1')).body.meta.total as number; // D58 — 시연 데이터의 지난 예약
       const first = await post('seochoMember', '/reservations', { scheduleSlotId: 'slot-seocho-yoga-1' });
       const second = await post('seochoMember', '/reservations', { scheduleSlotId: 'slot-seocho-yoga-2' });
       expect([first.status, second.status]).toEqual([201, 201]);
 
       const res = await get('seochoMember', '/reservations?limit=1');
-      expect(res.body.meta).toEqual({ page: 1, pageSize: 1, total: 2 });
+      expect(res.body.meta).toEqual({ page: 1, pageSize: 1, total: before + 2 });
       expect(res.body.data[0].id).toBe(second.body.data.id);
     });
   });
@@ -115,23 +125,35 @@ describe('목록 페이지네이션 — D43·ADR-RSV-04', () => {
       pending = (await db(app).payment.findUniqueOrThrow({ where: { reservationId: r.body.data.id } })).id;
     });
 
-    const ids = (res: request.Response) => res.body.data.map((p: { id: string }) => p.id).sort();
+    // D58 — 고밀도 템플릿에는 시연 결제가 많다. 이 테스트가 만든 3건의 포함·제외와, total이 같은 조건의 DB 건수인지를 본다.
+    const ids = (res: request.Response) => res.body.data.map((p: { id: string }) => p.id);
+    const seochoPayments = (approvedAt?: { gte: Date; lt: Date }) =>
+      db(app).payment.count({
+        where: {
+          reservation: { scheduleSlot: { program: { branchId: BRANCH.seocho } } },
+          ...(approvedAt ? { OR: [{ approvedAt: null }, { approvedAt }] } : {}),
+        },
+      });
+    const kstDay = (d: string) => ({ gte: new Date(`${d}T00:00:00+09:00`), lt: new Date(new Date(`${d}T00:00:00+09:00`).getTime() + 86_400_000) });
 
     it('KST 00:00~08:59에 승인된 결제는 그 KST 날짜로 걸리고, 미승인 건은 날짜 필터에서 빠지지 않는다', async () => {
-      const res = await get('seochoAdmin', '/payments?dateFrom=2026-10-09&dateTo=2026-10-09');
+      const res = await get('seochoAdmin', '/payments?dateFrom=2026-10-09&dateTo=2026-10-09&limit=100');
       expect(res.status).toBe(200);
-      expect(ids(res)).toEqual([afterMidnight, pending].sort());
-      expect(res.body.meta.total).toBe(2);
+      expect(ids(res)).toEqual(expect.arrayContaining([afterMidnight, pending]));
+      expect(ids(res)).not.toContain(beforeMidnight);
+      expect(res.body.meta.total).toBe(await seochoPayments(kstDay('2026-10-09')));
     });
 
     it('대조군: 전날(10-08) KST 23:30 승인 건은 10-08로 걸린다', async () => {
-      const res = await get('seochoAdmin', '/payments?dateFrom=2026-10-08&dateTo=2026-10-08');
-      expect(ids(res)).toEqual([beforeMidnight, pending].sort());
+      const res = await get('seochoAdmin', '/payments?dateFrom=2026-10-08&dateTo=2026-10-08&limit=100');
+      expect(ids(res)).toEqual(expect.arrayContaining([beforeMidnight, pending]));
+      expect(ids(res)).not.toContain(afterMidnight);
+      expect(res.body.meta.total).toBe(await seochoPayments(kstDay('2026-10-08')));
     });
 
     it('날짜 없이는 전부, 최근 결제부터 온다', async () => {
       const res = await get('seochoAdmin', '/payments');
-      expect(res.body.meta.total).toBe(3);
+      expect(res.body.meta.total).toBe(await seochoPayments());
       expect(res.body.data[0].id).toBe(pending); // 가장 나중에 만든 결제
     });
 
