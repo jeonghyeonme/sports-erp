@@ -24,6 +24,8 @@ export function MyReservationsPage() {
   const [cancelling, setCancelling] = useState(false);
   const [sheetError, setSheetError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(passedNotice ?? null);
+  // log/125 F13 — 지난 예약 90일치가 한 번에 늘어져 360px 화면이 3,400px였다. 최근 10건, 더 보기로 20건씩.
+  const [pastLimit, setPastLimit] = useState(10);
 
   const closeSheet = () => {
     setTarget(null);
@@ -102,12 +104,17 @@ export function MyReservationsPage() {
         <section className="stack-sm">
           <h2 className="section-title">지난·취소한 예약</h2>
           <ul className="list">
-            {past.map((r) => (
+            {past.slice(0, pastLimit).map((r) => (
               <li key={r.id} className="panel reservation-card is-past">
                 <ReservationSummary reservation={r} />
               </li>
             ))}
           </ul>
+          {past.length > pastLimit && (
+            <button type="button" className="secondary-button" onClick={() => setPastLimit((n) => n + 20)}>
+              더 보기 ({past.length - pastLimit}건 남음)
+            </button>
+          )}
         </section>
       )}
 

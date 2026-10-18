@@ -238,7 +238,16 @@ export function StaffPage() {
   const groups = useMemo(() => {
     const all = groupByBranch(rows);
     const term = search.trim().toLowerCase();
-    return term ? all.filter((g) => g.branchName.toLowerCase().includes(term)) : all;
+    if (!term) return all;
+    // log/125 F12 — 지점 하나만 보는 지점 관리자에게 지점명 검색은 쓸모가 없다. 이름·직원코드로도 찾는다:
+    // 지점명이 맞으면 그 지점 전체, 아니면 이름·코드가 맞는 직원만 남긴다.
+    return all
+      .map((g) =>
+        g.branchName.toLowerCase().includes(term)
+          ? g
+          : { ...g, rows: g.rows.filter((r) => r.name.toLowerCase().includes(term) || r.staffCode.toLowerCase().includes(term)) },
+      )
+      .filter((g) => g.rows.length > 0);
   }, [rows, search]);
 
   const autoExpand = groups.length > 0 && groups.length <= AUTO_EXPAND_THRESHOLD;
@@ -287,7 +296,7 @@ export function StaffPage() {
           </button>
           <input
             className="search-input"
-            placeholder="지점명 검색"
+            placeholder="이름·직원코드·지점명 검색"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

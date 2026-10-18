@@ -78,6 +78,9 @@ export function AttendancePage() {
   );
 
   const myWorkLogs = useApiList<WorkLogRow>(['work-logs', 'mine', staffId], `/work-logs?staffId=${staffId}`);
+  // log/125 F13 — 90일치가 한 번에 늘어져 화면이 4,600px였다. 최근 것부터 10건, 더 보기로 20건씩.
+  const [workLogLimit, setWorkLogLimit] = useState(10);
+  const workLogs = [...(myWorkLogs.data ?? [])].sort((a, b) => b.date.localeCompare(a.date));
 
   // 관리 영역 — BRANCH_ADMIN만 조회(근태관리 A-7 "본인 지점 조회 + 휴가 승인").
   const summaryQuery = useApiList<AttendanceSummaryRow>(['attendance-summary', month], `/attendance/summary?month=${month}`);
@@ -379,7 +382,7 @@ export function AttendancePage() {
               </tr>
             </thead>
             <tbody>
-              {myWorkLogs.data!.map((l) => (
+              {workLogs.slice(0, workLogLimit).map((l) => (
                 <tr key={l.id}>
                   <td>{l.date}</td>
                   <td>{l.content}</td>
@@ -387,6 +390,13 @@ export function AttendancePage() {
               ))}
             </tbody>
           </table>
+        )}
+        {workLogs.length > workLogLimit && (
+          <div className="action-row" style={{ justifyContent: 'center', marginTop: 8 }}>
+            <button className="btn-secondary" onClick={() => setWorkLogLimit((n) => n + 20)}>
+              더 보기 ({workLogs.length - workLogLimit}건 남음)
+            </button>
+          </div>
         )}
       </div>
 

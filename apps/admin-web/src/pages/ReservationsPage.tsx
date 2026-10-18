@@ -13,6 +13,7 @@ import { ApiEnvelope, PaymentRow, ProgramRow, ReservationRow, ReservationStatus,
 
 import { useToast } from '../lib/use-toast';
 import { kstToday } from '../lib/kst-date';
+import { PAYMENT_STATUS_LABEL } from '../lib/status-labels';
 interface ApiErrorBody {
   code?: string;
   message?: string;
@@ -533,7 +534,7 @@ export function ReservationsPage() {
                       <td>{p.vat.toLocaleString()}원</td>
                       <td>{p.amount.toLocaleString()}원</td>
                       <td>
-                        <span className={`badge ${p.status}`}>{p.status}</span>
+                        <span className={`badge ${p.status}`}>{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span>
                       </td>
                       <td>{p.mockApprovalNo ?? '-'}</td>
                     </tr>

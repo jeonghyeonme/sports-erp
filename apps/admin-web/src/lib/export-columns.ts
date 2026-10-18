@@ -1,9 +1,9 @@
 import { CsvColumn } from './csv';
 import { AttendanceSummaryRow, MemberRow, PaymentRow } from './types';
+import { MEMBER_STATUS_LABEL, PAYMENT_STATUS_LABEL } from './status-labels';
 
 // M6 — CSV로 내보내는 열. 화면 표와 같은 열이고, 전화번호는 목록 API가 준 마스킹 값 그대로다(ADR-MEM-04).
 
-const MEMBER_STATUS: Record<MemberRow['status'], string> = { ACTIVE: '활성', DORMANT: '휴면', WITHDRAWN: '탈퇴' };
 
 export const MEMBER_COLUMNS: CsvColumn<MemberRow>[] = [
   { label: '지점', value: (m) => m.branchName },
@@ -11,7 +11,7 @@ export const MEMBER_COLUMNS: CsvColumn<MemberRow>[] = [
   { label: '이름', value: (m) => m.name },
   { label: '연락처(마스킹)', value: (m) => m.phone },
   { label: '담당 직원', value: (m) => m.assignedStaffName ?? '회원권만(미배정)' },
-  { label: '상태', value: (m) => MEMBER_STATUS[m.status] ?? m.status },
+  { label: '상태', value: (m) => MEMBER_STATUS_LABEL[m.status] ?? m.status },
   { label: '가입일', value: (m) => m.joinedAt },
 ];
 
@@ -33,7 +33,7 @@ export const PAYMENT_COLUMNS: CsvColumn<PaymentRow>[] = [
   { label: '공급가액', value: (p) => p.supplyAmount },
   { label: '부가세', value: (p) => p.vat },
   { label: '합계', value: (p) => p.amount },
-  { label: '상태', value: (p) => p.status },
+  { label: '상태', value: (p) => PAYMENT_STATUS_LABEL[p.status] ?? p.status },
   { label: '승인번호', value: (p) => p.mockApprovalNo },
   { label: '승인 시각(KST)', value: (p) => kst(p.approvedAt) },
   { label: '환불 시각(KST)', value: (p) => kst(p.refundedAt) },
