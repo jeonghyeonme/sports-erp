@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Payment, PaymentStatus, Prisma, Reservation, ReservationStatus, ScheduleSlot } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
-import { toKstDateString } from '../../common/date/kst-date';
+import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PageRequest } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACTIVE_RESERVATION_STATUSES, lockReservation, lockScheduleSlot } from '../../prisma/integrity';
@@ -20,6 +20,7 @@ export type ReservationView = MockReservation & {
 
 const RESERVATION_STATUSES: ReservationStatus[] = ['REQUESTED', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW'];
 const ACTIVE = [...ACTIVE_RESERVATION_STATUSES] as ReservationStatus[];
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 const withContext = {
   scheduleSlot: { include: { program: { include: { branch: { select: { name: true } } } } } },
@@ -47,21 +48,36 @@ export class ReservationService {
   /** 예약및결제 A-5·A-7 — 범위(회원 본인·지점·회원 지정)는 컨트롤러가 정해서 넘긴다. */
   /** D43 — 쪽 단위 + total, 최근 예약부터(B8 사용자 결정, log/088). 회원 웹 "내 예약"도 이 순서로 받는다. */
   async list(
-    filter: { memberId?: string; branchId?: string; status?: string },
+    filter: { memberId?: string; branchId?: string; status?: string; dateFrom?: string; dateTo?: string },
     page: PageRequest,
   ): Promise<{ items: ReservationView[]; total: number }> {
     if (filter.status && !RESERVATION_STATUSES.includes(filter.status as ReservationStatus)) return { items: [], total: 0 };
+    // ADR-RSV-08 — 회차 날짜(KST, ScheduleSlot.date) 범위. 형식이 틀리면 빈 목록(다른 목록의 "모르는 필터 값"과 같다).
+    if ([filter.dateFrom, filter.dateTo].some((d) => d !== undefined && !(DATE_ONLY.test(d) && !Number.isNaN(Date.parse(d))))) {
+      return { items: [], total: 0 };
+    }
+    const byDate = filter.dateFrom !== undefined || filter.dateTo !== undefined;
+    const date: Prisma.DateTimeFilter | undefined = byDate
+      ? {
+          ...(filter.dateFrom ? { gte: new Date(`${filter.dateFrom}T00:00:00Z`) } : {}),
+          ...(filter.dateTo ? { lte: new Date(`${filter.dateTo}T00:00:00Z`) } : {}),
+        }
+      : undefined;
     const where: Prisma.ReservationWhereInput = {
       memberId: filter.memberId,
       status: filter.status as ReservationStatus | undefined,
-      scheduleSlot: filter.branchId ? { program: { branchId: filter.branchId } } : undefined,
+      scheduleSlot:
+        filter.branchId || date ? { program: filter.branchId ? { branchId: filter.branchId } : undefined, date } : undefined,
     };
     const [total, rows] = await Promise.all([
       this.prisma.reservation.count({ where }),
       this.prisma.reservation.findMany({
         where,
         include: withContext,
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        // 날짜로 거르면 현장 순서(회차 시각순), 아니면 예전처럼 최근 예약부터(B8).
+        orderBy: byDate
+          ? [{ scheduleSlot: { date: 'asc' } }, { scheduleSlot: { startTime: 'asc' } }, { id: 'asc' }]
+          : [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: page.skip,
         take: page.pageSize,
       }),
@@ -179,16 +195,18 @@ export class ReservationService {
     return (await this.findById(id))!;
   }
 
-  // 예약및결제 A-5 PATCH /reservations/:id/check-in — 확정된 예약만.
+  // 예약및결제 A-5 PATCH /reservations/:id/check-in — 확정된 예약만, 회차 당일(KST)만(ADR-RSV-08).
   async checkIn(id: string): Promise<ReservationView> {
+    const target = await this.prisma.reservation.findUnique({ where: { id }, select: { scheduleSlot: { select: { date: true } } } });
+    if (!target) throw new AppException('RESERVATION_NOT_FOUND', '예약을 찾을 수 없습니다.', 404);
+    if (toKstDateString(target.scheduleSlot.date) !== todayKst()) {
+      throw new AppException('CHECK_IN_NOT_TODAY', '체크인은 회차 당일에만 할 수 있습니다.', 409);
+    }
     const { count } = await this.prisma.reservation.updateMany({
       where: { id, status: 'CONFIRMED' },
       data: { status: 'COMPLETED' },
     });
     if (count === 0) {
-      if (!(await this.prisma.reservation.findUnique({ where: { id }, select: { id: true } }))) {
-        throw new AppException('RESERVATION_NOT_FOUND', '예약을 찾을 수 없습니다.', 404);
-      }
       throw new AppException('RESERVATION_NOT_CONFIRMED', '확정된 예약만 체크인할 수 있습니다.', 409);
     }
     return (await this.findById(id))!;

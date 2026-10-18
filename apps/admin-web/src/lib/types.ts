@@ -423,3 +423,13 @@ export interface SupportRequestRow {
   createdAt: string;
   updatedAt: string;
 }
+
+// log/125 F3 — GET /branches/:branchId/performance(api branch-performance.ts와 같은 모양)
+export interface MonthlyPerformance {
+  month: string;
+  revenue: number;
+  refunded: number;
+  reservations: number;
+  completed: number;
+  newMembers: number;
+}

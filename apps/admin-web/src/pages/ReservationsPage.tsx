@@ -307,9 +307,17 @@ export function ReservationsPage() {
   );
 
   const branchProgramsQuery = useApiList<ProgramRow>(['programs'], '/programs');
+  // ADR-RSV-08(log/125 F5) — 현장은 "오늘 예약"부터 본다. 회차 날짜 범위·상태로 거르고 회차 시각순으로 받는다.
+  const [filter, setFilter] = useState(() => ({ dateFrom: kstToday(), dateTo: kstToday(), status: '' }));
+  const changeFilter = (next: Partial<typeof filter>) => {
+    setFilter((f) => ({ ...f, ...next }));
+    setBranchPage(1);
+  };
+  const filterQuery =
+    `&dateFrom=${filter.dateFrom}&dateTo=${filter.dateTo}` + (filter.status ? `&status=${filter.status}` : '');
   const branchReservationsQuery = useApiPage<ReservationRow>(
-    ['reservations', 'branch', branchPage],
-    `/reservations?page=${branchPage}&limit=${PAGE_SIZE}`,
+    ['reservations', 'branch', branchPage, filter],
+    `/reservations?page=${branchPage}&limit=${PAGE_SIZE}${filterQuery}`,
     { enabled: isAdmin },
   );
   const paymentsQuery = useApiPage<PaymentRow>(['payments', paymentPage], `/payments?page=${paymentPage}&limit=${PAGE_SIZE}`, {
@@ -402,6 +410,32 @@ export function ReservationsPage() {
         <>
           <div className="detail-section">
             <h3 className="section-title">예약 현황</h3>
+            <div className="action-row" style={{ gap: 8, marginBottom: 8, alignItems: 'center' }}>
+              <input
+                type="date"
+                aria-label="회차 시작일"
+                value={filter.dateFrom}
+                onChange={(e) => e.target.value && changeFilter({ dateFrom: e.target.value })}
+              />
+              <span>~</span>
+              <input
+                type="date"
+                aria-label="회차 종료일"
+                value={filter.dateTo}
+                onChange={(e) => e.target.value && changeFilter({ dateTo: e.target.value })}
+              />
+              <select className="role-select" aria-label="예약 상태" value={filter.status} onChange={(e) => changeFilter({ status: e.target.value })}>
+                <option value="">전체 상태</option>
+                {(Object.keys(STATUS_LABEL) as ReservationStatus[]).map((s) => (
+                  <option key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+              <button className="btn-secondary" onClick={() => changeFilter({ dateFrom: kstToday(), dateTo: kstToday() })}>
+                오늘
+              </button>
+            </div>
             {branchReservationsQuery.isError && (
               <div className="forbidden-note">{apiErrorMessage(branchReservationsQuery.error)}</div>
             )}
@@ -413,7 +447,7 @@ export function ReservationsPage() {
               disabled={branchReservationsQuery.isFetching}
             />
             {branchRows.length === 0 ? (
-              <div className="empty-state">예약 내역이 없습니다.</div>
+              <div className="empty-state">조건에 맞는 예약이 없습니다.</div>
             ) : (
               <table>
                 <thead>
@@ -436,7 +470,8 @@ export function ReservationsPage() {
                       </td>
                       <td>
                         <div className="action-row">
-                          {r.status === 'CONFIRMED' && <CheckInButton reservationId={r.id} />}
+                          {/* ADR-RSV-08 — 체크인은 회차 당일(KST)만(서버도 409 CHECK_IN_NOT_TODAY) */}
+                          {r.status === 'CONFIRMED' && r.slot?.date === kstToday() && <CheckInButton reservationId={r.id} />}
                           {(r.status === 'REQUESTED' || r.status === 'CONFIRMED') && (
                             <CancelButton reservationId={r.id} />
                           )}
