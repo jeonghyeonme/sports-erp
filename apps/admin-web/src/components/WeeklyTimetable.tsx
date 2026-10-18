@@ -2,15 +2,12 @@ import { useState } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { ApiEnvelope, ProgramRow, ScheduleSlotRow } from '../lib/types';
+import { kstToday } from '../lib/kst-date';
 
 // M5(RFP UI/UX "달력, 스케줄표 형태") — 지점 주간 시간표. 회차 예약형 프로그램마다 기존 회차 API를 한 번씩 부른다
 // (지점 단위 회차 API를 새로 만들지 않았다 — 한 지점의 PAID_SESSION 프로그램은 몇 개뿐이고, 회차 관리와 같은 캐시 키를 쓴다).
 
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
-
-function kstToday(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
-}
 
 function addDays(date: string, n: number): string {
   const d = new Date(`${date}T00:00:00Z`);
