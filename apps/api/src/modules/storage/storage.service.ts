@@ -46,7 +46,8 @@ class SupabaseDriver implements StorageDriver {
   }
 
   async createUploadUrl(path: string): Promise<string> {
-    const res = await fetch(this.objectUrl('upload/sign', path), { method: 'POST', headers: this.headers() });
+    // 본문 '{}'가 필요하다 — JSON content-type에 빈 본문이면 Supabase Storage가 400으로 거부한다(storage-js도 {}를 보낸다, log/131).
+    const res = await fetch(this.objectUrl('upload/sign', path), { method: 'POST', headers: this.headers(), body: '{}' });
     if (!res.ok) throw storageFailed(`upload/sign ${res.status}`);
     const body = (await res.json()) as { url: string };
     return `${this.baseUrl}/storage/v1${body.url}`;
