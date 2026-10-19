@@ -1,4 +1,4 @@
-import { IsDateString, IsIn, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, Matches, Min, MinLength } from 'class-validator';
 import { DocumentCategory } from '../../../fixtures/mock-data.types';
 
 const CATEGORIES: DocumentCategory[] = ['CONTRACT', 'HR_RECORD', 'MANUAL', 'OTHER'];
@@ -21,9 +21,11 @@ export class CreateDocumentDto {
   @MinLength(1)
   title!: string;
 
-  // 실제 업로드 인프라가 없어 URL/경로 문자열만 받는다.
+  // 실제 업로드 인프라가 없어 URL/경로 문자열만 받는다. 화면이 이 값을 링크(href)로 그리므로 http(s)만 받는다 —
+  // `javascript:` 주소를 저장해 다른 관리자가 누르면 스크립트가 실행되는 XSS를 막는다(secure-coding-checklist 입력-4, log/139).
   @IsString()
   @MinLength(1)
+  @Matches(/^https?:\/\//i, { message: 'fileUrl은 http:// 또는 https://로 시작해야 합니다.' })
   fileUrl!: string;
 
   @IsOptional()

@@ -285,9 +285,14 @@ export function DocumentsPage() {
             {rows.map((d) => (
               <tr key={d.id}>
                 <td>
-                  <a href={d.fileUrl} target="_blank" rel="noreferrer">
-                    {d.title}
-                  </a>
+                  {/* http(s)만 링크로 — 서버도 새 값은 http(s)만 받는다(log/139). 시연 데이터의 demo:// 경로는 글자로만. */}
+                  {/^https?:\/\//i.test(d.fileUrl) ? (
+                    <a href={d.fileUrl} target="_blank" rel="noreferrer">
+                      {d.title}
+                    </a>
+                  ) : (
+                    d.title
+                  )}
                 </td>
                 <td>{CATEGORY_LABEL[d.category]}</td>
                 <td>{d.branchName ?? '전사'}</td>

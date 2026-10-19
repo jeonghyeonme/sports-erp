@@ -48,6 +48,16 @@ describe('문서 규칙 (D34)', () => {
     });
   });
 
+  it('파일 주소는 http(s)만 — javascript:·data: 주소는 400, https는 201(XSS 방지, log/139)', async () => {
+    const admin = await login(app, ACCOUNTS.seochoAdmin);
+    const doc = (fileUrl: string) => ({ category: 'MANUAL', title: '매뉴얼', fileUrl });
+    for (const bad of ['javascript:alert(1)', 'JavaScript:alert(1)', 'data:text/html,<script>alert(1)</script>', 'files/manual.pdf']) {
+      const r = await call(admin, 'post', '/documents', doc(bad));
+      expect([r.status, r.body.error?.code]).toEqual([400, 'VALIDATION_ERROR']);
+    }
+    expect((await call(admin, 'post', '/documents', doc('https://files.example/manual.pdf'))).status).toBe(201);
+  });
+
   it('HR_RECORD: 이미 퇴사한 직원의 서류는 퇴사일+3년', async () => {
     await db(app).staff.update({
       where: { id: 'staff-seoyeon' },
