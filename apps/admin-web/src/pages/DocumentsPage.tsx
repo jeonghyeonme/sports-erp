@@ -132,7 +132,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
         <div className="field" style={{ marginTop: 12 }}>
           <label>파일 URL *</label>
           <input
-            value={form.fileUrl}
+            value={form.fileUrl} type="url" inputMode="url"
             onChange={(e) => setForm((f) => ({ ...f, fileUrl: e.target.value }))}
             placeholder="https://.../file.pdf"
             required

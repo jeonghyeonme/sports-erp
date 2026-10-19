@@ -297,6 +297,8 @@ export interface LeaveBalanceRow {
   year: number;
   totalDays: number;
   usedDays: number;
+  // 올해 승인된 휴가의 유형별 사용 일수(근태관리 F3-2, log/133). 한도는 연차에만 있다.
+  usedByType?: Record<LeaveType, number>;
 }
 
 export interface LeaveRequestRow {

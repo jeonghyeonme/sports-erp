@@ -249,7 +249,7 @@ function SlotManager({ programs }: { programs: ProgramRow[] }) {
             <input
               type="number"
               min={1}
-              value={form.capacity}
+              value={form.capacity} inputMode="numeric"
               onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
             />
           </div>

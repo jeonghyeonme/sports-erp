@@ -172,7 +172,7 @@ export function SignupPage() {
           <input
             type="date"
             max={todayKst()}
-            value={form.birthDate}
+            value={form.birthDate} autoComplete="bday"
             onChange={(e) => set({ birthDate: e.target.value, guardianConsent: false })}
           />
         </label>

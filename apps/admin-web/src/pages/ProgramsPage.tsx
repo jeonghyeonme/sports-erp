@@ -194,7 +194,7 @@ function ProgramFormModal({
             <input
               type="number"
               min={0}
-              value={isFree ? '0' : form.price}
+              value={isFree ? '0' : form.price} inputMode="numeric"
               disabled={isFree}
               onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
             />
@@ -208,7 +208,7 @@ function ProgramFormModal({
             <input
               type="number"
               min={1}
-              value={isFree ? '' : form.capacity}
+              value={isFree ? '' : form.capacity} inputMode="numeric"
               disabled={isFree}
               required={form.pricingType === 'PAID_SESSION'}
               placeholder={isFree ? '-' : undefined}

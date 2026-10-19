@@ -42,7 +42,7 @@ export function LoginPage() {
             <input
               id="email"
               type="email"
-              value={email}
+              value={email} inputMode="email" autoComplete="username"
               onChange={(e) => setEmail(e.target.value)}
               required
             />
@@ -52,7 +52,7 @@ export function LoginPage() {
             <input
               id="password"
               type="password"
-              value={password}
+              value={password} autoComplete="current-password"
               onChange={(e) => setPassword(e.target.value)}
               required
             />

@@ -139,7 +139,7 @@ export class AttendanceController {
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
   @ScopedResource('staff', { param: 'staffId', code: 'ATTENDANCE_SCOPE_VIOLATION' })
   async leaveBalance(@Param('staffId') staffId: string) {
-    return ok(await this.attendance.leaveBalance(staffId));
+    return ok(await this.attendance.leaveBalanceWithUsage(staffId));
   }
 
   @Post('work-logs')

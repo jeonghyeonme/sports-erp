@@ -130,6 +130,12 @@ export interface MockLeaveBalance {
   usedDays: number;
 }
 
+// GET /leave-balance/:staffId 응답 — 연차 잔여 + 올해 승인된 휴가의 유형별 사용 일수(근태관리 F3-2, log/133).
+// 한도는 연차에만 있다. 병가·경조사는 회사 규정마다 달라 사용 일수만 기록해 보여 준다.
+export interface MockLeaveBalanceWithUsage extends MockLeaveBalance {
+  usedByType: Record<LeaveType, number>;
+}
+
 // 근태관리 A-3 WorkLog — staffId+date가 하루 1건 권장(수정은 허용).
 export interface MockWorkLog {
   id: string;

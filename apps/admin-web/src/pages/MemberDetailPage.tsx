@@ -291,7 +291,7 @@ function PTSessionsTab({ member, canManage }: { member: MemberRow; canManage: bo
               <input
                 type="number"
                 min={1}
-                value={form.totalSessions}
+                value={form.totalSessions} inputMode="numeric"
                 onChange={(e) => setForm({ ...form, totalSessions: e.target.value })}
                 required
               />
@@ -574,7 +574,7 @@ export function MemberDetailPage() {
                 </div>
                 <div className="field">
                   <label>연락처</label>
-                  <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                  <input value={form.phone} type="tel" inputMode="tel" autoComplete="off" onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 </div>
               </div>
               <div className="form-row" style={{ marginTop: 12 }}>

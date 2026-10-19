@@ -167,7 +167,7 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
             <input
               type="number"
               min={0}
-              value={form.acquisitionCost}
+              value={form.acquisitionCost} inputMode="numeric"
               onChange={(e) => setForm((f) => ({ ...f, acquisitionCost: e.target.value }))}
               required
             />
@@ -191,7 +191,7 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
               <input
                 type="number"
                 min={1}
-                value={form.usefulLifeYears}
+                value={form.usefulLifeYears} inputMode="numeric"
                 onChange={(e) => setForm((f) => ({ ...f, usefulLifeYears: e.target.value }))}
               />
             </div>
@@ -201,7 +201,7 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
               <input
                 type="number"
                 min={1}
-                value={form.quantity}
+                value={form.quantity} inputMode="numeric"
                 onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
               />
             </div>
@@ -287,7 +287,7 @@ function EditAssetModal({ asset, onClose }: { asset: AssetRow; onClose: () => vo
               <input
                 type="number"
                 min={1}
-                value={form.usefulLifeYears}
+                value={form.usefulLifeYears} inputMode="numeric"
                 onChange={(e) => setForm((f) => ({ ...f, usefulLifeYears: e.target.value }))}
               />
             </div>
@@ -297,7 +297,7 @@ function EditAssetModal({ asset, onClose }: { asset: AssetRow; onClose: () => vo
               <input
                 type="number"
                 min={0}
-                value={form.quantity}
+                value={form.quantity} inputMode="numeric"
                 onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
                 required
               />

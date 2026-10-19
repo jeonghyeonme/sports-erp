@@ -58,7 +58,7 @@ export function LinkPage() {
         <label className="field">
           <span>회원번호</span>
           <input
-            value={memberNo}
+            value={memberNo} autoComplete="off" spellCheck={false}
             placeholder="예: SEOCHO2025-014"
             autoCapitalize="characters"
             onChange={(e) => setMemberNo(e.target.value)}

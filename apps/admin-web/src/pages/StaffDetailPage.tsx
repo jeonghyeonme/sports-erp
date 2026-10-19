@@ -110,7 +110,7 @@ function EditStaffForm({ staff, onDone }: { staff: StaffRow; onDone: () => void 
         </div>
         <div className="field">
           <label>연락처</label>
-          <input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+          <input value={form.phone} type="tel" inputMode="tel" autoComplete="off" onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
         </div>
       </div>
       <div className="form-row" style={{ marginTop: 12 }}>
@@ -555,7 +555,7 @@ function CorrectAttendanceModal({
         <div className="field" style={{ marginTop: 12 }}>
           <label>정정 사유 * (2자 이상)</label>
           <input
-            value={form.reason}
+            value={form.reason} maxLength={200}
             placeholder="예: 체크인 누락 — 출입 기록 확인"
             required
             minLength={2}
@@ -692,6 +692,10 @@ function LeaveHistory({ staffId }: { staffId: string }) {
             {' '}
             {balance.year}년 연차 {balance.totalDays}일 중 {balance.usedDays}일 사용 · 잔여{' '}
             {balance.totalDays - balance.usedDays}일
+            {/* 근태관리 F3-2 — 병가·경조사는 한도 없이 올해 사용 일수만. 기타는 있을 때만. */}
+            {balance.usedByType &&
+              ` · 병가 ${balance.usedByType.SICK}일 · 경조사 ${balance.usedByType.FAMILY_EVENT}일` +
+                (balance.usedByType.OTHER ? ` · 기타 ${balance.usedByType.OTHER}일` : '')}
           </span>
         )}
       </h3>
