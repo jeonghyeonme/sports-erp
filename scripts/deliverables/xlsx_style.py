@@ -13,10 +13,10 @@ THIN = Side(style='thin', color='CBD0CD')
 BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
 STATUS_FILL = {
-    '구현': GREEN_SOFT, '적용': GREEN_SOFT,
+    '구현': GREEN_SOFT, '적용': GREEN_SOFT, '조정': GREEN_SOFT,
     '미구현': RED_SOFT, '설계만': RED_SOFT,
     'API만': AMBER_SOFT, '부분': AMBER_SOFT, '측정 전': AMBER_SOFT,
-    '범위 제외': GRAY_SOFT,
+    '범위 제외': GRAY_SOFT, '해당 없음': GRAY_SOFT,
 }
 
 

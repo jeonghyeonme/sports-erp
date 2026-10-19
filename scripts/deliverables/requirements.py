@@ -2,7 +2,7 @@
 
     python3 scripts/deliverables/requirements.py   → docs/deliverables/요구사항정의서.xlsx
 
-- RFP 추적·미구현·범위 제외: docs/reference/요구사항추적표.md §1·§2-3·§2-4
+- RFP 추적·충족 판정·미구현·범위 제외: docs/reference/요구사항추적표.md §1·§3·§2-3·§2-4
 - 도메인별 원문 요구(기능·품질)·불변규칙·설계 결정·범위 제외: docs/domains/<도메인>.md
 - 기능 명세: apps/api/src의 실제 컨트롤러 라우트(경로·권한) + 관리자 웹·회원 웹이 실제로 부르는 경로(화면 유무)
   — 설명(ROUTE_DESC)만 사람이 쓴다. 라우트가 추가되면 설명이 비어 경고가 뜬다.
@@ -28,7 +28,7 @@ OUT = ROOT / 'docs/deliverables/요구사항정의서.xlsx'
 # 도메인 — (시트 이름, 문서 파일, ID 접두어, 컨트롤러 경로 접두어)
 DOMAIN_LIST = [
     ('권한관리', '권한관리.md', 'AUTH', ['/auth', '/permissions']),
-    ('인사정보관리', '인사정보관리.md', 'STF', ['/staff']),
+    ('인사정보관리', '인사정보관리.md', 'STF', ['/staff', '/staff-change-requests']),
     ('근태관리', '근태관리.md', 'ATT', ['/attendance', '/leave-requests', '/leave-balance', '/work-logs']),
     ('게시판', '게시판.md', 'BRD', ['/posts']),
     ('회원관리', '회원관리.md', 'MEM', ['/members']),
@@ -37,7 +37,8 @@ DOMAIN_LIST = [
     ('혼잡도관리', '혼잡도관리.md', 'FAC', ['/facilities']),
     ('자원문서관리', '자원문서관리.md', 'RES', ['/assets', '/documents']),
 ]
-COMMON_PREFIX = ['/branches', '/audit-logs', '/health']  # 도메인에 안 묶이는 것 — /audit-logs는 공통(사용자 결정 2026-10-14)
+COMMON_PREFIX = ['/branches', '/audit-logs', '/support-requests', '/health']  # 도메인에 안 묶이는 것 — /audit-logs는 공통(사용자 결정 2026-10-14)
+LOCAL_ONLY = ['/dev-storage']  # 로컬·테스트 메모리 저장소 경로(D57) — 배포에 없는 기능이라 명세에서 뺀다
 
 ROUTE_DESC = {
     'POST /auth/login': '이메일·비밀번호 로그인 — 액세스·리프레시 토큰 발급, 비활성 계정 차단',
@@ -52,6 +53,12 @@ ROUTE_DESC = {
     'GET /staff/:id': '직원 상세 — 관리자가 열면 열람 기록(PHONE_VIEWED, D47)',
     'POST /staff': '직원 채용 — 계정·직원·첫 파견을 함께 생성(본사만)',
     'PATCH /staff/:id': '직원 정보 수정',
+    'POST /staff-change-requests': '인사 변경 신청(직원 본인 — 연락처 등, ADR-STF-09)',
+    'GET /staff-change-requests/mine': '내 인사 변경 신청 목록',
+    'GET /staff-change-requests': '인사 변경 신청 목록(지점 관리자는 자기 지점, 본사는 조회)',
+    'DELETE /staff-change-requests/:id': '인사 변경 신청 취소(대기 중일 때 본인)',
+    'PATCH /staff-change-requests/:id/approve': '인사 변경 승인 — 직원 정보에 반영, 변경 이력 기록(지점 관리자 1단계 승인)',
+    'PATCH /staff-change-requests/:id/reject': '인사 변경 반려(사유)',
     'PATCH /staff/:id/resign': '퇴사 처리 — 계정 비활성화, 파견 종료, 담당 회원 해제, 인사서류 보존기한 재계산(지점 관리자. 계약 종료 지점 직원은 본사도 — ADR-STF-08)',
     'POST /staff/:id/assignments': '파견 발령(재배치) — 옛 지점 담당 회원 해제, 계약 종료 지점으로는 409(본사만)',
     'GET /staff/:id/assignments': '파견 이력',
@@ -59,6 +66,7 @@ ROUTE_DESC = {
     'POST /attendance/check-out': '퇴근 체크',
     'GET /attendance': '근태 기록 조회(범위별)',
     'GET /attendance/summary': '지점 월별 근태 요약',
+    'PUT /attendance/:staffId/:date': '관리자 근태 정정·누락일 등록 — 사유 필수, 변경 이력 기록(ADR-ATT-04)',
     'GET /attendance/absence-preview': '결근 예정 미리보기(저장 안 함)',
     'POST /attendance/absence-confirm': '결근 확정(지점 관리자의 명시적 확정)',
     'POST /leave-requests': '휴가 신청',
@@ -73,6 +81,10 @@ ROUTE_DESC = {
     'POST /posts': '게시글 작성 — 계약 종료 지점 차단',
     'PATCH /posts/:id': '게시글 수정(작성자)',
     'DELETE /posts/:id': '게시글 삭제(소프트, 작성자 또는 본사)',
+    'POST /posts/:id/attachments/upload-url': '첨부 업로드 URL 발급(작성자) — 형식·크기·개수 검사, 1회용 서명 URL(ADR-BRD-04·D57)',
+    'POST /posts/:id/attachments': '첨부 붙이기 — 저장소의 실제 크기·형식 재확인, 글당 5개',
+    'GET /posts/:id/attachments/:attachmentId/download': '첨부 내려받기 URL(글을 볼 수 있는 사람, 60초)',
+    'DELETE /posts/:id/attachments/:attachmentId': '첨부 삭제(작성자 또는 본사)',
     'POST /members/register': '회원 자체 가입(공개) — 회원 웹 /signup(지점 선택은 공개 지점 목록, ADR-MEM-05)',
     'POST /members/link': '오프라인 회원 ↔ 온라인 계정 연동(공개, 회원번호+전화번호 동시 일치, 시도 제한) — 회원 웹 /link',
     'GET /members': '회원 목록(지점 범위) — 페이지네이션(D43), 전화번호 마스킹(ADR-MEM-04)',
@@ -118,8 +130,13 @@ ROUTE_DESC = {
     'DELETE /documents/:id': '문서 삭제(소프트, 본사)',
     'GET /branches': '지점 목록(계약 정보 포함)',
     'GET /branches/public': '공개 지점 목록(이름·지역만, 계약 종료 지점 제외) — 회원 웹 가입용(ADR-MEM-05)',
+    'GET /branches/:branchId/performance': '지점 운영 실적 — 최근 3개월 매출·예약·완료·신규 회원(KST 월 기준)',
     'PATCH /branches/:branchId/contract-status': '계약 상태 변경(본사) — TERMINATED 전이 시 진행 중 파견 종료·재배치 대기 반환(ADR-STF-07)',
     'GET /audit-logs': '변경 이력 조회(본사) — 역할 전환·퇴사·파견 발령·파견 종료·전화번호 열람(D44·D47)',
+    'POST /support-requests': '업무지원 요청 등록(지점 관리자 → 본사, D56)',
+    'GET /support-requests': '업무지원 요청 목록(지점은 자기 지점, 본사는 전체)',
+    'GET /support-requests/:id': '업무지원 요청 상세',
+    'PATCH /support-requests/:id/status': '업무지원 요청 처리 상태 변경(본사)',
     'GET /health': '헬스체크(DB 미경유)',
 }
 ROLE_KO = {'SUPER_ADMIN': '본사', 'BRANCH_ADMIN': '지점', 'STAFF': '직원', 'MEMBER': '회원'}
@@ -181,6 +198,8 @@ def api_routes():
             b = '\n'.join(block)
             roles = re.findall(r"@Roles\(([^)]*)\)", b) or croles
             path = '/' + '/'.join(x for x in [pre, m.group(2) or ''] if x)
+            if any(path.startswith(x) for x in LOCAL_ONLY):
+                continue
             if '@Public' in b:
                 who = '공개'
             elif roles:
@@ -268,8 +287,16 @@ def parse_trace():
     s24 = md_table(section_lines(t, r'^### 2-4\.', r'^---'))[1:]
     api_only = next((clean(l.split('**:', 1)[1]) for l in section_lines(t, r'^### 2-3\.', r'^### 2-4\.') if l.startswith('**API는 있고')), '')
     design_only = next((clean(l.split('**:', 1)[1]) for l in section_lines(t, r'^### 2-3\.', r'^### 2-4\.') if l.startswith('**설계는 있지만')), '')
+    judge = md_table(section_lines(t, r'^## 3\.', r'^## 4\.'))
+    judge_sum = [r for r in judge if r[0] in ('기능·성능(p.5)', '시스템~제약(p.6)', '과업·산출물·개념도', '**전체**')]
+    judge_rows = [r for r in judge if re.match(r'^[A-Z]\d', r[0])]
     member_app = next((clean(l) for l in section_lines(t, r'^### 2-4\.', r'^---') if l.startswith('**대상 지점·회원 앱 형태')), '')
-    return s11, s12, s13, s23, s24, api_only, design_only, member_app
+    return s11, s12, s13, s23, s24, api_only, design_only, member_app, judge_sum, judge_rows
+
+
+def gap_status(row):
+    # 요구사항추적표 §2-3의 '지금 상태'가 '부분'으로 시작하면 부분, 아니면 미구현
+    return '부분' if clean(row[2]).startswith('부분') else '미구현'
 
 
 # ── 작성 ──────────────────────────────────────────────────────────────────
@@ -277,7 +304,7 @@ def main():
     routes = api_routes()
     web = {app: web_paths(root) for app, root in WEBS.items()}
     commit = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], cwd=ROOT, capture_output=True, text=True).stdout.strip()
-    s11, s12, s13, s23, s24, api_only, design_only, member_app = parse_trace()
+    s11, s12, s13, s23, s24, api_only, design_only, member_app, judge_sum, judge_rows = parse_trace()
     missing_desc = [f'{m} {p}' for m, p, _ in routes if f'{m} {p}' not in ROUTE_DESC]
     all_rows = []  # 총괄
 
@@ -378,14 +405,14 @@ def main():
 
     # 미구현을 총괄에 추가
     for k, row in enumerate(s23, 1):
-        all_rows.append([f'GAP-{k:02d}', 'RFP 공통', '미구현', f'{clean(row[1])} — {clean(row[2])}', '미구현', '-', clean(row[0])])
+        all_rows.append([f'GAP-{k:02d}', 'RFP 공통', '미구현', f'{clean(row[1])} — {clean(row[2])}', gap_status(row), '-', clean(row[0])])
 
     # 총괄
     sh = wb.create_sheet('요구사항 총괄', 1)
     r = X.title(sh, '요구사항 총괄', '헤더 필터로 도메인·구분·상태별로 볼 수 있다. 위 집계는 아래 표를 세는 수식이다')
     stat_row = r
     labels = [('기능(API) 수', '기능', None), ('  └ 화면 있음', '기능', '있음'), ('  └ 화면 없음(API만)', '기능', '없음'),
-              ('불변규칙 수', '불변규칙', None), ('RFP 미구현 항목', '미구현', None)]
+              ('불변규칙 수', '불변규칙', None), ('RFP 미구현·부분 항목', '미구현', None)]
     r = X.header(sh, r, ['집계', '건수'])
     first_data_row = r + len(labels) + 2
     last_guess = first_data_row + len(all_rows)
@@ -423,11 +450,33 @@ def main():
     X.widths(sh, [10, 12, 22, 50, 24, 60, 16])
     sh.sheet_view.showGridLines = False
 
+    # RFP 충족 판정
+    sh = wb.create_sheet('RFP 충족 판정', 3)
+    r = X.title(sh, 'RFP 조항별 충족 판정', '원문 글머리(•) 하나를 한 조항으로 판정. 원천: docs/reference/요구사항추적표.md §3')
+    r = X.section(sh, r, '집계 — 충족률은 (구현+조정) / (전체−해당 없음), 뒤 값은 부분까지 포함', 7)
+    r = X.header(sh, r, ['범위', '조항', '구현', '조정', '부분', '미구현', '해당 없음', '충족률'])
+    r = X.rows(sh, r, [[clean(c) for c in row[:8]] for row in judge_sum])
+    r += 1
+    r = X.kv(sh, r, [
+        ('구현', '조항이 말한 것을 그대로 했다'),
+        ('조정', '결과는 냈지만 방식을 바꿨고 근거 결정이 있다'),
+        ('부분', '일부만 했다 — 빠진 부분은 미구현 시트'),
+        ('미구현', '하지 않았다(의도적 제외 포함 — 비고에 사유)'),
+        ('해당 없음', '발주기관·계약·대면 행위처럼 대상이 없다 — 분모에서 뺀다'),
+    ])
+    r += 1
+    r = X.header(sh, r, ['ID', 'RFP', '조항(원문)', '판정', '근거·비고'])
+    first = r
+    r = X.rows(sh, r, [[clean(c) for c in row[:5]] for row in judge_rows], status_col=3)
+    sh.auto_filter.ref = f'A{first-1}:E{r-1}'
+    X.widths(sh, [10, 18, 52, 12, 70, 10, 10, 18])
+    sh.sheet_view.showGridLines = False
+
     # 미구현
     sh = wb.create_sheet('미구현')
-    r = X.title(sh, '미구현 — RFP가 요구하는데 아직 없는 것', '의도적 범위 제외(다음 시트)와 구분한다. 원천: 요구사항추적표 §2-3(코드 실측)')
+    r = X.title(sh, '미구현·부분 — RFP가 요구하는데 아직 없거나 일부만 있는 것', '의도적 범위 제외(다음 시트)와 구분한다. 원천: 요구사항추적표 §2-3(코드 실측)')
     r = X.header(sh, r, ['ID', 'RFP', '항목', '지금 상태(실측)', '상태'])
-    r = X.rows(sh, r, [[f'GAP-{k:02d}', clean(row[0]), clean(row[1]), clean(row[2]), '미구현'] for k, row in enumerate(s23, 1)], status_col=4)
+    r = X.rows(sh, r, [[f'GAP-{k:02d}', clean(row[0]), clean(row[1]), clean(row[2]), gap_status(row)] for k, row in enumerate(s23, 1)], status_col=4)
     r += 1
     r = X.section(sh, r, 'API는 있고 화면이 없는 것', 5)
     c = sh.cell(row=r, column=1, value=api_only); c.font = X.font(); c.alignment = X.Alignment(wrap_text=True, vertical='top')
@@ -455,7 +504,7 @@ def main():
 
     # 표지
     ws = wb['표지']
-    r = X.title(ws, '스포이즘 ERP — 요구사항 정의서', '요구사항 총괄 · RFP 추적 · 도메인별 요구사항 · 미구현 · 범위 제외')
+    r = X.title(ws, '스포이즘 ERP — 요구사항 정의서', '요구사항 총괄 · RFP 추적 · RFP 충족 판정 · 도메인별 요구사항 · 미구현 · 범위 제외')
     n_fn = sum(1 for x in all_rows if x[2] == '기능')
     r = X.kv(ws, r, [
         ('프로젝트', '스포이즘 ERP — 아파트·오피스텔 커뮤니티 시설 위탁운영 관리 시스템'),
@@ -463,7 +512,8 @@ def main():
         ('작성일', date.today().isoformat()),
         ('기준', f'{date.today().isoformat()} 저장소(dev 브랜치) — 도메인 문서·요구사항추적표·실제 API 라우트에서 자동 생성'),
         ('규모', f'도메인 {len(DOMAIN_LIST)}개 · 기능(API) {n_fn}개 · 불변규칙 {sum(1 for x in all_rows if x[2]=="불변규칙")}개 · '
-               f'RFP 미구현 {len(s23)}건 · 자동 테스트 파일 {len(tests())}개'),
+               f'RFP 미구현·부분 {len(s23)}건 · 자동 테스트 파일 {len(tests())}개'),
+        ('RFP 충족', next((f'조항 {clean(x[1])}개 중 해당 없음 {clean(x[6])}개를 뺀 충족률 {clean(x[7])}(구현+조정 / 부분 포함)' for x in judge_sum if '전체' in x[0]), '-')),
         ('범위', '관리자 웹(본사·지점 관리자·직원) + 회원 모바일 웹(/m/, 2026-10-09 배포) + REST API. 대상 지점은 수도권 83곳(지방 15곳 제외)'),
     ])
     r += 1
@@ -472,7 +522,8 @@ def main():
         ('F·Q + 번호', 'RFP 원문을 재분류한 기능(F)·품질(Q) 요구 — 도메인 문서 §1의 ID 그대로'),
         ('<도메인>-INV-nn', '불변규칙 — 어떤 경우에도 깨지면 안 되는 규칙'),
         ('<도메인>-FN-nn', '기능 명세 — 실제 API 하나에 하나'),
-        ('GAP-nn', 'RFP가 요구하는데 아직 구현하지 않은 항목'),
+        ('GAP-nn', 'RFP가 요구하는데 아직 없거나 일부만 있는 항목'),
+        ('F·N·T·P·C + 번호', 'RFP 조항 — 기능·성능(F, 원문 순번-글머리), 시스템~제약(N), 과업(T), 산출물(P), 개념도(C)'),
         ('도메인 약어', ', '.join(f'{c}={n}' for n, _, c, _ in DOMAIN_LIST) + ', COM=공통'),
     ])
     r += 1
@@ -482,6 +533,7 @@ def main():
         ('API만', 'API는 있고 화면이 없다(사유를 괄호에 적음)'),
         ('미구현', 'RFP 요구인데 아직 없다'),
         ('범위 제외', '근거를 두고 의도적으로 만들지 않았다'),
+        ('구현·조정·부분·해당 없음', 'RFP 충족 판정 시트의 판정(기준은 그 시트 위)'),
         ('검증', '자동 테스트는 API(jest)만 있다. 관리자 웹·회원 웹은 lint·빌드(타입체크)까지만 검증된다'),
     ])
     X.widths(ws, [20, 110])
