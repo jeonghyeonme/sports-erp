@@ -99,7 +99,7 @@ const toast = useToast();
           </div>
           <div className="field">
             <label>연락처</label>
-            <input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+            <input value={form.phone} type="tel" inputMode="tel" autoComplete="off" onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
           </div>
         </div>
         <div className="form-row" style={{ marginTop: 12 }}>

@@ -922,6 +922,32 @@ h1 {
   word-break: break-word;
 }
 
+/* 공지 첨부(log/133) — 이미지는 화면 폭에 맞추고, 받는 동안 같은 자리를 잡아 둔다. */
+.notice-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+}
+
+.notice-image-loading {
+  aspect-ratio: 4 / 3;
+}
+
+.notice-files {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notice-file-button {
+  color: var(--color-primary);
+  font-size: 14px;
+  text-decoration: underline;
+  text-align: left;
+}
+
 .pager {
   display: flex;
   align-items: center;

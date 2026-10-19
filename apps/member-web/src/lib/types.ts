@@ -111,6 +111,14 @@ export interface Post {
   content: string;
   publishedAt: string;
   branchName?: string;
+  attachments?: Attachment[]; // 상세 응답에만 있다(게시판 ADR-BRD-04)
+}
+
+export interface Attachment {
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
 }
 
 export interface MemberProfile {

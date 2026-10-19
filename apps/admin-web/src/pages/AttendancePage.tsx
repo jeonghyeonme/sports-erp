@@ -204,22 +204,30 @@ export function AttendancePage() {
         </div>
 
         <div className="card">
-          <h3>연차 잔여일수</h3>
+          <h3>휴가 일수</h3>
           {balanceQuery.isLoading && <div className="loading-state">불러오는 중...</div>}
           {balanceQuery.data && (
             <>
               <div className="stat-row">
-                <span>{balanceQuery.data.year}년 부여일수</span>
+                <span>{balanceQuery.data.year}년 연차 부여</span>
                 <strong>{balanceQuery.data.totalDays}일</strong>
               </div>
               <div className="stat-row">
-                <span>사용일수</span>
+                <span>연차 사용</span>
                 <strong>{balanceQuery.data.usedDays}일</strong>
               </div>
               <div className="stat-row">
-                <span>잔여일수</span>
+                <span>연차 잔여</span>
                 <strong>{balanceQuery.data.totalDays - balanceQuery.data.usedDays}일</strong>
               </div>
+              {/* 근태관리 F3-2 — 병가·경조사는 한도 없이 올해 사용 일수만 보인다. */}
+              {balanceQuery.data.usedByType &&
+                (['SICK', 'FAMILY_EVENT', 'OTHER'] as LeaveType[]).map((t) => (
+                  <div className="stat-row" key={t}>
+                    <span>{LEAVE_TYPE_LABEL[t]} 사용</span>
+                    <strong>{balanceQuery.data?.usedByType?.[t] ?? 0}일</strong>
+                  </div>
+                ))}
             </>
           )}
         </div>

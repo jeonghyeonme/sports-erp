@@ -138,7 +138,7 @@ function HireStaffModal({ onClose }: { onClose: () => void }) {
           </div>
           <div className="field">
             <label>이메일(로그인 ID) *</label>
-            <input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} required />
+            <input type="email" value={form.email} inputMode="email" autoComplete="off" onChange={(e) => set({ email: e.target.value })} required />
           </div>
         </div>
         <div className="form-row" style={{ marginTop: 12 }}>
@@ -160,7 +160,7 @@ function HireStaffModal({ onClose }: { onClose: () => void }) {
         <div className="form-row" style={{ marginTop: 12 }}>
           <div className="field">
             <label>연락처</label>
-            <input value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+            <input value={form.phone} type="tel" inputMode="tel" autoComplete="off" onChange={(e) => set({ phone: e.target.value })} />
           </div>
           <div className="field">
             <label>입사일(비우면 오늘)</label>

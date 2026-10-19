@@ -77,7 +77,7 @@ export function MyChangeRequests({ staff }: { staff: StaffRow }) {
           <div className="field">
             <label>바꿀 값 (지금: {(field === 'name' ? staff.name : staff.phone) || '-'})</label>
             <input
-              value={newValue}
+              value={newValue} maxLength={30}
               placeholder={field === 'phone' ? '010-1234-5678' : '새 이름'}
               onChange={(e) => setNewValue(e.target.value)}
               required

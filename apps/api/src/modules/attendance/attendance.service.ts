@@ -16,6 +16,7 @@ import { recordAudit } from '../../prisma/audit';
 import {
   MockAttendanceRecord,
   MockLeaveBalance,
+  MockLeaveBalanceWithUsage,
   MockLeaveRequest,
   MockWorkLog,
 } from '../../fixtures/mock-data.types';
@@ -292,6 +293,24 @@ export class AttendanceService {
       skipDuplicates: true,
     });
     return toMockBalance(await tx.leaveBalance.findUniqueOrThrow({ where: key }));
+  }
+
+  // 근태관리 F3-2(log/133) — 잔여 연차 + 올해 승인된 휴가의 유형별 사용 일수. 해를 걸친 휴가는 시작일의 해로 센다.
+  // 잔여 계산(leaveBalance)은 신청·승인 트랜잭션도 쓰므로 집계는 조회 라우트에서만 붙인다.
+  async leaveBalanceWithUsage(staffId: string): Promise<MockLeaveBalanceWithUsage> {
+    const balance = await this.leaveBalance(staffId);
+    const sums = await this.prisma.leaveRequest.groupBy({
+      by: ['type'],
+      where: {
+        staffId,
+        status: 'APPROVED',
+        startDate: { gte: dateOf(`${balance.year}-01-01`), lt: dateOf(`${balance.year + 1}-01-01`) },
+      },
+      _sum: { days: true },
+    });
+    const usedByType: Record<LeaveType, number> = { ANNUAL: 0, SICK: 0, FAMILY_EVENT: 0, OTHER: 0 };
+    for (const s of sums) usedByType[s.type] = s._sum.days ?? 0;
+    return { ...balance, usedByType };
   }
 
   // 근태관리 A-6 — 잔여일수 초과 신청도 막지 않고 경고만 반환(관리자 재량 승인).

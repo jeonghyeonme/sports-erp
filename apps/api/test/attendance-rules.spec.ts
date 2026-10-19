@@ -115,6 +115,30 @@ describe('근태 규칙 (D33)', () => {
     expect((await call(staffToken, 'get', `/leave-balance/${STAFF_ID}`)).body.data.usedDays).toBe(before);
   });
 
+  it('유형별 사용 일수는 올해 승인된 휴가만 센다 — 대기·반려·다른 해 제외(근태관리 F3-2, log/133)', async () => {
+    const staffToken = await login(app, ACCOUNTS.seochoStaff);
+    const adminToken = await login(app, ACCOUNTS.seochoAdmin);
+    const usage = async () => (await call(staffToken, 'get', `/leave-balance/${STAFF_ID}`)).body.data.usedByType;
+    const before = await usage();
+    expect(Object.keys(before).sort()).toEqual(['ANNUAL', 'FAMILY_EVENT', 'OTHER', 'SICK']);
+
+    const approve = async (type: string, startDate: string, endDate: string) => {
+      const r = await call(staffToken, 'post', '/leave-requests', { type, startDate, endDate });
+      await call(adminToken, 'patch', `/leave-requests/${r.body.data.id}/approve`);
+    };
+    await approve('SICK', '2026-11-09', '2026-11-10');
+    await approve('FAMILY_EVENT', '2026-11-12', '2026-11-12');
+    await approve('SICK', '2027-01-04', '2027-01-04'); // 다음 해
+    await call(staffToken, 'post', '/leave-requests', { type: 'SICK', startDate: '2026-11-20', endDate: '2026-11-20' }); // 대기
+    const rejected = await call(staffToken, 'post', '/leave-requests', { type: 'SICK', startDate: '2026-11-23', endDate: '2026-11-23' });
+    await call(adminToken, 'patch', `/leave-requests/${rejected.body.data.id}/reject`);
+
+    const after = await usage();
+    expect(after.SICK).toBe(before.SICK + 2);
+    expect(after.FAMILY_EVENT).toBe(before.FAMILY_EVENT + 1);
+    expect(after.ANNUAL).toBe(before.ANNUAL);
+  });
+
   it('결근 확정을 동시에 두 번 호출해도 한 날짜에 한 행 — 두 응답을 합치면 저장된 행과 정확히 같다', async () => {
     await db(app).staff.update({ where: { id: STAFF_ID }, data: { employmentType: '정규직', offDays: [] } });
     const adminToken = await login(app, ACCOUNTS.seochoAdmin);

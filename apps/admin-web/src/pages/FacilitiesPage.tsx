@@ -77,7 +77,7 @@ function FacilityFormFields({ form, onChange }: { form: FacilityForm; onChange: 
         <input
           type="number"
           min={1}
-          value={form.capacity}
+          value={form.capacity} inputMode="numeric"
           onChange={(e) => onChange({ ...form, capacity: e.target.value })}
           required
         />
@@ -261,7 +261,7 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
               type="number"
               min={0}
               placeholder="인원 수동 보정"
-              value={manualCount}
+              value={manualCount} inputMode="numeric"
               onChange={(e) => setManualCount(e.target.value)}
               style={{ width: 120 }}
             />
