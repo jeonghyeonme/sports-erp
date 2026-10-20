@@ -81,6 +81,16 @@ export async function lockReservation(tx: Tx, reservationId: string): Promise<{ 
   return rows[0] ?? null;
 }
 
+/**
+ * 직원 행 락 — 휴가 신청·승인의 겹침 검사(근태관리 ADR-ATT-05, log/141). 같은 직원의 신청·승인을 직렬화해
+ * "겹치는 휴가가 없다"를 읽은 뒤 쓰기까지 다른 요청이 끼지 못하게 한다(검사 후 쓰기를 한 직원 단위로 묶는다).
+ */
+export async function lockStaff(tx: Tx, staffId: string): Promise<{ id: string } | null> {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id" FROM "Staff" WHERE "id" = ${staffId} FOR UPDATE`;
+  return rows[0] ?? null;
+}
+
 /** ADR-RSV-02와 같은 "활성 예약" 정의(부분 unique 인덱스의 WHERE 절과 동일). */
 export const ACTIVE_RESERVATION_STATUSES = ['REQUESTED', 'CONFIRMED'] as const;
 
