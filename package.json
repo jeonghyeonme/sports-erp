@@ -5,7 +5,8 @@
   "description": "스포이즘 ERP 포트폴리오 프로젝트 (모노레포)",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "e2e"
   ],
   "scripts": {
     "dev": "concurrently -k -n API,WEB -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
@@ -16,7 +17,8 @@
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "prisma:generate": "npm run prisma:generate --workspace=apps/api",
-    "prisma:migrate": "npm run prisma:migrate --workspace=apps/api"
+    "prisma:migrate": "npm run prisma:migrate --workspace=apps/api",
+    "e2e": "npm test --workspace=e2e"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

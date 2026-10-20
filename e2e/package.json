@@ -1,0 +1,13 @@
+{
+  "name": "@sports-erp/e2e",
+  "private": true,
+  "version": "0.1.0",
+  "description": "관리자 웹·회원 웹 화면 자동 테스트(Playwright, D59)",
+  "scripts": {
+    "test": "playwright test",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
