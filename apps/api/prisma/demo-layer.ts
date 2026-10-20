@@ -605,6 +605,8 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
         content: p[2],
         pinned: pi === 0 && !win.terminated,
         visibleToMember: true,
+        // 게시판 ADR-BRD-05 — "시설 휴관 안내"는 헬스장 대상 공지(기준 시드 시설, 시설 행보다 먼저 있다).
+        facilityId: pi === 0 ? baseGym?.id : undefined,
         viewCount: rng.int(5, 180),
         publishedAt: asDate(published),
         createdAt: kstAt(published, 9 * 60 + pi),

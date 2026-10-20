@@ -309,6 +309,7 @@ export interface MockPost {
   // ADR-BRD-01 — HQ_TO_BRANCH 공지를 회원에게도 보여줄지. 기본 false(안전 측 우선).
   // BRANCH_TO_MEMBER는 scope 자체로 이미 회원에게 노출되므로 이 필드와 무관하게 항상 true로 저장한다.
   visibleToMember: boolean;
+  facilityId?: string; // 게시판 ADR-BRD-05 — 지점 공지의 대상 시설. 없으면 지점 전체
 }
 
 export interface MockFacility {

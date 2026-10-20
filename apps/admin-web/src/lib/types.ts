@@ -250,6 +250,9 @@ export interface PostRow {
   viewCount: number;
   publishedAt: string;
   visibleToMember: boolean;
+  // 게시판 ADR-BRD-05 — 지점 공지의 대상 시설. 없으면 지점 전체.
+  facilityId?: string;
+  facilityName?: string;
   // 게시판 ADR-BRD-04 — 상세(GET /posts/:id)에만 실린다.
   attachments?: AttachmentRow[];
 }

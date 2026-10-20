@@ -325,6 +325,7 @@ model Post {
   content         String
   pinned          Boolean      @default(false)
   visibleToMember Boolean      @default(false) // HQ 공지의 회원 노출 여부
+  facilityId      String? // 게시판 ADR-BRD-05 — 지점 공지(BRANCH_TO_MEMBER)의 대상 시설. null = 지점 전체
   viewCount       Int          @default(0)
   publishedAt     DateTime     @db.Date // 앱이 todayKst()로 채움(파일 상단 날짜 규칙)
   deletedAt       DateTime?
@@ -332,6 +333,7 @@ model Post {
   updatedAt       DateTime     @updatedAt
 
   branch       Branch?           @relation(fields: [branchId], references: [id])
+  facility     Facility?         @relation(fields: [facilityId], references: [id])
   author       Account           @relation(fields: [authorId], references: [id], onDelete: Restrict) // log/093
   attachments  Attachment[]
   readReceipts PostReadReceipt[]
@@ -636,6 +638,7 @@ model Facility {
   programs            Program[]
   congestionSnapshots CongestionSnapshot[]
   checkIns            FacilityCheckIn[]
+  posts               Post[]
 
   @@index([branchId])
 }

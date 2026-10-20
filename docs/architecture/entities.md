@@ -13,7 +13,7 @@ Branch(지점) 1─N Facility(시설: 헬스장/수영장/골프장/독서실 �
 Branch 1─N StaffAssignment(파견 이력) N─1 Staff(직원, 본사 소속 — §2-2)
 Branch 1─N Member(회원)
 Branch 1─N Instructor(강사), Branch 1─N Program(프로그램/강좌)
-Branch 1─N Post(게시글, branchId nullable — 본사 전체 공지는 null) 1─N Attachment(첨부 — url에 저장소 경로, 게시판 ADR-BRD-04·D57), Post 1─N PostReadReceipt(읽음 — 미사용)
+Branch 1─N Post(게시글, branchId nullable — 본사 전체 공지는 null; facilityId nullable — 지점 공지의 대상 시설, 게시판 ADR-BRD-05) 1─N Attachment(첨부 — url에 저장소 경로, 게시판 ADR-BRD-04·D57), Post 1─N PostReadReceipt(읽음 — 미사용)
 Branch 1─N Asset(자산·비품 — 자원문서관리 문서)
 Branch 1─N SupportRequest(업무지원 요청, 현장→본사 — D56) N─1 Account(requesterId 지점 관리자, handlerId 본사 nullable)
 Branch 1─N CodeSequence(지점·종류·연도별 채번 — staffCode·memberNo·assetCode, D28)

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { ACCOUNTS, adminLogin, field, kstDate, openMenu } from './helpers';
 
-// 지점 관리자(서초 김민수)의 하루 업무 — 회원 등록·검색, 회차 등록, 회원 공개 공지 작성과 이미지 첨부.
+// 지점 관리자(서초 김민수)의 하루 업무 — 회원 등록·검색, 회차 등록, 시설 지정 공지 작성과 이미지 첨부.
 
 test('지점 관리자: 회원을 등록하고 검색으로 찾는다', async ({ page }) => {
   const name = `화면테스트${Date.now() % 100000}`;
@@ -40,10 +40,17 @@ test('지점 관리자: 지점 공지를 쓰고 이미지를 붙인다', async (
   await field(page, '제목 *').fill(title);
   await field(page, '내용 *').fill('수영장 점검 안내입니다.');
   // 지점 관리자의 글은 지점 공지(현장 → 이용자)라 공개 범위 선택이 없다 — 회원 공개 여부는 member-notice가 본다.
+  // 대상 시설(게시판 ADR-BRD-05, RFP F4-3) — 첫 시설을 고른다.
+  const facilitySelect = field(page, '대상 시설');
+  await expect(facilitySelect.locator('option')).not.toHaveCount(1);
+  await facilitySelect.selectOption({ index: 1 });
+  const facilityName = (await facilitySelect.locator('option:checked').innerText()).trim();
   await page.getByRole('button', { name: '등록', exact: true }).click();
 
+  await expect(page.locator('.card', { hasText: title })).toContainText(facilityName);
   await page.getByText(title).first().click();
   await expect(page.locator('main')).toContainText('수영장 점검 안내입니다.');
+  await expect(page.locator('main')).toContainText(`대상 시설 ${facilityName}`);
   await page.locator('input[type=file]').setInputFiles({ name: 'notice.png', mimeType: 'image/png', buffer: PNG_1PX });
   await expect(page.locator('.attachment-list')).toContainText('notice.png');
   // 이미지는 목록 위에 바로 그려진다(log/144).
