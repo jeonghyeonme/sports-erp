@@ -1,5 +1,5 @@
 /**
- * 배포 DB 재시드 실행기(D58, log/142) — 로컬에서 만든 데이터 SQL(`pg_dump --data-only --inserts`)을
+ * 배포 DB 재시드 실행기(D58, log/142·143) — 로컬에서 만든 데이터 SQL(`pg_dump --data-only --column-inserts`)을
  * 대상 DB에 **한 트랜잭션으로** 적용한다: 앱 테이블 전부 TRUNCATE → INSERT 전부 → 행 수 출력 → COMMIT.
  * 중간에 하나라도 실패하면 전부 되돌아가 대상 DB는 손대기 전 그대로다.
  *
@@ -41,7 +41,13 @@ async function main() {
     .map((s) => s.trim())
     .filter((s) => s.startsWith('INSERT INTO public.'))
     .map((s) => s.replace(/;\s*(--[^\n]*\s*)*$/, ''));
-  if (statements.length === 0) throw new Error('INSERT 문이 없다 — pg_dump --data-only --inserts 결과인지 확인할 것');
+  if (statements.length === 0) throw new Error('INSERT 문이 없다 — pg_dump --data-only --column-inserts 결과인지 확인할 것');
+  // 열 이름이 없는 INSERT(`--inserts`)는 대상 테이블의 물리적 열 순서에 기댄다. 배포 DB는 SQL로 맞춰 와서
+  // 5개 테이블의 열 순서가 로컬과 다르다(log/143) — 열 이름이 있는 `--column-inserts` 결과만 받는다.
+  const positional = statements.filter((s) => !/^INSERT INTO public\."[A-Za-z]+" \(/.test(s));
+  if (positional.length > 0) {
+    throw new Error(`열 이름 없는 INSERT ${positional.length}문 — pg_dump --column-inserts로 다시 만들 것`);
+  }
   console.log(`대상 ${host}: ${TABLES.length}개 테이블을 비우고 INSERT ${statements.length}문을 적용한다`);
 
   const prisma = new PrismaClient({ datasourceUrl: url });
