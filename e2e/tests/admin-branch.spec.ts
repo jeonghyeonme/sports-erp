@@ -46,6 +46,9 @@ test('지점 관리자: 지점 공지를 쓰고 이미지를 붙인다', async (
   await expect(page.locator('main')).toContainText('수영장 점검 안내입니다.');
   await page.locator('input[type=file]').setInputFiles({ name: 'notice.png', mimeType: 'image/png', buffer: PNG_1PX });
   await expect(page.locator('.attachment-list')).toContainText('notice.png');
+  // 이미지는 목록 위에 바로 그려진다(log/144).
+  await expect(page.locator('img.attachment-image')).toHaveJSProperty('complete', true);
+  expect(await page.locator('img.attachment-image').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(1);
 });
 
 // 1×1 PNG
