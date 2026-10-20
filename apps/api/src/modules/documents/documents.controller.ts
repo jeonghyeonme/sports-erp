@@ -6,6 +6,7 @@ import { BranchScopeExempt, ScopedResource } from '../../common/decorators/scope
 import { ok } from '../../common/http/api-response';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { DocumentService } from './document.service';
+import { Permission } from '../../common/permissions/permission.decorator';
 
 // 자원문서관리 A-5·A-7 — SUPER_ADMIN 전체, BRANCH_ADMIN은 본인 지점+전사 문서. STAFF 본인 인사서류 조회는 범위 제외.
 // D34 — 원천은 DB(DocumentService). D46 — 지점 범위(branchId·:id 소유·본문 relatedStaffId)는 전역 BranchScopeGuard가 본다.
@@ -17,6 +18,7 @@ export class DocumentsController {
   @Get()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   @ScopedResource('staff', { query: 'relatedStaffId' })
+  @Permission('document', 'READ')
   async list(
     @CurrentUser() user: RequestUser,
     @Query('branchId') branchId?: string,
@@ -41,6 +43,7 @@ export class DocumentsController {
   @Get(':id')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   @ScopedResource('document')
+  @Permission('document', 'READ')
   async detail(@Param('id') id: string) {
     return ok(await this.documents.findById(id));
   }
@@ -48,6 +51,7 @@ export class DocumentsController {
   @Post()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   @ScopedResource('staff', { body: 'relatedStaffId', code: 'DOCUMENT_SCOPE_VIOLATION' })
+  @Permission('document', 'CREATE')
   async create(@Body() dto: CreateDocumentDto, @CurrentUser() user: RequestUser) {
     const branchId = user.role === 'BRANCH_ADMIN' ? user.branchId : dto.branchId;
     return ok(await this.documents.create(user.accountId, { ...dto, branchId }));

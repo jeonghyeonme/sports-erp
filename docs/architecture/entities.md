@@ -22,6 +22,7 @@ Document(문서 — 자원문서관리 문서) N─1 Branch(nullable, 전사 문
 Account(로그인계정) 1─1 Staff  (Role=SUPER_ADMIN/BRANCH_ADMIN/STAFF)
 Account 1─1 Member            (Role=MEMBER, 오프라인 등록 회원은 계정 없음)
 Account 1─N RefreshToken(갱신 토큰 — 권한관리 ADR-AUTH-04)
+Account 1─N AccountPermission(개인 예외 권한 — D60, 권한관리 ADR-AUTH-07), RolePermission(역할 기본값 — 지점 관리자·직원, 관계 없음)
 MemberLinkAttempt(회원 연동 실패 횟수 — 회원관리 ADR-MEM-01, 관계 없음)
 
 Staff 1─N AttendanceRecord(근태기록, branchId 스냅샷 — 근태관리 ADR-ATT-03)

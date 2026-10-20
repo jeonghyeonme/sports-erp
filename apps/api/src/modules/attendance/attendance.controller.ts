@@ -10,6 +10,7 @@ import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { CreateWorkLogDto } from './dto/create-work-log.dto';
 import { ConfirmAbsencesDto } from './dto/confirm-absences.dto';
 import { CorrectAttendanceDto } from './dto/correct-attendance.dto';
+import { Permission, PermissionExempt, EXEMPT } from '../../common/permissions/permission.decorator';
 
 // 근태관리 A-7 — BRANCH_ADMIN도 Staff 레코드를 가지므로(architecture/system-overview.md §3.1) 본인 근태/휴가/업무일지는
 // STAFF와 동일하게 셀프서비스한다. "본인 지점 조회 + 휴가 승인"은 그 위에 얹히는 관리 권한이다.
@@ -21,12 +22,14 @@ export class AttendanceController {
 
   @Post('attendance/check-in')
   @Roles('BRANCH_ADMIN', 'STAFF')
+  @PermissionExempt(EXEMPT.self)
   async checkIn(@CurrentUser() user: RequestUser) {
     return ok(await this.attendance.checkIn(this.requireStaffId(user)));
   }
 
   @Post('attendance/check-out')
   @Roles('BRANCH_ADMIN', 'STAFF')
+  @PermissionExempt(EXEMPT.self)
   async checkOut(@CurrentUser() user: RequestUser) {
     return ok(await this.attendance.checkOut(this.requireStaffId(user)));
   }
@@ -35,6 +38,7 @@ export class AttendanceController {
   @Get('attendance')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
   @ScopedResource('staff', { query: 'staffId', code: 'ATTENDANCE_SCOPE_VIOLATION' })
+  @Permission('attendance', 'READ')
   async list(@Query('staffId') staffId: string | undefined, @Query('month') month: string | undefined, @CurrentUser() user: RequestUser) {
     return ok(await this.attendance.listAttendance(staffId ?? this.requireStaffId(user), month));
   }
@@ -42,6 +46,7 @@ export class AttendanceController {
   // 근태관리 A-5 GET /attendance/summary?branchId=&month= — BRANCH_ADMIN은 본인 지점 고정.
   @Get('attendance/summary')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
+  @Permission('attendance', 'READ', { exportable: true })
   async summary(@Query('branchId') branchId: string | undefined, @Query('month') month: string) {
     // BRANCH_ADMIN이면 가드가 branchId를 본인 지점으로 고정해 넘긴다(다른 지점 지정은 403).
     if (!branchId) {
@@ -55,6 +60,7 @@ export class AttendanceController {
   // SUPER_ADMIN은 summary와 동일하게 조회만 가능(현장 운영 비개입 원칙, 근태관리 A-7).
   @Get('attendance/absence-preview')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
+  @Permission('attendance', 'READ')
   async absencePreview(@Query('branchId') branchId: string | undefined, @Query('month') month: string) {
     // BRANCH_ADMIN이면 가드가 branchId를 본인 지점으로 고정해 넘긴다(다른 지점 지정은 403).
     if (!branchId) {
@@ -67,6 +73,7 @@ export class AttendanceController {
   // ADR-AUTH-02·근태관리 A-7 "SUPER_ADMIN은 현장 운영에 직접 개입하지 않는다"와 같은 원칙).
   @Post('attendance/absence-confirm')
   @Roles('BRANCH_ADMIN')
+  @Permission('attendance', 'UPDATE')
   async confirmAbsences(@Body() dto: ConfirmAbsencesDto, @CurrentUser() user: RequestUser) {
     if (!user.branchId) {
       throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
@@ -79,6 +86,7 @@ export class AttendanceController {
   @Put('attendance/:staffId/:date')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('staff', { param: 'staffId', code: 'ATTENDANCE_SCOPE_VIOLATION' })
+  @Permission('attendance', 'UPDATE')
   async correct(
     @Param('staffId') staffId: string,
     @Param('date') date: string,
@@ -94,6 +102,7 @@ export class AttendanceController {
 
   @Post('leave-requests')
   @Roles('BRANCH_ADMIN', 'STAFF')
+  @PermissionExempt(EXEMPT.self)
   async createLeaveRequest(@Body() dto: CreateLeaveRequestDto, @CurrentUser() user: RequestUser) {
     const { request, warning } = await this.attendance.requestLeave(this.requireStaffId(user), dto);
     return ok(request, warning ? { warning } : undefined);
@@ -103,6 +112,7 @@ export class AttendanceController {
   @Get('leave-requests')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
   @ScopedResource('staff', { query: 'staffId', code: 'ATTENDANCE_SCOPE_VIOLATION' })
+  @Permission('leave', 'READ')
   async listLeaveRequests(
     @Query('staffId') staffId: string | undefined,
     @Query('status') status: string | undefined,
@@ -124,6 +134,7 @@ export class AttendanceController {
   @Patch('leave-requests/:id/approve')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('leaveRequest')
+  @Permission('leave', 'UPDATE')
   async approveLeaveRequest(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return ok(await this.attendance.approveLeaveRequest(id, user.accountId));
   }
@@ -131,6 +142,7 @@ export class AttendanceController {
   @Patch('leave-requests/:id/reject')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('leaveRequest')
+  @Permission('leave', 'UPDATE')
   async rejectLeaveRequest(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return ok(await this.attendance.rejectLeaveRequest(id, user.accountId));
   }
@@ -138,12 +150,14 @@ export class AttendanceController {
   @Get('leave-balance/:staffId')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
   @ScopedResource('staff', { param: 'staffId', code: 'ATTENDANCE_SCOPE_VIOLATION' })
+  @Permission('leave', 'READ')
   async leaveBalance(@Param('staffId') staffId: string) {
     return ok(await this.attendance.leaveBalanceWithUsage(staffId));
   }
 
   @Post('work-logs')
   @Roles('BRANCH_ADMIN', 'STAFF')
+  @PermissionExempt(EXEMPT.self)
   async createWorkLog(@Body() dto: CreateWorkLogDto, @CurrentUser() user: RequestUser) {
     return ok(await this.attendance.upsertWorkLog(this.requireStaffId(user), dto.date, dto.content));
   }
@@ -152,6 +166,7 @@ export class AttendanceController {
   @Get('work-logs')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
   @ScopedResource('staff', { query: 'staffId', code: 'ATTENDANCE_SCOPE_VIOLATION' })
+  @Permission('worklog', 'READ')
   async listWorkLogs(
     @Query('staffId') staffId: string | undefined,
     @Query('date') date: string | undefined,

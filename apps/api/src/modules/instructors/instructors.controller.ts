@@ -9,6 +9,7 @@ import { ok } from '../../common/http/api-response';
 import { maskPhones } from '../../common/privacy/mask-phone';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
+import { Permission } from '../../common/permissions/permission.decorator';
 
 // 강사프로그램게시 A-7 — 회원 포함 모든 역할이 조회 가능, 등록/수정/비활성화는 BRANCH_ADMIN 본인 지점만.
 // D46 — 지점 범위(branchId·:id 소유)는 전역 BranchScopeGuard가 본다.
@@ -17,6 +18,7 @@ export class InstructorsController {
   constructor(private readonly instructorService: InstructorService) {}
 
   @Get()
+  @Permission('instructor', 'READ')
   async list(@Query('branchId') branchId?: string) {
     // ADR-MEM-04 — 회원도 보는 목록이라 강사 연락처를 마스킹한다.
     return ok(maskPhones(await this.instructorService.list(branchId)));
@@ -24,6 +26,7 @@ export class InstructorsController {
 
   @Post()
   @Roles('BRANCH_ADMIN')
+  @Permission('instructor', 'CREATE')
   async hire(@Body() dto: CreateInstructorDto, @CurrentUser() user: RequestUser) {
     if (!user.branchId) {
       throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
@@ -34,6 +37,7 @@ export class InstructorsController {
   @Patch(':id')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('instructor')
+  @Permission('instructor', 'UPDATE')
   async update(@Param('id') id: string, @Body() dto: UpdateInstructorDto) {
     return ok(await this.instructorService.update(id, dto));
   }
@@ -42,6 +46,7 @@ export class InstructorsController {
   @Delete(':id')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('instructor')
+  @Permission('instructor', 'DELETE')
   async deactivate(@Param('id') id: string) {
     return ok(await this.instructorService.update(id, { isActive: false }));
   }

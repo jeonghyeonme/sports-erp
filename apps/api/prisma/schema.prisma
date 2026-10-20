@@ -67,9 +67,10 @@ model Account {
   staffAssignmentsMade   StaffAssignment[] // 이 계정이 SUPER_ADMIN으로서 발령한 파견 이력(assignedBy)
   // log/093(사용자 결정 3) — 작성자·업로더 외래키. 계정은 지우지 않고 비활성화하므로(D27) Restrict로 둔다.
   postsAuthored          Post[]
-  documentsUploaded      Document[]        @relation("DocumentUploader")
-  supportRequestsMade    SupportRequest[]  @relation("SupportRequestRequester") // D56 — 지점 관리자가 올린 업무지원 요청
-  supportRequestsHandled SupportRequest[]  @relation("SupportRequestHandler") // D56 — 본사가 처리한 요청
+  documentsUploaded      Document[]          @relation("DocumentUploader")
+  supportRequestsMade    SupportRequest[]    @relation("SupportRequestRequester") // D56 — 지점 관리자가 올린 업무지원 요청
+  supportRequestsHandled SupportRequest[]    @relation("SupportRequestHandler") // D56 — 본사가 처리한 요청
+  permissions            AccountPermission[] // D60 — 개인 예외 권한
 
   @@index([email])
   @@index([role])
@@ -834,4 +835,40 @@ model AuditLog {
   actor Account? @relation(fields: [actorId], references: [id])
 
   @@index([entity, entityId])
+}
+
+// D60 — 세부 권한(RFP 권한관리 "입력·수정·삭제·조회·출력"). 코드의 @Roles가 상한이고, 아래 두 표는 그 안에서만 끄고 켠다.
+enum PermissionAction {
+  READ
+  CREATE
+  UPDATE
+  DELETE
+  EXPORT
+}
+
+// 역할 기본값 — 상한에서 바꾼 칸만 행으로 둔다(행이 없으면 상한대로 허용). role은 BRANCH_ADMIN·STAFF만(마이그레이션 CHECK).
+// feature는 코드 카탈로그(src/common/permissions/permission-catalog.ts)의 키 — 기능을 더할 때 마이그레이션이 필요 없게 문자열로 둔다.
+model RolePermission {
+  role      Role
+  feature   String
+  action    PermissionAction
+  allowed   Boolean
+  updatedBy String? // 바꾼 본사 계정(변경 이력은 AuditLog PERMISSION_CHANGED)
+  updatedAt DateTime         @updatedAt
+
+  @@id([role, feature, action])
+}
+
+// 개인 예외 — 있으면 역할 기본값보다 먼저 본다. allowed=true는 역할에서 끈 칸을 이 사람에게만 되살린다(상한은 못 넘는다).
+model AccountPermission {
+  accountId String
+  feature   String
+  action    PermissionAction
+  allowed   Boolean
+  grantedBy String
+  updatedAt DateTime         @updatedAt
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, feature, action])
 }

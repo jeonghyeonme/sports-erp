@@ -9,6 +9,7 @@ import { pageMeta, parsePage } from '../../common/http/pagination';
 import { CreateSupportRequestDto } from './dto/create-support-request.dto';
 import { UpdateSupportStatusDto } from './dto/update-support-status.dto';
 import { SupportRequestService } from './support-request.service';
+import { Permission } from '../../common/permissions/permission.decorator';
 
 // D56 — 업무지원 요청(현장→본사). 요청은 지점 관리자, 처리는 본사. 지점 범위는 전역 BranchScopeGuard(D46):
 // branchId 쿼리는 지점 관리자에게 본인 지점으로 고정되고, :id는 @ScopedResource('supportRequest')가 본다.
@@ -18,6 +19,7 @@ export class SupportRequestsController {
 
   @Post()
   @Roles('BRANCH_ADMIN')
+  @Permission('support', 'CREATE')
   async create(@Body() dto: CreateSupportRequestDto, @CurrentUser() user: RequestUser) {
     if (!user.branchId) throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
     return ok(await this.requests.create({ accountId: user.accountId, branchId: user.branchId }, dto));
@@ -25,6 +27,7 @@ export class SupportRequestsController {
 
   @Get()
   @Roles('BRANCH_ADMIN', 'SUPER_ADMIN')
+  @Permission('support', 'READ')
   async list(
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,
@@ -39,6 +42,7 @@ export class SupportRequestsController {
   @Get(':id')
   @Roles('BRANCH_ADMIN', 'SUPER_ADMIN')
   @ScopedResource('supportRequest')
+  @Permission('support', 'READ')
   async detail(@Param('id') id: string) {
     return ok(await this.requests.findById(id));
   }

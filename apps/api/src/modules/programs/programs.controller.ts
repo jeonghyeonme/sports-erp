@@ -10,6 +10,7 @@ import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
 import { UpdateProgramStatusDto } from './dto/update-program-status.dto';
 import { CreateScheduleSlotDto } from './dto/create-schedule-slot.dto';
+import { Permission } from '../../common/permissions/permission.decorator';
 
 // 강사프로그램게시 A-7 — 회원 포함 모든 역할이 조회 가능(본인 소속 지점 기준 필터 기본 적용).
 // D46 — 지점 범위(branchId·:id 소유)는 전역 BranchScopeGuard가 본다.
@@ -18,6 +19,7 @@ export class ProgramsController {
   constructor(private readonly programService: ProgramService) {}
 
   @Get()
+  @Permission('program', 'READ')
   async list(
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,
@@ -33,6 +35,7 @@ export class ProgramsController {
   // 강사프로그램게시 A-5 POST /programs — BRANCH_ADMIN 본인 지점에 등록.
   @Post()
   @Roles('BRANCH_ADMIN')
+  @Permission('program', 'CREATE')
   async create(@Body() dto: CreateProgramDto, @CurrentUser() user: RequestUser) {
     if (!user.branchId) {
       throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
@@ -43,6 +46,7 @@ export class ProgramsController {
   @Patch(':id')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('program')
+  @Permission('program', 'UPDATE')
   async update(@Param('id') id: string, @Body() dto: UpdateProgramDto) {
     return ok(await this.programService.update(id, dto));
   }
@@ -53,6 +57,7 @@ export class ProgramsController {
   @Patch(':id/status')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('program')
+  @Permission('program', 'UPDATE')
   async updateStatus(@Param('id') id: string, @Body() dto: UpdateProgramStatusDto) {
     const updated = await this.programService.updateStatus(id, dto.status);
     const affectedReservations = await this.programService.futureActiveReservations(id);
@@ -64,6 +69,7 @@ export class ProgramsController {
   @Delete(':id')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('program')
+  @Permission('program', 'DELETE')
   async remove(@Param('id') id: string) {
     const updated = await this.programService.updateStatus(id, 'ENDED');
     const affectedReservations = await this.programService.futureActiveReservations(id);
@@ -74,6 +80,7 @@ export class ProgramsController {
   // SUPER_ADMIN 외에는 본인 소속 지점의 프로그램만(강사프로그램게시 A-7 기본 정책 "본인 지점만 노출").
   @Get(':id/slots')
   @ScopedResource('program')
+  @Permission('program', 'READ')
   async listSlots(@Param('id') id: string, @Query('date') date?: string) {
     return ok(await this.programService.listSlots(id, date));
   }
@@ -82,6 +89,7 @@ export class ProgramsController {
   @Post(':id/slots')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('program')
+  @Permission('program', 'CREATE')
   async createSlot(@Param('id') id: string, @Body() dto: CreateScheduleSlotDto) {
     return ok(await this.programService.createSlot(id, dto));
   }

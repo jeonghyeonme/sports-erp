@@ -9,6 +9,7 @@ import { ok } from '../../common/http/api-response';
 import { CreateFacilityDto } from './dto/create-facility.dto';
 import { UpdateFacilityDto } from './dto/update-facility.dto';
 import { ManualCongestionDto } from './dto/manual-congestion.dto';
+import { Permission } from '../../common/permissions/permission.decorator';
 
 // 혼잡도관리 A-7 — 회원 포함 모든 역할이 조회 가능, 등록/수정/수동 보정은 BRANCH_ADMIN 본인 지점만.
 // D46 — 지점 범위(branchId·:id 소유)는 전역 BranchScopeGuard가 본다.
@@ -19,12 +20,14 @@ export class FacilitiesController {
   // ADR-FAC-02 — 운영 중단(isActive=false)된 시설은 기본 목록에서 제외한다(소프트 삭제 원칙).
   // ?isActive=false를 명시하면 반대로 비활성 시설만 돌려준다 — 재활성화 화면(admin-web)이 이걸로 목록을 채운다.
   @Get()
+  @Permission('facility', 'READ')
   async list(@Query('branchId') branchId?: string, @Query('isActive') isActiveQuery?: string) {
     return ok(await this.facilityService.list({ branchId, isActive: isActiveQuery !== 'false' }));
   }
 
   @Post()
   @Roles('BRANCH_ADMIN')
+  @Permission('facility', 'CREATE')
   async create(@Body() dto: CreateFacilityDto, @CurrentUser() user: RequestUser) {
     if (!user.branchId) {
       throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
@@ -35,6 +38,7 @@ export class FacilitiesController {
   @Patch(':id')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('facility')
+  @Permission('facility', 'UPDATE')
   async update(@Param('id') id: string, @Body() dto: UpdateFacilityDto) {
     return ok(await this.facilityService.update(id, dto));
   }
@@ -44,6 +48,7 @@ export class FacilitiesController {
   @Post(':id/congestion/manual')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('facility')
+  @Permission('facility', 'UPDATE')
   async correctCongestion(@Param('id') id: string, @Body() dto: ManualCongestionDto) {
     return ok(await this.facilityService.setManualCongestion(id, dto.currentCount));
   }
