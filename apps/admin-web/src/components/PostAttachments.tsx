@@ -1,4 +1,4 @@
-import { ChangeEvent, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
@@ -22,6 +22,38 @@ function sizeLabel(bytes: number): string {
 // 저장소 서명 URL(절대 주소)에는 우리 토큰을 붙이지 않는다(Supabase가 다른 토큰으로 읽어 거부한다).
 function isAbsolute(url: string) {
   return /^https?:\/\//.test(url);
+}
+
+// 이미지(png·jpg·webp)는 목록 위에 바로 그린다 — 회원 웹 NoticeAttachments와 같은 방식(log/144).
+// 다운로드 URL이 60초짜리라 화면을 열 때 이미지마다 한 번씩 받는다(글당 첨부 5개 상한).
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+function AttachmentImage({ postId, attachment }: { postId: string; attachment: AttachmentRow }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    let objectUrl: string | null = null;
+    (async () => {
+      const { data } = await api.get<ApiEnvelope<{ url: string }>>(`/posts/${postId}/attachments/${attachment.id}/download`);
+      const url = data.data!.url;
+      if (isAbsolute(url)) return url;
+      const res = await api.get<Blob>(url, { responseType: 'blob' });
+      objectUrl = URL.createObjectURL(res.data);
+      return objectUrl;
+    })().then(
+      (url) => alive && setSrc(url),
+      () => alive && setFailed(true),
+    );
+    return () => {
+      alive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [postId, attachment.id]);
+
+  if (failed) return <p className="page-desc">이미지를 불러오지 못했습니다({attachment.fileName}).</p>;
+  if (!src) return <div className="attachment-image attachment-image-loading" aria-label="이미지 불러오는 중" />;
+  return <img className="attachment-image" src={src} alt={attachment.fileName} loading="lazy" onError={() => setFailed(true)} />;
 }
 
 export function PostAttachments({
@@ -115,6 +147,11 @@ export function PostAttachments({
   return (
     <div className="detail-section" style={{ marginTop: 16 }}>
       <h3 className="section-title">첨부 파일 {attachments.length > 0 && `(${attachments.length})`}</h3>
+      {attachments
+        .filter((a) => IMAGE_TYPES.includes(a.fileType))
+        .map((a) => (
+          <AttachmentImage key={a.id} postId={postId} attachment={a} />
+        ))}
       {attachments.length > 0 && (
         <ul className="attachment-list">
           {attachments.map((a) => (
