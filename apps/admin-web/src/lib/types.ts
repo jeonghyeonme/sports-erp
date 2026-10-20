@@ -438,3 +438,25 @@ export interface MonthlyPerformance {
   completed: number;
   newMembers: number;
 }
+
+// D60 — 세부 권한(권한관리 ADR-AUTH-07). GET /permissions/catalog·/permissions/roles·/permissions/staff/:id/overrides
+export type PermissionAction = 'READ' | 'CREATE' | 'UPDATE' | 'DELETE' | 'EXPORT';
+export type GovernedRole = 'BRANCH_ADMIN' | 'STAFF';
+
+export interface PermissionCatalog {
+  roles: GovernedRole[];
+  actions: { action: PermissionAction; label: string }[];
+  features: { feature: string; label: string; ceiling: Partial<Record<GovernedRole, PermissionAction[]>> }[];
+}
+
+export interface RolePermissionCell {
+  feature: string;
+  action: PermissionAction;
+  allowed: boolean;
+}
+
+export interface StaffPermissionMatrix {
+  staffId: string;
+  role: Role;
+  cells: { feature: string; action: PermissionAction; roleDefault: boolean; override: boolean | null; effective: boolean }[];
+}

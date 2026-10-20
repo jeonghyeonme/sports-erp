@@ -3,13 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
-import { ApiEnvelope, AuditLogRow, BranchSummary } from '../lib/types';
+import { ApiEnvelope, AuditLogRow, BranchSummary, PermissionCatalog } from '../lib/types';
 import { useAuth } from '../lib/use-auth';
 
 const PAGE_SIZE = 20;
 
-// D44 — 지금 기록하는 이벤트 9종(파견 종료는 ADR-STF-07, 전화번호 열람은 D47, 근태 정정·회원/자산 상태는 D52,
-// 인사 정보 변경 신청 승인은 ADR-STF-09).
+// D44 — 지금 기록하는 이벤트 10종(파견 종료는 ADR-STF-07, 전화번호 열람은 D47, 근태 정정·회원/자산 상태는 D52,
+// 인사 정보 변경 신청 승인은 ADR-STF-09, 세부 권한 변경은 D60).
 // 늘릴 때는 api `prisma/audit.ts`의 AuditAction과 함께 고친다.
 const ACTION_LABEL: Record<string, string> = {
   ROLE_CHANGED: '권한 변경',
@@ -21,6 +21,7 @@ const ACTION_LABEL: Record<string, string> = {
   MEMBER_STATUS_CHANGED: '회원 상태 변경',
   ASSET_STATUS_CHANGED: '자산 상태 변경',
   STAFF_PROFILE_CHANGED: '인사 정보 변경(신청 승인)',
+  PERMISSION_CHANGED: '세부 권한 변경',
 };
 
 const ATTENDANCE_LABEL: Record<string, string> = {
@@ -52,7 +53,7 @@ function attendanceSide(v: Record<string, unknown>): string {
   return `${ATTENDANCE_LABEL[String(v.status)] ?? v.status}${times}`;
 }
 
-const ENTITY_LABEL: Record<string, string> = { Staff: '직원', Member: '회원', Asset: '자산' };
+const ENTITY_LABEL: Record<string, string> = { Staff: '직원', Member: '회원', Asset: '자산', Role: '역할' };
 
 const ROLE_LABEL: Record<string, string> = {
   SUPER_ADMIN: '본사 관리자',
@@ -98,6 +99,18 @@ export function AuditLogsPage() {
   // 파견 전후 지점을 이름으로 보이기 위해 지점 목록을 쓴다(다른 화면과 같은 쿼리 키라 캐시를 공유한다).
   const branches = useApiList<BranchSummary>(['branches'], '/branches');
   const branchName = (id: unknown) => branches.data?.find((b) => b.id === id)?.name ?? String(id ?? '-');
+  // D60 — 세부 권한 변경은 기능·동작 이름으로 보인다(권한 관리 화면과 같은 카탈로그 캐시).
+  const catalog = useQuery<PermissionCatalog>({
+    queryKey: ['permissions', 'catalog'],
+    enabled: isSuperAdmin,
+    staleTime: Infinity,
+    queryFn: async () => (await api.get<ApiEnvelope<PermissionCatalog>>('/permissions/catalog')).data.data!,
+  });
+  const cellName = (v: Record<string, unknown>) =>
+    `${catalog.data?.features.find((f) => f.feature === v.feature)?.label ?? String(v.feature)} ${
+      catalog.data?.actions.find((a) => a.action === v.action)?.label ?? String(v.action)
+    }`;
+  const overrideLabel = (v: unknown) => (v === null || v === undefined ? '기본값' : v ? '허용' : '차단');
 
   const describe = (r: AuditLogRow): string => {
     const before = r.before ?? {};
@@ -132,6 +145,12 @@ export function AuditLogsPage() {
     if (r.action === 'STAFF_PROFILE_CHANGED') {
       // ADR-STF-09 — 연락처는 값을 남기지 않는다(D44 결정 4)
       return after.field === 'name' ? `이름 ${before.name ?? '-'} → ${after.name ?? '-'}` : '연락처 변경(값은 남기지 않음)';
+    }
+    if (r.action === 'PERMISSION_CHANGED') {
+      // D60 — 역할 기본값(대상 = 역할)은 허용/차단, 개인 예외(대상 = 직원)는 기본값/허용/차단
+      return r.entity === 'Role'
+        ? `${cellName(after)} · ${after.allowed ? '허용' : '차단'}으로`
+        : `${cellName(after)} · ${overrideLabel(before.override)} → ${overrideLabel(after.override)}`;
     }
     if (r.action === 'ASSET_STATUS_CHANGED') {
       const label = (v: unknown) => ASSET_STATUS_LABEL[String(v)] ?? String(v);

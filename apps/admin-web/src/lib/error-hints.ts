@@ -42,6 +42,10 @@ export const ERROR_HINTS: Record<string, string> = {
   BRANCH_NOT_FOUND: '지점이 없습니다. 대시보드에서 지점을 다시 고르세요.',
   MEMBER_NOT_FOUND: '회원이 없습니다. 회원 목록을 새로고침하세요.',
   STAFF_NOT_FOUND: '직원이 없습니다. 직원 목록을 새로고침하세요.',
+  // D60 세부 권한
+  PERMISSION_DENIED: '이 기능의 권한이 꺼져 있습니다. 본사(권한 관리)에 요청하세요.',
+  PERMISSION_OUTSIDE_CEILING: '이 역할이 처음부터 할 수 없는 기능이라 바꿀 수 없습니다.',
+  PERMISSION_ROLE_NOT_GOVERNED: '세부 권한은 지점 관리자·지점 직원 역할만 바꿀 수 있습니다.',
   PROGRAM_NOT_FOUND: '프로그램이 없습니다. 프로그램 목록을 새로고침하세요.',
   INSTRUCTOR_NOT_FOUND: '강사가 없습니다. 강사 목록을 새로고침하세요.',
   FACILITY_NOT_FOUND: '시설이 없습니다. 시설 목록을 새로고침하세요.',
