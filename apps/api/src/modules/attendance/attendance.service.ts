@@ -13,6 +13,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { kstHoursMinutes, todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
 import { recordAudit } from '../../prisma/audit';
+import { lockStaff } from '../../prisma/integrity';
 import {
   MockAttendanceRecord,
   MockLeaveBalance,
@@ -329,15 +330,16 @@ export class AttendanceService {
         warning = '잔여 연차보다 많은 일수를 신청했습니다. 관리자 재량으로 승인될 수 있습니다.';
       }
     }
-    const request = await this.prisma.leaveRequest.create({
-      data: {
-        staffId,
-        type: input.type,
-        startDate: dateOf(input.startDate),
-        endDate: dateOf(input.endDate),
-        days,
-        reason: input.reason,
-      },
+    // ADR-ATT-05(log/141) — 대기·승인 중인 휴가와 하루라도 겹치면 받지 않는다. 같은 신청이 재시도로 두 번 오면
+    // 둘 다 승인돼 연차가 두 번 깎였다. 직원 행 락 위에서 검사하고 만들어 동시 신청도 한 건만 남는다.
+    const startDate = dateOf(input.startDate);
+    const endDate = dateOf(input.endDate);
+    const request = await this.prisma.$transaction(async (tx) => {
+      if (!(await lockStaff(tx, staffId))) throw staffNotFound();
+      await assertNoOverlappingLeave(tx, staffId, startDate, endDate, ['PENDING', 'APPROVED']);
+      return tx.leaveRequest.create({
+        data: { staffId, type: input.type, startDate, endDate, days, reason: input.reason },
+      });
     });
     return { request: toMockLeave(request), warning };
   }
@@ -360,6 +362,12 @@ export class AttendanceService {
   // 잔여 증가를 한 트랜잭션으로 묶어, 동시 승인이 와도 한 번만 차감된다(data-integrity §6).
   async approveLeaveRequest(id: string, approverId: string): Promise<MockLeaveRequest> {
     return this.prisma.$transaction(async (tx) => {
+      // ADR-ATT-05 — 신청 때 막기 전에 쌓인 겹치는 신청(배포 DB 등)이 있어도, 이미 승인된 휴가와 겹치면 승인하지 않는다.
+      const pending = await tx.leaveRequest.findUnique({ where: { id }, select: { staffId: true, startDate: true, endDate: true } });
+      if (pending) {
+        await lockStaff(tx, pending.staffId);
+        await assertNoOverlappingLeave(tx, pending.staffId, pending.startDate, pending.endDate, ['APPROVED'], id);
+      }
       const request = await this.review(tx, id, approverId, 'APPROVED');
       if (request.type === 'ANNUAL') {
         const balance = await this.leaveBalance(request.staffId, undefined, tx);
@@ -430,6 +438,34 @@ function branchOnDate(assignments: AssignmentSpan[], date: string): string | und
   return assignments
     .filter((a) => day(a.startDate) <= date && (!a.endDate || date < day(a.endDate)))
     .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())[0]?.branchId;
+}
+
+// 같은 직원의 휴가 중 [startDate, endDate](양끝 포함)와 하루라도 겹치는 것이 있으면 409(ADR-ATT-05).
+async function assertNoOverlappingLeave(
+  tx: Tx,
+  staffId: string,
+  startDate: Date,
+  endDate: Date,
+  statuses: LeaveStatus[],
+  exceptId?: string,
+): Promise<void> {
+  const clash = await tx.leaveRequest.findFirst({
+    where: {
+      staffId,
+      status: { in: statuses },
+      startDate: { lte: endDate },
+      endDate: { gte: startDate },
+      ...(exceptId ? { id: { not: exceptId } } : {}),
+    },
+    select: { startDate: true, endDate: true, status: true },
+  });
+  if (clash) {
+    throw new AppException(
+      'LEAVE_REQUEST_OVERLAP',
+      `이미 ${clash.status === 'APPROVED' ? '승인된' : '신청한'} 휴가(${day(clash.startDate)}~${day(clash.endDate)})와 기간이 겹칩니다.`,
+      409,
+    );
+  }
 }
 
 // 지점 출근 기준시각(HH:mm) 대비 10분 초과. 기준시각이 없으면 판정하지 않는다. KST 시:분으로 비교.

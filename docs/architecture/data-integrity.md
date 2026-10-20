@@ -90,6 +90,7 @@ DI-01 원칙상 이번 CHECK에서 뺐다. 각 도메인을 이관할 때 앱 �
   - `allocateSequence`/`allocateBranchCode` — **설계 변경 하나**: ADR-STF-02는 "시퀀스 행을 `SELECT ... FOR UPDATE`로 잠그고 +1"이었는데, 그 방식은 **prefix의 첫 채번**(새 지점, 해가 바뀐 memberNo)에서 잠글 행이 없어 동시 요청이 모두 통과한다. ADR-RSV-01이 논파한 팬텀 삽입과 같은 구멍이다. `INSERT ... ON CONFLICT DO UPDATE ... RETURNING`은 행이 없으면 만들고 있으면 잠근 채 증가시켜 두 경우를 한 문장으로 직렬화한다. memberNo 연도도 mock의 `getFullYear()`(호스트 시간대) 대신 `todayKst()`를 쓴다.
   - `lockScheduleSlot` — ADR-RSV-01 그대로(회차 행 `FOR UPDATE`).
   - `lockReservation` — 예약및결제 ADR-RSV-07(예약 행 `FOR UPDATE`). 예약·결제를 함께 바꾸는 경로는 예약 → 결제 순서로 잠근다.
+  - `lockStaff` — 근태관리 ADR-ATT-05(직원 행 `FOR UPDATE`). 휴가 신청·승인이 같은 직원의 겹침을 읽고 쓰기까지 직렬화한다.
 - **발견**: 시드가 직원 `SEOCHO-001/002`, 회원 `SEOCHO2026-001`을 번호째로 넣는데 시퀀스는 비어 있어, 헬퍼의 첫 채번이 기존 번호와 **unique 충돌**한다. `seed.ts`가 시퀀스 행도 함께 넣도록 고쳤다. **실데이터를 이관할 때도 같은 초기화(prefix별 현재 최대 번호로 `CodeSequence` 채우기)가 필요하다.**
 - **검증**(`apps/api/test/integrity-helpers.spec.ts`, 로컬 Postgres 16):
   - 새 prefix에 동시 20건 채번 → 1~20이 중복·누락 없이 나옴.

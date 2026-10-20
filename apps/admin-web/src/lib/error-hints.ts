@@ -68,6 +68,7 @@ export const ERROR_HINTS: Record<string, string> = {
   INVALID_STATUS_TRANSITION: '지금 상태에서는 그 상태로 바꿀 수 없습니다. 화면에 보이는 전환 버튼만 쓰세요.',
   STAFF_ALREADY_RESIGNED: '이미 퇴사 처리된 직원입니다.',
   LEAVE_REQUEST_ALREADY_REVIEWED: '이미 승인·반려된 신청입니다. 화면을 새로고침하세요.',
+  LEAVE_REQUEST_OVERLAP: '같은 기간에 이미 신청했거나 승인된 휴가가 있습니다. 신청 내역을 확인하고, 바꾸려면 기존 신청이 반려된 뒤 다시 신청하세요.',
   CHANGE_REQUEST_ALREADY_REVIEWED: '이미 처리됐거나 직원이 취소한 신청입니다. 화면을 새로고침하세요.',
   CHANGE_REQUEST_PENDING: '같은 항목에 대기 중인 신청이 있습니다. 아래 목록에서 그 신청을 취소한 뒤 다시 신청하세요.',
   ATTACHMENT_TYPE_NOT_ALLOWED: 'PDF·이미지(png·jpg·webp)·오피스(docx·xlsx·pptx)·한글(hwp) 파일로 바꿔 올리세요.',
