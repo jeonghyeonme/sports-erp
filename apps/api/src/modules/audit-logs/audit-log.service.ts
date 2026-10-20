@@ -64,6 +64,9 @@ export class AuditLogService {
       ...staff.map((x) => [`Staff:${x.id}`, x.name] as const),
       ...members.map((x) => [`Member:${x.id}`, x.name] as const),
       ...assets.map((x) => [`Asset:${x.id}`, `${x.name}(${x.assetCode})`] as const),
+      // D60 — 역할 기본값 변경은 대상이 역할이다.
+      ['Role:BRANCH_ADMIN', '지점 관리자(역할)'] as const,
+      ['Role:STAFF', '직원(역할)'] as const,
     ]);
     const items = rows.map((r) => ({
       id: r.id,

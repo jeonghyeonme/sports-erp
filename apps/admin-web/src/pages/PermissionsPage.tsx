@@ -4,6 +4,7 @@ import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { ApiEnvelope, PermissionStaffRow } from '../lib/types';
+import { RoleDefaultsTable } from '../components/PermissionTables';
 
 import { useToast } from '../lib/use-toast';
 const ROLE_LABEL = {
@@ -24,6 +25,8 @@ const toast = useToast();
     '/permissions/staff',
   );
   const [search, setSearch] = useState('');
+  // D60 2단계 — 역할 전환(기존)과 역할 기본 권한(세부 권한 표)을 탭으로 나눈다.
+  const [tab, setTab] = useState<'roles' | 'defaults'>('roles');
 
   // 83개 지점 규모에서는 이 화면도 "지점별로 훑어보기"가 아니라 "직원 한 명을 찾아 권한을 바꾸는"
   // 단발 작업이라, 지점 아코디언 대신 지점명/이름/직원코드 통합 검색만 얹는다.
@@ -64,6 +67,19 @@ const toast = useToast();
           있습니다. 변경 사항은 재로그인 없이 다음 요청부터 즉시 반영됩니다(권한관리 A-6).
         </p>
       </div>
+
+      <div className="wf-tab-row" style={{ display: 'flex', gap: 4, margin: '14px 0' }}>
+        <button className={tab === 'roles' ? 'filter-chip active' : 'filter-chip'} onClick={() => setTab('roles')}>
+          직원 역할
+        </button>
+        <button className={tab === 'defaults' ? 'filter-chip active' : 'filter-chip'} onClick={() => setTab('defaults')}>
+          역할 기본 권한
+        </button>
+      </div>
+
+      {tab === 'defaults' && <RoleDefaultsTable />}
+      {tab === 'roles' && (
+        <>
 
       {isError && <div className="forbidden-note">{apiErrorMessage(error)}</div>}
       {updateRole.isError && (
@@ -126,6 +142,8 @@ const toast = useToast();
             ))}
           </tbody>
         </table>
+      )}
+        </>
       )}
     </>
   );

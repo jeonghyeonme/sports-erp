@@ -1293,3 +1293,16 @@ tbody tr:hover td {
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* D60 — 세부 권한 표(권한 관리 · 직원 상세 개인 권한) */
+.permission-table td,
+.permission-table th {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.permission-table td:first-child,
+.permission-table th:first-child {
+  text-align: left;
+  white-space: normal;
+}

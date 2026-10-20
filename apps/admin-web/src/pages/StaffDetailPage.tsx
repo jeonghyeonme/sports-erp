@@ -20,6 +20,7 @@ import {
   WorkLogRow,
 } from '../lib/types';
 import { kstToday } from '../lib/kst-date';
+import { StaffPermissionsTable } from '../components/PermissionTables';
 
 interface ApiErrorBody {
   code?: string;
@@ -879,6 +880,8 @@ export function StaffDetailPage() {
       {user?.role !== 'STAFF' && <LeaveHistory staffId={staff.id} />}
       {user?.role !== 'STAFF' && <WorkLogHistory staffId={staff.id} />}
       {user?.role !== 'STAFF' && <HrDocuments staffId={staff.id} />}
+      {/* D60 2단계 — 개인 예외 권한은 본사만 바꾼다. 퇴사자는 계정이 닫혀 의미가 없다. */}
+      {user?.role === 'SUPER_ADMIN' && active && <StaffPermissionsTable staffId={staff.id} />}
 
       {modal === 'resign' && <ResignModal staff={staff} onClose={() => setModal(null)} />}
       {modal === 'assign' && <AssignModal staff={staff} onClose={() => setModal(null)} />}
