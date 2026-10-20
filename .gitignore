@@ -48,3 +48,7 @@ coverage/
 
 # D37 — Lambda 배포 묶음(apps/api/scripts/package-lambda.sh 결과)
 apps/api/.lambda/
+
+# e2e(D59) 실행 결과
+e2e/test-results/
+e2e/playwright-report/
