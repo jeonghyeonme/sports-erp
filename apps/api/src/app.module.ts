@@ -24,6 +24,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { BranchScopeGuard } from './common/guards/branch-scope.guard';
 import { ScopeOwners } from './common/guards/scope-owners';
+import { PermissionGuard } from './common/permissions/permission.guard';
+import { PermissionCoreModule } from './common/permissions/permission-core.module';
 
 @Module({
   imports: [
@@ -48,6 +50,7 @@ import { ScopeOwners } from './common/guards/scope-owners';
     AuditLogsModule,
     SupportRequestsModule,
     StorageModule,
+    PermissionCoreModule,
   ],
   controllers: [AppController],
   providers: [
@@ -56,6 +59,8 @@ import { ScopeOwners } from './common/guards/scope-owners';
     // D46 — 지점 격리 검사를 한 곳으로(branchId 파라미터·쿼리 + @ScopedResource 리소스 소유). 등록 순서대로 실행된다.
     ScopeOwners,
     { provide: APP_GUARD, useClass: BranchScopeGuard },
+    // D60 — 세부 권한(역할 상한 안에서 역할 기본값·개인 예외). 격리 다음에 본다.
+    { provide: APP_GUARD, useClass: PermissionGuard },
   ],
 })
 export class AppModule {}

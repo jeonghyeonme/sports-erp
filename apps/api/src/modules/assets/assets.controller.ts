@@ -10,6 +10,7 @@ import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { UpdateAssetStatusDto } from './dto/update-asset-status.dto';
 import { AssetService } from './asset.service';
+import { Permission } from '../../common/permissions/permission.decorator';
 
 // 자원문서관리 A-5·A-7 — SUPER_ADMIN은 전체, BRANCH_ADMIN은 본인 지점만. MEMBER·STAFF는 접근 불가.
 // D35 — 원천은 DB(AssetService). D46 — 지점 범위(branchId·:id 소유)는 전역 BranchScopeGuard가 본다.
@@ -19,6 +20,7 @@ export class AssetsController {
   constructor(private readonly assets: AssetService) {}
 
   @Get()
+  @Permission('asset', 'READ')
   async list(
     @CurrentUser() user: RequestUser,
     @Query('branchId') branchId?: string,
@@ -37,6 +39,7 @@ export class AssetsController {
   }
 
   @Post()
+  @Permission('asset', 'CREATE')
   async create(@Body() dto: CreateAssetDto, @CurrentUser() user: RequestUser) {
     const branchId = user.role === 'BRANCH_ADMIN' ? user.branchId : dto.branchId;
     if (!branchId) {
@@ -47,12 +50,14 @@ export class AssetsController {
 
   @Patch(':id')
   @ScopedResource('asset')
+  @Permission('asset', 'UPDATE')
   async update(@Param('id') id: string, @Body() dto: UpdateAssetDto) {
     return ok(await this.assets.update(id, dto));
   }
 
   @Patch(':id/status')
   @ScopedResource('asset')
+  @Permission('asset', 'UPDATE')
   async updateStatus(@Param('id') id: string, @Body() dto: UpdateAssetStatusDto, @CurrentUser() user: RequestUser) {
     return ok(await this.assets.updateStatus(id, dto.status, user.accountId));
   }

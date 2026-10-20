@@ -19,6 +19,7 @@ import { UsePTSessionDto } from './dto/use-pt-session.dto';
 import { LinkMemberDto } from './dto/link-member.dto';
 import { RegisterMemberDto } from './dto/register-member.dto';
 import { AuthService } from '../auth/auth.service';
+import { Permission } from '../../common/permissions/permission.decorator';
 
 // 회원관리 A-7 — STAFF는 회원 관리 API 접근 불가(403). MEMBER는 본인 레코드만 GET/PATCH 가능.
 // D32 — 원천은 DB(MemberService). D46 — 범위 검사(BRANCH_ADMIN 본인 지점 / MEMBER 본인 / SUPER_ADMIN 전체)는
@@ -70,6 +71,7 @@ export class MembersController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
+  @Permission('member', 'READ', { exportable: true })
   async list(
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,
@@ -89,6 +91,7 @@ export class MembersController {
   @Get(':id')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'MEMBER')
   @ScopedResource('member')
+  @Permission('member', 'READ')
   async detail(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     const member = await this.memberService.view(id);
     // D47 — 상세는 전화번호 원문을 준다(ADR-MEM-04)라 관리자 열람을 남긴다. 요청당 INSERT 1회(D42).
@@ -98,6 +101,7 @@ export class MembersController {
 
   @Post()
   @Roles('BRANCH_ADMIN')
+  @Permission('member', 'CREATE')
   async create(@Body() dto: CreateMemberDto, @CurrentUser() user: RequestUser) {
     if (!user.branchId) {
       throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
@@ -109,6 +113,7 @@ export class MembersController {
   @Patch(':id')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'MEMBER')
   @ScopedResource('member')
+  @Permission('member', 'UPDATE')
   async update(@Param('id') id: string, @Body() dto: UpdateMemberDto, @CurrentUser() user: RequestUser) {
     if (user.role === 'MEMBER' && (dto.assignedStaffId !== undefined || dto.memo !== undefined)) {
       throw new AppException(
@@ -123,6 +128,7 @@ export class MembersController {
   @Patch(':id/status')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('member')
+  @Permission('member', 'UPDATE')
   async updateStatus(@Param('id') id: string, @Body() dto: UpdateMemberStatusDto, @CurrentUser() user: RequestUser) {
     return ok(await this.memberService.updateStatus(id, dto.status, user.accountId));
   }
@@ -131,6 +137,7 @@ export class MembersController {
   @Get(':id/enrollments')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'MEMBER')
   @ScopedResource('member')
+  @Permission('member', 'READ')
   async listEnrollments(@Param('id') id: string) {
     return ok(await this.memberService.listEnrollments(id));
   }
@@ -138,6 +145,7 @@ export class MembersController {
   @Post(':id/enrollments')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('member')
+  @Permission('member', 'CREATE')
   async createEnrollment(@Param('id') id: string, @Body() dto: CreateEnrollmentDto) {
     return ok(await this.memberService.createEnrollment(id, dto));
   }
@@ -146,6 +154,7 @@ export class MembersController {
   @Get(':id/pt-sessions')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'MEMBER')
   @ScopedResource('member')
+  @Permission('member', 'READ')
   async listPTSessions(@Param('id') id: string) {
     return ok(await this.memberService.listPTSessions(id));
   }
@@ -153,6 +162,7 @@ export class MembersController {
   @Post(':id/pt-sessions')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('member')
+  @Permission('member', 'CREATE')
   async createPTSession(@Param('id') id: string, @Body() dto: CreatePTSessionDto) {
     return ok(await this.memberService.createPTSession(id, dto));
   }
@@ -160,6 +170,7 @@ export class MembersController {
   @Post(':id/pt-sessions/:sessionId/use')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('member')
+  @Permission('member', 'UPDATE')
   async usePTSession(
     @Param('id') id: string,
     @Param('sessionId') sessionId: string,

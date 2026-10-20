@@ -11,4 +11,6 @@ export interface RequestUser {
   branchName?: string;
   staffId?: string;
   memberId?: string;
+  // D60 — 개인 예외 권한(`feature:ACTION` → 허용 여부). 매 요청 계정과 함께 읽는다(ADR-AUTH-01).
+  permissions?: Record<string, boolean>;
 }

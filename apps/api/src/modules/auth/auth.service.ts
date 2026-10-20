@@ -22,6 +22,7 @@ const REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN ?? '14d';
 export const ACCOUNT_PROFILE_INCLUDE = {
   staff: { include: { branch: { select: { name: true } } } },
   member: { include: { branch: { select: { name: true } } } },
+  permissions: { select: { feature: true, action: true, allowed: true } }, // D60 개인 예외
 } satisfies Prisma.AccountInclude;
 
 export type AccountWithProfile = Prisma.AccountGetPayload<{ include: typeof ACCOUNT_PROFILE_INCLUDE }>;
@@ -138,6 +139,10 @@ export class AuthService {
       branchName: branch?.name,
       staffId: account.staff?.id,
       memberId: account.member?.id,
+      permissions:
+        account.permissions.length > 0
+          ? Object.fromEntries(account.permissions.map((p) => [`${p.feature}:${p.action}`, p.allowed]))
+          : undefined,
     };
   }
 

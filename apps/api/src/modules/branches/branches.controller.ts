@@ -10,6 +10,7 @@ import { toMockProgram } from '../programs/program.service';
 import { BranchService } from './branch.service';
 import { ChangeContractStatusDto } from './dto/change-contract-status.dto';
 import { branchPerformance } from './branch-performance';
+import { Permission } from '../../common/permissions/permission.decorator';
 
 @Controller('branches')
 export class BranchesController {
@@ -33,6 +34,7 @@ export class BranchesController {
 
   // D29 — 지점·계약 정보는 DB에서. D32 — 회원·직원·진행중 프로그램 건수도 전부 DB 집계다.
   @Get()
+  @Permission('branch', 'READ')
   async list(@CurrentUser() user: RequestUser) {
     const branches = await this.branchService.listVisibleTo(user);
     const counts = await this.branchService.counts(branches.map((b) => b.id));
@@ -54,6 +56,7 @@ export class BranchesController {
   @Get(':branchId/performance')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   @BranchScopeExempt('경로 파라미터가 branchId라 전역 BranchScopeGuard의 branchId 검사가 본다')
+  @Permission('branch', 'READ')
   async performance(@Param('branchId') branchId: string) {
     return ok(await branchPerformance(this.prisma, branchId));
   }
@@ -62,6 +65,7 @@ export class BranchesController {
   @Get(':branchId/programs/summary')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   @BranchScopeExempt('경로 파라미터가 branchId라 전역 BranchScopeGuard의 branchId 검사가 본다')
+  @Permission('branch', 'READ')
   async programsSummary(@Param('branchId') branchId: string) {
     const programs = (await this.prisma.program.findMany({ where: { branchId }, orderBy: { id: 'asc' } })).map(toMockProgram);
     const byStatus = {

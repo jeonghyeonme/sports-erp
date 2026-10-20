@@ -4,6 +4,7 @@ import { PaymentService } from './payment.service';
 import { ScopedResource } from '../../common/decorators/scoped-resource.decorator';
 import { ok } from '../../common/http/api-response';
 import { pageMeta, parsePage } from '../../common/http/pagination';
+import { Permission, PermissionExempt, EXEMPT } from '../../common/permissions/permission.decorator';
 
 // 예약및결제 A-5·A-7 — 결제 승인은 예약 당사자 본인만, 결제(매출) 내역 조회는 BRANCH_ADMIN/SUPER_ADMIN 전용.
 @Controller('payments')
@@ -14,12 +15,14 @@ export class PaymentsController {
   @Post(':reservationId/mock-pay')
   @Roles('MEMBER')
   @ScopedResource('reservation', { param: 'reservationId' })
+  @PermissionExempt(EXEMPT.self)
   async mockPay(@Param('reservationId') reservationId: string) {
     return ok(await this.paymentService.mockPay(reservationId));
   }
 
   @Get()
   @Roles('BRANCH_ADMIN', 'SUPER_ADMIN')
+  @Permission('payment', 'READ', { exportable: true })
   async list(
     @Query('branchId') branchId: string | undefined,
     @Query('dateFrom') dateFrom: string | undefined,

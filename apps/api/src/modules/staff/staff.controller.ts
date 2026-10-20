@@ -10,6 +10,7 @@ import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 import { AssignStaffDto } from './dto/assign-staff.dto';
 import { StaffService, StaffView } from './staff.service';
+import { Permission, PermissionExempt, EXEMPT } from '../../common/permissions/permission.decorator';
 
 // D46 — 범위 검사(SUPER_ADMIN 전체 / BRANCH_ADMIN 현재 파견 지점 / STAFF 본인, 인사정보관리 A-7)는
 // 전역 BranchScopeGuard가 @ScopedResource('staff')로 한다. 수정·퇴사·이력은 @Roles가 STAFF를 막아 지점 일치만 남는다.
@@ -21,6 +22,7 @@ export class StaffController {
   // 인사정보관리 A-5 — 퇴사자는 기본적으로 숨기고(status!=RESIGNED), status를 명시하면 그 값만 조회(인사정보관리 A-6).
   @Get()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
+  @Permission('staff', 'READ')
   async list(
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,
@@ -36,6 +38,7 @@ export class StaffController {
 
   // STAFF 본인 레코드만 셀프서비스로 조회(인사정보관리 A-7) — 동료 직원 정보는 노출하지 않는다.
   @Get('me')
+  @PermissionExempt(EXEMPT.self)
   async me(@CurrentUser() user: RequestUser) {
     const staff = user.staffId ? await this.staffService.findById(user.staffId) : null;
     if (!staff) {
@@ -49,6 +52,7 @@ export class StaffController {
   @Get(':id')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN', 'STAFF')
   @ScopedResource('staff')
+  @Permission('staff', 'READ')
   async detail(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     const staff = await this.findStaffOrThrow(id);
     // D47 — 상세는 연락처 원문을 준다(STF-T03)라 관리자 열람을 남긴다(본인 조회는 남기지 않는다).
@@ -66,6 +70,7 @@ export class StaffController {
   @Patch(':id')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('staff')
+  @Permission('staff', 'UPDATE')
   async update(@Param('id') id: string, @Body() dto: UpdateStaffDto) {
     return ok(await this.staffService.update(id, dto));
   }
@@ -74,6 +79,7 @@ export class StaffController {
   @Patch(':id/resign')
   @Roles('BRANCH_ADMIN', 'SUPER_ADMIN')
   @ScopedResource('staff')
+  @PermissionExempt(EXEMPT.hr)
   async resign(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return ok(await this.staffService.resign(id, { accountId: user.accountId, role: user.role }));
   }
@@ -92,6 +98,7 @@ export class StaffController {
   @Get(':id/assignments')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   @ScopedResource('staff')
+  @Permission('staff', 'READ')
   async assignmentHistory(@Param('id') id: string) {
     return ok(await this.staffService.history(id));
   }
