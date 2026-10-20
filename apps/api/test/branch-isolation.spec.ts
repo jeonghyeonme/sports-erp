@@ -329,6 +329,18 @@ describe('지점 데이터 격리', () => {
       if (res.status < 300) expect(res.body.data.branchId).not.toBe(BRANCH.seocho);
       expect(await seochoCount('posts')).toBe(before);
     });
+    // 게시판 ADR-BRD-05 — 공지 대상 시설도 지점 소유 리소스다(@ScopedResource('facility', body)).
+    it('강남 관리자가 서초점 시설을 대상으로 공지를 작성하면 403 — 어느 지점에도 글이 늘지 않는다', async () => {
+      const before = await db(app).post.count();
+      const res = await call(tok.gangnamAdmin, 'post', '/posts', {
+        title: '침입 시설 공지',
+        content: 'x',
+        category: 'NOTICE',
+        facilityId: ctx.seocho.facilityId,
+      });
+      expect(res.status).toBe(403);
+      expect(await db(app).post.count()).toBe(before);
+    });
   });
 
   // ── 역할 내 격리: 같은 지점 안에서도 본인 것만 ────────────────────────────────────────────────────

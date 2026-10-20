@@ -111,6 +111,7 @@ export interface Post {
   content: string;
   publishedAt: string;
   branchName?: string;
+  facilityName?: string; // 지점 공지의 대상 시설(게시판 ADR-BRD-05). 없으면 지점 전체
   attachments?: Attachment[]; // 상세 응답에만 있다(게시판 ADR-BRD-04)
 }
 

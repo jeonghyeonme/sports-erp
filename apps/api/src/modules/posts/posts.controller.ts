@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { AppException } from '../../common/exceptions/app.exception';
-import { BranchScopeExempt } from '../../common/decorators/scoped-resource.decorator';
+import { BranchScopeExempt, ScopedResource } from '../../common/decorators/scoped-resource.decorator';
 import { ok } from '../../common/http/api-response';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -32,11 +32,19 @@ export class PostsController {
     @Query('limit') limitQuery?: string,
     @Query('sort') sort?: string,
     @Query('category') category?: string,
+    @Query('facilityId') facilityId?: string,
   ) {
     const page = Math.max(1, Math.trunc(Number(pageQuery)) || 1);
     const pageSize = Math.max(1, Math.trunc(Number(limitQuery)) || 20);
     // RFP 게시판 "본사→현장 직원관리 탭(교육 매뉴얼·자료)" — category=TRAINING_MATERIAL로 교육자료만(log/114).
-    const { items, total } = await this.posts.list(user, { scope, category, page, pageSize, latestFirst: sort === 'latest' });
+    const { items, total } = await this.posts.list(user, {
+      scope,
+      category,
+      facilityId,
+      page,
+      pageSize,
+      latestFirst: sort === 'latest',
+    });
     return ok(items, { page, pageSize, total });
   }
 
@@ -74,6 +82,7 @@ export class PostsController {
   }
 
   @Post()
+  @ScopedResource('facility', { body: 'facilityId' })
   async create(@Body() dto: CreatePostDto, @CurrentUser() user: RequestUser) {
     if (user.role !== 'SUPER_ADMIN' && user.role !== 'BRANCH_ADMIN') {
       throw new AppException('POST_FORBIDDEN_ROLE', '게시글 작성 권한이 없습니다.', 403);
@@ -88,7 +97,7 @@ export class PostsController {
     if (post.authorId !== user.accountId) {
       throw new AppException('POST_SCOPE_VIOLATION', '본인이 작성한 게시글만 수정할 수 있습니다.', 403);
     }
-    return ok(await this.posts.update(id, dto));
+    return ok(await this.posts.update(post, dto));
   }
 
   @Delete(':id')

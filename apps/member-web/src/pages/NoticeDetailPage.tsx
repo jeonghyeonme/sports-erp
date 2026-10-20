@@ -25,6 +25,7 @@ export function NoticeDetailPage() {
           <h1>{data.title}</h1>
           <p className="muted">
             {shortDate(data.publishedAt)} · {data.scope === 'HQ_TO_BRANCH' ? '본사' : (data.branchName ?? '지점')}
+            {data.facilityName ? ` · ${data.facilityName}` : ''}
           </p>
           {/* 본문은 텍스트로만 그린다(HTML로 해석하지 않음 — D41 재고 트리거: 사용자 HTML 렌더링 금지). */}
           <p className="notice-body">{data.content}</p>

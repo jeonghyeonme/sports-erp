@@ -25,4 +25,9 @@ export class CreatePostDto {
   @IsOptional()
   @IsBoolean()
   visibleToMember?: boolean;
+
+  // ADR-BRD-05 — 지점 공지의 대상 시설(BRANCH_ADMIN). 다른 지점 시설은 BranchScopeGuard가 403, 본사 공지는 400.
+  @IsOptional()
+  @IsString()
+  facilityId?: string;
 }

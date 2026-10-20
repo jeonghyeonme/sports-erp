@@ -6,7 +6,7 @@ import { api } from '../lib/api';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
 import { Modal } from '../components/Modal';
-import { ApiEnvelope, BranchSummary, PostCategory, PostRow } from '../lib/types';
+import { ApiEnvelope, BranchSummary, FacilityRow, PostCategory, PostRow } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
 const PAGE_SIZE = 20;
@@ -34,9 +34,10 @@ interface PostForm {
   category: PostCategory;
   branchId: string;
   visibleToMember: boolean;
+  facilityId: string;
 }
 
-const EMPTY_FORM: PostForm = { title: '', content: '', category: 'NOTICE', branchId: '', visibleToMember: false };
+const EMPTY_FORM: PostForm = { title: '', content: '', category: 'NOTICE', branchId: '', visibleToMember: false, facilityId: '' };
 
 function CreatePostModal({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
@@ -45,6 +46,12 @@ const toast = useToast();
   const [form, setForm] = useState<PostForm>(EMPTY_FORM);
   const branchesQuery = useApiList<BranchSummary>(['branches'], '/branches');
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  // 게시판 ADR-BRD-05 — 지점 공지는 대상 시설을 고를 수 있다(비우면 지점 전체). 본사 공지는 지점 단위까지.
+  const facilitiesQuery = useApiList<FacilityRow>(
+    ['facilities', user?.branchId],
+    `/facilities?branchId=${user?.branchId ?? ''}`,
+    !isSuperAdmin && !!user?.branchId,
+  );
 
   const createMutation = useMutation<PostRow, AxiosError<ApiErrorBody>, PostForm>({
     mutationFn: async (dto) => {
@@ -54,6 +61,7 @@ const toast = useToast();
         category: dto.category,
         branchId: isSuperAdmin ? dto.branchId || undefined : undefined,
         visibleToMember: isSuperAdmin ? dto.visibleToMember : undefined,
+        facilityId: !isSuperAdmin && dto.facilityId ? dto.facilityId : undefined,
       };
       return (await api.post<ApiEnvelope<PostRow>>('/posts', payload)).data.data!;
     },
@@ -100,6 +108,19 @@ const toast = useToast();
               {(branchesQuery.data ?? []).map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {!isSuperAdmin && (
+          <div className="field" style={{ marginTop: 12 }}>
+            <label>대상 시설</label>
+            <select value={form.facilityId} onChange={(e) => setForm((f) => ({ ...f, facilityId: e.target.value }))}>
+              <option value="">지점 전체</option>
+              {(facilitiesQuery.data ?? []).map((fac) => (
+                <option key={fac.id} value={fac.id}>
+                  {fac.name}
                 </option>
               ))}
             </select>
@@ -250,6 +271,7 @@ export function BoardPage() {
             <div className="stat-row">
               <span>
                 {post.authorName ?? '-'} {post.branchName ? `· ${post.branchName}` : ''}
+                {post.facilityName ? ` · ${post.facilityName}` : ''}
               </span>
               <span>
                 {post.publishedAt} · 조회 {post.viewCount}

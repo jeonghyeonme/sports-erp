@@ -4,9 +4,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PostAttachments } from '../components/PostAttachments';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
-import { ApiEnvelope, PostCategory, PostRow } from '../lib/types';
+import { ApiEnvelope, FacilityRow, PostCategory, PostRow } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
 interface ApiErrorBody {
@@ -30,10 +30,11 @@ interface EditForm {
   title: string;
   content: string;
   category: PostCategory;
+  facilityId: string;
 }
 
 function toEditForm(post: PostRow): EditForm {
-  return { title: post.title, content: post.content, category: post.category };
+  return { title: post.title, content: post.content, category: post.category, facilityId: post.facilityId ?? '' };
 }
 
 export function PostDetailPage() {
@@ -50,8 +51,25 @@ const toast = useToast();
     queryFn: async () => (await api.get<ApiEnvelope<PostRow>>(`/posts/${id}`)).data.data!,
   });
 
+  const isBranchPost = postQuery.data?.scope === 'BRANCH_TO_MEMBER';
+  const facilitiesQuery = useApiList<FacilityRow>(
+    ['facilities', postQuery.data?.branchId],
+    `/facilities?branchId=${postQuery.data?.branchId ?? ''}`,
+    editing && isBranchPost && !!postQuery.data?.branchId,
+  );
+
   const updateMutation = useMutation<PostRow, AxiosError<ApiErrorBody>, EditForm>({
-    mutationFn: async (dto) => (await api.patch<ApiEnvelope<PostRow>>(`/posts/${id}`, dto)).data.data!,
+    mutationFn: async (dto) => {
+      const post = postQuery.data!;
+      // 게시판 ADR-BRD-05 — 지점 공지만 시설을 보낸다. 비우면 null(지점 전체로 해제).
+      const payload = {
+        title: dto.title,
+        content: dto.content,
+        category: dto.category,
+        facilityId: post.scope === 'BRANCH_TO_MEMBER' ? dto.facilityId || null : undefined,
+      };
+      return (await api.patch<ApiEnvelope<PostRow>>(`/posts/${id}`, payload)).data.data!;
+    },
     onSuccess: (updated) => {
       queryClient.setQueryData(['posts', id], updated);
       queryClient.invalidateQueries({ queryKey: ['posts'] });
@@ -101,6 +119,7 @@ const toast = useToast();
             <div className="stat-row">
               <span>
                 {post.authorName ?? '-'} {post.branchName ? `· ${post.branchName}` : ''}
+                {post.facilityName ? ` · 대상 시설 ${post.facilityName}` : ''}
               </span>
               <span>
                 {post.publishedAt} · 조회 {post.viewCount}
@@ -170,6 +189,19 @@ const toast = useToast();
                   </select>
                 </div>
               </div>
+              {isBranchPost && (
+                <div className="field" style={{ marginTop: 12 }}>
+                  <label>대상 시설</label>
+                  <select value={form.facilityId} onChange={(e) => setForm({ ...form, facilityId: e.target.value })}>
+                    <option value="">지점 전체</option>
+                    {(facilitiesQuery.data ?? []).map((fac) => (
+                      <option key={fac.id} value={fac.id}>
+                        {fac.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="field" style={{ marginTop: 12 }}>
                 <label>내용 *</label>
                 <textarea
