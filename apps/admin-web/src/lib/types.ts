@@ -16,6 +16,8 @@ export interface AuthUser {
   branchName?: string;
   staffId?: string;
   memberId?: string;
+  // D60 3단계 — 지점 관리자·직원의 세부 권한 적용 값(`feature:ACTION` → 허용). 본사·회원은 없다.
+  effectivePermissions?: Record<string, boolean>;
 }
 
 export interface ApiEnvelope<T> {

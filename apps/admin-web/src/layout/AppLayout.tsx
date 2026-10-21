@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { Role } from '../lib/types';
 import { findScreenHelp } from '../lib/help-content';
 import { HelpPanel } from '../components/HelpPanel';
@@ -96,6 +97,27 @@ const ROLE_LABEL: Record<Role, string> = {
   MEMBER: '회원',
 };
 
+// D60 3단계 — 화면마다 조회 권한이 꺼지면 메뉴를 숨긴다. 근태관리·직원(내 정보)·대시보드는 본인 업무가 섞여 있어 숨기지 않는다.
+const MENU_FEATURE: Record<string, string> = {
+  '/members': 'member',
+  '/programs': 'program',
+  '/instructors': 'instructor',
+  '/reservations': 'reservation',
+  '/board': 'post',
+  '/facilities': 'facility',
+  '/assets': 'asset',
+  '/documents': 'document',
+  '/support-requests': 'support',
+};
+
+function visibleNav(entries: NavEntry[], canRead: (to: string) => boolean): NavEntry[] {
+  return entries.flatMap((e): NavEntry[] => {
+    if (e.kind === 'link') return canRead(e.link.to) ? [e] : [];
+    const items = e.group.items.filter((item) => canRead(item.to));
+    return items.length > 0 ? [{ kind: 'group', group: { ...e.group, items } }] : [];
+  });
+}
+
 // 경로 표시(D51)가 쓰는 평평한 메뉴 목록 — 그룹 안 화면은 그룹 이름을 함께 넘긴다.
 function flattenNav(entries: NavEntry[]): BreadcrumbNavItem[] {
   return entries.flatMap((e) =>
@@ -143,6 +165,7 @@ function NavGroupSection({
 
 export function AppLayout() {
   const { user, logout } = useAuth();
+  const can = useCan();
   const location = useLocation();
   // 접힌 그룹의 라벨만 기록(기본값 = 전부 펼침) — AppLayout은 로그인 세션 동안 계속 마운트돼 있어
   // 페이지를 이동해도 펼침 상태가 그대로 유지된다.
@@ -154,7 +177,7 @@ export function AppLayout() {
 
   if (!user) return null;
 
-  const entries = NAV_BY_ROLE[user.role];
+  const entries = visibleNav(NAV_BY_ROLE[user.role], (to) => !MENU_FEATURE[to] || can(MENU_FEATURE[to], 'READ'));
 
   function toggleGroup(label: string) {
     setCollapsedGroups((prev) => {

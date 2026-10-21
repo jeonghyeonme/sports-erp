@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
 import { Pager } from '../components/Pager';
 import { useToast } from '../lib/use-toast';
@@ -197,7 +198,7 @@ function EnrollmentsTab({ member, canManage }: { member: MemberRow; canManage: b
 
 // ADR-MEM-03 — PT 잔여세션 탭. PT_PACKAGE 결제 연동은 범위 제외라 관리자가 구매를 직접 등록하고,
 // 세션 사용(차감)은 별도 액션으로 기록한다.
-function PTSessionsTab({ member, canManage }: { member: MemberRow; canManage: boolean }) {
+function PTSessionsTab({ member, canManage, canUse }: { member: MemberRow; canManage: boolean; canUse: boolean }) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [showForm, setShowForm] = useState(false);
@@ -338,7 +339,7 @@ function PTSessionsTab({ member, canManage }: { member: MemberRow; canManage: bo
                 사용 이력: {s.logs.map((l) => l.usedAt.slice(0, 10)).join(', ')}
               </p>
             )}
-            {canManage && (
+            {canUse && (
               <form
                 className="action-row"
                 style={{ marginTop: 12 }}
@@ -431,6 +432,7 @@ function MemberReservationsTab({ memberId }: { memberId: string }) {
 export function MemberDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const can = useCan();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
@@ -486,7 +488,10 @@ export function MemberDetailPage() {
   const member = memberQuery.data!;
   // ADR-MEM-03 — 등록·차감 같은 쓰기 액션은 백엔드와 동일하게 본인 지점 BRANCH_ADMIN만(컨트롤러가 이미 강제,
   // 화면에서는 403을 굳이 유도하지 않도록 버튼 자체를 숨긴다).
-  const canManage = user?.role === 'BRANCH_ADMIN' && user.branchId === member.branchId;
+  const ownBranchAdmin = user?.role === 'BRANCH_ADMIN' && user.branchId === member.branchId;
+  // D60 — 수강·PT 등록은 회원 입력, 차감·정보 수정·상태 전환은 회원 수정 권한
+  const canManage = ownBranchAdmin && can('member', 'UPDATE');
+  const canEnroll = ownBranchAdmin && can('member', 'CREATE');
 
   return (
     <>
@@ -539,30 +544,32 @@ export function MemberDetailPage() {
               </div>
             )}
 
-            <div className="action-row" style={{ marginTop: 14 }}>
-              <button
-                className="btn-secondary"
-                onClick={() => {
-                  // 편집 폼은 "편집을 시작하는 시점"의 최신 회원 정보로 채운다(effect로 미리 복사하지 않음).
-                  setForm(toEditForm(member));
-                  setEditing(true);
-                }}
-              >
-                정보 수정
-              </button>
-              {(['ACTIVE', 'DORMANT', 'WITHDRAWN'] as const)
-                .filter((s) => s !== member.status)
-                .map((s) => (
-                  <button
-                    key={s}
-                    className={s === 'WITHDRAWN' ? 'btn-danger-outline' : 'btn-secondary'}
-                    disabled={statusMutation.isPending}
-                    onClick={() => statusMutation.mutate(s)}
-                  >
-                    {STATUS_LABEL[s]}(으)로 전환
-                  </button>
-                ))}
-            </div>
+            {(user?.role === 'SUPER_ADMIN' || can('member', 'UPDATE')) && (
+              <div className="action-row" style={{ marginTop: 14 }}>
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    // 편집 폼은 "편집을 시작하는 시점"의 최신 회원 정보로 채운다(effect로 미리 복사하지 않음).
+                    setForm(toEditForm(member));
+                    setEditing(true);
+                  }}
+                >
+                  정보 수정
+                </button>
+                {(['ACTIVE', 'DORMANT', 'WITHDRAWN'] as const)
+                  .filter((s) => s !== member.status)
+                  .map((s) => (
+                    <button
+                      key={s}
+                      className={s === 'WITHDRAWN' ? 'btn-danger-outline' : 'btn-secondary'}
+                      disabled={statusMutation.isPending}
+                      onClick={() => statusMutation.mutate(s)}
+                    >
+                      {STATUS_LABEL[s]}(으)로 전환
+                    </button>
+                  ))}
+              </div>
+            )}
           </>
         ) : (
           form && (
@@ -658,8 +665,8 @@ export function MemberDetailPage() {
             예약·결제 내역
           </button>
         </div>
-        {tab === 'enrollments' && <EnrollmentsTab member={member} canManage={canManage} />}
-        {tab === 'pt' && <PTSessionsTab member={member} canManage={canManage} />}
+        {tab === 'enrollments' && <EnrollmentsTab member={member} canManage={canEnroll} />}
+        {tab === 'pt' && <PTSessionsTab member={member} canManage={canEnroll} canUse={canManage} />}
         {tab === 'payments' && <MemberReservationsTab memberId={member.id} />}
       </div>
     </>

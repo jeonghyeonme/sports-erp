@@ -9,6 +9,7 @@ import { Modal } from '../components/Modal';
 import { ApiEnvelope, InstructorRow } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
+import { useCan } from '../lib/use-can';
 const AUTO_EXPAND_THRESHOLD = 3;
 
 interface ApiErrorBody {
@@ -106,6 +107,7 @@ export function InstructorsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const queryClient = useQueryClient();
   const toast = useToast();
+  const can = useCan();
 
   const deactivateMutation = useMutation<InstructorRow, AxiosError<ApiErrorBody>, string>({
     mutationFn: async (id) => (await api.delete<ApiEnvelope<InstructorRow>>(`/instructors/${id}`)).data.data!,
@@ -142,9 +144,11 @@ export function InstructorsPage() {
             강사프로그램게시 문서 기준 더미 데이터입니다. BRANCH_ADMIN은 본인 지점 강사만 등록·수정·비활성화할 수 있습니다.
           </p>
         </div>
-        <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
-          + 강사 등록
-        </button>
+        {can('instructor', 'CREATE') && (
+          <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
+              + 강사 등록
+          </button>
+        )}
       </div>
 
       {isError && <div className="forbidden-note">{apiErrorMessage(error)}</div>}
@@ -200,21 +204,25 @@ export function InstructorsPage() {
                     </td>
                     <td>
                       {i.isActive ? (
-                        <button
-                          className="btn-danger-outline"
-                          disabled={deactivateMutation.isPending}
-                          onClick={() => deactivateMutation.mutate(i.id)}
-                        >
-                          비활성화
-                        </button>
+                        can('instructor', 'DELETE') && (
+                          <button
+                            className="btn-danger-outline"
+                            disabled={deactivateMutation.isPending}
+                            onClick={() => deactivateMutation.mutate(i.id)}
+                          >
+                            비활성화
+                          </button>
+                        )
                       ) : (
-                        <button
-                          className="btn-secondary"
-                          disabled={activateMutation.isPending}
-                          onClick={() => activateMutation.mutate(i.id)}
-                        >
-                          다시 활성화
-                        </button>
+                        can('instructor', 'UPDATE') && (
+                          <button
+                            className="btn-secondary"
+                            disabled={activateMutation.isPending}
+                            onClick={() => activateMutation.mutate(i.id)}
+                          >
+                            다시 활성화
+                          </button>
+                        )
                       )}
                     </td>
                   </tr>

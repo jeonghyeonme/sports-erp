@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { useToast } from '../lib/use-toast';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
@@ -780,6 +781,7 @@ function HrDocuments({ staffId }: { staffId: string }) {
 export function StaffDetailPage() {
   const { id = '' } = useParams();
   const { user } = useAuth();
+  const can = useCan();
   const [editing, setEditing] = useState(false);
   const [modal, setModal] = useState<'resign' | 'assign' | null>(null);
 
@@ -796,7 +798,7 @@ export function StaffDetailPage() {
   const active = staff.status !== 'RESIGNED';
   // 인사 권한 분리(CLAUDE.md) — 버튼은 API 권한과 같게 보인다. 본인 퇴사 처리는 자기 접근을 끊으므로 숨긴다.
   const isOwnBranchAdmin = user?.role === 'BRANCH_ADMIN' && user.branchId === staff.branchId;
-  const canEdit = isOwnBranchAdmin && active;
+  const canEdit = isOwnBranchAdmin && active && can('staff', 'UPDATE');
   const branchTerminated = branchesQuery.data?.find((b) => b.id === staff.branchId)?.contractStatus === 'TERMINATED';
   const canResign =
     (isOwnBranchAdmin && active && user?.staffId !== staff.id) ||
@@ -876,7 +878,7 @@ export function StaffDetailPage() {
 
       {user?.role !== 'STAFF' && <AssignmentHistory staffId={staff.id} />}
       {/* ADR-ATT-04 — 정정은 그 직원이 파견된 지점의 관리자만(본사는 조회). */}
-      {user?.role !== 'STAFF' && <AttendanceHistory staffId={staff.id} canCorrect={isOwnBranchAdmin} />}
+      {user?.role !== 'STAFF' && <AttendanceHistory staffId={staff.id} canCorrect={isOwnBranchAdmin && can('attendance', 'UPDATE')} />}
       {user?.role !== 'STAFF' && <LeaveHistory staffId={staff.id} />}
       {user?.role !== 'STAFF' && <WorkLogHistory staffId={staff.id} />}
       {user?.role !== 'STAFF' && <HrDocuments staffId={staff.id} />}

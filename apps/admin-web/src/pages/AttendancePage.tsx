@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { useToast } from '../lib/use-toast';
 import { AbsenceConfirmSection } from '../components/AbsenceConfirmSection';
@@ -53,6 +54,7 @@ function formatTime(iso?: string): string {
 
 export function AttendancePage() {
   const { user } = useAuth();
+  const can = useCan();
   const queryClient = useQueryClient();
   const toast = useToast();
   const isAdmin = user?.role === 'BRANCH_ADMIN';
@@ -415,9 +417,15 @@ export function AttendancePage() {
               <h3 className="section-title">지점 근태 요약(이번 달)</h3>
               <ExportCsvButton
                 filename={`attendance-summary_${user?.branchId ?? 'branch'}_${month}.csv`}
+                feature="attendance"
                 columns={ATTENDANCE_SUMMARY_COLUMNS}
                 disabled={(summaryQuery.data?.length ?? 0) === 0}
-                load={async () => ({ rows: summaryQuery.data ?? [] })}
+                // D60 — 서버가 출력 권한을 보도록 export=true로 다시 받는다
+                load={async () => ({
+                  rows:
+                    (await api.get<ApiEnvelope<AttendanceSummaryRow[]>>(`/attendance/summary?month=${month}&export=true`))
+                      .data.data ?? [],
+                })}
               />
             </div>
             {(summaryQuery.data?.length ?? 0) === 0 ? (
@@ -478,22 +486,24 @@ export function AttendancePage() {
                       <td>{r.days}일</td>
                       <td>{r.reason ?? '-'}</td>
                       <td>
-                        <div className="action-row">
-                          <button
-                            className="btn-secondary"
-                            disabled={reviewLeaveMutation.isPending}
-                            onClick={() => reviewLeaveMutation.mutate({ id: r.id, action: 'approve' })}
-                          >
-                            승인
-                          </button>
-                          <button
-                            className="btn-danger-outline"
-                            disabled={reviewLeaveMutation.isPending}
-                            onClick={() => reviewLeaveMutation.mutate({ id: r.id, action: 'reject' })}
-                          >
-                            반려
-                          </button>
-                        </div>
+                        {can('leave', 'UPDATE') && (
+                          <div className="action-row">
+                            <button
+                              className="btn-secondary"
+                              disabled={reviewLeaveMutation.isPending}
+                              onClick={() => reviewLeaveMutation.mutate({ id: r.id, action: 'approve' })}
+                            >
+                              승인
+                            </button>
+                            <button
+                              className="btn-danger-outline"
+                              disabled={reviewLeaveMutation.isPending}
+                              onClick={() => reviewLeaveMutation.mutate({ id: r.id, action: 'reject' })}
+                            >
+                              반려
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -503,7 +513,7 @@ export function AttendancePage() {
           </div>
 
           {/* 휴가 승인함 다음 — 대기 휴가를 먼저 처리해야 그 날이 결근 후보에서 빠진다. */}
-          <AbsenceConfirmSection />
+          {can('attendance', 'UPDATE') && <AbsenceConfirmSection />}
         </>
       )}
     </>

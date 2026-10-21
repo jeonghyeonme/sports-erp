@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
 import { ApiEnvelope, BranchSummary, DocumentCategory, DocumentRow, StaffRow } from '../lib/types';
@@ -192,6 +193,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
 
 export function DocumentsPage() {
   const { user } = useAuth();
+  const can = useCan();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [category, setCategory] = useState<'ALL' | DocumentCategory>('ALL');
   const [showUpload, setShowUpload] = useState(false);
@@ -221,9 +223,11 @@ export function DocumentsPage() {
             (소프트 삭제), 보존기한이 지나도 자동 삭제되지 않습니다.
           </p>
         </div>
-        <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowUpload(true)}>
-          + 문서 등록
-        </button>
+        {can('document', 'CREATE') && (
+          <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowUpload(true)}>
+            + 문서 등록
+          </button>
+        )}
       </div>
 
       {isSuperAdmin && (alertsQuery.data?.length ?? 0) > 0 && (

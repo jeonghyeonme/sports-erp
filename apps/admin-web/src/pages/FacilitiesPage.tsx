@@ -7,6 +7,7 @@ import { groupByBranch } from '../lib/group-by-branch';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { Modal } from '../components/Modal';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { ApiEnvelope, FacilityRow, FacilityType } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
@@ -326,7 +327,11 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
 
 export function FacilitiesPage() {
   const { user } = useAuth();
-  const canCreate = user?.role === 'BRANCH_ADMIN';
+  const can = useCan();
+  const isBranchAdmin = user?.role === 'BRANCH_ADMIN';
+  // D60 — 등록은 시설 입력, 인원 입력·운영 상태는 시설 수정 권한
+  const canCreate = isBranchAdmin && can('facility', 'CREATE');
+  const canUpdate = isBranchAdmin && can('facility', 'UPDATE');
   // ADR-FAC-02 — 운영중단(isActive=false) 시설은 기본 목록에 안 나오므로, 되돌릴 수 있는 사람(BRANCH_ADMIN)만
   // 탭으로 전환해 볼 수 있게 한다. 목록 자체는 항상 activeTab 기준 하나만 보여준다(뒤섞지 않음).
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
@@ -362,7 +367,7 @@ export function FacilitiesPage() {
         )}
       </div>
 
-      {canCreate && (
+      {canUpdate && (
         <div className="wf-tab-row" style={{ display: 'flex', gap: 4, margin: '14px 0' }}>
           <button
             className={activeTab === 'ACTIVE' ? 'filter-chip active' : 'filter-chip'}
@@ -416,7 +421,7 @@ export function FacilitiesPage() {
                 <ManageableFacilityCard
                   key={f.id}
                   facility={f}
-                  canManage={canCreate && f.branchId === user?.branchId}
+                  canManage={canUpdate && f.branchId === user?.branchId}
                 />
               ))}
             </div>

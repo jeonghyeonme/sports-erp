@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { groupByBranch } from '../lib/group-by-branch';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
@@ -319,6 +320,7 @@ type TimeBand = keyof typeof TIME_BAND_LABEL;
 
 export function ProgramsPage() {
   const { user } = useAuth();
+  const can = useCan();
   // 종목 선택지는 거르지 않은 목록에서 뽑는다(종목은 자유 입력 문자열). 필터를 걸면 서버가 거른 목록을 따로 받는다.
   const allQuery = useApiList<ProgramRow>(['programs'], '/programs');
   const [category, setCategory] = useState('');
@@ -342,6 +344,10 @@ export function ProgramsPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const canManage = user?.role === 'BRANCH_ADMIN';
+  // D60 — 등록·수정(회차 포함)·종료를 각각 입력·수정·삭제 권한으로
+  const canCreate = canManage && can('program', 'CREATE');
+  const canUpdate = canManage && can('program', 'UPDATE');
+  const canDelete = canManage && can('program', 'DELETE');
 
   // ADR-PRG-02 — 응답에 딸려오는 affectedReservations를 화면에서 즉시 보여줘야 "관리자가 즉시 인지"라는
   // 결정 취지가 실제로 성립한다(값만 내려주고 화면에서 안 보이면 ADR-BRD-01·ADR-FAC-01과 같은 문제가 재발).
@@ -407,7 +413,7 @@ export function ProgramsPage() {
             묶어서 보여줍니다(지점이 많으면 지점명으로 검색해 좁혀보세요).
           </p>
         </div>
-        {canManage && user?.branchId && (
+        {canCreate && user?.branchId && (
           <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setModalProgram('new')}>
             + 프로그램 등록
           </button>
@@ -500,7 +506,7 @@ export function ProgramsPage() {
                   <th>강사</th>
                   <th>상태</th>
                   <th>시작일</th>
-                  {canManage && <th></th>}
+                  {canDelete && <th></th>}
                 </tr>
               </thead>
               <tbody>
@@ -509,7 +515,7 @@ export function ProgramsPage() {
                   return (
                     <tr key={p.id}>
                       <td>
-                        {canManage ? (
+                        {canUpdate ? (
                           <button
                             className="branch-row-name"
                             style={{
@@ -533,7 +539,7 @@ export function ProgramsPage() {
                       <td>{p.price > 0 ? `${p.price.toLocaleString()}원` : '무료'}</td>
                       <td>{p.instructorName ?? '-'}</td>
                       <td>
-                        {canManage && nextStatuses.length > 0 ? (
+                        {canUpdate && nextStatuses.length > 0 ? (
                           <select
                             className="role-select"
                             value={p.status}
@@ -557,7 +563,7 @@ export function ProgramsPage() {
                         )}
                       </td>
                       <td>{p.startDate}</td>
-                      {canManage && (
+                      {canDelete && (
                         <td>
                           {p.status !== 'ENDED' && (
                             <button

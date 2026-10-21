@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { api, setAccessToken } from './api';
 import { ApiEnvelope, AuthUser } from './types';
@@ -35,6 +35,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   };
+
+  // D60 3단계 — 본사가 권한을 바꾸면 화면 숨김도 따라오도록, 창으로 돌아올 때 적용 권한을 다시 받는다.
+  // 판정은 서버가 하므로 이 갱신이 늦어도 막힐 일은 막힌다(버튼만 늦게 사라진다).
+  const signedIn = user !== null;
+  useEffect(() => {
+    if (!signedIn) return;
+    const refresh = () => {
+      api
+        .get<ApiEnvelope<AuthUser>>('/auth/me')
+        .then((res) => {
+          const me = res.data.data;
+          if (me) setUser((prev) => (prev ? { ...prev, effectivePermissions: me.effectivePermissions } : prev));
+        })
+        .catch(() => undefined);
+    };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, [signedIn]);
 
   const logout = (nextNotice?: string) => {
     setAccessToken(null);
