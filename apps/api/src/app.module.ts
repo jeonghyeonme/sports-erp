@@ -26,6 +26,7 @@ import { BranchScopeGuard } from './common/guards/branch-scope.guard';
 import { ScopeOwners } from './common/guards/scope-owners';
 import { PermissionGuard } from './common/permissions/permission.guard';
 import { PermissionCoreModule } from './common/permissions/permission-core.module';
+import { InboxModule } from './modules/inbox/inbox.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { PermissionCoreModule } from './common/permissions/permission-core.modul
     SupportRequestsModule,
     StorageModule,
     PermissionCoreModule,
+    InboxModule,
   ],
   controllers: [AppController],
   providers: [

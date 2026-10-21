@@ -45,6 +45,7 @@ ROUTE_DESC = {
     'POST /auth/refresh': '리프레시 토큰으로 재발급(1회용 교체)',
     'POST /auth/logout': '로그아웃 — 리프레시 토큰 폐기',
     'GET /auth/me': '내 계정 정보',
+    'GET /inbox': '처리 대기함 — 역할별 지금 처리할 일 건수(D61)',
     'PATCH /auth/password': '비밀번호 변경 — 현재 비밀번호 확인, 변경 시 리프레시 토큰 전부 폐기, 데모 계정 403(ADR-AUTH-05)',
     'GET /permissions/staff': '직원 계정과 역할 목록(본사)',
     'PATCH /permissions/staff/:staffId/role': '직원 역할 전환(지점 관리자 ↔ 직원, 본사)',
