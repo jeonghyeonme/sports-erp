@@ -21,7 +21,8 @@ const h1 = (t) => new Paragraph({ heading: HeadingLevel.HEADING_1, children: [ne
 const h2 = (t) => new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun(t)] });
 const h3 = (t) => new Paragraph({ heading: HeadingLevel.HEADING_3, children: [new TextRun(t)] });
 const bullets = (items, level = 0) => items.map((t) => new Paragraph({ numbering: { reference: 'bullets', level }, children: runs(t), spacing: { after: 60, line: 290 } }));
-const numbered = (items, ref = 'nums') => items.map((t) => new Paragraph({ numbering: { reference: ref, level: 0 }, children: runs(t), spacing: { after: 60, line: 290 } }));
+// instance를 주면 같은 번호 정의를 쓰되 1부터 다시 센다(목록마다 번호를 새로 시작할 때 — manual.js).
+const numbered = (items, ref = 'nums', instance) => items.map((t) => new Paragraph({ numbering: { reference: ref, level: 0, ...(instance === undefined ? {} : { instance }) }, children: runs(t), spacing: { after: 60, line: 290 } }));
 const quote = (t) => new Paragraph({
   children: runs(t, { color: SOFT, italics: true }), spacing: { before: 60, after: 160, line: 290 },
   indent: { left: 360 }, border: { left: { style: BorderStyle.SINGLE, size: 18, color: NAVY, space: 8 } },
@@ -78,7 +79,7 @@ function figure(name, caption, ratio = 0.9) {
   ];
 }
 
-function cover(title, subtitle, info) {
+function cover(title, subtitle, info, { toc = true } = {}) {
   return [
     new Paragraph({ children: [], spacing: { before: 2400 } }),
     new Paragraph({ children: [new TextRun({ text: '스포이즘 ERP', size: 28, color: NAVY, bold: true })], spacing: { after: 200 } }),
@@ -87,9 +88,14 @@ function cover(title, subtitle, info) {
       border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: NAVY, space: 12 } } }),
     table(['항목', '내용'], info, [1, 4]),
     new Paragraph({ children: [new PageBreak()] }),
-    new Paragraph({ children: [new TextRun({ text: '목차', size: 32, bold: true, color: NAVY })], spacing: { after: 200 } }),
-    new TableOfContents('목차', { hyperlink: true, headingStyleRange: '1-2' }),
-    new Paragraph({ children: [new TextRun({ text: '※ 목차가 비어 보이면 Word에서 목차를 클릭하고 [필드 업데이트]를 누르세요.', size: 16, color: SOFT })] }),
+    // toc=false — PDF로 바로 내보낼 짧은 문서(목차 필드는 Word가 열 때만 채워진다)
+    ...(toc
+      ? [
+          new Paragraph({ children: [new TextRun({ text: '목차', size: 32, bold: true, color: NAVY })], spacing: { after: 200 } }),
+          new TableOfContents('목차', { hyperlink: true, headingStyleRange: '1-2' }),
+          new Paragraph({ children: [new TextRun({ text: '※ 목차가 비어 보이면 Word에서 목차를 클릭하고 [필드 업데이트]를 누르세요.', size: 16, color: SOFT })] }),
+        ]
+      : []),
   ];
 }
 
