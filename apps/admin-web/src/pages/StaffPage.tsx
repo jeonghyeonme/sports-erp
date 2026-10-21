@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { useToast } from '../lib/use-toast';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { groupByBranch } from '../lib/group-by-branch';
@@ -197,6 +198,7 @@ function HireStaffModal({ onClose }: { onClose: () => void }) {
 
 export function StaffPage() {
   const { user } = useAuth();
+  const can = useCan();
   const navigate = useNavigate();
   const isSelfServiceOnly = user?.role === 'STAFF';
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
@@ -276,7 +278,7 @@ export function StaffPage() {
       {showHire && <HireStaffModal onClose={() => setShowHire(false)} />}
 
       {/* ADR-STF-09 — 직원 본인 신청(이름·연락처)을 지점 관리자가 승인한다. 대기 건이 있을 때만 보인다. */}
-      {user?.role === 'BRANCH_ADMIN' && <ChangeRequestInbox />}
+      {user?.role === 'BRANCH_ADMIN' && can('staff', 'UPDATE') && <ChangeRequestInbox />}
 
       {!isSelfServiceOnly && (
         <div className="list-toolbar" style={{ gap: 8 }}>

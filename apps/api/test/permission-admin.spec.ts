@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, createApp, db, login } from './helpers/app';
 import { resetWorkerDb } from './helpers/worker-db';
+import { MOCK_DEMO_PASSWORD } from '../src/fixtures/demo-password';
 
 /**
  * D60 2단계(권한관리 ADR-AUTH-07) — 본사가 역할 기본값·개인 예외를 바꾸는 API.
@@ -103,5 +104,29 @@ describe('세부 권한 관리 API (D60 2단계)', () => {
       (await api(minsu).put('/permissions/staff/staff-minsu/overrides', { feature: 'member', action: 'READ', mode: 'ALLOW' })).status,
     ).toBe(403);
     expect((await api(hq).get('/permissions/roles')).status).toBe(200);
+  });
+
+  it('로그인·/auth/me가 적용 권한을 내려 준다(3단계 화면 숨김용) — 본사·회원은 없다', async () => {
+    await api(hq).put('/permissions/roles/BRANCH_ADMIN', { feature: 'member', action: 'CREATE', allowed: false });
+    await api(hq).put('/permissions/staff/staff-minsu/overrides', { feature: 'member', action: 'EXPORT', mode: 'DENY' });
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: ACCOUNTS.seochoAdmin, password: MOCK_DEMO_PASSWORD });
+    const eff = res.body.data.user.effectivePermissions as Record<string, boolean>;
+    expect(eff['member:CREATE']).toBe(false); // 역할 기본값
+    expect(eff['member:EXPORT']).toBe(false); // 개인 예외
+    expect(eff['member:READ']).toBe(true);
+    expect(res.body.data.user.permissions).toBeUndefined(); // 개인 예외 원본은 내보내지 않는다
+    const me = (await api(`Bearer ${res.body.data.accessToken}`).get('/auth/me')).body.data;
+    expect(me.effectivePermissions).toEqual(eff);
+    // 직원은 상한 칸 4개만, 본사는 표 밖
+    const staff = await login(app, ACCOUNTS.seochoStaff);
+    expect(Object.keys((await api(staff).get('/auth/me')).body.data.effectivePermissions).sort()).toEqual([
+      'facility:READ',
+      'instructor:READ',
+      'post:READ',
+      'program:READ',
+    ]);
+    expect((await api(hq).get('/auth/me')).body.data.effectivePermissions).toBeUndefined();
   });
 });

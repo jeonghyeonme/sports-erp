@@ -37,3 +37,35 @@ test('본사: 역할 기본 권한을 끄고 한 사람만 개인 권한으로 �
   await hq.dispose();
   await minsu.dispose();
 });
+
+// D60 3단계 — 꺼진 권한의 메뉴·버튼은 지점 관리자 화면에서 사라진다. 로그인한 채로 본사가 바꾸면
+// 창으로 돌아올 때(focus) /auth/me로 다시 받아 반영된다 — 같은 화면에서 "보이던 것이 사라짐"으로 확인한다.
+test('지점 관리자: 권한이 꺼지면 메뉴·등록 버튼·CSV 버튼이 사라진다', async ({ page }) => {
+  await adminLogin(page, ACCOUNTS.seochoAdmin);
+  await openMenu(page, '/members');
+  await expect(page.getByRole('button', { name: '+ 회원 등록' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'CSV 내려받기' })).toBeVisible();
+  await expect(page.locator('nav a[href="/support-requests"]')).toHaveCount(1);
+
+  const hq = await apiAs(ACCOUNTS.hq);
+  const cells = [
+    { feature: 'member', action: 'CREATE' },
+    { feature: 'support', action: 'READ' },
+  ];
+  try {
+    for (const c of cells) await hq.put('permissions/roles/BRANCH_ADMIN', { data: { ...c, allowed: false } });
+    await hq.put('permissions/staff/staff-minsu/overrides', { data: { feature: 'member', action: 'EXPORT', mode: 'DENY' } });
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+
+    await expect(page.getByRole('button', { name: '+ 회원 등록' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'CSV 내려받기' })).toHaveCount(0);
+    await expect(page.locator('nav a[href="/support-requests"]')).toHaveCount(0);
+    await expect(page.locator('main table')).toBeVisible(); // 조회는 그대로
+    await openMenu(page, '/board');
+    await expect(page.getByRole('button', { name: '+ 글쓰기' })).toBeVisible(); // 대조군
+  } finally {
+    for (const c of cells) await hq.put('permissions/roles/BRANCH_ADMIN', { data: { ...c, allowed: true } });
+    await hq.put('permissions/staff/staff-minsu/overrides', { data: { feature: 'member', action: 'EXPORT', mode: 'DEFAULT' } });
+    await hq.dispose();
+  }
+});

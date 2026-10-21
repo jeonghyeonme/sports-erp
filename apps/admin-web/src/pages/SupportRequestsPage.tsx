@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { useToast } from '../lib/use-toast';
 import { apiErrorMessage, useApiPage } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
@@ -205,6 +206,7 @@ function DetailModal({ row, canHandle, onClose }: { row: SupportRequestRow; canH
 
 export function SupportRequestsPage() {
   const { user } = useAuth();
+  const can = useCan();
   const isBranchAdmin = user?.role === 'BRANCH_ADMIN';
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [status, setStatus] = useState<SupportStatus | ''>(isSuperAdmin ? 'REQUESTED' : '');
@@ -241,7 +243,7 @@ export function SupportRequestsPage() {
               : '시설·인력·물품·전산 등 본사 지원이 필요한 일을 요청하고 처리 상태와 답변을 확인합니다.'}
           </p>
         </div>
-        {isBranchAdmin && (
+        {isBranchAdmin && can('support', 'CREATE') && (
           <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowNew(true)}>
             + 요청하기
           </button>

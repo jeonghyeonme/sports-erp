@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
 import { ExportCsvButton } from '../components/ExportCsvButton';
 import { fetchAllPages, kstDateStamp } from '../lib/csv';
@@ -290,6 +291,7 @@ function SlotManager({ programs }: { programs: ProgramRow[] }) {
 
 export function ReservationsPage() {
   const { user } = useAuth();
+  const can = useCan();
   const isAdmin = user?.role === 'BRANCH_ADMIN';
   const isMember = user?.role === 'MEMBER';
 
@@ -470,13 +472,16 @@ export function ReservationsPage() {
                         <span className={`badge ${r.status}`}>{STATUS_LABEL[r.status]}</span>
                       </td>
                       <td>
-                        <div className="action-row">
-                          {/* ADR-RSV-08 — 체크인은 회차 당일(KST)만(서버도 409 CHECK_IN_NOT_TODAY) */}
-                          {r.status === 'CONFIRMED' && r.slot?.date === kstToday() && <CheckInButton reservationId={r.id} />}
-                          {(r.status === 'REQUESTED' || r.status === 'CONFIRMED') && (
-                            <CancelButton reservationId={r.id} />
-                          )}
-                        </div>
+                        {/* D60 — 체크인·취소는 예약 수정 권한 */}
+                        {can('reservation', 'UPDATE') && (
+                          <div className="action-row">
+                            {/* ADR-RSV-08 — 체크인은 회차 당일(KST)만(서버도 409 CHECK_IN_NOT_TODAY) */}
+                            {r.status === 'CONFIRMED' && r.slot?.date === kstToday() && <CheckInButton reservationId={r.id} />}
+                            {(r.status === 'REQUESTED' || r.status === 'CONFIRMED') && (
+                              <CancelButton reservationId={r.id} />
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -504,9 +509,10 @@ export function ReservationsPage() {
               <h3 className="section-title">결제 내역</h3>
               <ExportCsvButton
                 filename={`payments_${kstDateStamp()}.csv`}
+                feature="payment"
                 columns={PAYMENT_COLUMNS}
                 disabled={(paymentsQuery.data?.total ?? 0) === 0}
-                load={() => fetchAllPages<PaymentRow>('/payments', new URLSearchParams())}
+                load={() => fetchAllPages<PaymentRow>('/payments', new URLSearchParams({ export: 'true' }))}
               />
             </div>
             {paymentsQuery.isError && <div className="forbidden-note">{apiErrorMessage(paymentsQuery.error)}</div>}

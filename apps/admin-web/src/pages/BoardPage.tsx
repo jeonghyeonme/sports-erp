@@ -5,6 +5,7 @@ import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { Modal } from '../components/Modal';
 import { ApiEnvelope, BranchSummary, FacilityRow, PostCategory, PostRow } from '../lib/types';
 
@@ -170,6 +171,7 @@ const toast = useToast();
 
 export function BoardPage() {
   const { user } = useAuth();
+  const can = useCan();
   const navigate = useNavigate();
   // 'TRAINING' = RFP 게시판 "본사→현장 직원관리 탭(운영 교육 매뉴얼·자료)" — 본사 공지 중 교육자료만(log/114).
   const [scopeFilter, setScopeFilter] = useState<'ALL' | 'TRAINING' | PostRow['scope']>('ALL');
@@ -201,7 +203,7 @@ export function BoardPage() {
     },
   });
 
-  const canWrite = user?.role === 'SUPER_ADMIN' || user?.role === 'BRANCH_ADMIN';
+  const canWrite = (user?.role === 'SUPER_ADMIN' || user?.role === 'BRANCH_ADMIN') && can('post', 'CREATE');
   const posts = data?.posts ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));

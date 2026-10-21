@@ -6,6 +6,7 @@ import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { ApiEnvelope, FacilityRow, PostCategory, PostRow } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
@@ -40,6 +41,7 @@ function toEditForm(post: PostRow): EditForm {
 export function PostDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const can = useCan();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 const toast = useToast();
@@ -100,8 +102,9 @@ const toast = useToast();
     return <div className="forbidden-note">{apiErrorMessage(postQuery.error)}</div>;
   }
   const post = postQuery.data!;
-  const isAuthor = post.authorId === user?.accountId;
-  const canDelete = isAuthor || user?.role === 'SUPER_ADMIN';
+  // D60 — 작성자여도 게시판 수정·삭제 권한이 꺼지면 버튼을 숨긴다(첨부 올리기·지우기는 수정 권한)
+  const isAuthor = post.authorId === user?.accountId && can('post', 'UPDATE');
+  const canDelete = (post.authorId === user?.accountId && can('post', 'DELETE')) || user?.role === 'SUPER_ADMIN';
 
   return (
     <>
@@ -132,7 +135,7 @@ const toast = useToast();
               postId={post.id}
               attachments={post.attachments ?? []}
               canUpload={isAuthor}
-              canDelete={canDelete}
+              canDelete={isAuthor || user?.role === 'SUPER_ADMIN'}
             />
 
             {deleteMutation.isError && (

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
 import { Pager } from '../components/Pager';
@@ -334,6 +335,7 @@ function EditAssetModal({ asset, onClose }: { asset: AssetRow; onClose: () => vo
 
 export function AssetsPage() {
   const { user } = useAuth();
+  const can = useCan();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [branchId, setBranchId] = useState('');
   // '' = 기본 목록(폐기 제외, B8 사용자 결정). 폐기 자산은 'DISPOSED'를 골라 따로 본다.
@@ -381,9 +383,11 @@ export function AssetsPage() {
             기본 목록은 폐기된 자산을 빼고 {PAGE_SIZE}건씩 보여 줍니다(D43).
           </p>
         </div>
-        <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
-          + 자산 등록
-        </button>
+        {can('asset', 'CREATE') && (
+          <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
+            + 자산 등록
+          </button>
+        )}
       </div>
 
       <div className="list-toolbar" style={{ gap: 8 }}>
@@ -434,7 +438,7 @@ export function AssetsPage() {
                   <td>{a.quantity}</td>
                   <td>{a.location ?? '-'}</td>
                   <td>
-                    {next.length > 0 ? (
+                    {next.length > 0 && can('asset', 'UPDATE') ? (
                       <select
                         className="role-select"
                         value={a.status}
@@ -454,7 +458,7 @@ export function AssetsPage() {
                   </td>
                   <td>
                     {/* 폐기된 자산은 기록으로만 남기고 고치지 않는다. */}
-                    {a.status !== 'DISPOSED' && (
+                    {a.status !== 'DISPOSED' && can('asset', 'UPDATE') && (
                       <button className="btn-secondary" onClick={() => setEditing(a)}>
                         수정
                       </button>

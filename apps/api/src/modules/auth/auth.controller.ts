@@ -8,17 +8,28 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { ok } from '../../common/http/api-response';
 import { PermissionExempt, EXEMPT } from '../../common/permissions/permission.decorator';
+import { PermissionService } from '../../common/permissions/permission.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly permissions: PermissionService,
+  ) {}
+
+  // D60 3단계 — 응답 사용자에 적용 권한을 싣는다(화면 숨김용). 개인 예외 원본(permissions)은 내보내지 않는다.
+  private async withPermissions(user: RequestUser) {
+    const { permissions: _personal, ...rest } = user;
+    void _personal;
+    return { ...rest, effectivePermissions: await this.permissions.effective(user) };
+  }
 
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() dto: LoginDto) {
     const result = await this.authService.login(dto.email, dto.password);
-    return ok(result);
+    return ok({ ...result, user: await this.withPermissions(result.user) });
   }
 
   // Refresh Token으로 재발급 — access token이 없는(만료된) 상태에서 호출하는 경로라 Public이다.
@@ -41,8 +52,8 @@ export class AuthController {
 
   @Get('me')
   @PermissionExempt(EXEMPT.self)
-  me(@CurrentUser() user: RequestUser) {
-    return ok(user);
+  async me(@CurrentUser() user: RequestUser) {
+    return ok(await this.withPermissions(user));
   }
 
   @Patch('password')

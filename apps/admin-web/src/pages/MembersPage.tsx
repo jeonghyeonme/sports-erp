@@ -12,6 +12,7 @@ import { fetchAllPages, kstDateStamp } from '../lib/csv';
 import { MEMBER_COLUMNS } from '../lib/export-columns';
 import { ApiEnvelope, MemberRow } from '../lib/types';
 import { useAuth } from '../lib/use-auth';
+import { useCan } from '../lib/use-can';
 import { useToast } from '../lib/use-toast';
 
 const PAGE_SIZE = 20;
@@ -160,6 +161,7 @@ const toast = useToast();
 
 export function MembersPage() {
   const { user } = useAuth();
+  const can = useCan();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [branchId, setBranchId] = useState('');
   const [status, setStatus] = useState('');
@@ -204,9 +206,12 @@ export function MembersPage() {
             거릅니다(D43).
           </p>
         </div>
-        <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
-          + 회원 등록
-        </button>
+        {/* D60 — 입력 권한이 꺼지면 숨긴다(판정은 서버) */}
+        {can('member', 'CREATE') && (
+          <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
+            + 회원 등록
+          </button>
+        )}
       </div>
 
       <form className="list-toolbar" onSubmit={submitSearch} style={{ gap: 8 }}>
@@ -231,6 +236,7 @@ export function MembersPage() {
         {/* M6 — 지금 조건(지점·상태·검색) 그대로 전체 쪽을 받는다. 연락처는 마스킹 값 그대로(ADR-MEM-04). */}
         <ExportCsvButton
           filename={`members_${kstDateStamp()}.csv`}
+          feature="member"
           columns={MEMBER_COLUMNS}
           disabled={total === 0}
           load={() => {
@@ -238,6 +244,7 @@ export function MembersPage() {
             if (branchId) p.set('branchId', branchId);
             if (status) p.set('status', status);
             if (q) p.set('q', q);
+            p.set('export', 'true'); // D60 — 서버가 출력 권한을 본다
             return fetchAllPages<MemberRow>('/members', p);
           }}
         />
