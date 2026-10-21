@@ -1,8 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
-import { Role } from '../lib/types';
+import { ApiEnvelope, InboxItem, Role } from '../lib/types';
+import { api } from '../lib/api';
 import { findScreenHelp } from '../lib/help-content';
 import { HelpPanel } from '../components/HelpPanel';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
@@ -129,17 +131,30 @@ function isPathActive(to: string, pathname: string): boolean {
   return to === '/' ? pathname === '/' : pathname.startsWith(to);
 }
 
+// D61 — 처리 대기 건수를 그 일을 처리하는 메뉴 옆에 숫자로 붙인다(대기함 항목의 link와 같은 경로).
+function NavBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="nav-badge" aria-label={`처리 대기 ${count}건`}>
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
+
 function NavGroupSection({
   group: groupDef,
   currentPath,
   collapsed,
   onToggle,
+  badgeOf,
 }: {
   group: NavGroupDef;
   currentPath: string;
   collapsed: boolean;
   onToggle: () => void;
+  badgeOf: (to: string) => number;
 }) {
+  const groupTotal = groupDef.items.reduce((sum, item) => sum + badgeOf(item.to), 0);
   // 수동으로 접었어도 지금 보고 있는 화면이 이 그룹 안에 있으면 숨기지 않는다.
   const containsActive = groupDef.items.some((item) => isPathActive(item.to, currentPath));
   const isOpen = !collapsed || containsActive;
@@ -148,13 +163,18 @@ function NavGroupSection({
     <div className="nav-group">
       <button type="button" className="nav-group-head" onClick={onToggle} aria-expanded={isOpen}>
         <span>{groupDef.label}</span>
-        <span className={isOpen ? 'chev open' : 'chev'}>▸</span>
+        <span className="nav-group-tail">
+          {/* 접혀 있으면 그룹 머리에 합계를 보인다 */}
+          {!isOpen && <NavBadge count={groupTotal} />}
+          <span className={isOpen ? 'chev open' : 'chev'}>▸</span>
+        </span>
       </button>
       {isOpen && (
         <div className="nav-group-items">
           {groupDef.items.map((item) => (
             <NavLink key={item.to} to={item.to}>
               {item.label}
+              <NavBadge count={badgeOf(item.to)} />
             </NavLink>
           ))}
         </div>
@@ -174,6 +194,21 @@ export function AppLayout() {
   const [helpOpen, setHelpOpen] = useState(false);
   const closeHelp = useCallback(() => setHelpOpen(false), []);
   const [showPassword, setShowPassword] = useState(false);
+
+  // D61 — 처리 대기 건수(대시보드 카드와 같은 캐시 ['inbox']). 화면을 옮길 때 30초보다 오래된 값이면 다시 받는다 —
+  // 승인·처리 뒤 배지가 줄어들게 하면서, 이동마다 요청을 늘리지 않는다(방문당 호출 가정 D40 ⑩).
+  const queryClient = useQueryClient();
+  const inbox = useQuery<InboxItem[]>({
+    queryKey: ['inbox'],
+    enabled: !!user && user.role !== 'MEMBER',
+    staleTime: 30_000,
+    queryFn: async () => (await api.get<ApiEnvelope<InboxItem[]>>('/inbox')).data.data ?? [],
+  });
+  useEffect(() => {
+    void queryClient.refetchQueries({ queryKey: ['inbox'], stale: true, type: 'active' });
+  }, [location.pathname, queryClient]);
+  const badgeOf = (to: string) => (inbox.data ?? []).filter((i) => i.link === to).reduce((sum, i) => sum + i.count, 0);
+  const inboxTotal = (inbox.data ?? []).reduce((sum, i) => sum + i.count, 0);
 
   if (!user) return null;
 
@@ -197,6 +232,7 @@ export function AppLayout() {
             entry.kind === 'link' ? (
               <NavLink key={entry.link.to} to={entry.link.to} end={entry.link.to === '/'}>
                 {entry.link.label}
+                <NavBadge count={badgeOf(entry.link.to)} />
               </NavLink>
             ) : (
               <NavGroupSection
@@ -205,6 +241,7 @@ export function AppLayout() {
                 currentPath={location.pathname}
                 collapsed={collapsedGroups.has(entry.group.label)}
                 onToggle={() => toggleGroup(entry.group.label)}
+                badgeOf={badgeOf}
               />
             ),
           )}
@@ -218,6 +255,12 @@ export function AppLayout() {
             {user.branchName && <span className="role-badge">{user.branchName}</span>}
           </div>
           <div className="topbar-actions">
+            {/* D61 — 처리할 일이 있으면 합계를 보이고, 누르면 대시보드 처리 대기 카드로 */}
+            {inboxTotal > 0 && (
+              <NavLink to="/" end className="inbox-pill" aria-label={`처리 대기 ${inboxTotal}건`}>
+                처리 대기 <strong>{inboxTotal > 99 ? '99+' : inboxTotal}</strong>
+              </NavLink>
+            )}
             <button
               type="button"
               className={helpOpen ? 'help-btn active' : 'help-btn'}

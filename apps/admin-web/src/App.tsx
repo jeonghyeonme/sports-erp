@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './lib/auth-context';
 import { ToastProvider } from './components/ToastProvider';
@@ -25,7 +25,14 @@ import { PermissionsPage } from './pages/PermissionsPage';
 import { SupportRequestsPage } from './pages/SupportRequestsPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
 
-const queryClient = new QueryClient();
+// D61 — 쓰기가 성공하면 처리 대기 건수(배지·대시보드 카드)를 다시 받는다. 승인·처리한 화면에 머물러도 배지가 줄어든다.
+const queryClient: QueryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['inbox'] });
+    },
+  }),
+});
 
 function ProtectedRoute() {
   const { user } = useAuth();
