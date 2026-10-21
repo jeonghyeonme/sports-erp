@@ -462,3 +462,11 @@ export interface StaffPermissionMatrix {
   role: Role;
   cells: { feature: string; action: PermissionAction; roleDefault: boolean; override: boolean | null; effective: boolean }[];
 }
+
+// D61 — 처리 대기함 항목(GET /inbox). link는 처리할 화면 경로.
+export interface InboxItem {
+  key: string;
+  label: string;
+  count: number;
+  link: string;
+}

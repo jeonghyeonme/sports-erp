@@ -5,6 +5,7 @@ import { useApiList } from '../lib/use-api-list';
 import { BranchContractStatus, BranchSummary } from '../lib/types';
 import { AlertTriangleIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, UsersIcon } from '../components/icons';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
+import { WorkInbox } from '../components/WorkInbox';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_RANK } from '../lib/contract-status';
 
 const AUTO_EXPAND_MAX_BRANCHES = 10;
@@ -194,6 +195,9 @@ export function DashboardPage() {
             : `${user?.branchName ?? '소속 지점'} 현황입니다. 지점 카드를 눌러 소속 직원·회원·프로그램·혼잡도를 확인하세요.`}
         </p>
       </div>
+
+      {/* D61 — 로그인하면 할 일이 먼저 보인다 */}
+      <WorkInbox />
 
       {isLoading && <div className="loading-state">불러오는 중...</div>}
 
