@@ -52,3 +52,7 @@ apps/api/.lambda/
 # e2e(D59) 실행 결과
 e2e/test-results/
 e2e/playwright-report/
+
+# Python 바이트코드(scripts/deliverables 실행 시 생김)
+__pycache__/
+*.pyc
