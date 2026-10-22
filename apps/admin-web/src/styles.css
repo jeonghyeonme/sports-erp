@@ -1426,6 +1426,27 @@ tbody tr:hover td {
   background: var(--color-border-strong);
 }
 
+.rich-link-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.rich-link-form input {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.rich-link-error {
+  width: 100%;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
 .rich-editor-body {
   min-height: 280px;
   padding: 12px 14px;
