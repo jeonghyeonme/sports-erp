@@ -47,6 +47,23 @@ test('지점 관리자: 작성 화면에서 서식 있는 공지를 쓰고 이�
   await page.keyboard.type('오전 휴장');
   await page.getByRole('button', { name: '굵게' }).click(); // 다시 눌러 끈다
   await page.keyboard.type(' 예정');
+  // 한 문단 안에서 고른 부분만 제목이 된다(문단 전체가 아니라)
+  await page.keyboard.press('Home');
+  for (let i = 0; i < '수영장 점검'.length; i++) await page.keyboard.press('Shift+ArrowRight');
+  await page.getByRole('button', { name: '제목', exact: true }).click();
+  await expect(body.locator('h2')).toHaveText('수영장 점검');
+  await expect(body.locator('p').first()).toContainText('안내입니다.');
+  // 링크는 편집기 안 입력칸으로(브라우저 prompt 아님) — 잘못된 주소는 안내, Enter는 글을 제출하지 않는다
+  await page.keyboard.press('Control+End');
+  await page.getByRole('button', { name: '링크' }).click();
+  const linkField = page.getByRole('textbox', { name: '링크 주소' });
+  await linkField.fill('javascript:alert(1)');
+  await linkField.press('Enter');
+  await expect(page.locator('.rich-link-error')).toBeVisible();
+  await linkField.fill('https://spoism.example/notice');
+  await linkField.press('Enter');
+  await expect(page).toHaveURL(/\/board\/new$/);
+  await expect(body.locator('a')).toHaveAttribute('href', 'https://spoism.example/notice');
   // 지점 관리자의 글은 지점 공지(현장 → 이용자)라 공개 범위 선택이 없다 — 회원 공개 여부는 member-notice가 본다.
   // 대상 시설(게시판 ADR-BRD-05, RFP F4-3) — 첫 시설을 고른다.
   const facilitySelect = field(page, '대상 시설');
@@ -63,6 +80,8 @@ test('지점 관리자: 작성 화면에서 서식 있는 공지를 쓰고 이�
   const main = page.locator('main');
   await expect(main).toContainText('수영장 점검 안내입니다.');
   await expect(main.locator('.rich-content strong')).toHaveText('오전 휴장');
+  await expect(main.locator('.rich-content h2')).toHaveText('수영장 점검');
+  await expect(main.locator('.rich-content a')).toHaveAttribute('href', 'https://spoism.example/notice');
   await expect(main).toContainText(`대상 시설 ${facilityName}`);
   await expect(page.locator('.attachment-list')).toContainText('notice.png');
   await expect(page.locator('img.attachment-image')).toHaveJSProperty('complete', true);
