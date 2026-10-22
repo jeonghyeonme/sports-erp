@@ -105,6 +105,7 @@ export class AuthService {
   // 권한관리 A-5 PATCH /auth/password. 사용자 결정(log/091):
   // - 데모 계정 5개는 403 — 바뀌면 로그인 화면의 데모 체험이 깨진다.
   // - 현재 비밀번호가 틀리면 400 CURRENT_PASSWORD_MISMATCH — 401이면 클라이언트가 "토큰 만료"로 보고 재발급·로그아웃한다.
+  // - 바꾸면 임시 비밀번호 상태(mustChangePassword, 보안-6)를 푼다.
   // - 바꾸면 이 계정의 refresh token을 모두 폐기한다(같은 트랜잭션) — 예전 비밀번호로 열린 다른 기기 세션을 끊는다.
   //   이미 발급된 access token은 만료(JWT_ACCESS_EXPIRES_IN)까지 남는다.
   async changePassword(accountId: string, currentPassword: string, newPassword: string): Promise<void> {
@@ -120,7 +121,7 @@ export class AuthService {
     }
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await this.prisma.$transaction([
-      this.prisma.account.update({ where: { id: accountId }, data: { passwordHash } }),
+      this.prisma.account.update({ where: { id: accountId }, data: { passwordHash, mustChangePassword: false } }),
       this.prisma.refreshToken.updateMany({ where: { accountId, revokedAt: null }, data: { revokedAt: new Date() } }),
     ]);
   }
@@ -143,6 +144,7 @@ export class AuthService {
         account.permissions.length > 0
           ? Object.fromEntries(account.permissions.map((p) => [`${p.feature}:${p.action}`, p.allowed]))
           : undefined,
+      mustChangePassword: account.mustChangePassword ? true : undefined,
     };
   }
 

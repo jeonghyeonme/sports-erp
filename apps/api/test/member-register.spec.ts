@@ -51,6 +51,13 @@ describe('POST /members/register (앱 회원가입)', () => {
     expect(res.status).toBe(200);
   });
 
+  it('비밀번호가 영문·숫자 조합이 아니면 400 — 계정이 만들어지지 않는다(보안-9, log/164)', async () => {
+    const res = await register({ password: 'onlyletters' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(await db(app).account.count({ where: { email: 'newbie@example.com' } })).toBe(0);
+  });
+
   it('계약종료 지점에는 신규 가입이 409 BRANCH_TERMINATED(불변규칙 2)', async () => {
     await setBranchStatus(BRANCH.seocho, 'TERMINATED');
     const res = await register({});

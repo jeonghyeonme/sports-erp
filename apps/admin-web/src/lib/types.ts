@@ -18,6 +18,8 @@ export interface AuthUser {
   memberId?: string;
   // D60 3단계 — 지점 관리자·직원의 세부 권한 적용 값(`feature:ACTION` → 허용). 본사·회원은 없다.
   effectivePermissions?: Record<string, boolean>;
+  // 보안-6(log/164) — 채용 때 받은 임시 비밀번호를 아직 바꾸지 않았다. 서버가 업무 API를 403으로 막는다.
+  mustChangePassword?: boolean;
 }
 
 export interface ApiEnvelope<T> {

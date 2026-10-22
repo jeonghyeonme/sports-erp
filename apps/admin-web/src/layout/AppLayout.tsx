@@ -200,7 +200,7 @@ export function AppLayout() {
   const queryClient = useQueryClient();
   const inbox = useQuery<InboxItem[]>({
     queryKey: ['inbox'],
-    enabled: !!user && user.role !== 'MEMBER',
+    enabled: !!user && user.role !== 'MEMBER' && !user.mustChangePassword,
     staleTime: 30_000,
     queryFn: async () => (await api.get<ApiEnvelope<InboxItem[]>>('/inbox')).data.data ?? [],
   });
@@ -211,6 +211,9 @@ export function AppLayout() {
   const inboxTotal = (inbox.data ?? []).reduce((sum, i) => sum + i.count, 0);
 
   if (!user) return null;
+  // 보안-6(log/164) — 임시 비밀번호 상태면 업무 화면을 그리지 않고 변경 창만 보인다(서버도 업무 API를 403으로 막는다).
+  // 바꾸면 서버가 세션을 끊으므로 새 비밀번호로 다시 로그인한다. 창을 닫으면 로그아웃.
+  if (user.mustChangePassword) return <ChangePasswordModal forced onClose={() => logout()} />;
 
   const entries = visibleNav(NAV_BY_ROLE[user.role], (to) => !MENU_FEATURE[to] || can(MENU_FEATURE[to], 'READ'));
 

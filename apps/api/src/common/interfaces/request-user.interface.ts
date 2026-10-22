@@ -13,4 +13,6 @@ export interface RequestUser {
   memberId?: string;
   // D60 — 개인 예외 권한(`feature:ACTION` → 허용 여부). 매 요청 계정과 함께 읽는다(ADR-AUTH-01).
   permissions?: Record<string, boolean>;
+  // 보안-6(log/164) — 임시 비밀번호를 아직 바꾸지 않았다(true일 때만 싣는다). JwtAuthGuard가 인증 경로 밖을 막는다.
+  mustChangePassword?: true;
 }

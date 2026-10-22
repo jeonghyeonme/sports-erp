@@ -48,17 +48,19 @@ enum Role {
 // ── 1-2. 권한관리 / 조직 ────────────────────────────────
 
 model Account {
-  id               String    @id @default(uuid())
-  email            String // 부분 unique(활성 계정끼리만) — 파일 상단 주석 1). findUnique 불가, findFirst 사용
-  passwordHash     String
-  role             Role
-  name             String // SUPER_ADMIN은 Staff/Member 프로필이 없어 이름을 여기 직접 둔다 — Staff/Member 보유 계정도 조회 편의상 함께 저장(항상 그쪽 name과 동기화)
-  isActive         Boolean   @default(true)
-  failedLoginCount Int       @default(0)
-  lockedUntil      DateTime?
-  lastLoginAt      DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                 String    @id @default(uuid())
+  email              String // 부분 unique(활성 계정끼리만) — 파일 상단 주석 1). findUnique 불가, findFirst 사용
+  passwordHash       String
+  role               Role
+  name               String // SUPER_ADMIN은 Staff/Member 프로필이 없어 이름을 여기 직접 둔다 — Staff/Member 보유 계정도 조회 편의상 함께 저장(항상 그쪽 name과 동기화)
+  isActive           Boolean   @default(true)
+  // 보안-6(log/164) — 본사가 채용하며 발급한 임시 비밀번호 상태. 바꾸기 전에는 인증 경로 밖 요청이 403이다.
+  mustChangePassword Boolean   @default(false)
+  failedLoginCount   Int       @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   staff                  Staff?
   member                 Member?

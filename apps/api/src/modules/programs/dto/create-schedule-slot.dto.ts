@@ -1,4 +1,5 @@
-import { IsDateString, IsInt, IsOptional, IsString, Matches, Min } from 'class-validator';
+import { IsDateString, IsInt, IsOptional, IsString, Matches, Max, Min } from 'class-validator';
+import { INPUT_LIMITS } from '../../../common/validation/input-limits';
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -18,5 +19,6 @@ export class CreateScheduleSlotDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(INPUT_LIMITS.HEADCOUNT)
   capacity?: number;
 }

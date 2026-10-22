@@ -1,4 +1,5 @@
-import { IsDateString, IsIn, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import { INPUT_LIMITS } from '../../../common/validation/input-limits';
 import { AgeGroup, PricingType } from '../../../fixtures/mock-data.types';
 
 const AGE_GROUPS: AgeGroup[] = ['ALL', 'CHILD', 'TEEN', 'ADULT', 'SENIOR'];
@@ -31,11 +32,13 @@ export class UpdateProgramDto {
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(INPUT_LIMITS.PRICE_WON)
   price?: number;
 
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(INPUT_LIMITS.HEADCOUNT)
   capacity?: number;
 
   @IsOptional()

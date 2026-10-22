@@ -1,4 +1,5 @@
-import { IsDateString, IsIn, IsInt, IsOptional, IsString, Matches, Min, MinLength } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, Matches, Max, Min, MinLength } from 'class-validator';
+import { INPUT_LIMITS } from '../../../common/validation/input-limits';
 import { DocumentCategory } from '../../../fixtures/mock-data.types';
 
 const CATEGORIES: DocumentCategory[] = ['CONTRACT', 'HR_RECORD', 'MANUAL', 'OTHER'];
@@ -35,6 +36,7 @@ export class CreateDocumentDto {
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(INPUT_LIMITS.DOCUMENT_BYTES)
   fileSize?: number;
 
   // category=CONTRACT일 때 필수(직접 입력, 미입력 시 서비스 계층이 400으로 거부 — ADR-RES-03).

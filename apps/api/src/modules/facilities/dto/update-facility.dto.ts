@@ -1,4 +1,5 @@
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import { INPUT_LIMITS } from '../../../common/validation/input-limits';
 import { FacilityType } from '../../../fixtures/mock-data.types';
 
 const TYPES: FacilityType[] = ['GYM', 'POOL', 'GOLF', 'READING_ROOM', 'ETC'];
@@ -16,6 +17,7 @@ export class UpdateFacilityDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(INPUT_LIMITS.HEADCOUNT)
   capacity?: number;
 
   // ADR-FAC-02 — 운영 중단/재개를 표시. false로 보내면 비활성화(목록 기본 노출에서 제외), true로 되돌리면 재활성화.

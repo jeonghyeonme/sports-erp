@@ -1,4 +1,5 @@
 import { IsBoolean, IsDateString, IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsNewPassword } from '../../../common/validation/password-policy';
 
 // ADR-MEM-02 — 앱 회원가입. Account+Member를 동시에 만든다.
 export class RegisterMemberDto {
@@ -13,8 +14,7 @@ export class RegisterMemberDto {
   @IsEmail()
   email!: string;
 
-  @IsString()
-  @MinLength(8)
+  @IsNewPassword()
   password!: string;
 
   @IsOptional()

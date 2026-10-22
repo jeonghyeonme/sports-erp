@@ -9,6 +9,7 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { ok } from '../../common/http/api-response';
 import { PermissionExempt, EXEMPT } from '../../common/permissions/permission.decorator';
 import { PermissionService } from '../../common/permissions/permission.service';
+import { AllowDuringPasswordChange } from '../../common/decorators/allow-password-change.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -52,12 +53,14 @@ export class AuthController {
 
   @Get('me')
   @PermissionExempt(EXEMPT.self)
+  @AllowDuringPasswordChange()
   async me(@CurrentUser() user: RequestUser) {
     return ok(await this.withPermissions(user));
   }
 
   @Patch('password')
   @PermissionExempt(EXEMPT.self)
+  @AllowDuringPasswordChange()
   async changePassword(@Body() dto: ChangePasswordDto, @CurrentUser() user: RequestUser) {
     await this.authService.changePassword(user.accountId, dto.currentPassword, dto.newPassword);
     return ok({ updated: true });
