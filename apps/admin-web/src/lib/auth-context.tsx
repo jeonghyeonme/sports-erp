@@ -7,8 +7,13 @@ import { apiErrorMessage } from './use-api-list';
 
 interface LoginResult {
   accessToken: string;
+  refreshToken?: string;
   user: AuthUser;
 }
+
+const MEMBER_ACCOUNT_MESSAGE = '회원 계정은 관리자 웹에서 쓸 수 없습니다.\n해결: 아래 "회원 앱"에서 같은 이메일로 로그인하세요.';
+
+class MemberAccountError extends Error {}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -24,11 +29,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await api.post<ApiEnvelope<LoginResult>>('/auth/login', { email, password });
       const result = res.data.data;
       if (!result) throw new Error('empty login response');
+      // D66 — 관리자 웹은 직원 계정(본사·지점 관리자·직원)만 받는다. 회원 계정은 방금 받은 갱신 토큰을 바로 폐기하고
+      // 회원 웹으로 안내한다(서버는 어느 앱에서 왔는지 모르므로 이 판정은 화면 몫 — 회원이 쓸 수 있는 API는 그대로).
+      if (result.user.role === 'MEMBER') {
+        if (result.refreshToken) await api.post('/auth/logout', { refreshToken: result.refreshToken }).catch(() => undefined);
+        throw new MemberAccountError();
+      }
       setAccessToken(result.accessToken);
       setUser(result.user);
     } catch (err) {
       // 서버 오류는 data.error.message에 있다(apiErrorMessage 주석) — 해결 줄도 같은 함수가 붙인다(log/089).
-      const message = (isAxiosError(err) && apiErrorMessage(err)) || '로그인에 실패했습니다.';
+      const message =
+        err instanceof MemberAccountError
+          ? MEMBER_ACCOUNT_MESSAGE
+          : (isAxiosError(err) && apiErrorMessage(err)) || '로그인에 실패했습니다.';
       setError(message);
       throw err;
     } finally {

@@ -34,7 +34,7 @@ export function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <h1>스포이즘 ERP</h1>
-        <p className="subtitle">지점 관리자 웹 · Phase 1 구조 데모</p>
+        <p className="subtitle">본사·지점 관리자 웹</p>
 
         <form onSubmit={submit}>
           <div className="field">
@@ -79,6 +79,11 @@ export function LoginPage() {
             </button>
           ))}
         </div>
+
+        {/* D66 — 회원은 회원 웹을 쓴다. 배포에서는 같은 Worker의 /m/(D41), 로컬 개발은 member-web dev 서버(5174). */}
+        <p className="member-app-link">
+          회원이신가요? <a href="/m/">회원 앱에서 로그인 →</a>
+        </p>
       </div>
     </div>
   );

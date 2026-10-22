@@ -82,14 +82,8 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
       { to: '/facilities', label: '시설·혼잡도' },
     ]),
   ],
-  // MEMBER는 관리 화면 권한이 없어(대부분 API에서 403) "직원"·"권한관리"는 애초에 노출하지 않는다.
-  MEMBER: [
-    link('/', '대시보드'),
-    link('/programs', '프로그램'),
-    link('/reservations', '예약'),
-    link('/board', '게시판'),
-    link('/facilities', '시설·혼잡도'),
-  ],
+  // D66 — 회원은 관리자 웹에 로그인하지 않는다(로그인 단계에서 회원 웹으로 안내). 회원 기능은 apps/member-web.
+  MEMBER: [],
 };
 
 const ROLE_LABEL: Record<Role, string> = {
