@@ -922,6 +922,46 @@ h1 {
   word-break: break-word;
 }
 
+/* D62 — 서식 있는 공지 본문 */
+.notice-body.rich {
+  white-space: normal;
+  line-height: 1.6;
+}
+
+.notice-body.rich p,
+.notice-body.rich ul,
+.notice-body.rich ol,
+.notice-body.rich blockquote {
+  margin: 0 0 8px;
+}
+
+.notice-body.rich h2 {
+  font-size: 1.15em;
+  margin: 14px 0 6px;
+}
+
+.notice-body.rich h3 {
+  font-size: 1.05em;
+  margin: 12px 0 6px;
+}
+
+.notice-body.rich ul,
+.notice-body.rich ol {
+  padding-left: 20px;
+}
+
+.notice-body.rich blockquote {
+  padding: 2px 10px;
+  border-left: 3px solid currentColor;
+  opacity: 0.8;
+}
+
+.notice-body.rich hr {
+  border: none;
+  border-top: 1px solid rgba(127, 127, 127, 0.3);
+  margin: 12px 0;
+}
+
 /* 공지 첨부(log/133) — 이미지는 화면 폭에 맞추고, 받는 동안 같은 자리를 잡아 둔다. */
 .notice-image {
   display: block;

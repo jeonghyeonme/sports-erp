@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './lib/auth-context';
@@ -24,6 +25,14 @@ import { DocumentsPage } from './pages/DocumentsPage';
 import { PermissionsPage } from './pages/PermissionsPage';
 import { SupportRequestsPage } from './pages/SupportRequestsPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
+
+// D62 — 서식 편집기(TipTap)는 무거워서 글쓰기·수정 화면에 들어갈 때만 내려받는다
+const PostEditorPage = lazy(() => import('./pages/PostEditorPage').then((m) => ({ default: m.PostEditorPage })));
+const editorPage = (
+  <Suspense fallback={<div className="loading-state">불러오는 중...</div>}>
+    <PostEditorPage />
+  </Suspense>
+);
 
 // D61 — 쓰기가 성공하면 처리 대기 건수(배지·대시보드 카드)를 다시 받는다. 승인·처리한 화면에 머물러도 배지가 줄어든다.
 const queryClient: QueryClient = new QueryClient({
@@ -61,6 +70,8 @@ export default function App() {
                   <Route path="/programs" element={<ProgramsPage />} />
                   <Route path="/instructors" element={<InstructorsPage />} />
                   <Route path="/board" element={<BoardPage />} />
+                  <Route path="/board/new" element={editorPage} />
+                  <Route path="/board/:id/edit" element={editorPage} />
                   <Route path="/board/:id" element={<PostDetailPage />} />
                   <Route path="/facilities" element={<FacilitiesPage />} />
                   <Route path="/reservations" element={<ReservationsPage />} />

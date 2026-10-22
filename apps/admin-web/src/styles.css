@@ -1372,3 +1372,126 @@ tbody tr:hover td {
   font-size: 12px;
   text-decoration: none;
 }
+
+/* D62 — 게시글 서식 편집기(글쓰기·수정 화면)와 본문 보기 */
+.rich-editor {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.rich-editor:focus-within {
+  border-color: var(--color-primary);
+}
+
+.rich-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.rich-tool {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.rich-tool:hover {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.rich-tool.active {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.rich-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--color-border-strong);
+}
+
+.rich-editor-body {
+  min-height: 280px;
+  padding: 12px 14px;
+  outline: none;
+  line-height: 1.6;
+}
+
+.rich-editor-body > :first-child,
+.rich-content > :first-child {
+  margin-top: 0;
+}
+
+.rich-content {
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+.rich-editor-body p,
+.rich-content p {
+  margin: 0 0 8px;
+}
+
+.rich-editor-body h2,
+.rich-content h2 {
+  font-size: 18px;
+  margin: 16px 0 8px;
+}
+
+.rich-editor-body h3,
+.rich-content h3 {
+  font-size: 15px;
+  margin: 14px 0 6px;
+}
+
+.rich-editor-body ul,
+.rich-editor-body ol,
+.rich-content ul,
+.rich-content ol {
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+
+.rich-editor-body blockquote,
+.rich-content blockquote {
+  margin: 0 0 8px;
+  padding: 4px 12px;
+  border-left: 3px solid var(--color-border-strong);
+  color: var(--color-text-muted);
+}
+
+.rich-editor-body hr,
+.rich-content hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 12px 0;
+}
+
+.rich-editor-body a,
+.rich-content a {
+  color: var(--color-primary);
+}
+
+.rich-editor-body code,
+.rich-content code {
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  font-size: 0.92em;
+}
