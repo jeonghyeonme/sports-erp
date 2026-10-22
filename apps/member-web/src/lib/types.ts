@@ -98,9 +98,11 @@ export interface Facility {
   name: string;
   type: 'GYM' | 'POOL' | 'GOLF' | 'READING_ROOM' | 'ETC';
   capacity: number;
-  currentCount: number;
+  currentCount: number; // ADR-FAC-05 — 예약 외 현장 인원(지점 입력)
+  reservedCount: number; // 지금 진행 중인 강습의 확정·체크인 예약 수
+  totalCount: number; // 예약 + 현장 — level은 이 값 기준
   level: number; // 1~5(혼잡도관리 A-6)
-  lastUpdatedAt: string; // ADR-FAC-01
+  lastUpdatedAt: string; // ADR-FAC-01 — 현장 인원을 마지막으로 입력한 시각
 }
 
 export interface Post {

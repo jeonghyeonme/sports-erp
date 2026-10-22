@@ -338,9 +338,11 @@ export interface FacilityRow {
   name: string;
   type: FacilityType;
   capacity: number;
-  currentCount: number;
+  currentCount: number; // ADR-FAC-05 — 예약 외 현장 인원(관리자 입력)
+  reservedCount: number; // 지금 진행 중인 회차의 확정·체크인 예약 수(조회 때 계산)
+  totalCount: number; // 예약 + 현장 — level은 이 값 기준
   level: number;
-  lastUpdatedAt: string;
+  lastUpdatedAt: string; // 현장 인원을 마지막으로 입력한 시각
   isActive: boolean;
 }
 

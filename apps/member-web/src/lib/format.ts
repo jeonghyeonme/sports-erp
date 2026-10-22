@@ -26,14 +26,14 @@ export function isBeforeCancelDeadline(slot: Pick<ScheduleSlot, 'date' | 'startT
   return slotStartMs(slot) - now >= CANCEL_DEADLINE_HOURS * 60 * 60 * 1000;
 }
 
-// ADR-FAC-01·04 — "N분 전 갱신". 혼잡도는 관리자가 보정할 때만 바뀌므로 분 단위면 충분하다.
+// ADR-FAC-01·04·05 — "N분 전". 현장 인원은 지점이 입력할 때만 바뀌므로 분 단위면 충분하다.
 export function sinceLabel(iso: string, now: number): string {
   const minutes = Math.floor((now - new Date(iso).getTime()) / 60_000);
-  if (minutes < 1) return '방금 갱신';
-  if (minutes < 60) return `${minutes}분 전 갱신`;
+  if (minutes < 1) return '방금';
+  if (minutes < 60) return `${minutes}분 전`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전 갱신`;
-  return `${Math.floor(hours / 24)}일 전 갱신`;
+  if (hours < 24) return `${hours}시간 전`;
+  return `${Math.floor(hours / 24)}일 전`;
 }
 
 // 공지 게시일(KST 달력 날짜 YYYY-MM-DD) → "10. 8."

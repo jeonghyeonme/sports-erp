@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { useLoad } from '../lib/use-load';
 import { describeError } from '../lib/errors';
 import { sinceLabel } from '../lib/format';
-import { HOME_CARD_CACHE_MS, LEVEL_LABELS, REFRESH_COOLDOWN_MS } from '../lib/congestion';
+import { CONGESTION_URL, HOME_CARD_CACHE_MS, LEVEL_LABELS, REFRESH_COOLDOWN_MS } from '../lib/congestion';
 import { Facility } from '../lib/types';
 import { SkeletonLines } from './Skeleton';
 
 // 홈 혼잡도 카드 — GET /facilities 1회(지점은 서버가 본인 지점으로 강제, 운영 중 시설만). 60초 안에 다시 오면 0회(캐시).
 // ADR-FAC-04: 자동 폴링하지 않는다. 새로고침 버튼은 마지막 조회 뒤 30초가 지나야 다시 누를 수 있다.
 export function CongestionCard() {
-  const { data, error, loading, reload, fetchedAt } = useLoad<Facility[]>('/facilities', { cacheMs: HOME_CARD_CACHE_MS });
+  const { data, error, loading, reload, fetchedAt } = useLoad<Facility[]>(CONGESTION_URL, { cacheMs: HOME_CARD_CACHE_MS });
   // 시계 상태 — "N분 전"과 버튼 잠금 해제를 위해 화면 안에서만 흐른다(네트워크 호출 없음).
   const [now, setNow] = useState(() => Date.now());
 
@@ -35,10 +35,6 @@ export function CongestionCard() {
 
   const facilities = data ?? [];
   const staleCount = facilities.filter((f) => now - new Date(f.lastUpdatedAt).getTime() > 30 * 60_000).length;
-  const latest = facilities.reduce<string | null>(
-    (acc, f) => (acc === null || f.lastUpdatedAt > acc ? f.lastUpdatedAt : acc),
-    null,
-  );
 
   return (
     <section className="panel stack-sm" aria-labelledby="congestion-title">
@@ -76,14 +72,19 @@ export function CongestionCard() {
                   ))}
                 </span>
                 <span className={`level-label level-${f.level}`}>{LEVEL_LABELS[f.level] ?? '-'}</span>
+                {/* ADR-FAC-05 — 예약 인원(자동) + 현장 인원(지점 입력). 현장 인원은 입력값이라 "약"으로 추정치임을 밝힌다. */}
+                <span className="congestion-detail muted">
+                  약 {f.totalCount}명/{f.capacity} · 강습 {f.reservedCount} + 현장 {f.currentCount} (
+                  {sinceLabel(f.lastUpdatedAt, now)})
+                </span>
               </li>
             ))}
           </ul>
-          {latest && <p className="muted">{sinceLabel(latest, now)}</p>}
-          {/* RFP "최대 30분 이내 반영" — 지점이 직접 입력하는 값이라 30분 넘게 그대로인 시설이 있으면 알린다(log/114). */}
+          <p className="muted">강습은 진행 중인 강습의 예약 인원이고, 현장은 지점이 입력한 인원입니다(괄호는 입력 시각).</p>
+          {/* RFP "최대 30분 이내 반영" — 현장 인원은 지점이 직접 입력하는 값이라 30분 넘게 그대로인 시설이 있으면 알린다(log/114). */}
           {staleCount > 0 && (
             <p className="muted" role="note">
-              일부 시설은 30분 넘게 갱신되지 않아 지금과 다를 수 있습니다.
+              일부 시설은 현장 인원이 30분 넘게 갱신되지 않아 지금과 다를 수 있습니다.
             </p>
           )}
         </>
