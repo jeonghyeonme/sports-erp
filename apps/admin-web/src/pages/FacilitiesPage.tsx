@@ -31,7 +31,8 @@ function formatFreshness(lastUpdatedAt: string): string {
   return `${Math.floor(hours / 24)}일 전 갱신`;
 }
 
-// RFP 혼잡도 "실시간 혹은 최대 30분 이내 반영" — 수동 보정이라 30분이 지나면 다시 입력하라고 알린다(log/114).
+// RFP 혼잡도 "실시간 혹은 최대 30분 이내 반영" — 예약 인원은 조회 때 자동으로 더하지만(ADR-FAC-05) 현장 인원은
+// 관리자 입력이라 30분이 지나면 다시 입력하라고 알린다(log/114).
 const STALE_MINUTES = 30;
 function isStale(lastUpdatedAt: string): boolean {
   return Date.now() - new Date(lastUpdatedAt).getTime() > STALE_MINUTES * 60000;
@@ -194,7 +195,7 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['facilities'] });
       setManualCount('');
-      toast.success(`혼잡도를 보정했습니다(현재 ${updated.currentCount}명, ${updated.level}단계).`);
+      toast.success(`현장 인원을 ${updated.currentCount}명으로 입력했습니다(예약 포함 ${updated.totalCount}명, ${updated.level}단계).`);
     },
   });
 
@@ -233,25 +234,30 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
       <div className="stat-row">
         <span>현재 인원</span>
         <strong>
-          {facility.currentCount} / {facility.capacity}명
+          {facility.totalCount} / {facility.capacity}명
         </strong>
       </div>
       <div className="congestion-bar">
         <div
           className="congestion-bar-fill"
-          style={{ width: `${Math.min(100, (facility.currentCount / facility.capacity) * 100)}%` }}
+          style={{ width: `${Math.min(100, (facility.totalCount / facility.capacity) * 100)}%` }}
         />
+      </div>
+      <div className="stat-row" style={{ marginTop: 4 }}>
+        <span style={{ fontSize: 12, color: '#6b7280' }}>
+          진행 중 강습(예약) {facility.reservedCount}명 + 현장 {facility.currentCount}명
+        </span>
       </div>
       <div className="stat-row" style={{ marginTop: 8 }}>
         <span>혼잡도 단계</span>
         <strong>{facility.level} / 5</strong>
       </div>
       <div className="stat-row" style={{ marginTop: 4 }}>
-        <span style={{ fontSize: 12, color: '#6b7280' }}>{formatFreshness(facility.lastUpdatedAt)}</span>
+        <span style={{ fontSize: 12, color: '#6b7280' }}>현장 인원 {formatFreshness(facility.lastUpdatedAt)}</span>
       </div>
       {facility.isActive && isStale(facility.lastUpdatedAt) && (
         <div className="forbidden-note" style={{ marginTop: 6 }}>
-          {STALE_MINUTES}분 넘게 갱신되지 않았습니다. 현재 인원을 다시 입력해 주세요(RFP 30분 이내 반영).
+          현장 인원이 {STALE_MINUTES}분 넘게 갱신되지 않았습니다. 다시 입력해 주세요(RFP 30분 이내 반영).
         </div>
       )}
 
@@ -261,13 +267,13 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
             <input
               type="number"
               min={0}
-              placeholder="인원 수동 보정"
+              placeholder="예약 외 현장 인원" aria-label="예약 외 현장 인원"
               value={manualCount} inputMode="numeric"
               onChange={(e) => setManualCount(e.target.value)}
               style={{ width: 120 }}
             />
             <button type="submit" className="btn-secondary" disabled={correctMutation.isPending}>
-              보정
+              입력
             </button>
             <button type="button" className="btn-secondary" onClick={() => setEditing(true)}>
               정보 수정
@@ -292,7 +298,7 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
             </div>
           )}
           <p style={{ fontSize: 12, color: '#6b7280', marginTop: 6, marginBottom: 0 }}>
-            자동 계산이 붙기 전까지는 이 값이 조회 화면에 그대로 노출됩니다.
+            예약 인원은 진행 중인 회차에서 자동으로 더해집니다. 여기에는 예약 없이 이용 중인 인원만 넣으세요.
           </p>
         </>
       )}
@@ -356,8 +362,8 @@ export function FacilitiesPage() {
         <div>
           <h2>시설 · 혼잡도</h2>
           <p className="page-desc" style={{ marginBottom: 0 }}>
-            혼잡도관리 문서 기준입니다. 실제로는 5분 주기 자동계산(Phase 2)이지만 지금은 BRANCH_ADMIN이 수동으로 보정한
-            값이 그대로 노출됩니다. 지점별로 묶어서 보여줍니다(지점이 많으면 지점명으로 검색해 좁혀보세요).
+            혼잡도는 진행 중인 강습의 예약 인원(자동)과 지점이 입력한 현장 인원을 더한 값입니다(ADR-FAC-05). 지점별로
+            묶어서 보여줍니다(지점이 많으면 지점명으로 검색해 좁혀보세요).
           </p>
         </div>
         {canCreate && activeTab === 'ACTIVE' && (

@@ -61,7 +61,7 @@ npm run e2e                    # 화면 자동 테스트(D59) — 먼저 api 빌
 
 앱별 lint·build·test와 테스트 DB 준비는 각 앱의 CLAUDE.md에 있다.
 
-**검증 수단:** CI(`.github/workflows/ci.yml` — PR과 `dev`·`main` push에서 api lint·빌드·jest, admin-web·member-web lint·빌드, 화면 자동 테스트 e2e(D59), doc-check)와 커밋 전 hook(`.claude/hooks/pre-commit-check.js` — `apps/`·`packages/` 변경 시 세 앱 lint·빌드와 api jest, 문서 변경 시 doc-check). jest는 도메인 핵심 규칙(지점 격리·계약 종료 차단·인사 권한 분리)과 실DB 동시성·도메인 규칙을 본다 — 도메인별 범위는 각 도메인 문서 §11. admin-web·member-web은 역할별 핵심 경로만 화면 자동 테스트(`e2e/`, Playwright 12건 — 커밋 hook에는 없고 CI에서만)가 보고, 나머지 화면은 lint+빌드(타입체크)뿐이다.
+**검증 수단:** CI(`.github/workflows/ci.yml` — PR과 `dev`·`main` push에서 api lint·빌드·jest, admin-web·member-web lint·빌드, 화면 자동 테스트 e2e(D59), doc-check)와 커밋 전 hook(`.claude/hooks/pre-commit-check.js` — `apps/`·`packages/` 변경 시 세 앱 lint·빌드와 api jest, 문서 변경 시 doc-check). jest는 도메인 핵심 규칙(지점 격리·계약 종료 차단·인사 권한 분리)과 실DB 동시성·도메인 규칙을 본다 — 도메인별 범위는 각 도메인 문서 §11. admin-web·member-web은 역할별 핵심 경로만 화면 자동 테스트(`e2e/`, Playwright 14건 — 커밋 hook에는 없고 CI에서만)가 보고, 나머지 화면은 lint+빌드(타입체크)뿐이다.
 
 ## 프로젝트 가드레일
 

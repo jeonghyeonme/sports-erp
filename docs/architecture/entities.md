@@ -34,7 +34,8 @@ Staff 1─N Member(담당 회원, assignedStaffId)
 
 Facility 1─N Program(nullable)
 Facility 1─N CongestionSnapshot(혼잡도 스냅샷 — 미사용)
-Facility 1─N FacilityCheckIn N─1 Member(체크인/아웃 — 미사용, 혼잡도 자동계산은 범위 제외)
+Facility 1─N FacilityCheckIn N─1 Member(체크인/아웃 — 미사용, 입장 기록 기반 혼잡도는 보류 — 혼잡도관리 ADR-FAC-05)
+Facility.currentCount = 예약 외 현장 인원(관리자 입력). 혼잡도 합계는 진행 중 회차의 예약 인원을 조회 때 더한다(ADR-FAC-05)
 
 Program 1─N ScheduleSlot(회차), Program 1─N ProgramScheduleTemplate(회차 일괄 생성 틀 — 미사용)
 Program N─1 Instructor(강사, nullable)

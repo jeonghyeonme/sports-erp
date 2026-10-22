@@ -357,13 +357,13 @@ export function FacilityCards({ rows }: { rows: FacilityRow[] }) {
           <div className="stat-row">
             <span>현재 인원</span>
             <strong>
-              {f.currentCount} / {f.capacity}명
+              {f.totalCount} / {f.capacity}명
             </strong>
           </div>
           <div className="congestion-bar">
             <div
               className="congestion-bar-fill"
-              style={{ width: `${Math.min(100, (f.currentCount / f.capacity) * 100)}%` }}
+              style={{ width: `${Math.min(100, (f.totalCount / f.capacity) * 100)}%` }}
             />
           </div>
           <div className="stat-row" style={{ marginTop: 8 }}>

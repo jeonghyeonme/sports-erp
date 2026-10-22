@@ -43,8 +43,7 @@ export class FacilitiesController {
     return ok(await this.facilityService.update(id, dto));
   }
 
-  // 혼잡도관리 A-6·A-5 "수동 보정"(source=MANUAL) — Phase 2 자동계산 스케줄러가 생기기 전까지는
-  // 이 값이 조회 API의 최신값으로 그대로 노출된다.
+  // 혼잡도관리 A-5 — 예약 외 현장 인원 입력(ADR-FAC-05). 조회 응답은 이 값에 진행 중 회차의 예약 인원을 더한다.
   @Post(':id/congestion/manual')
   @Roles('BRANCH_ADMIN')
   @ScopedResource('facility')

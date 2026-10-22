@@ -820,6 +820,14 @@ h1 {
   gap: 12px;
 }
 
+/* ADR-FAC-05 — 시설 줄 아래에 "약 N명 / 정원 · 강습 + 현장 · 입력 시각"을 한 줄로 */
+.congestion-detail {
+  grid-column: 1 / -1;
+  margin-top: -8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .congestion-name {
   overflow: hidden;
   text-overflow: ellipsis;
