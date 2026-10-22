@@ -6,8 +6,8 @@ import { useLoad } from '../lib/use-load';
 import { describeError, errorCode } from '../lib/errors';
 import { isMinor, PHONE_RE, todayKst } from '../lib/format';
 import { ApiEnvelope, LoginResult } from '../lib/types';
+import { PASSWORD_RULE_LABEL, passwordProblem } from '../lib/password-rule';
 
-const MIN_PASSWORD = 8; // RegisterMemberDto @MinLength(8)
 
 interface PublicBranch {
   id: string;
@@ -76,7 +76,8 @@ export function SignupPage() {
     if (!email) return setError('이메일을 입력해 주세요.');
     // D51 — 개인정보 수집·이용 동의는 화면에서 받는다. 동의 시각은 저장하지 않는다(스키마 변경이라 승인 대상).
     if (!form.privacyConsent) return setError('개인정보 수집·이용에 동의해야 가입할 수 있습니다.');
-    if (form.password.length < MIN_PASSWORD) return setError(`비밀번호는 ${MIN_PASSWORD}자 이상이어야 합니다.`);
+    const problem = passwordProblem(form.password);
+    if (problem) return setError(problem);
     if (form.password !== form.confirm) return setError('비밀번호 확인이 일치하지 않습니다.');
 
     setSubmitting(true);
@@ -206,7 +207,7 @@ export function SignupPage() {
           />
         </label>
         <label className="field">
-          <span>비밀번호({MIN_PASSWORD}자 이상)</span>
+          <span>비밀번호({PASSWORD_RULE_LABEL})</span>
           <input
             type="password"
             autoComplete="new-password"

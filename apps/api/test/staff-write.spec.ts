@@ -39,11 +39,14 @@ describe('직원 쓰기의 DB 반영', () => {
     expect(staff).toMatchObject({ staffCode: 'SEOCHO-003' });
     expect(await prisma.staffAssignment.count({ where: { staffId: id } })).toBe(1);
     expect(staff.account).toMatchObject({ email: 'new.hire@spoism.example', role: 'STAFF', isActive: true });
-    // 새 직원은 바로 로그인된다(계정이 DB에 있음)
-    expect((await request(app.getHttpServer()).post('/api/v1/auth/login').send({
-      email: 'new.hire@spoism.example',
-      password: 'demo-password-1234',
-    })).status).toBe(200);
+    // 새 직원은 응답의 임시 비밀번호로 바로 로그인된다(계정이 DB에 있음). 데모 비밀번호로는 안 된다(보안-6, log/164).
+    const temp = res.body.data.temporaryPassword as string;
+    expect(temp).toMatch(/^(?=.*[A-Za-z])(?=.*[0-9]).{12}$/);
+    expect(staff.account.mustChangePassword).toBe(true);
+    const loginAs = (password: string) =>
+      request(app.getHttpServer()).post('/api/v1/auth/login').send({ email: 'new.hire@spoism.example', password });
+    expect((await loginAs('demo-password-1234')).status).toBe(401);
+    expect((await loginAs(temp)).status).toBe(200);
   });
 
   it('채용: 이메일은 직원 계정과도, 회원 계정과도 겹치면 409(D32부터 둘 다 DB)', async () => {

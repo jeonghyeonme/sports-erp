@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Role, Staff, StaffAssignment } from '@prisma/client';
-import { MOCK_DEMO_PASSWORD } from '../../fixtures/demo-password';
 import { MockStaff, MockStaffAssignment } from '../../fixtures/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
@@ -10,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
 import { recalculateHrRetention } from '../documents/document.service';
 import * as bcrypt from 'bcrypt';
+import { generateTemporaryPassword } from '../../common/validation/temporary-password';
 
 type StaffRow = Staff & { branch: { name: string } };
 export type StaffView = MockStaff & { branchName: string };
@@ -87,13 +87,16 @@ export class StaffService {
       note?: string;
     },
     assignedByAccountId: string,
-  ): Promise<StaffView> {
+  ): Promise<StaffView & { temporaryPassword: string }> {
     // ADR-MEM-02 — 활성 계정끼리 이메일 유일. D32부터 회원 계정도 DB라 DB 한 곳만 본다(D30 결정 4 종료).
     if (await this.prisma.account.findFirst({ where: { email: input.email, isActive: true }, select: { id: true } })) {
       throw emailTaken();
     }
     const hireDate = input.hireDate ?? todayKst();
-    const passwordHash = await bcrypt.hash(MOCK_DEMO_PASSWORD, 10); // 채용 시 임시 비밀번호(데모) — 기존 mock 동작과 같다
+    // 보안-6(log/164) — 임시 비밀번호는 무작위로 만들어 응답에 한 번만 싣고(저장은 해시만), 첫 로그인 뒤 바꾸게 한다.
+    // 예전에는 공개 저장소의 데모 비밀번호와 같아 새로 채용한 계정을 누구나 쓸 수 있었다(security-plan S3).
+    const temporaryPassword = generateTemporaryPassword();
+    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
 
     let staffId: string;
     try {
@@ -105,7 +108,7 @@ export class StaffService {
         if (branch.contractStatus === 'TERMINATED') throw terminatedBranch();
 
         const account = await tx.account.create({
-          data: { email: input.email, passwordHash, role: 'STAFF', name: input.name },
+          data: { email: input.email, passwordHash, role: 'STAFF', name: input.name, mustChangePassword: true },
         });
         const staff = await tx.staff.create({
           data: {
@@ -135,7 +138,7 @@ export class StaffService {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw emailTaken();
       throw e;
     }
-    return this.afterWrite(staffId);
+    return { ...(await this.afterWrite(staffId)), temporaryPassword };
   }
 
   /** 인사정보관리 A-5 PATCH /staff/:id — 지점은 파견 발령으로만 바꾼다. 파트타임은 휴무 요일을 쓰지 않는다(ATT-T05). */

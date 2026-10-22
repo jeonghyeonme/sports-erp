@@ -1,4 +1,5 @@
-import { IsDateString, IsIn, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import { INPUT_LIMITS } from '../../../common/validation/input-limits';
 import { AgeGroup, PricingType } from '../../../fixtures/mock-data.types';
 
 const AGE_GROUPS: AgeGroup[] = ['ALL', 'CHILD', 'TEEN', 'ADULT', 'SENIOR'];
@@ -26,11 +27,13 @@ export class CreateProgramDto {
   // FREE_ACCESS면 서버가 무시하고 0/undefined로 강제 정규화한다(program.service.ts의 가격 정규화 참고).
   @IsInt()
   @Min(0)
+  @Max(INPUT_LIMITS.PRICE_WON)
   price!: number;
 
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(INPUT_LIMITS.HEADCOUNT)
   capacity?: number;
 
   @IsOptional()

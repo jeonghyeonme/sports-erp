@@ -1,4 +1,5 @@
-import { IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import { INPUT_LIMITS } from '../../../common/validation/input-limits';
 
 export class UpdateAssetDto {
   @IsOptional()
@@ -13,11 +14,13 @@ export class UpdateAssetDto {
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(INPUT_LIMITS.QUANTITY)
   quantity?: number;
 
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(INPUT_LIMITS.USEFUL_LIFE_YEARS)
   usefulLifeYears?: number;
 
   @IsOptional()

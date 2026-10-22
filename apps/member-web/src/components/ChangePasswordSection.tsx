@@ -3,8 +3,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { describeError } from '../lib/errors';
 import { DEMO_MEMBER_EMAILS } from '../lib/demo-account';
-
-const MIN_LENGTH = 8; // ChangePasswordDto @MinLength(8)
+import { PASSWORD_RULE_LABEL, passwordProblem } from '../lib/password-rule';
 
 // 내 정보 > 비밀번호 변경(PATCH /auth/password, 권한관리 A-5). 사용자 결정(log/091):
 // 바꾸면 서버가 모든 refresh token을 폐기하므로 바로 로그인 화면으로 보내고 안내를 남긴다. 데모 계정은 안내만 보인다.
@@ -29,7 +28,8 @@ export function ChangePasswordSection() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (next.length < MIN_LENGTH) return setFormError(`새 비밀번호는 ${MIN_LENGTH}자 이상이어야 합니다.`);
+    const problem = passwordProblem(next);
+    if (problem) return setFormError(problem);
     if (next !== confirm) return setFormError('새 비밀번호 확인이 일치하지 않습니다.');
     if (next === current) return setFormError('새 비밀번호가 지금 비밀번호와 같습니다.');
     setSaving(true);
@@ -59,7 +59,7 @@ export function ChangePasswordSection() {
             <input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
           </label>
           <label className="field">
-            <span>새 비밀번호({MIN_LENGTH}자 이상)</span>
+            <span>새 비밀번호({PASSWORD_RULE_LABEL})</span>
             <input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
           </label>
           <label className="field">

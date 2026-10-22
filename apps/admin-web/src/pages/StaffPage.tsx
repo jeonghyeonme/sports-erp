@@ -8,7 +8,6 @@ import { useCan } from '../lib/use-can';
 import { useToast } from '../lib/use-toast';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { groupByBranch } from '../lib/group-by-branch';
-import { DEMO_PASSWORD } from '../lib/demo-account';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { Modal } from '../components/Modal';
 import { ChangeRequestInbox, MyChangeRequests } from '../components/StaffChangeRequests';
@@ -82,7 +81,7 @@ function HireStaffModal({ onClose }: { onClose: () => void }) {
   const branchesQuery = useApiList<BranchSummary>(['branches'], '/branches');
   const branches = (branchesQuery.data ?? []).filter((b) => b.contractStatus !== 'TERMINATED');
 
-  const hireMutation = useMutation<StaffRow, AxiosError<ApiErrorBody>, HireForm>({
+  const hireMutation = useMutation<StaffRow & { temporaryPassword: string }, AxiosError<ApiErrorBody>, HireForm>({
     mutationFn: async (dto) => {
       const payload = {
         branchId: dto.branchId,
@@ -94,16 +93,18 @@ function HireStaffModal({ onClose }: { onClose: () => void }) {
         hireDate: dto.hireDate || undefined,
         note: dto.note || undefined,
       };
-      return (await api.post<ApiEnvelope<StaffRow>>('/staff', payload)).data.data!;
+      return (await api.post<ApiEnvelope<StaffRow & { temporaryPassword: string }>>('/staff', payload)).data.data!;
     },
     onSuccess: (created, dto) => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
       queryClient.invalidateQueries({ queryKey: ['branches'] });
       // 사용자 결정(log/090) — 로그인 정보는 직접 전달해야 하는 정보라 닫을 때까지 남는 warning으로 보인다.
+      // 보안-6(log/164) — 임시 비밀번호는 서버가 무작위로 만들어 이 응답에만 싣는다. 다시 볼 수 없다.
       toast.warning(
         `${created.name}님을 ${created.branchName ?? ''}에 채용했습니다(${created.staffCode}).\n` +
-          `로그인: ${dto.email.trim()} / 임시 비밀번호 ${DEMO_PASSWORD}(데모 공통)`,
+          `로그인: ${dto.email.trim()} / 임시 비밀번호 ${created.temporaryPassword}\n` +
+          '이 창을 닫으면 다시 볼 수 없습니다. 직원은 첫 로그인 때 비밀번호를 바꿔야 합니다.',
       );
       onClose();
       navigate(`/staff/${created.id}`);
@@ -173,7 +174,7 @@ function HireStaffModal({ onClose }: { onClose: () => void }) {
           <input value={form.note} onChange={(e) => set({ note: e.target.value })} />
         </div>
         <p className="page-desc" style={{ marginTop: 12, marginBottom: 0 }}>
-          채용하면 지점 직원(STAFF) 계정이 데모 공통 비밀번호로 만들어지고, 그 지점으로 첫 파견이 기록됩니다. 지점 관리자
+          채용하면 지점 직원(STAFF) 계정이 무작위 임시 비밀번호로 만들어지고(채용 직후 한 번만 보임, 첫 로그인 때 변경), 그 지점으로 첫 파견이 기록됩니다. 지점 관리자
           권한은 "권한 관리"에서 줍니다.
         </p>
 

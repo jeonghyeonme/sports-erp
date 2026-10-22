@@ -1,4 +1,5 @@
-import { IsDateString, IsIn, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import { INPUT_LIMITS } from '../../../common/validation/input-limits';
 import { AssetCategory, AssetType } from '../../../fixtures/mock-data.types';
 
 const CATEGORIES: AssetCategory[] = ['EXERCISE_EQUIPMENT', 'SAFETY_EQUIPMENT', 'OFFICE_FURNITURE', 'OTHER'];
@@ -22,6 +23,7 @@ export class CreateAssetDto {
 
   @IsInt()
   @Min(0)
+  @Max(INPUT_LIMITS.ACQUISITION_COST_WON)
   acquisitionCost!: number;
 
   // 비우면 취득가액 100만원 기준으로 자동 판정한다.
@@ -32,11 +34,13 @@ export class CreateAssetDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(INPUT_LIMITS.USEFUL_LIFE_YEARS)
   usefulLifeYears?: number;
 
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(INPUT_LIMITS.QUANTITY)
   quantity?: number;
 
   @IsOptional()

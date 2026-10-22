@@ -5,8 +5,8 @@ import { useAuth } from '../lib/use-auth';
 import { describeError } from '../lib/errors';
 import { PHONE_RE } from '../lib/format';
 import { ApiEnvelope, LoginResult } from '../lib/types';
+import { PASSWORD_RULE_LABEL, passwordProblem } from '../lib/password-rule';
 
-const MIN_PASSWORD = 8; // LinkMemberDto @MinLength(8)
 
 // 지점 등록 회원의 앱 연동(POST /members/link, ADR-MEM-01) — 회원번호+전화번호가 둘 다 맞아야 하고,
 // 회원번호당 1시간 5회까지 시도할 수 있다(LINK_ATTEMPTS_EXCEEDED). 성공하면 응답의 세션으로 바로 로그인한다(log/092).
@@ -27,7 +27,8 @@ export function LinkPage() {
     if (!memberNo.trim()) return setError('회원번호를 입력해 주세요.');
     if (!PHONE_RE.test(phone.trim())) return setError('지점에 등록한 연락처를 010-1234-5678 형식으로 입력해 주세요.');
     if (!email.trim()) return setError('이메일을 입력해 주세요.');
-    if (password.length < MIN_PASSWORD) return setError(`비밀번호는 ${MIN_PASSWORD}자 이상이어야 합니다.`);
+    const problem = passwordProblem(password);
+    if (problem) return setError(problem);
     if (password !== confirm) return setError('비밀번호 확인이 일치하지 않습니다.');
 
     setSubmitting(true);
@@ -86,7 +87,7 @@ export function LinkPage() {
           />
         </label>
         <label className="field">
-          <span>비밀번호({MIN_PASSWORD}자 이상)</span>
+          <span>비밀번호({PASSWORD_RULE_LABEL})</span>
           <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
         <label className="field">
