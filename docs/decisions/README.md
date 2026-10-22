@@ -73,6 +73,7 @@
 | [D63](D63.md) | 운영 의존성 취약점 — 같은 메이저 고정(overrides·audit fix)·bcrypt 6으로 18 → 4건, 도달 불가한 NestJS SSE·react-router 이동 2건은 메이저 업그레이드 미룸 | 적용(2026-10-22, log/158) — 결정 4(미룸)는 **D65가 대체** | SSE 도입·사용자 경로 이동 도입 시, 운영 의존성에 새 심각/높음 권고 |
 | [D64](D64.md) | 개발 도구 취약점 — 같은 메이저 overrides(picomatch·glob·ajv·webpack·tmp)·vite 6으로 뿌리 10 → 2, 고친 판이 없는 braces·sprintf-js는 수용 | 적용(2026-10-22, log/159) | 고친 판이 나올 때, jest·nest cli 메이저 업그레이드 시 |
 | [D65](D65.md) | 미룬 메이저 업그레이드 — NestJS 11(Express 5)·react-router 7로 운영 취약점 4 → 0, Express 5의 req.query getter·쿼리 파서 변화는 `configureApp` 한 곳에서 고정(격리 주입 유실을 테스트가 잡음), Lambda 묶음에 워크스페이스 의존성 포함 | 적용(2026-10-22, log/166) | NestJS 12 필요 시, 와일드카드 라우트·req.query를 고쳐 쓰는 코드 도입 시 |
+| [D66](D66.md) | 관리자 웹은 직원 계정만 — 회원 계정은 로그인 단계에서 갱신 토큰을 폐기하고 회원 웹(`/m/`)으로 안내, 회원 데모 버튼·메뉴·예약 화면 회원 모드 삭제(서버 판정은 그대로) | 적용(2026-10-22, log/172) | 한 계정이 직원이자 회원이어야 할 때 |
 
 ## 종합 평가
 

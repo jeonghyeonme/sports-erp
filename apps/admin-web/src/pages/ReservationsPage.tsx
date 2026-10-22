@@ -36,100 +36,6 @@ function slotLabel(slot?: ScheduleSlotRow): string {
 }
 
 // 예약및결제 A-5 GET /programs/:id/slots — 프로그램 하나의 회차 목록 + 예약하기 버튼(회원 전용).
-function ProgramSlotsCard({ program }: { program: ProgramRow }) {
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  const slotsQuery = useQuery<ScheduleSlotRow[], AxiosError<ApiErrorBody>>({
-    queryKey: ['slots', program.id],
-    queryFn: async () => (await api.get<ApiEnvelope<ScheduleSlotRow[]>>(`/programs/${program.id}/slots`)).data.data ?? [],
-  });
-
-  const reserveMutation = useMutation<ReservationRow, AxiosError<ApiErrorBody>, string>({
-    mutationFn: async (scheduleSlotId) =>
-      (await api.post<ApiEnvelope<ReservationRow>>('/reservations', { scheduleSlotId })).data.data!,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slots', program.id] });
-      queryClient.invalidateQueries({ queryKey: ['reservations', 'mine'] });
-      toast.success('예약했습니다.');
-    },
-  });
-
-  const slots = (slotsQuery.data ?? []).filter((s) => s.date >= kstToday());
-
-  return (
-    <div className="card">
-      <h3>
-        {program.name} <span className="badge PREPARING">{program.price > 0 ? `${program.price.toLocaleString()}원` : '무료'}</span>
-      </h3>
-      {reserveMutation.isError && (
-        <div className="forbidden-note" style={{ marginBottom: 8 }}>
-          {apiErrorMessage(reserveMutation.error)}
-        </div>
-      )}
-      {slots.length === 0 ? (
-        <div className="empty-state">예약 가능한 회차가 없습니다.</div>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>일시</th>
-              <th>잔여좌석</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {slots.map((s) => {
-              const full = s.bookedCount >= s.capacity;
-              return (
-                <tr key={s.id}>
-                  <td>{slotLabel(s)}</td>
-                  <td>
-                    {s.bookedCount} / {s.capacity}
-                  </td>
-                  <td>
-                    <button
-                      className="btn-secondary primary"
-                      disabled={full || reserveMutation.isPending}
-                      onClick={() => reserveMutation.mutate(s.id)}
-                    >
-                      {full ? '마감' : '예약하기'}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-// 예약및결제 A-5 결제 대기(REQUESTED) 예약에 붙는 모의결제 버튼.
-function MockPayButton({ reservationId }: { reservationId: string }) {
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  const payMutation = useMutation<unknown, AxiosError<ApiErrorBody>, void>({
-    mutationFn: async () => (await api.post(`/payments/${reservationId}/mock-pay`)).data,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reservations'] });
-      toast.success('결제했습니다. 예약이 확정됐습니다.');
-    },
-  });
-  return (
-    <>
-      <button className="btn-secondary primary" disabled={payMutation.isPending} onClick={() => payMutation.mutate()}>
-        결제하기
-      </button>
-      {payMutation.isError && (
-        <div className="forbidden-note" style={{ marginTop: 6 }}>
-          {apiErrorMessage(payMutation.error)}
-        </div>
-      )}
-    </>
-  );
-}
-
 function CancelButton({ reservationId }: { reservationId: string }) {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -293,21 +199,10 @@ export function ReservationsPage() {
   const { user } = useAuth();
   const can = useCan();
   const isAdmin = user?.role === 'BRANCH_ADMIN';
-  const isMember = user?.role === 'MEMBER';
 
-  const reservableProgramsQuery = useApiList<ProgramRow>(
-    ['programs', 'reservable'],
-    '/programs?status=RUNNING&pricingType=PAID_SESSION',
-  );
   // D43 — 예약·결제는 쪽 단위, 최근 것부터(B8 사용자 결정). 무효화는 ['reservations']·['payments'] 접두어로 그대로 된다.
-  const [myPage, setMyPage] = useState(1);
   const [branchPage, setBranchPage] = useState(1);
   const [paymentPage, setPaymentPage] = useState(1);
-  const myReservationsQuery = useApiPage<ReservationRow>(
-    ['reservations', 'mine', myPage],
-    `/reservations?page=${myPage}&limit=${PAGE_SIZE}`,
-    { enabled: isMember },
-  );
 
   const branchProgramsQuery = useApiList<ProgramRow>(['programs'], '/programs');
   // ADR-RSV-08(log/125 F5) — 현장은 "오늘 예약"부터 본다. 회차 날짜 범위·상태로 거르고 회차 시각순으로 받는다.
@@ -326,88 +221,18 @@ export function ReservationsPage() {
   const paymentsQuery = useApiPage<PaymentRow>(['payments', paymentPage], `/payments?page=${paymentPage}&limit=${PAGE_SIZE}`, {
     enabled: isAdmin,
   });
-  const myRows = myReservationsQuery.data?.rows ?? [];
   const branchRows = branchReservationsQuery.data?.rows ?? [];
   const paymentRows = paymentsQuery.data?.rows ?? [];
 
   return (
     <>
       <div className="page-header">
-        <h2>예약{isMember ? '' : ' 관리'}</h2>
+        <h2>예약 관리</h2>
         <p className="page-desc">
           예약및결제 문서 기준입니다. 회차 예약형(PAID_SESSION) 프로그램만 대상이며, 결제는 모의결제(Mock Payment)로
           처리됩니다.
         </p>
       </div>
-
-      {isMember && (
-        <>
-          <h3 className="section-title">예약 가능한 프로그램</h3>
-          {reservableProgramsQuery.isError && (
-            <div className="forbidden-note">{apiErrorMessage(reservableProgramsQuery.error)}</div>
-          )}
-          {(reservableProgramsQuery.data?.length ?? 0) === 0 ? (
-            <div className="empty-state">예약 가능한 프로그램이 없습니다.</div>
-          ) : (
-            <div className="card-grid">
-              {reservableProgramsQuery.data!.map((p) => (
-                <ProgramSlotsCard key={p.id} program={p} />
-              ))}
-            </div>
-          )}
-
-          <div className="detail-section">
-            <h3 className="section-title">내 예약 내역</h3>
-            {myReservationsQuery.isError && (
-              <div className="forbidden-note">{apiErrorMessage(myReservationsQuery.error)}</div>
-            )}
-            <Pager
-              page={myPage}
-              pageSize={PAGE_SIZE}
-              total={myReservationsQuery.data?.total ?? 0}
-              onChange={setMyPage}
-              disabled={myReservationsQuery.isFetching}
-            />
-            {myRows.length === 0 ? (
-              <div className="empty-state">예약 내역이 없습니다.</div>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>프로그램</th>
-                    <th>일시</th>
-                    <th>상태</th>
-                    <th>결제금액</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {myRows.map((r) => (
-                    <tr key={r.id}>
-                      <td>{r.programName ?? '-'}</td>
-                      <td>{slotLabel(r.slot)}</td>
-                      <td>
-                        <span className={`badge ${r.status}`}>{STATUS_LABEL[r.status]}</span>
-                      </td>
-                      <td>{r.payment ? `${r.payment.amount.toLocaleString()}원` : '무료'}</td>
-                      <td>
-                        <div className="action-row">
-                          {r.status === 'REQUESTED' && r.payment?.status === 'PENDING' && (
-                            <MockPayButton reservationId={r.id} />
-                          )}
-                          {(r.status === 'REQUESTED' || r.status === 'CONFIRMED') && (
-                            <CancelButton reservationId={r.id} />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </>
-      )}
 
       {isAdmin && (
         <>

@@ -41,7 +41,6 @@ const HELP_ROUTES: HelpRoute[] = [
           '내 지점 카드에서 현황을 확인합니다.',
           '카드를 누르면 지점 상세로 들어갑니다.',
         ],
-        MEMBER: ['등록한 지점의 현황을 확인합니다. 예약은 왼쪽 메뉴 "예약"에서 합니다.'],
       },
       errors: ['BRANCH_SCOPE_VIOLATION', 'UPSTREAM_UNAVAILABLE'],
     },
@@ -236,7 +235,6 @@ const HELP_ROUTES: HelpRoute[] = [
         ],
         SUPER_ADMIN: ['지점명으로 검색해 지점별 프로그램을 봅니다(조회). 종목·연령대·시간대로 거를 수 있습니다.'],
         STAFF: ['내 지점 프로그램과 상태를 봅니다(조회).'],
-        MEMBER: ['등록한 지점 프로그램을 봅니다. 예약은 "예약" 메뉴에서 합니다.'],
       },
       errors: [
         'VALIDATION_ERROR',
@@ -274,11 +272,6 @@ const HELP_ROUTES: HelpRoute[] = [
           '예약 현황에서 회원이 오면 "체크인"을 누릅니다(결제 완료된 예약만).',
           '예약·결제 내역은 최근 것부터 20건씩 보입니다. 결제 내역은 "CSV 내려받기"로 전체를 파일로 받습니다.',
           '"주간 시간표"에서 이번 주 회차를 요일별로 보고(예약 수/정원, 마감은 주황), 이전·다음 주로 넘깁니다.',
-        ],
-        MEMBER: [
-          '프로그램과 회차를 고르고 예약합니다. 처리에 3초 넘게 걸리면 화면 위에 "처리 중" 안내가 뜹니다.',
-          '바로 "결제하기"를 눌러 결제를 끝내야 예약이 확정됩니다.',
-          '내 예약 목록에서 취소할 수 있습니다.',
         ],
       },
       errors: [
@@ -359,7 +352,6 @@ const HELP_ROUTES: HelpRoute[] = [
           '"직원 교육자료" 탭에서 본사가 올린 운영 교육 매뉴얼·자료만 모아 봅니다.',
         ],
         STAFF: ['위쪽 분류(전체/본사/지점/직원 교육자료)로 걸러 읽습니다.'],
-        MEMBER: ['회원에게 공개된 공지만 보입니다.'],
       },
       errors: ['VALIDATION_ERROR', 'POST_FORBIDDEN_ROLE', 'BRANCH_TERMINATED'],
     },
@@ -377,7 +369,6 @@ const HELP_ROUTES: HelpRoute[] = [
         ],
         SUPER_ADMIN: ['지점명으로 검색해 지점별 혼잡도를 봅니다(조회).'],
         STAFF: ['내 지점 시설의 현재 인원을 봅니다(조회).'],
-        MEMBER: ['등록한 지점 시설의 혼잡도를 봅니다.'],
       },
       errors: ['INVALID_CAPACITY', 'INVALID_CURRENT_COUNT', 'FACILITY_SCOPE_VIOLATION', 'BRANCH_TERMINATED'],
     },
