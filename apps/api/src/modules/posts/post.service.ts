@@ -6,6 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MockPost } from '../../fixtures/mock-data.types';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchService } from '../branches/branch.service';
+import { hasText, sanitizePostContent } from './post-content';
 
 type PostRow = Post & { branch: { name: string } | null; author: { name: string }; facility: { name: string } | null };
 export type PostView = MockPost & { authorName?: string; branchName?: string; facilityName?: string };
@@ -103,6 +104,9 @@ export class PostService {
     author: { accountId: string; role: RequestUser['role']; branchId?: string },
     input: { title: string; content: string; category: PostCategory; branchId?: string; visibleToMember?: boolean; facilityId?: string },
   ): Promise<PostView> {
+    // D62 — 본문은 허용 목록으로 정화한 HTML로 저장한다. 정화 뒤 글자가 없으면 빈 글이다.
+    const content = sanitizePostContent(input.content);
+    if (!hasText(content)) throw emptyContent();
     let scope: PostScope;
     let branchId: string | undefined;
     if (author.role === 'SUPER_ADMIN') {
@@ -130,7 +134,7 @@ export class PostService {
         authorId: author.accountId,
         category: input.category,
         title: input.title,
-        content: input.content,
+        content,
         publishedAt: new Date(`${todayKst()}T00:00:00Z`),
         // ADR-BRD-01 — BRANCH_TO_MEMBER는 scope로 이미 회원에게 노출되므로 항상 true, HQ 공지는 명시 안 하면 false.
         visibleToMember: scope === 'BRANCH_TO_MEMBER' ? true : (input.visibleToMember ?? false),
@@ -148,6 +152,8 @@ export class PostService {
     input: { title?: string; content?: string; category?: PostCategory; facilityId?: string | null },
   ): Promise<PostView> {
     const id = post.id;
+    const content = input.content === undefined ? undefined : sanitizePostContent(input.content);
+    if (content !== undefined && !hasText(content)) throw emptyContent();
     // ADR-BRD-05 — 시설은 그 글의 지점 시설만. 경로가 글 id라 가드가 본문 시설을 볼 수 없어 여기서 확인한다.
     if (input.facilityId) {
       if (post.scope !== 'BRANCH_TO_MEMBER') throw facilityNotAllowed();
@@ -159,7 +165,7 @@ export class PostService {
     }
     const { count } = await this.prisma.post.updateMany({
       where: { id, deletedAt: null },
-      data: { title: input.title, content: input.content, category: input.category, facilityId: input.facilityId },
+      data: { title: input.title, content, category: input.category, facilityId: input.facilityId },
     });
     if (count === 0) throw postNotFound();
     const row = await this.prisma.post.findUniqueOrThrow({ where: { id }, include: withBranch });
@@ -180,6 +186,10 @@ function toViews(rows: PostRow[]): PostView[] {
     branchName: r.branch?.name,
     facilityName: r.facility?.name,
   }));
+}
+
+function emptyContent() {
+  return new AppException('POST_CONTENT_EMPTY', '내용을 입력하세요.', 400);
 }
 
 function facilityNotAllowed() {

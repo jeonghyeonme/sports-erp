@@ -1,13 +1,13 @@
-import { FormEvent, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PostAttachments } from '../components/PostAttachments';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
-import { ApiEnvelope, FacilityRow, PostCategory, PostRow } from '../lib/types';
+import { ApiEnvelope, PostCategory, PostRow } from '../lib/types';
+import { RichContent } from '../components/RichContent';
 
 import { useToast } from '../lib/use-toast';
 interface ApiErrorBody {
@@ -27,17 +27,6 @@ const CATEGORY_LABEL: Record<PostCategory, string> = {
   OTHER: '기타',
 };
 
-interface EditForm {
-  title: string;
-  content: string;
-  category: PostCategory;
-  facilityId: string;
-}
-
-function toEditForm(post: PostRow): EditForm {
-  return { title: post.title, content: post.content, category: post.category, facilityId: post.facilityId ?? '' };
-}
-
 export function PostDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -45,39 +34,10 @@ export function PostDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 const toast = useToast();
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<EditForm | null>(null);
 
   const postQuery = useQuery<PostRow, AxiosError<ApiErrorBody>>({
     queryKey: ['posts', id],
     queryFn: async () => (await api.get<ApiEnvelope<PostRow>>(`/posts/${id}`)).data.data!,
-  });
-
-  const isBranchPost = postQuery.data?.scope === 'BRANCH_TO_MEMBER';
-  const facilitiesQuery = useApiList<FacilityRow>(
-    ['facilities', postQuery.data?.branchId],
-    `/facilities?branchId=${postQuery.data?.branchId ?? ''}`,
-    editing && isBranchPost && !!postQuery.data?.branchId,
-  );
-
-  const updateMutation = useMutation<PostRow, AxiosError<ApiErrorBody>, EditForm>({
-    mutationFn: async (dto) => {
-      const post = postQuery.data!;
-      // 게시판 ADR-BRD-05 — 지점 공지만 시설을 보낸다. 비우면 null(지점 전체로 해제).
-      const payload = {
-        title: dto.title,
-        content: dto.content,
-        category: dto.category,
-        facilityId: post.scope === 'BRANCH_TO_MEMBER' ? dto.facilityId || null : undefined,
-      };
-      return (await api.patch<ApiEnvelope<PostRow>>(`/posts/${id}`, payload)).data.data!;
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(['posts', id], updated);
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-      setEditing(false);
-      toast.success('게시글을 수정했습니다.');
-    },
   });
 
   const deleteMutation = useMutation<void, AxiosError<ApiErrorBody>, void>({
@@ -90,12 +50,6 @@ const toast = useToast();
       navigate('/board');
     },
   });
-
-  function submitEdit(e: FormEvent) {
-    e.preventDefault();
-    if (!form || !form.title.trim() || !form.content.trim()) return;
-    updateMutation.mutate(form);
-  }
 
   if (postQuery.isLoading) return <div className="loading-state">불러오는 중...</div>;
   if (postQuery.isError) {
@@ -112,8 +66,7 @@ const toast = useToast();
       </div>
 
       <div className="card">
-        {!editing ? (
-          <>
+        <>
             <h2 style={{ marginTop: 0 }}>
               {post.title}{' '}
               <span className="badge PREPARING">{SCOPE_LABEL[post.scope]}</span>{' '}
@@ -128,14 +81,14 @@ const toast = useToast();
                 {post.publishedAt} · 조회 {post.viewCount}
               </span>
             </div>
-            <p style={{ whiteSpace: 'pre-wrap', marginTop: 16 }}>{post.content}</p>
+            <RichContent content={post.content} />
 
-            {/* 게시판 ADR-BRD-04 — 첨부(올리기는 작성자, 지우기는 작성자·본사) */}
+            {/* 게시판 ADR-BRD-04 — 첨부 보기. 작성자의 올리기·지우기는 수정 화면에서 본문과 함께(D62), 본사는 여기서도 지울 수 있다 */}
             <PostAttachments
               postId={post.id}
               attachments={post.attachments ?? []}
-              canUpload={isAuthor}
-              canDelete={isAuthor || user?.role === 'SUPER_ADMIN'}
+              canUpload={false}
+              canDelete={user?.role === 'SUPER_ADMIN'}
             />
 
             {deleteMutation.isError && (
@@ -149,11 +102,8 @@ const toast = useToast();
                 {isAuthor && (
                   <button
                     className="btn-secondary"
-                    onClick={() => {
-                      // 편집 폼은 "편집을 시작하는 시점"의 최신 게시글로 채운다(effect로 미리 복사하지 않음).
-                      setForm(toEditForm(post));
-                      setEditing(true);
-                    }}
+                    // D62 — 본문·첨부를 함께 고치는 수정 화면으로 간다
+                    onClick={() => navigate(`/board/${post.id}/edit`)}
                   >
                     수정
                   </button>
@@ -169,76 +119,7 @@ const toast = useToast();
                 )}
               </div>
             )}
-          </>
-        ) : (
-          form && (
-            <form onSubmit={submitEdit}>
-              <div className="form-row">
-                <div className="field">
-                  <label>제목 *</label>
-                  <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-                </div>
-                <div className="field">
-                  <label>카테고리</label>
-                  <select
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value as PostCategory })}
-                  >
-                    {(Object.keys(CATEGORY_LABEL) as PostCategory[]).map((c) => (
-                      <option key={c} value={c}>
-                        {CATEGORY_LABEL[c]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              {isBranchPost && (
-                <div className="field" style={{ marginTop: 12 }}>
-                  <label>대상 시설</label>
-                  <select value={form.facilityId} onChange={(e) => setForm({ ...form, facilityId: e.target.value })}>
-                    <option value="">지점 전체</option>
-                    {(facilitiesQuery.data ?? []).map((fac) => (
-                      <option key={fac.id} value={fac.id}>
-                        {fac.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <div className="field" style={{ marginTop: 12 }}>
-                <label>내용 *</label>
-                <textarea
-                  rows={6}
-                  value={form.content}
-                  onChange={(e) => setForm({ ...form, content: e.target.value })}
-                  required
-                />
-              </div>
-
-              {updateMutation.isError && (
-                <div className="forbidden-note" style={{ marginTop: 12 }}>
-                  {apiErrorMessage(updateMutation.error)}
-                </div>
-              )}
-
-              <div className="action-row" style={{ marginTop: 16 }}>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => {
-                    setForm(toEditForm(post));
-                    setEditing(false);
-                  }}
-                >
-                  취소
-                </button>
-                <button type="submit" className="btn-secondary primary" disabled={updateMutation.isPending}>
-                  저장
-                </button>
-              </div>
-            </form>
-          )
-        )}
+        </>
       </div>
     </>
   );

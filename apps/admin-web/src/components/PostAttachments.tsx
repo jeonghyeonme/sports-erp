@@ -5,24 +5,23 @@ import { api } from '../lib/api';
 import { apiErrorMessage } from '../lib/use-api-list';
 import { useToast } from '../lib/use-toast';
 import { ApiEnvelope, AttachmentRow, PostRow } from '../lib/types';
+import {
+  ATTACHMENT_ACCEPT as ACCEPT,
+  ATTACHMENT_MAX_BYTES as MAX_BYTES,
+  ATTACHMENT_MAX_FILES as MAX_FILES,
+  isAbsoluteUrl as isAbsolute,
+  uploadAttachment,
+} from '../lib/post-attachments';
 
 // 게시판 ADR-BRD-04(저장소 D57) — 첨부 목록·내려받기·올리기·지우기.
 // 올리기: api에 업로드 URL을 받아 → 그 URL로 파일을 직접 PUT → api에 붙이기(api가 저장소에서 크기·형식을 다시 확인).
 // 받기: api가 60초짜리 다운로드 URL을 준다. 파일은 api(Lambda, 본문 6MB 한도)를 거치지 않는다.
 
-const MAX_BYTES = 10 * 1024 * 1024;
-const MAX_FILES = 5;
-const ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.docx,.xlsx,.pptx,.hwp';
 
 function sizeLabel(bytes: number): string {
   return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(bytes / 1024))}KB`;
 }
 
-// 메모리 드라이버(로컬)는 api 상대 경로를 준다 — 그때만 api 클라이언트로(토큰 포함) 부른다.
-// 저장소 서명 URL(절대 주소)에는 우리 토큰을 붙이지 않는다(Supabase가 다른 토큰으로 읽어 거부한다).
-function isAbsolute(url: string) {
-  return /^https?:\/\//.test(url);
-}
 
 // 이미지(png·jpg·webp)는 목록 위에 바로 그린다 — 회원 웹 NoticeAttachments와 같은 방식(log/144).
 // 다운로드 URL이 60초짜리라 화면을 열 때 이미지마다 한 번씩 받는다(글당 첨부 5개 상한).
@@ -85,19 +84,8 @@ export function PostAttachments({
     }
     setBusy('upload');
     try {
-      const { data } = await api.post<ApiEnvelope<{ path: string; uploadUrl: string }>>(
-        `/posts/${postId}/attachments/upload-url`,
-        { fileName: file.name, fileType: file.type, fileSize: file.size },
-      );
-      const { path, uploadUrl } = data.data!;
-      if (isAbsolute(uploadUrl)) {
-        const res = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
-        if (!res.ok) throw new Error(`저장소 업로드 실패(${res.status})`);
-      } else {
-        await api.put(uploadUrl, file, { headers: { 'Content-Type': file.type } });
-      }
-      const added = await api.post<ApiEnvelope<AttachmentRow>>(`/posts/${postId}/attachments`, { path, fileName: file.name });
-      patchList((list) => [...list, added.data.data!]);
+      const added = await uploadAttachment(postId, file);
+      patchList((list) => [...list, added]);
       toast.success(`${file.name}을(를) 첨부했습니다.`);
     } catch (err) {
       toast.error(apiErrorMessage(err as AxiosError) ?? (err as Error).message ?? '첨부하지 못했습니다.');

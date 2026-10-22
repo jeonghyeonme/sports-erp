@@ -5,18 +5,19 @@
 
 ## 요약
 
-- 대상: 운영 의존성(`npm query ".prod"` — 개발·빌드 도구 제외) **219개**. 관리자 웹·회원 웹 번들과 api(Lambda) 묶음에 들어가는 것이다.
+- 대상: 운영 의존성(`npm query ".prod"` — 개발·빌드 도구 제외) **292개**. 관리자 웹·회원 웹 번들과 api(Lambda) 묶음에 들어가는 것이다.
 - 허용형 라이선스(MIT, ISC, Apache-2.0, BSD-2-Clause, BSD-3-Clause, 0BSD, BlueOak-1.0.0, Unlicense, CC0-1.0) 밖: **0건**.
 - GPL·AGPL·LGPL 같은 상호주의(copyleft) 라이선스는 없다. 허용형 라이선스의 의무는 저작권·라이선스 고지 유지뿐이고, 배포 묶음(node_modules·번들)에 각 패키지의 LICENSE가 그대로 들어간다.
 - 프로젝트 자체 코드·문서·이미지는 직접 작성했다(외부 이미지·폰트·아이콘 파일을 저장소에 넣지 않았다 — 회원 웹 아이콘은 자체 제작, 글꼴은 시스템 글꼴).
 
 | 라이선스 | 개수 |
 |---|---|
-| MIT | 169 |
-| ISC | 30 |
+| MIT | 235 |
+| ISC | 31 |
 | Apache-2.0 | 12 |
-| BSD-3-Clause | 4 |
-| BSD-2-Clause | 3 |
+| BSD-2-Clause | 7 |
+| BSD-3-Clause | 5 |
+| (MPL-2.0 OR Apache-2.0) | 1 |
 | 0BSD | 1 |
 
 ## 전체 목록
@@ -27,6 +28,9 @@
 |---|---|---|---|
 | @borewit/text-codec | 0.2.2 | MIT |  |
 | @codegenie/serverless-express | 4.17.1 | Apache-2.0 |  |
+| @floating-ui/core | 1.8.0 | MIT |  |
+| @floating-ui/dom | 1.8.0 | MIT |  |
+| @floating-ui/utils | 0.2.12 | MIT |  |
 | @lukeed/csprng | 1.1.0 | MIT |  |
 | @mapbox/node-pre-gyp | 1.0.11 | BSD-3-Clause |  |
 | @nestjs/common | 10.4.22 | MIT |  |
@@ -45,10 +49,43 @@
 | @remix-run/router | 1.23.4 | MIT |  |
 | @tanstack/query-core | 5.102.8 | MIT |  |
 | @tanstack/react-query | 5.102.8 | MIT |  |
+| @tiptap/core | 3.32.0 | MIT |  |
+| @tiptap/extension-blockquote | 3.32.0 | MIT |  |
+| @tiptap/extension-bold | 3.32.0 | MIT |  |
+| @tiptap/extension-bubble-menu | 3.32.0 | MIT |  |
+| @tiptap/extension-bullet-list | 3.32.0 | MIT |  |
+| @tiptap/extension-code | 3.32.0 | MIT |  |
+| @tiptap/extension-code-block | 3.32.0 | MIT |  |
+| @tiptap/extension-document | 3.32.0 | MIT |  |
+| @tiptap/extension-dropcursor | 3.32.0 | MIT |  |
+| @tiptap/extension-floating-menu | 3.32.0 | MIT |  |
+| @tiptap/extension-gapcursor | 3.32.0 | MIT |  |
+| @tiptap/extension-hard-break | 3.32.0 | MIT |  |
+| @tiptap/extension-heading | 3.32.0 | MIT |  |
+| @tiptap/extension-horizontal-rule | 3.32.0 | MIT |  |
+| @tiptap/extension-italic | 3.32.0 | MIT |  |
+| @tiptap/extension-link | 3.32.0 | MIT |  |
+| @tiptap/extension-list | 3.32.0 | MIT |  |
+| @tiptap/extension-list-item | 3.32.0 | MIT |  |
+| @tiptap/extension-list-keymap | 3.32.0 | MIT |  |
+| @tiptap/extension-ordered-list | 3.32.0 | MIT |  |
+| @tiptap/extension-paragraph | 3.32.0 | MIT |  |
+| @tiptap/extension-strike | 3.32.0 | MIT |  |
+| @tiptap/extension-text | 3.32.0 | MIT |  |
+| @tiptap/extension-underline | 3.32.0 | MIT |  |
+| @tiptap/extensions | 3.32.0 | MIT |  |
+| @tiptap/pm | 3.32.0 | MIT |  |
+| @tiptap/react | 3.32.0 | MIT |  |
+| @tiptap/starter-kit | 3.32.0 | MIT |  |
 | @tokenizer/inflate | 0.2.7 | MIT |  |
 | @tokenizer/token | 0.3.0 | MIT |  |
 | @types/jsonwebtoken | 9.0.5 | MIT |  |
 | @types/node | 20.19.43 | MIT |  |
+| @types/prop-types | 15.7.15 | MIT |  |
+| @types/react | 18.3.31 | MIT |  |
+| @types/react-dom | 18.3.7 | MIT |  |
+| @types/trusted-types | 2.0.7 | MIT |  |
+| @types/use-sync-external-store | 0.0.6 | MIT |  |
 | @types/validator | 13.15.10 | MIT |  |
 | abbrev | 1.1.1 | ISC |  |
 | accepts | 1.3.8 | MIT |  |
@@ -88,6 +125,8 @@
 | cookie | 0.7.2 | MIT |  |
 | cookie-signature | 1.0.7 | MIT |  |
 | cors | 2.8.5 | MIT |  |
+| csstype | 3.2.3 | MIT |  |
+| dayjs | 1.11.23 | MIT |  |
 | debug | 2.6.9 | MIT |  |
 | debug | 4.4.3 | MIT |  |
 | delayed-stream | 1.0.0 | MIT |  |
@@ -95,6 +134,11 @@
 | depd | 2.0.0 | MIT |  |
 | destroy | 1.2.0 | MIT |  |
 | detect-libc | 2.1.2 | Apache-2.0 |  |
+| dom-serializer | 3.1.1 | MIT |  |
+| domelementtype | 3.0.0 | BSD-2-Clause |  |
+| domhandler | 6.0.1 | BSD-2-Clause |  |
+| dompurify | 3.4.17 | (MPL-2.0 OR Apache-2.0) |  |
+| domutils | 4.0.2 | BSD-2-Clause |  |
 | dotenv | 16.4.5 | BSD-2-Clause |  |
 | dotenv-expand | 10.0.0 | BSD-2-Clause |  |
 | dunder-proto | 1.0.1 | MIT |  |
@@ -102,13 +146,16 @@
 | ee-first | 1.1.1 | MIT |  |
 | emoji-regex | 8.0.0 | MIT |  |
 | encodeurl | 2.0.0 | MIT |  |
+| entities | 8.1.0 | BSD-2-Clause |  |
 | es-define-property | 1.0.1 | MIT |  |
 | es-errors | 1.3.0 | MIT |  |
 | es-object-atoms | 1.1.2 | MIT |  |
 | es-set-tostringtag | 2.1.0 | MIT |  |
 | escape-html | 1.0.3 | MIT |  |
+| escape-string-regexp | 4.0.0 | MIT |  |
 | etag | 1.8.1 | MIT |  |
 | express | 4.22.1 | MIT |  |
+| fast-equals | 5.4.5 | MIT |  |
 | fast-safe-stringify | 2.1.1 | MIT |  |
 | fflate | 0.8.3 | MIT |  |
 | file-type | 20.4.1 | MIT |  |
@@ -130,6 +177,7 @@
 | has-tostringtag | 1.0.2 | MIT |  |
 | has-unicode | 2.0.1 | ISC |  |
 | hasown | 2.0.4 | MIT |  |
+| htmlparser2 | 12.0.0 | MIT |  |
 | http-errors | 2.0.1 | MIT |  |
 | https-proxy-agent | 5.0.1 | MIT |  |
 | iconv-lite | 0.4.24 | MIT |  |
@@ -138,12 +186,15 @@
 | inherits | 2.0.4 | ISC |  |
 | ipaddr.js | 1.9.1 | MIT |  |
 | is-fullwidth-code-point | 3.0.0 | MIT |  |
+| is-plain-object | 5.1.0 | MIT |  |
 | iterare | 1.2.1 | ISC |  |
 | js-tokens | 4.0.0 | MIT |  |
 | jsonwebtoken | 9.0.2 | MIT |  |
 | jwa | 1.4.2 | MIT |  |
 | jws | 3.2.3 | MIT |  |
+| launder | 1.7.2 | MIT |  |
 | libphonenumber-js | 1.13.12 | MIT |  |
+| linkifyjs | 4.3.3 | MIT |  |
 | lodash | 4.17.21 | MIT |  |
 | lodash.includes | 4.3.0 | MIT |  |
 | lodash.isboolean | 3.0.3 | MIT |  |
@@ -171,6 +222,7 @@
 | ms | 2.0.0 | MIT |  |
 | ms | 2.1.3 | MIT |  |
 | multer | 2.0.2 | MIT |  |
+| nanoid | 3.3.18 | MIT |  |
 | negotiator | 0.6.3 | MIT |  |
 | node-addon-api | 5.1.0 | MIT |  |
 | node-fetch | 2.7.0 | MIT |  |
@@ -180,6 +232,8 @@
 | object-inspect | 1.13.4 | MIT |  |
 | on-finished | 2.4.1 | MIT |  |
 | once | 1.4.0 | ISC |  |
+| orderedmap | 2.1.1 | MIT |  |
+| parse-srcset | 1.0.2 | MIT |  |
 | parseurl | 1.3.3 | MIT |  |
 | passport | 0.7.0 | MIT |  |
 | passport-jwt | 4.0.1 | MIT |  |
@@ -188,7 +242,22 @@
 | path-to-regexp | 0.1.13 | MIT |  |
 | path-to-regexp | 3.3.0 | MIT |  |
 | pause | 0.0.1 | MIT | LICENSE·README 본문 |
+| picocolors | 1.1.1 | ISC |  |
+| postcss | 8.5.28 | MIT |  |
 | prisma | 5.22.0 | Apache-2.0 |  |
+| prosemirror-changeset | 2.4.4 | MIT |  |
+| prosemirror-commands | 1.7.2 | MIT |  |
+| prosemirror-dropcursor | 1.8.4 | MIT |  |
+| prosemirror-gapcursor | 1.4.1 | MIT |  |
+| prosemirror-history | 1.5.1 | MIT |  |
+| prosemirror-inputrules | 1.5.1 | MIT |  |
+| prosemirror-keymap | 1.2.3 | MIT |  |
+| prosemirror-model | 1.25.12 | MIT |  |
+| prosemirror-schema-list | 1.5.1 | MIT |  |
+| prosemirror-state | 1.4.4 | MIT |  |
+| prosemirror-tables | 1.8.5 | MIT |  |
+| prosemirror-transform | 1.12.2 | MIT |  |
+| prosemirror-view | 1.42.6 | MIT |  |
 | proxy-addr | 2.0.7 | MIT |  |
 | proxy-from-env | 2.1.0 | MIT |  |
 | qs | 6.14.2 | BSD-3-Clause |  |
@@ -201,9 +270,11 @@
 | readable-stream | 3.6.2 | MIT |  |
 | reflect-metadata | 0.2.2 | Apache-2.0 |  |
 | rimraf | 3.0.2 | ISC |  |
+| rope-sequence | 1.3.4 | MIT |  |
 | rxjs | 7.8.2 | Apache-2.0 |  |
 | safe-buffer | 5.2.1 | MIT |  |
 | safer-buffer | 2.1.2 | MIT |  |
+| sanitize-html | 2.18.1 | MIT |  |
 | scheduler | 0.23.2 | MIT |  |
 | semver | 7.8.5 | ISC |  |
 | semver | 6.3.1 | ISC |  |
@@ -216,6 +287,7 @@
 | side-channel-map | 1.0.1 | MIT |  |
 | side-channel-weakmap | 1.0.2 | MIT |  |
 | signal-exit | 3.0.7 | ISC |  |
+| source-map-js | 1.2.1 | BSD-3-Clause |  |
 | statuses | 2.0.2 | MIT |  |
 | streamsearch | 1.1.0 | MIT | package.json(licenses) |
 | string_decoder | 1.3.0 | MIT |  |
@@ -234,10 +306,12 @@
 | uint8array-extras | 1.5.0 | MIT |  |
 | undici-types | 6.21.0 | MIT |  |
 | unpipe | 1.0.0 | MIT |  |
+| use-sync-external-store | 1.7.0 | MIT |  |
 | util-deprecate | 1.0.2 | MIT |  |
 | utils-merge | 1.0.1 | MIT |  |
 | validator | 13.15.35 | MIT |  |
 | vary | 1.1.2 | MIT |  |
+| w3c-keyname | 2.2.8 | MIT |  |
 | webidl-conversions | 3.0.1 | BSD-2-Clause |  |
 | whatwg-url | 5.0.0 | MIT |  |
 | wide-align | 1.1.5 | ISC |  |

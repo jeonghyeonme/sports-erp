@@ -1,15 +1,13 @@
-import { FormEvent, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
-import { Modal } from '../components/Modal';
-import { ApiEnvelope, BranchSummary, FacilityRow, PostCategory, PostRow } from '../lib/types';
+import { ApiEnvelope, PostCategory, PostRow } from '../lib/types';
 
-import { useToast } from '../lib/use-toast';
 const PAGE_SIZE = 20;
 
 const SCOPE_LABEL: Record<PostRow['scope'], string> = {
@@ -29,146 +27,6 @@ interface ApiErrorBody {
   message?: string;
 }
 
-interface PostForm {
-  title: string;
-  content: string;
-  category: PostCategory;
-  branchId: string;
-  visibleToMember: boolean;
-  facilityId: string;
-}
-
-const EMPTY_FORM: PostForm = { title: '', content: '', category: 'NOTICE', branchId: '', visibleToMember: false, facilityId: '' };
-
-function CreatePostModal({ onClose }: { onClose: () => void }) {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-const toast = useToast();
-  const [form, setForm] = useState<PostForm>(EMPTY_FORM);
-  const branchesQuery = useApiList<BranchSummary>(['branches'], '/branches');
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
-  // 게시판 ADR-BRD-05 — 지점 공지는 대상 시설을 고를 수 있다(비우면 지점 전체). 본사 공지는 지점 단위까지.
-  const facilitiesQuery = useApiList<FacilityRow>(
-    ['facilities', user?.branchId],
-    `/facilities?branchId=${user?.branchId ?? ''}`,
-    !isSuperAdmin && !!user?.branchId,
-  );
-
-  const createMutation = useMutation<PostRow, AxiosError<ApiErrorBody>, PostForm>({
-    mutationFn: async (dto) => {
-      const payload = {
-        title: dto.title,
-        content: dto.content,
-        category: dto.category,
-        branchId: isSuperAdmin ? dto.branchId || undefined : undefined,
-        visibleToMember: isSuperAdmin ? dto.visibleToMember : undefined,
-        facilityId: !isSuperAdmin && dto.facilityId ? dto.facilityId : undefined,
-      };
-      return (await api.post<ApiEnvelope<PostRow>>('/posts', payload)).data.data!;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-      toast.success('게시글을 등록했습니다.');
-      onClose();
-    },
-  });
-
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!form.title.trim() || !form.content.trim()) return;
-    createMutation.mutate(form);
-  }
-
-  return (
-    <Modal title="게시글 작성" onClose={onClose}>
-      <form onSubmit={submit}>
-        <div className="form-row">
-          <div className="field">
-            <label>제목 *</label>
-            <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
-          </div>
-          <div className="field">
-            <label>카테고리</label>
-            <select
-              value={form.category}
-              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as PostCategory }))}
-            >
-              {(Object.keys(CATEGORY_LABEL) as PostCategory[]).map((c) => (
-                <option key={c} value={c}>
-                  {CATEGORY_LABEL[c]}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        {isSuperAdmin && (
-          <div className="field" style={{ marginTop: 12 }}>
-            <label>대상 지점</label>
-            <select value={form.branchId} onChange={(e) => setForm((f) => ({ ...f, branchId: e.target.value }))}>
-              <option value="">전체 지점 공지</option>
-              {(branchesQuery.data ?? []).map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        {!isSuperAdmin && (
-          <div className="field" style={{ marginTop: 12 }}>
-            <label>대상 시설</label>
-            <select value={form.facilityId} onChange={(e) => setForm((f) => ({ ...f, facilityId: e.target.value }))}>
-              <option value="">지점 전체</option>
-              {(facilitiesQuery.data ?? []).map((fac) => (
-                <option key={fac.id} value={fac.id}>
-                  {fac.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        {isSuperAdmin && (
-          <div className="field" style={{ marginTop: 12 }}>
-            <label>
-              <input
-                type="checkbox"
-                checked={form.visibleToMember}
-                onChange={(e) => setForm((f) => ({ ...f, visibleToMember: e.target.checked }))}
-                style={{ marginRight: 6 }}
-              />
-              회원에게도 공개(기본: 직원 전용)
-            </label>
-          </div>
-        )}
-        <div className="field" style={{ marginTop: 12 }}>
-          <label>내용 *</label>
-          <textarea
-            rows={5}
-            value={form.content}
-            onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-            required
-          />
-        </div>
-
-        {createMutation.isError && (
-          <div className="forbidden-note" style={{ marginTop: 12 }}>
-            {apiErrorMessage(createMutation.error)}
-          </div>
-        )}
-
-        <div className="action-row" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
-          <button type="button" className="btn-secondary" onClick={onClose}>
-            취소
-          </button>
-          <button type="submit" className="btn-secondary primary" disabled={createMutation.isPending}>
-            등록
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
 export function BoardPage() {
   const { user } = useAuth();
   const can = useCan();
@@ -176,7 +34,6 @@ export function BoardPage() {
   // 'TRAINING' = RFP 게시판 "본사→현장 직원관리 탭(운영 교육 매뉴얼·자료)" — 본사 공지 중 교육자료만(log/114).
   const [scopeFilter, setScopeFilter] = useState<'ALL' | 'TRAINING' | PostRow['scope']>('ALL');
   const [page, setPage] = useState(1);
-  const [showCreate, setShowCreate] = useState(false);
 
   // ADR-BRD-02 — 필터가 바뀌면 이전 필터 기준 페이지 번호가 의미 없어지므로 1로 되돌린다.
   // useEffect로 하면 한 번 더 렌더되므로, CollapsibleBranchSection과 같은 패턴으로 렌더 중에 보정한다.
@@ -218,7 +75,7 @@ export function BoardPage() {
           </p>
         </div>
         {canWrite && (
-          <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
+          <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => navigate('/board/new')}>
             + 글쓰기
           </button>
         )}
@@ -296,7 +153,6 @@ export function BoardPage() {
         </div>
       )}
 
-      {showCreate && <CreatePostModal onClose={() => setShowCreate(false)} />}
     </>
   );
 }

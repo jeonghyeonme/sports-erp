@@ -23,7 +23,7 @@
 | 입력-1 | SQL 삽입 | 대응 | 모든 질의가 Prisma 메서드 또는 `$queryRaw` 태그 템플릿(값은 바인딩)이다. 문자열을 이어 붙이는 `$queryRawUnsafe`는 운영 코드에 없다(테스트 도우미 `row-lock.ts`만, 테이블 이름은 테스트 상수) |
 | 입력-2 | 코드 삽입 | 대응 | `eval`·`new Function`·`child_process`를 쓰지 않는다(api·두 웹 grep 0건) |
 | 입력-3 | 경로 조작 및 자원 삽입 | 대응 | 첨부 저장 경로는 서버가 `posts/<글 id>/<uuid>.<확장자>`로 만들고, 붙이기 때 경로가 그 글의 것인지 다시 본다(ADR-BRD-04, `post-attachments.spec.ts` 다른 글 경로 400). 파일 시스템 경로를 입력으로 받는 곳이 없다 |
-| 입력-4 | 크로스사이트 스크립트 | 대응 | React가 텍스트를 이스케이프하고 `dangerouslySetInnerHTML`·`innerHTML`을 쓰지 않는다. 공지 본문은 텍스트로만 그린다(D41 재고 트리거). 사용자 값을 `href`에 넣던 문서 `fileUrl`은 이번에 http(s)로 제한(위 "찾아 고친 것") |
+| 입력-4 | 크로스사이트 스크립트 | 대응 | React가 텍스트를 이스케이프한다. `dangerouslySetInnerHTML`은 공지 본문 한 곳뿐 — 서식 HTML은 api가 허용 목록으로 걸러 저장하고(`sanitize-html`, 스크립트·이벤트 속성·`style`·`img`·`javascript:` 없음) 두 웹이 DOMPurify로 다시 거른다(D62, `post-rich-content` spec·`member-notice` 화면 테스트). 사용자 값을 `href`에 넣던 문서 `fileUrl`은 이번에 http(s)로 제한(위 "찾아 고친 것") |
 | 입력-5 | 운영체제 명령어 삽입 | 해당 없음 | OS 명령을 실행하지 않는다 |
 | 입력-6 | 위험한 형식 파일 업로드 | 대응 | 확장자·MIME 허용 목록(pdf·png·jpg·webp·docx·xlsx·pptx·hwp), 파일당 10MB·글당 5개, 붙이기 때 저장소에서 실제 크기·형식을 다시 확인한다(신고값 불신). 파일은 비공개 버킷에 두고 서버가 실행하지 않는다(D57, `post-attachments.spec.ts`) |
 | 입력-7 | 신뢰되지 않은 URL 주소로 자동접속 연결 | 대응 | 서버가 사용자 입력으로 리다이렉트하지 않는다. 화면의 `window.location.assign`은 api가 발급한 저장소 서명 URL에만 쓴다(`PostAttachments`·`NoticeAttachments`) |
