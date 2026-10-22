@@ -55,5 +55,12 @@ fi
 cp -r "$ROOT/apps/api/dist" "$BUNDLE/dist"
 cp "$ROOT/apps/api/package.json" "$BUNDLE/package.json"
 
+# log/155 — Lambda Node 22 런타임은 CommonJS에서 ESM 전용 패키지를 require하지 못했다(로컬 Node 22.22는 된다).
+# 묶음을 그 조건으로 한 번 읽어 보고, 실패하면 배포 전에 멈춘다.
+if ! (cd "$BUNDLE" && node --no-experimental-require-module -e "require('./dist/app.module')" >/dev/null); then
+  echo "묶음을 require(esm) 없이 읽지 못했습니다 — ESM 전용 운영 의존성 확인(log/155)" >&2
+  exit 1
+fi
+
 (cd "$BUNDLE" && zip -qr "$OUT/lambda.zip" .)
 echo "lambda.zip: $(du -h "$OUT/lambda.zip" | cut -f1) (압축 전 $(du -sh "$BUNDLE" | cut -f1)) — 핸들러: dist/lambda.handler"
