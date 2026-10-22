@@ -1,4 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import type { NextFunction, Request, Response } from 'express';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 /**
@@ -7,6 +9,15 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
  */
 export function configureApp(app: INestApplication): INestApplication {
   app.setGlobalPrefix('api/v1');
+  // log/166 — NestJS 11은 Express 5 위에서 돈다. Express 5는 (1) 쿼리 파서 기본값이 "simple"이고 (2) req.query를
+  // 읽을 때마다 새로 만드는 getter라 값을 써 넣어도 사라진다. BranchScopeGuard가 지점 관리자의 branchId를
+  // req.query에 넣어 서비스가 거르게 하는데(D46), 이 주입이 사라져 남의 지점 목록이 보였다(branch-isolation 실패로 발견).
+  // Express 4와 같은 파서를 쓰고, 요청마다 한 번 읽은 쿼리를 쓸 수 있는 보통 속성으로 고정한다.
+  (app as unknown as NestExpressApplication).set('query parser', 'extended');
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    Object.defineProperty(req, 'query', { value: { ...req.query }, writable: true, configurable: true, enumerable: true });
+    next();
+  });
   app.enableCors({ credentials: true });
   app.useGlobalPipes(
     new ValidationPipe({
