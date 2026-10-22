@@ -38,6 +38,12 @@ else
 fi
 
 cp -r "$STAGE/node_modules" "$BUNDLE/node_modules"
+# log/166 — npm은 루트에 다른 판이 있거나 잠금 파일이 그렇게 적혀 있으면 api 의존성을 `apps/api/node_modules`에 둔다
+# (NestJS 11·express 5, 그 전에는 bcrypt 6 — log/158). 묶음에는 루트 하나뿐이므로, api가 실제로 먼저 찾는
+# 워크스페이스 쪽을 루트 위에 덮어 같은 해석 순서를 만든다.
+if [[ -d "$STAGE/apps/api/node_modules" ]]; then
+  cp -r "$STAGE/apps/api/node_modules/." "$BUNDLE/node_modules/"
+fi
 # 워크스페이스 심볼릭 링크(@sports-erp/*)와 실행 파일 링크는 Lambda에서 쓰지 않는다.
 rm -rf "$BUNDLE/node_modules/@sports-erp" "$BUNDLE/node_modules/.bin"
 # Prisma CLI·스키마 엔진(마이그레이션용)과 타입 정의는 런타임에 쓰지 않는다 — zip을 직접 업로드 한도(50MB) 아래로 둔다.

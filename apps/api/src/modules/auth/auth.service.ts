@@ -1,6 +1,6 @@
 import { DEMO_ACCOUNT_IDS } from '../../fixtures/demo-password';
 import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
 import { Prisma } from '@prisma/client';
@@ -12,7 +12,8 @@ import { secretFromEnv } from '../../common/config/secrets';
 
 // 권한관리 A-3 RefreshToken — access token과 별도 시크릿/수명을 쓴다(하나가 새도 다른 하나까지 위조되지 않도록).
 const REFRESH_TOKEN_SECRET = secretFromEnv('JWT_REFRESH_SECRET', 'change-me-refresh');
-const REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN ?? '14d';
+// @nestjs/jwt 11 — 기간 문자열 형식으로 좁혀진 타입(log/166). 값은 '14d' 같은 형식이다.
+const REFRESH_TOKEN_EXPIRES_IN = (process.env.JWT_REFRESH_EXPIRES_IN ?? '14d') as JwtSignOptions['expiresIn'];
 
 /**
  * 계정 + 소속 프로필 + 소속 지점 이름을 Prisma 작업 하나로 읽는다(log/102). 인증은 모든 요청이 거치므로
