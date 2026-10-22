@@ -83,4 +83,4 @@
 | S9 | 개인정보 위탁 계약 문서·수탁자 감독 기록이 없다(§7) | 실데이터를 받기 시작하면 제26조 미준수 | 실데이터 운영 전 각 서비스 DPA 보관·연 1회 점검 기록 | 실데이터 운영 시 |
 | S10 | 운영 의존성에 알려진 취약점 4건(중간)이 남았다 — NestJS 10 SSE 주입, react-router 6 사용자 경로 이동 | 우리 코드에 SSE·사용자 경로 이동이 없어 닿지 않는다 | 같은 메이저 고정·bcrypt 6으로 18 → 4건(D63). 남은 것은 메이저 업그레이드(NestJS 11·react-router 7) | 수용 — D63 재고 트리거 |
 
-**점검 주기**: 의존성을 바꿀 때 `node scripts/license-report.mjs --check`와 `npm audit --omit=dev`(D63), 배포 구성을 바꿀 때 이 표와 [secure-coding-checklist](secure-coding-checklist.md)를 다시 본다. 비밀값이 어디서든 노출되면 즉시 §5 교체 절차.
+**점검 주기**: 의존성을 바꿀 때 `node scripts/license-report.mjs --check`와 `npm audit --omit=dev`(D63)·`npm audit`(개발 도구, D64), 배포 구성을 바꿀 때 이 표와 [secure-coding-checklist](secure-coding-checklist.md)를 다시 본다. 비밀값이 어디서든 노출되면 즉시 §5 교체 절차.

@@ -98,7 +98,7 @@
 | # | 보안약점 | 판정 | 근거·조치 |
 |---|---|---|---|
 | API-1 | DNS lookup에 의존한 보안결정 | 해당 없음 | 호스트 이름으로 권한을 판단하지 않는다(Function URL 보호는 비밀 헤더) |
-| API-2 | 취약한 API 사용 | 대응 | 폐기·위험 API(`new Buffer()`·`crypto.createCipher` 등)를 쓰지 않는다. 의존성 라이선스·버전은 [dependency-licenses](dependency-licenses.md). 취약점 대조 `npm audit --omit=dev`(2026-10-22): 18 → 4건(중간 4, 심각·높음 0) — 남은 2건(NestJS SSE 주입·react-router 사용자 경로 이동)은 우리 코드에서 닿지 않아 메이저 업그레이드를 미룸([D63](../decisions/D63.md)) |
+| API-2 | 취약한 API 사용 | 대응 | 폐기·위험 API(`new Buffer()`·`crypto.createCipher` 등)를 쓰지 않는다. 의존성 라이선스·버전은 [dependency-licenses](dependency-licenses.md). 취약점 대조 `npm audit --omit=dev`(2026-10-22): 18 → 4건(중간 4, 심각·높음 0) — 남은 2건(NestJS SSE 주입·react-router 사용자 경로 이동)은 우리 코드에서 닿지 않아 메이저 업그레이드를 미룸([D63](../decisions/D63.md)). 개발 도구는 뿌리 10 → 2(고친 판이 없는 braces·sprintf-js 수용, [D64](../decisions/D64.md)), 전체 55 → 46줄 |
 
 ## 남은 조치 요약
 
