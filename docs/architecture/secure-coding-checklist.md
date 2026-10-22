@@ -98,7 +98,7 @@
 | # | 보안약점 | 판정 | 근거·조치 |
 |---|---|---|---|
 | API-1 | DNS lookup에 의존한 보안결정 | 해당 없음 | 호스트 이름으로 권한을 판단하지 않는다(Function URL 보호는 비밀 헤더) |
-| API-2 | 취약한 API 사용 | 대응 | 폐기·위험 API(`new Buffer()`·`crypto.createCipher` 등)를 쓰지 않는다. 의존성 라이선스·버전은 [dependency-licenses](dependency-licenses.md) — 취약점 데이터베이스 대조(`npm audit`)는 이 점검에 넣지 않았다 |
+| API-2 | 취약한 API 사용 | 대응 | 폐기·위험 API(`new Buffer()`·`crypto.createCipher` 등)를 쓰지 않는다. 의존성 라이선스·버전은 [dependency-licenses](dependency-licenses.md). 취약점 대조 `npm audit --omit=dev`(2026-10-22): 18 → 4건(중간 4, 심각·높음 0) — 남은 2건(NestJS SSE 주입·react-router 사용자 경로 이동)은 우리 코드에서 닿지 않아 메이저 업그레이드를 미룸([D63](../decisions/D63.md)) |
 
 ## 남은 조치 요약
 
@@ -108,4 +108,4 @@
 | 보안-6 | 채용 직원 임시 비밀번호 무작위화·첫 로그인 변경 강제 | 결정 필요(인증 방식 변경) |
 | 보안-9 | 비밀번호 조합 규칙 | 검토 |
 | 보안-16 | 계정별 로그인 제한 | 수용(범위 제외) |
-| 기준 목록 | 가이드 원문과 항목 이름 대조, `npm audit` 결과 첨부 | 할 일 |
+| 기준 목록 | 가이드 원문과 항목 이름 대조 | 할 일 (`npm audit` 대조는 2026-10-22 끝, D63) |
