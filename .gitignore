@@ -56,3 +56,6 @@ e2e/playwright-report/
 # Python 바이트코드(scripts/deliverables 실행 시 생김)
 __pycache__/
 *.pyc
+
+# 중간 제출 묶음(scripts/deliverables/pack-midterm.mjs가 만든다 — 압축은 사용자)
+/중간제출/
