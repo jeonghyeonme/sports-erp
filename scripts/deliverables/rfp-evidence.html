@@ -1,0 +1,1490 @@
+<title>RFP 이행 증빙</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 관리자 웹과 같은 색(디자인시스템 D15) — 짙은 남색 머리, 청록 강조. 한 열 문서, 앞은 한눈 표, 뒤는 조항 카드 */
+:root {
+  --bg: #f8fafc; --surface: #ffffff; --surface-alt: #f1f5f9; --line: #e2e8f0; --line-strong: #cbd5e1;
+  --ink: #0f172a; --muted: #64748b; --accent: #0f766e; --accent-soft: #f0fdfa; --head: #0f172a; --head-ink: #e2e8f0;
+  --done: #0f766e; --done-bg: #ccfbf1; --adj: #1d4ed8; --adj-bg: #dbeafe; --part: #b45309; --part-bg: #fef3c7;
+  --out: #b91c1c; --out-bg: #fee2e2; --na: #475569; --na-bg: #e2e8f0;
+  --sans: 'IBM Plex Sans KR', 'Noto Sans KR', 'Noto Sans CJK KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1220; --surface: #111a2b; --surface-alt: #172238; --line: #23314a; --line-strong: #334563;
+  --ink: #e2e8f0; --muted: #94a3b8; --accent: #2dd4bf; --accent-soft: #10302d; --head: #060b16; --head-ink: #e2e8f0;
+  --done: #5eead4; --done-bg: #123a36; --adj: #93c5fd; --adj-bg: #1b2d4f; --part: #fcd34d; --part-bg: #3d3014;
+  --out: #fca5a5; --out-bg: #431c1c; --na: #cbd5e1; --na-bg: #263248; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0b1220; --surface: #111a2b; --surface-alt: #172238; --line: #23314a; --line-strong: #334563;
+  --ink: #e2e8f0; --muted: #94a3b8; --accent: #2dd4bf; --accent-soft: #10302d; --head: #060b16; --head-ink: #e2e8f0;
+  --done: #5eead4; --done-bg: #123a36; --adj: #93c5fd; --adj-bg: #1b2d4f; --part: #fcd34d; --part-bg: #3d3014;
+  --out: #fca5a5; --out-bg: #431c1c; --na: #cbd5e1; --na-bg: #263248; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 15px/1.65 var(--sans); margin: 0 }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 0 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.masthead { background: var(--head); color: var(--head-ink);
+  padding-block: 40px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.masthead .in { max-width: 1080px; margin: 0 auto; display: grid; gap: 10px }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: #5eead4 }
+h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.2; margin: 0; text-wrap: balance }
+.masthead p { margin: 0; max-width: 68ch; color: #cbd5e1 }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 13px; color: #94a3b8 }
+.meta b { color: #e2e8f0; font-weight: 600 }
+h2.sec { font-size: 22px; margin: 48px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); text-wrap: balance }
+h2 small, h3 small { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 6px }
+h3.area-h { font-size: 16px; margin: 28px 0 8px }
+p.lead { max-width: 72ch; margin: 0 0 16px }
+.summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start }
+@media (max-width: 760px) { .summary { grid-template-columns: minmax(0, 1fr) } }
+.big { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap }
+.big strong { font-size: 48px; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums }
+.big span { color: var(--muted) }
+.legend { display: grid; gap: 6px; margin: 16px 0 0; padding: 0; list-style: none; font-size: 14px }
+.legend li { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: baseline }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface) }
+table { border-collapse: collapse; width: 100%; font-size: 14px }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top }
+thead th { background: var(--surface-alt); font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .02em; white-space: nowrap }
+tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0 }
+table.count td { text-align: right; font-variant-numeric: tabular-nums }
+table.count th[scope=row] { font-weight: 600 }
+table.count td.rate { font-weight: 700; color: var(--accent) }
+table.count tfoot td, table.count tfoot th { border-top: 2px solid var(--line-strong); font-weight: 700 }
+table.glance { min-width: 760px }
+table.glance td.id { font: 500 13px var(--mono); white-space: nowrap }
+table.glance td.id a { color: var(--accent); text-decoration: none }
+table.glance td.req { width: 34% }
+table.glance .rfp { display: block; font-size: 12px; color: var(--muted) }
+table.glance td.st { white-space: nowrap }
+.pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap }
+.pill.done { color: var(--done); background: var(--done-bg) } .pill.adj { color: var(--adj); background: var(--adj-bg) }
+.pill.part { color: var(--part); background: var(--part-bg) } .pill.out { color: var(--out); background: var(--out-bg) }
+.pill.na { color: var(--na); background: var(--na-bg) }
+.note { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 10px 14px; margin: 16px 0; font-size: 14px }
+.note p { margin: 0 } .note p + p { margin-top: 6px }
+.clause { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; margin: 14px 0; scroll-margin-top: 16px }
+.clause.short { padding-block: 12px }
+.clause header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px }
+.cid { font: 500 13px var(--mono); color: var(--accent) }
+.clause h4 { margin: 0; font-size: 16px; flex: 1 1 320px; min-width: 0; text-wrap: balance }
+.clause dl { margin: 10px 0 0; display: grid; gap: 6px }
+.clause dl > div { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px }
+@media (max-width: 520px) { .clause dl > div { grid-template-columns: minmax(0, 1fr); gap: 0 } }
+.clause dt { font-size: 12px; color: var(--muted); padding-top: 2px; letter-spacing: .02em }
+.clause dd { margin: 0; min-width: 0 }
+.clause dd.plain { font-weight: 600 }
+ul.dec { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 14px }
+ul.dec b { font: 500 13px var(--mono); margin-right: 4px }
+.where { font-size: 12px; color: var(--muted) }
+.where::before { content: '· ' }
+p.none { margin: 0; font-size: 14px; color: var(--muted) }
+.figs { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; align-items: flex-start }
+figure { margin: 0; min-width: 0 }
+figure.desk { flex: 1 1 100% }
+figure.phone { flex: 0 1 260px }
+figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line-strong); border-radius: 4px; background: #fff }
+figcaption { font-size: 12px; color: var(--muted); margin-top: 4px }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+footer.end { margin-top: 48px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px }
+@page { size: A4; margin: 14mm 12mm }
+@media print {
+  body { font-size: 11pt; background: #fff }
+  .masthead { -webkit-print-color-adjust: exact; print-color-adjust: exact }
+  .pill, thead th, .note { -webkit-print-color-adjust: exact; print-color-adjust: exact }
+  .table-wrap { overflow: visible; border: 0 }
+  table.glance { min-width: 0 }
+  tr { break-inside: avoid }
+  h2.sec { break-before: page; margin-top: 0 }
+  .clause { break-inside: avoid; border-color: #cbd5e1 }
+  figure.desk img { max-height: 125mm; width: auto; max-width: 100% }
+  figure.phone { flex-basis: 52mm }
+  .glance-part { break-before: page }
+}
+</style>
+
+<header class="masthead"><div class="in">
+  <span class="eyebrow">스포이즘 ERP · 중간 보고 증빙</span>
+  <h1>RFP 이행 증빙</h1>
+  <p>제안요청서의 요구 하나하나를 어떻게 이행했는지, 조항마다 원문과 구현한 것, 결정 기록, 실제 화면을 묶었다. 앞의 한눈 표로 전체를 보고, 궁금한 조항은 번호를 눌러 상세로 간다.</p>
+  <div class="meta"><span>기준일 <b>2026-10-23</b></span><span>판정 원천 <b>요구사항추적표 §3</b></span><span>조항 <b>72개</b></span><span>화면 <b>시연 데이터로 로컬 실행</b></span></div>
+</div></header>
+
+<main class="wrap">
+  <h2 class="sec" style="break-before:auto">요약</h2>
+  <div class="summary">
+    <div>
+      <div class="big"><strong>58/64</strong><span>판정 대상 조항 중 완료·조정 (91%)</span></div>
+      <p class="lead">RFP 원문의 글머리(•) 하나를 한 조항으로 나눴다. 시스템 기능·성능 요구는 모두 완료 또는 근거 있는 조정이다. 남은 부분 조항은 실제 운영(실결제 호출·위탁계약 서명·검수)이 있어야 끝나는데, 이 프로젝트는 실운영을 하지 않는다.</p>
+      <ul class="legend"><li><span class="pill done">완료</span><span>RFP가 말한 것을 그대로 했다</span></li><li><span class="pill adj">조정</span><span>결과는 냈고 방식을 바꿨다 — 바꾼 이유가 결정 기록에 있다</span></li><li><span class="pill part">부분</span><span>일부만 했다 — 남은 것은 실제 운영이 있어야 끝난다</span></li><li><span class="pill out">제외</span><span>의도적으로 하지 않았다 — 이유를 적었다</span></li><li><span class="pill na">해당 없음</span><span>발주기관·계약·대면 행위처럼 이 프로젝트에 대상이 없다</span></li></ul>
+    </div>
+    <div class="table-wrap"><table class="count">
+      <thead><tr><th>영역</th><th>조항</th><th>완료</th><th>조정</th><th>부분</th><th>제외</th><th>해당 없음</th><th>완료+조정</th></tr></thead>
+      <tbody><tr><th scope="row">기능·성능</th><td>29</td><td>25</td><td>3</td><td>0</td><td>0</td><td>1</td><td class="rate">28/28</td></tr><tr><th scope="row">시스템·데이터·인터페이스·보안·사업지원·제약</th><td>25</td><td>16</td><td>1</td><td>2</td><td>0</td><td>6</td><td class="rate">17/19</td></tr><tr><th scope="row">과업·산출물·개념도</th><td>18</td><td>11</td><td>2</td><td>1</td><td>3</td><td>1</td><td class="rate">13/17</td></tr></tbody>
+      <tfoot><tr><th scope="row">합계</th><td>72</td><td>52</td><td>6</td><td>3</td><td>3</td><td>8</td><td class="rate">58/64</td></tr></tfoot>
+    </table></div>
+  </div>
+  <div class="note">
+    <p><b>증거 읽는 법</b> — 화면은 그 조항이 실제로 동작하는 모습(시연 데이터, 로컬 실행)이고, 결정 기록은 설계·조정의 이유를 남긴 문서다. D 번호는 저장소 <code>docs/decisions/</code>의 결정 기록, ADR 번호는 <code>docs/domains/</code> 도메인 문서의 결정 절이다.</p>
+    <p>판정은 자기 평가다. 그래서 판정을 바꾸지 않은 원천 표(요구사항추적표 §3)에서 자동으로 만들고, 조항마다 확인할 수 있는 증거를 붙였다.</p>
+  </div>
+
+  <section class="glance-part">
+    <h2 class="sec">한눈 표 — 72개 조항</h2>
+    <h3 class="area-h">기능·성능 <small>RFP p.5 세부 과업 표</small></h3>
+  <div class="table-wrap"><table class="glance">
+    <thead><tr><th>조항</th><th>RFP 요구(원문 요약)</th><th>상태</th><th>구현한 것</th></tr></thead>
+    <tbody><tr>
+        <td class="id"><a href="#c-F1-1">F1-1</a></td>
+        <td class="req"><span class="rfp">권한관리</span>권한관리 기능은 관리자 계정에만 부여</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">직원의 역할을 바꾸고 권한을 정하는 화면은 본사 관리자만 연다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F1-2">F1-2</a></td>
+        <td class="req"><span class="rfp">권한관리</span>사용자별·프로그램별 권한 설정(입력·수정·삭제·조회·출력)</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">기능마다 조회·입력·수정·삭제·출력을 켜고 끌 수 있고, 역할별 기본값에 사람마다 예외를 줄 수 있다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F1-3">F1-3</a></td>
+        <td class="req"><span class="rfp">권한관리</span>본사-현장, 현장-이용자 간 별도 권한 관리</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">본사·지점 관리자·직원·회원 네 역할로 나누고, 지점 관리자는 자기 지점 데이터만 본다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F1-4">F1-4</a></td>
+        <td class="req"><span class="rfp">권한관리</span>사용자 편의성·확장성·운영성 고려</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">지점 범위 검사를 한 곳에 모아, 새 화면을 만들어도 검사가 빠지지 않는다. 빠지면 자동 테스트가 실패한다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F1-5">F1-5</a></td>
+        <td class="req"><span class="rfp">권한관리</span>퇴사 처리 이후 시스템 접근 통제</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">퇴사 처리하면 그 계정은 다음 요청부터 바로 막힌다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F2-1">F2-1</a></td>
+        <td class="req"><span class="rfp">인사정보관리</span>현장(지점)별 인사관리 탭, 코드 생성</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">직원 목록을 지점별로 묶어 보이고, 채용하면 직원 코드가 자동으로 붙는다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F2-2">F2-2</a></td>
+        <td class="req"><span class="rfp">인사정보관리</span>모든 인사기록 정보를 한 화면에서 조회</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">직원 한 명의 파견·근태·휴가·업무일지·인사서류를 한 화면에서 본다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F2-3">F2-3</a></td>
+        <td class="req"><span class="rfp">인사정보관리</span>권한부여 혹은 승인 시 수정 가능</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">직원이 자기 인사정보 변경을 신청하고, 지점 관리자가 승인해야 바뀐다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F3-1">F3-1</a></td>
+        <td class="req"><span class="rfp">근태관리</span>현장별 &gt; 개인별 근태 등록 관리</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">직원이 출퇴근을 찍고, 지점 관리자가 빠진 날을 등록·정정하며, 본사는 지점별 현황을 본다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F3-2">F3-2</a></td>
+        <td class="req"><span class="rfp">근태관리</span>휴무·연차·병가 등 기록 및 일수 관리</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">연차·병가·휴무를 신청·승인하고, 남은 연차와 올해 종류별 사용 일수를 보여 준다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F3-3">F3-3</a></td>
+        <td class="req"><span class="rfp">근태관리</span>업무일지 작성 관리</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">직원이 하루 한 건 업무일지를 쓰고, 지점 관리자가 직원 화면에서 읽는다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F4-1">F4-1</a></td>
+        <td class="req"><span class="rfp">게시판</span>본사→현장 / 현장→이용자 게시판 별도 생성</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">본사→현장 게시판과 현장→이용자 게시판을 나눴고, 회원에게는 현장 공지만 보인다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F4-2">F4-2</a></td>
+        <td class="req"><span class="rfp">게시판</span>본사→현장 직원관리 탭에 교육 매뉴얼·자료 탑재</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">'직원 교육자료' 탭에 교육 문서를 첨부해 올리고 직원이 내려받는다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F4-3">F4-3</a></td>
+        <td class="req"><span class="rfp">게시판</span>현장→이용자 각 시설에 대한 공지 글·이미지 작성</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">지점 공지를 쓸 때 시설을 고르고 서식과 이미지를 넣으면, 회원 앱에 시설별로 보인다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F5-1">F5-1</a></td>
+        <td class="req"><span class="rfp">회원관리</span>회원 인적사항·수강내역·예약및결제내역·PT 잔여 세션 기록</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">회원 한 명의 인적사항·수강·예약·결제·PT 남은 횟수를 한 화면에서 본다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F5-2">F5-2</a></td>
+        <td class="req"><span class="rfp">회원관리</span>현장 관리자는 해당 현장 회원 정보만(타현장 조회 불가)</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">지점 관리자는 자기 지점 회원만 보고, 다른 지점 회원을 열면 거절된다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F6-1">F6-1</a></td>
+        <td class="req"><span class="rfp">예약및결제</span>무/유료 프로그램 게시 후 프로그램별 예약, 모바일 결제</td>
+        <td class="st"><span class="pill adj">조정</span></td>
+        <td class="plain">회원이 휴대폰에서 강습 회차를 예약하고 결제한다. 결제는 실제 카드 대신 모의 결제다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F6-2">F6-2</a></td>
+        <td class="req"><span class="rfp">예약및결제</span>결제내역 처리 방법 추후 논의</td>
+        <td class="st"><span class="pill na">해당 없음</span></td>
+        <td class="plain">원문이 '추후 논의'라 판정하지 않는다. 결제 내역 조회와 내려받기는 있다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F7-1">F7-1</a></td>
+        <td class="req"><span class="rfp">강사,프로그램게시</span>각 현장 종목별 강사·프로그램 정보 게시</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">지점마다 강사와 프로그램을 등록하고, 회원 앱에 강사 소개와 함께 보인다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F7-2">F7-2</a></td>
+        <td class="req"><span class="rfp">강사,프로그램게시</span>종목별·시간대별·연령대별 프로그램 리스트</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">프로그램을 종목·시간대·연령대로 골라 볼 수 있다(관리자 웹과 회원 앱 모두).</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F8-1">F8-1</a></td>
+        <td class="req"><span class="rfp">혼잡도관리</span>시설별 이용현황·혼잡도 5단계 게시</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">시설마다 지금 인원을 정원과 비교해 5단계(여유~매우 붐빔)로 회원 앱 홈에 보여 준다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F8-2">F8-2</a></td>
+        <td class="req"><span class="rfp">혼잡도관리</span>실시간 혹은 최대 30분 이내 반영</td>
+        <td class="st"><span class="pill adj">조정</span></td>
+        <td class="plain">강습 예약 인원은 저절로 더해지고, 예약 없이 온 인원은 직원이 입력한다. 30분 넘게 입력이 없으면 경고한다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F10-1">F10-1</a></td>
+        <td class="req"><span class="rfp">시스템가용성</span>CPU 평균 사용률 90% 이하</td>
+        <td class="st"><span class="pill adj">조정</span></td>
+        <td class="plain">요청마다 따로 실행되는 서버(동시 10개 상한)로 CPU를 나눠 쓰지 않게 했고, CPU 대신 처리 시간을 쟀다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F10-2">F10-2</a></td>
+        <td class="req"><span class="rfp">시스템가용성</span>메모리 평균 사용률 85% 이하</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">메모리는 실측 최대 약 16%이고, 85%를 넘으면 이메일 경보가 온다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F10-3">F10-3</a></td>
+        <td class="req"><span class="rfp">시스템가용성</span>이용자 수 증가에 따른 운용 안정성 확보</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">이용자가 몰리면 넘친 요청만 바로 거절하고 잠시 뒤 다시 시도하라고 안내한다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F10-4">F10-4</a></td>
+        <td class="req"><span class="rfp">시스템가용성</span>빈도 높은·중요 기능의 운영 환경 성능 시험</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">자주 쓰는 기능(로그인·조회)을 실제 운영 환경에서 부하 시험했다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F10-5">F10-5</a></td>
+        <td class="req"><span class="rfp">시스템가용성</span>과부하에 따른 안정성 사전 점검</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">초당 300건을 1분간 보내는 과부하 시험으로 버티는지 미리 확인했다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F11-1">F11-1</a></td>
+        <td class="req"><span class="rfp">시스템성능</span>성능 진단 도구로 정확한 성능 진단</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">부하 시험 도구(k6)로 재고, 느린 원인을 측정해 요청당 처리 시간을 약 110ms에서 40ms로 줄였다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-F11-2">F11-2</a></td>
+        <td class="req"><span class="rfp">시스템성능</span>처리 속도가 느린 작업은 사용자에게 사전 알림</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">요청이 3초를 넘으면 '처리 중', 15초를 넘으면 '응답이 늦다'고 화면에 알린다.</td>
+      </tr></tbody>
+  </table></div><h3 class="area-h">시스템·데이터·인터페이스·보안·사업지원·제약 <small>RFP p.6 세부 과업 표</small></h3>
+  <div class="table-wrap"><table class="glance">
+    <thead><tr><th>조항</th><th>RFP 요구(원문 요약)</th><th>상태</th><th>구현한 것</th></tr></thead>
+    <tbody><tr>
+        <td class="id"><a href="#c-N1-1">N1-1</a></td>
+        <td class="req"><span class="rfp">시스템도입</span>최종 도입 전 사전 이용 테스트 후 총괄담당자 승인</td>
+        <td class="st"><span class="pill na">해당 없음</span></td>
+        <td class="plain">발주기관이 없어 승인 절차가 없다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N1-2">N1-2</a></td>
+        <td class="req"><span class="rfp">시스템도입</span>기업 승인 후 납품·설치, 설치 단계별 작업계획서</td>
+        <td class="st"><span class="pill na">해당 없음</span></td>
+        <td class="plain">발주기관이 없다. 배포 절차는 문서로 남겼다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N2-1">N2-1</a></td>
+        <td class="req"><span class="rfp">설치및운영</span>소프트웨어 개발보안 준수</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">행정안전부 보안약점 49개 항목으로 점검해 고쳤고, 쓰는 라이브러리의 알려진 취약점은 0건이다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N2-2">N2-2</a></td>
+        <td class="req"><span class="rfp">설치및운영</span>개발자·발주기관·전문가 검증</td>
+        <td class="st"><span class="pill na">해당 없음</span></td>
+        <td class="plain">검증할 발주기관·전문가가 없어, 자동 검사(코드 검사·테스트·문서 검사)로 대신했다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N2-3">N2-3</a></td>
+        <td class="req"><span class="rfp">설치및운영</span>제조사 공급 및 기술지원 확약서</td>
+        <td class="st"><span class="pill na">해당 없음</span></td>
+        <td class="plain">납품 계약이 없어 확약서 대상이 없다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N3-1">N3-1</a></td>
+        <td class="req"><span class="rfp">데이터관리방안</span>데이터 표준관리 방안과 변경 이력 관리 방안 제시·적용</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">데이터 정의를 한 문서에 모으고 DB가 규칙을 직접 지키며, 중요한 변경 9종은 누가·언제·무엇을 바꿨는지 남긴다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N3-2">N3-2</a></td>
+        <td class="req"><span class="rfp">데이터관리방안</span>오류 데이터 진단 방안 및 개선 절차</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">잘못된 데이터를 찾는 점검 쿼리 9개와 고치는 절차를 문서로 만들었다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N4-1">N4-1</a></td>
+        <td class="req"><span class="rfp">온라인도움말</span>화면 내 기능 사용 순서 안내</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">관리자 웹의 모든 화면에 '도움말' 버튼이 있어 역할별 사용 순서를 보여 주고, 회원 앱에는 이용 안내가 있다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N4-2">N4-2</a></td>
+        <td class="req"><span class="rfp">온라인도움말</span>오류 처리 사항과 해결 방법</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">오류가 나면 문구 아래 '해결' 한 줄로 어떻게 하면 되는지 알려 준다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N5-1">N5-1</a></td>
+        <td class="req"><span class="rfp">상호작용메시지</span>사용자-시스템 상호작용에 대한 확인 메시지</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">저장하면 알림이 뜨고, 되돌리기 어려운 작업은 확인 창을 한 번 더 띄운다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N6-1">N6-1</a></td>
+        <td class="req"><span class="rfp">UI/UX</span>전체 시스템에서 통일성 있는 UI</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">색·글꼴·간격을 공통 값으로 정해 모든 화면이 같은 모양을 쓴다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N6-2">N6-2</a></td>
+        <td class="req"><span class="rfp">UI/UX</span>이용자 편의 우선의 직관적·간략한 UX</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">대시보드 첫 칸에 '지금 처리할 일'을 모았고, 역할별로 화면을 점검해 불편 14건을 고쳤다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N6-3">N6-3</a></td>
+        <td class="req"><span class="rfp">UI/UX</span>페이지 위치 정보를 MAP 형태로 표시</td>
+        <td class="st"><span class="pill adj">조정</span></td>
+        <td class="plain">'지도 형태'를 지금 위치를 보여 주는 경로 표시(홈 › 메뉴 › 화면)로 해석해 모든 화면 위에 두었다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N6-4">N6-4</a></td>
+        <td class="req"><span class="rfp">UI/UX</span>권한에 따라 수정·삭제·조회 버튼 기능 제어</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">권한이 없는 사람에게는 등록·수정·삭제·내려받기 버튼이 보이지 않고, 서버도 한 번 더 막는다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N6-5">N6-5</a></td>
+        <td class="req"><span class="rfp">UI/UX</span>필드 속성에 맞는 입력 언어 우선 적용, 입력창 크기 최적화</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">전화·숫자·이메일 칸은 휴대폰에서 맞는 자판이 뜨고, 입력 길이와 칸 크기를 맞췄다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N6-6">N6-6</a></td>
+        <td class="req"><span class="rfp">UI/UX</span>예약 관리를 달력·스케줄표 형태로 표시</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">관리자는 주간 시간표로, 회원은 날짜 띠로 예약을 본다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N7-1">N7-1</a></td>
+        <td class="req"><span class="rfp">UI 보안</span>인사·회원 개인정보가 별도 절차 없이 노출되지 않음</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">목록의 전화번호는 가운데를 가리고, 원문을 열어 볼 때마다 기록이 남는다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N7-2">N7-2</a></td>
+        <td class="req"><span class="rfp">UI 보안</span>권한에 의한 접근 통제 — 그룹별·개인별·기능별</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">역할별·사람별·기능별로 접근을 나누고, 지점 단위로도 막는다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N7-3">N7-3</a></td>
+        <td class="req"><span class="rfp">UI 보안</span>결제 시스템의 금융·보안기관 연계 가능 여부 확인</td>
+        <td class="st"><span class="pill part">부분</span></td>
+        <td class="plain">결제 회사를 바꿔 끼울 수 있게 만들고 연계 확인 문서를 썼지만, 실제 결제 호출은 하지 않았다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N8-1">N8-1</a></td>
+        <td class="req"><span class="rfp">보안요건</span>인원·문서·장비 보안관리계획 수립</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">인원·문서·장비·비밀값 보안관리계획을 문서로 세웠다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N8-2">N8-2</a></td>
+        <td class="req"><span class="rfp">보안요건</span>개인정보보호법 제26조(업무위탁) 준수</td>
+        <td class="st"><span class="pill part">부분</span></td>
+        <td class="plain">개인정보처리방침에 데이터를 맡긴 업체(위탁)를 밝혔다. 위탁계약 서명은 실제 운영 때 할 일이다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N9-1">N9-1</a></td>
+        <td class="req"><span class="rfp">하자보수</span>무상 보증기간 12개월</td>
+        <td class="st"><span class="pill na">해당 없음</span></td>
+        <td class="plain">계약이 없어 보증기간 대상이 없다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N9-2">N9-2</a></td>
+        <td class="req"><span class="rfp">하자보수</span>O/S·유틸리티·상용 SW 신규 버전 업그레이드 여부 제시</td>
+        <td class="st"><span class="pill na">해당 없음</span></td>
+        <td class="plain">계약이 없어 업그레이드 약정 대상이 없다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N10-1">N10-1</a></td>
+        <td class="req"><span class="rfp">규정의준수</span>산출물의 지식재산권 주의·준수</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">쓰는 라이브러리 243개의 라이선스를 목록으로 만들고, 모두 자유롭게 쓸 수 있는 종류임을 확인했다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-N10-2">N10-2</a></td>
+        <td class="req"><span class="rfp">규정의준수</span>저작권 문제가 없는 저작물 구현</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">이미지·아이콘은 직접 만들었고 외부 글꼴·이미지 파일을 쓰지 않는다.</td>
+      </tr></tbody>
+  </table></div><h3 class="area-h">과업·산출물·개념도 <small>RFP p.3~4 과업, p.7 산출물, p.4 개념도</small></h3>
+  <div class="table-wrap"><table class="glance">
+    <thead><tr><th>조항</th><th>RFP 요구(원문 요약)</th><th>상태</th><th>구현한 것</th></tr></thead>
+    <tbody><tr>
+        <td class="id"><a href="#c-T1-1">T1-1</a></td>
+        <td class="req"><span class="rfp">과업1</span>기업 구조 분석(지점현황·지역분포·근무자 구조·조직도)</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">지점 현황·지역 분포·근무자 구조·조직을 분석해 기업 분석 문서에 담았다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-T1-2">T1-2</a></td>
+        <td class="req"><span class="rfp">과업1</span>관리시스템 분석(인적/물적자원·본사와 지점 관리·현장관리·효율성)</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">인적·물적 자원, 본사·지점 관리, 현장 관리를 분석했다. 물적 자원 관리가 빠져 있던 것을 찾아 채웠다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-T2-1">T2-1</a></td>
+        <td class="req"><span class="rfp">과업2</span>유사 기업체 관리 시스템 현황 분석</td>
+        <td class="st"><span class="pill out">제외</span></td>
+        <td class="plain">비교할 회사 자료에 접근할 수 없어 하지 않았다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-T2-2">T2-2</a></td>
+        <td class="req"><span class="rfp">과업2</span>당사에 적합한 ERP/앱 개발 컨설팅</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">기업 분석과 제안서에서 위탁운영 회사에 맞는 시스템을 제안했다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-T2-3">T2-3</a></td>
+        <td class="req"><span class="rfp">과업2</span>탑재할 목표 프로세스·기능 설계</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">9개 업무 영역마다 설계 문서를 쓰고 아키텍처 설계서로 묶었다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-T2-4">T2-4</a></td>
+        <td class="req"><span class="rfp">과업2</span>UI/UX 계획 수립 및 스타일 디자인</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">디자인 시스템 문서로 화면 스타일을 정했다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-T3-1">T3-1</a></td>
+        <td class="req"><span class="rfp">과업3</span>요구사항 표를 반영한 프로그래밍</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">요구사항 표의 기능·성능 조항을 모두 만들었다(위 기능·성능 절).</td>
+      </tr><tr>
+        <td class="id"><a href="#c-T3-2">T3-2</a></td>
+        <td class="req"><span class="rfp">과업3</span>앱 개발 → 테스트 → 검수 → 완료 → 도입 → 경영개선 기대효과 분석</td>
+        <td class="st"><span class="pill part">부분</span></td>
+        <td class="plain">개발·테스트·운영 배포까지 했다. 검수·도입·효과 분석은 실제 운영을 하지 않아 없다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-T4-1">T4-1</a></td>
+        <td class="req"><span class="rfp">과업4</span>이용자 매뉴얼 제작·탑재</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">역할별 사용자 매뉴얼(Word)을 만들고, 앱 안에도 화면 도움말과 이용 안내로 넣었다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-T4-2">T4-2</a></td>
+        <td class="req"><span class="rfp">과업4</span>팀장급 직원 대상 대면 교육 2회 이상</td>
+        <td class="st"><span class="pill na">해당 없음</span></td>
+        <td class="plain">대면 교육이라 대상이 없다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-P1">P1</a></td>
+        <td class="req"><span class="rfp">산출물1</span>ERP 시스템 앱 1개(본사의 현장관리·현장의 회원관리)</td>
+        <td class="st"><span class="pill adj">조정</span></td>
+        <td class="plain">앱 하나 대신 관리자 웹과 회원용 모바일 웹(홈 화면에 설치 가능)으로 나눴다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-P2-1">P2-1</a></td>
+        <td class="req"><span class="rfp">산출물2</span>기업 경영/관리 현황 분석 1부(20p 이상)</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">기업 분석 및 제안서(Word)로 냈다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-P2-2">P2-2</a></td>
+        <td class="req"><span class="rfp">산출물2</span>어플 도입 후 기대효과 분석 1부(30p 이상)</td>
+        <td class="st"><span class="pill out">제외</span></td>
+        <td class="plain">실제 매출·계약 데이터 없이 숫자를 예측하면 지어낸 값이 되어 하지 않았다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-P2-3">P2-3</a></td>
+        <td class="req"><span class="rfp">산출물2</span>유사기업 직원 매뉴얼 형태·현황 분석 1부(30p 이상)</td>
+        <td class="st"><span class="pill out">제외</span></td>
+        <td class="plain">비교할 회사의 매뉴얼에 접근할 수 없어 하지 않았다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-P3">P3</a></td>
+        <td class="req"><span class="rfp">산출물3</span>개발 작업계획서 1부</td>
+        <td class="st"><span class="pill adj">조정</span></td>
+        <td class="plain">개발 작업계획서 대신 아키텍처 설계서와 업무 영역별 작업 절차로 냈다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-P4">P4</a></td>
+        <td class="req"><span class="rfp">산출물4</span>단계별 개발 진행 보고서 5부</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">단계별 개발 진행 보고서 5부(Word)를 냈다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-P5">P5</a></td>
+        <td class="req"><span class="rfp">산출물5</span>어플 사용 교육 자료 1편(게시판 탑재)</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">역할별 빠른 시작 교육 자료를 만들어 운영 게시판 '직원 교육자료'에 올렸다.</td>
+      </tr><tr>
+        <td class="id"><a href="#c-C1">C1</a></td>
+        <td class="req"><span class="rfp">개념도(p.4)</span>현장→본사 업무일지·업무지원 요청, 본사→현장 근태관리</td>
+        <td class="st"><span class="pill done">완료</span></td>
+        <td class="plain">현장은 업무일지와 업무지원 요청을 올리고, 본사는 근태 현황을 본다.</td>
+      </tr></tbody>
+  </table></div>
+  </section>
+
+  <section class="area"><h2 class="sec">기능·성능 <small>RFP p.5 세부 과업 표</small></h2><article class="clause" id="c-F1-1">
+        <header>
+          <span class="cid">F1-1</span>
+          <h4>권한관리 기능은 관리자 계정에만 부여</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>권한관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">직원의 역할을 바꾸고 권한을 정하는 화면은 본사 관리자만 연다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F1-1.png" target="_blank" rel="noopener"><img src="figs/rfp/F1-1.png" alt="F1-1 화면" loading="lazy"></a>
+          <figcaption>화면 F1-1</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F1-2">
+        <header>
+          <span class="cid">F1-2</span>
+          <h4>사용자별·프로그램별 권한 설정(입력·수정·삭제·조회·출력)</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>권한관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">기능마다 조회·입력·수정·삭제·출력을 켜고 끌 수 있고, 역할별 기본값에 사람마다 예외를 줄 수 있다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D60</b> 세부 권한 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F1-2.png" target="_blank" rel="noopener"><img src="figs/rfp/F1-2.png" alt="F1-2 화면" loading="lazy"></a>
+          <figcaption>화면 F1-2</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F1-3">
+        <header>
+          <span class="cid">F1-3</span>
+          <h4>본사-현장, 현장-이용자 간 별도 권한 관리</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>권한관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">본사·지점 관리자·직원·회원 네 역할로 나누고, 지점 관리자는 자기 지점 데이터만 본다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D46</b> 지점 격리 검사를 전역 BranchScopeGuard 한 곳으로 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F1-3.png" target="_blank" rel="noopener"><img src="figs/rfp/F1-3.png" alt="F1-3 화면" loading="lazy"></a>
+          <figcaption>화면 F1-3</figcaption>
+        </figure></div>
+      </article><article class="clause short" id="c-F1-4">
+        <header>
+          <span class="cid">F1-4</span>
+          <h4>사용자 편의성·확장성·운영성 고려</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>권한관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">지점 범위 검사를 한 곳에 모아, 새 화면을 만들어도 검사가 빠지지 않는다. 빠지면 자동 테스트가 실패한다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D46</b> 지점 격리 검사를 전역 BranchScopeGuard 한 곳으로 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        
+      </article><article class="clause" id="c-F1-5">
+        <header>
+          <span class="cid">F1-5</span>
+          <h4>퇴사 처리 이후 시스템 접근 통제</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>권한관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">퇴사 처리하면 그 계정은 다음 요청부터 바로 막힌다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F1-5.png" target="_blank" rel="noopener"><img src="figs/rfp/F1-5.png" alt="F1-5 화면" loading="lazy"></a>
+          <figcaption>화면 F1-5</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F2-1">
+        <header>
+          <span class="cid">F2-1</span>
+          <h4>현장(지점)별 인사관리 탭, 코드 생성</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>인사정보관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">직원 목록을 지점별로 묶어 보이고, 채용하면 직원 코드가 자동으로 붙는다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F2-1.png" target="_blank" rel="noopener"><img src="figs/rfp/F2-1.png" alt="F2-1 화면" loading="lazy"></a>
+          <figcaption>화면 F2-1</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F2-2">
+        <header>
+          <span class="cid">F2-2</span>
+          <h4>모든 인사기록 정보를 한 화면에서 조회</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>인사정보관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">직원 한 명의 파견·근태·휴가·업무일지·인사서류를 한 화면에서 본다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F2-2.png" target="_blank" rel="noopener"><img src="figs/rfp/F2-2.png" alt="F2-2 화면" loading="lazy"></a>
+          <figcaption>화면 F2-2</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F2-3">
+        <header>
+          <span class="cid">F2-3</span>
+          <h4>권한부여 혹은 승인 시 수정 가능</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>인사정보관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">직원이 자기 인사정보 변경을 신청하고, 지점 관리자가 승인해야 바뀐다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>ADR-STF-09</b> 인사 변경 신청 → 지점 관리자 1단계 승인 <span class="where">인사정보관리</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F2-3.png" target="_blank" rel="noopener"><img src="figs/rfp/F2-3.png" alt="F2-3 화면" loading="lazy"></a>
+          <figcaption>화면 F2-3</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F3-1">
+        <header>
+          <span class="cid">F3-1</span>
+          <h4>현장별 &gt; 개인별 근태 등록 관리</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>근태관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">직원이 출퇴근을 찍고, 지점 관리자가 빠진 날을 등록·정정하며, 본사는 지점별 현황을 본다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>ADR-ATT-04</b> 관리자 근태 정정·누락일 등록 <span class="where">근태관리</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F3-1.png" target="_blank" rel="noopener"><img src="figs/rfp/F3-1.png" alt="F3-1 화면" loading="lazy"></a>
+          <figcaption>화면 F3-1</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F3-2">
+        <header>
+          <span class="cid">F3-2</span>
+          <h4>휴무·연차·병가 등 기록 및 일수 관리</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>근태관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">연차·병가·휴무를 신청·승인하고, 남은 연차와 올해 종류별 사용 일수를 보여 준다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F3-2.png" target="_blank" rel="noopener"><img src="figs/rfp/F3-2.png" alt="F3-2 화면" loading="lazy"></a>
+          <figcaption>화면 F3-2</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F3-3">
+        <header>
+          <span class="cid">F3-3</span>
+          <h4>업무일지 작성 관리</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>근태관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">직원이 하루 한 건 업무일지를 쓰고, 지점 관리자가 직원 화면에서 읽는다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F3-3.png" target="_blank" rel="noopener"><img src="figs/rfp/F3-3.png" alt="F3-3 화면" loading="lazy"></a>
+          <figcaption>화면 F3-3</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F4-1">
+        <header>
+          <span class="cid">F4-1</span>
+          <h4>본사→현장 / 현장→이용자 게시판 별도 생성</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>게시판</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">본사→현장 게시판과 현장→이용자 게시판을 나눴고, 회원에게는 현장 공지만 보인다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F4-1.png" target="_blank" rel="noopener"><img src="figs/rfp/F4-1.png" alt="F4-1 화면" loading="lazy"></a>
+          <figcaption>화면 F4-1</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F4-2">
+        <header>
+          <span class="cid">F4-2</span>
+          <h4>본사→현장 직원관리 탭에 교육 매뉴얼·자료 탑재</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>게시판</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">'직원 교육자료' 탭에 교육 문서를 첨부해 올리고 직원이 내려받는다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>ADR-BRD-04</b> 게시글 첨부 <span class="where">게시판</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F4-2.png" target="_blank" rel="noopener"><img src="figs/rfp/F4-2.png" alt="F4-2 화면" loading="lazy"></a>
+          <figcaption>화면 F4-2</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F4-3">
+        <header>
+          <span class="cid">F4-3</span>
+          <h4>현장→이용자 각 시설에 대한 공지 글·이미지 작성</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>게시판</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">지점 공지를 쓸 때 시설을 고르고 서식과 이미지를 넣으면, 회원 앱에 시설별로 보인다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>ADR-BRD-05</b> 지점 공지에 대상 시설을 붙인다 <span class="where">게시판</span></li><li><b>ADR-BRD-06</b> 본문을 서식 있는 HTML로, 작성·수정은 별도 화면에서 <span class="where">게시판</span></li><li><b>D62</b> 게시글 본문을 서식 HTML로 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F4-3.png" target="_blank" rel="noopener"><img src="figs/rfp/F4-3.png" alt="F4-3 화면" loading="lazy"></a>
+          <figcaption>화면 F4-3</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F5-1">
+        <header>
+          <span class="cid">F5-1</span>
+          <h4>회원 인적사항·수강내역·예약및결제내역·PT 잔여 세션 기록</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>회원관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">회원 한 명의 인적사항·수강·예약·결제·PT 남은 횟수를 한 화면에서 본다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F5-1.png" target="_blank" rel="noopener"><img src="figs/rfp/F5-1.png" alt="F5-1 화면" loading="lazy"></a>
+          <figcaption>화면 F5-1</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F5-2">
+        <header>
+          <span class="cid">F5-2</span>
+          <h4>현장 관리자는 해당 현장 회원 정보만(타현장 조회 불가)</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>회원관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">지점 관리자는 자기 지점 회원만 보고, 다른 지점 회원을 열면 거절된다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D2</b> 멀티테넌시를 branchId 컬럼 격리로 구현(DB/스키마 분리 아님) <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F5-2.png" target="_blank" rel="noopener"><img src="figs/rfp/F5-2.png" alt="F5-2 화면" loading="lazy"></a>
+          <figcaption>화면 F5-2</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F6-1">
+        <header>
+          <span class="cid">F6-1</span>
+          <h4>무/유료 프로그램 게시 후 프로그램별 예약, 모바일 결제</h4>
+          <span class="pill adj">조정</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>예약및결제</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">회원이 휴대폰에서 강습 회차를 예약하고 결제한다. 결제는 실제 카드 대신 모의 결제다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D5</b> Mock Payment 모듈(실 PG 미연동) <span class="where">결정 기록</span></li><li><b>D41</b> 회원 모바일 웹 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="phone">
+          <a href="figs/rfp/F6-1.png" target="_blank" rel="noopener"><img src="figs/rfp/F6-1.png" alt="F6-1 화면" loading="lazy"></a>
+          <figcaption>화면 F6-1</figcaption>
+        </figure></div>
+      </article><article class="clause short" id="c-F6-2">
+        <header>
+          <span class="cid">F6-2</span>
+          <h4>결제내역 처리 방법 추후 논의</h4>
+          <span class="pill na">해당 없음</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>예약및결제</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">원문이 '추후 논의'라 판정하지 않는다. 결제 내역 조회와 내려받기는 있다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause" id="c-F7-1">
+        <header>
+          <span class="cid">F7-1</span>
+          <h4>각 현장 종목별 강사·프로그램 정보 게시</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>강사,프로그램게시</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">지점마다 강사와 프로그램을 등록하고, 회원 앱에 강사 소개와 함께 보인다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F7-1.png" target="_blank" rel="noopener"><img src="figs/rfp/F7-1.png" alt="F7-1 화면" loading="lazy"></a>
+          <figcaption>화면 F7-1</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F7-2">
+        <header>
+          <span class="cid">F7-2</span>
+          <h4>종목별·시간대별·연령대별 프로그램 리스트</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>강사,프로그램게시</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">프로그램을 종목·시간대·연령대로 골라 볼 수 있다(관리자 웹과 회원 앱 모두).</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>ADR-PRG-04</b> 프로그램 목록 종목·연령대·시간대 필터 <span class="where">강사프로그램게시</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F7-2.png" target="_blank" rel="noopener"><img src="figs/rfp/F7-2.png" alt="F7-2 화면" loading="lazy"></a>
+          <figcaption>화면 F7-2</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F8-1">
+        <header>
+          <span class="cid">F8-1</span>
+          <h4>시설별 이용현황·혼잡도 5단계 게시</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>혼잡도관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">시설마다 지금 인원을 정원과 비교해 5단계(여유~매우 붐빔)로 회원 앱 홈에 보여 준다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="phone">
+          <a href="figs/rfp/F8-1.png" target="_blank" rel="noopener"><img src="figs/rfp/F8-1.png" alt="F8-1 화면" loading="lazy"></a>
+          <figcaption>화면 F8-1</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-F8-2">
+        <header>
+          <span class="cid">F8-2</span>
+          <h4>실시간 혹은 최대 30분 이내 반영</h4>
+          <span class="pill adj">조정</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>혼잡도관리</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">강습 예약 인원은 저절로 더해지고, 예약 없이 온 인원은 직원이 입력한다. 30분 넘게 입력이 없으면 경고한다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>ADR-FAC-05</b> 혼잡도에 진행 중 회차의 예약 인원을 조회 때 더한다 <span class="where">혼잡도관리</span></li><li><b>D10</b> 혼잡도: 체크인 기반 자동계산 + 수동 보정 하이브리드 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F8-2.png" target="_blank" rel="noopener"><img src="figs/rfp/F8-2.png" alt="F8-2 화면" loading="lazy"></a>
+          <figcaption>화면 F8-2</figcaption>
+        </figure></div>
+      </article><article class="clause short" id="c-F10-1">
+        <header>
+          <span class="cid">F10-1</span>
+          <h4>CPU 평균 사용률 90% 이하</h4>
+          <span class="pill adj">조정</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>시스템가용성</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">요청마다 따로 실행되는 서버(동시 10개 상한)로 CPU를 나눠 쓰지 않게 했고, CPU 대신 처리 시간을 쟀다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D37</b> API 호스팅을 Render 무료 티어에서 AWS Lambda(서울)로 옮긴다 <span class="where">결정 기록</span></li><li><b>D50</b> 설계 계산의 W를 약 40ms(운영 실측)로 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-F10-2">
+        <header>
+          <span class="cid">F10-2</span>
+          <h4>메모리 평균 사용률 85% 이하</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>시스템가용성</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">메모리는 실측 최대 약 16%이고, 85%를 넘으면 이메일 경보가 온다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-F10-3">
+        <header>
+          <span class="cid">F10-3</span>
+          <h4>이용자 수 증가에 따른 운용 안정성 확보</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>시스템가용성</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">이용자가 몰리면 넘친 요청만 바로 거절하고 잠시 뒤 다시 시도하라고 안내한다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D37</b> API 호스팅을 Render 무료 티어에서 AWS Lambda(서울)로 옮긴다 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-F10-4">
+        <header>
+          <span class="cid">F10-4</span>
+          <h4>빈도 높은·중요 기능의 운영 환경 성능 시험</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>시스템가용성</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">자주 쓰는 기능(로그인·조회)을 실제 운영 환경에서 부하 시험했다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-F10-5">
+        <header>
+          <span class="cid">F10-5</span>
+          <h4>과부하에 따른 안정성 사전 점검</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>시스템가용성</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">초당 300건을 1분간 보내는 과부하 시험으로 버티는지 미리 확인했다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D42</b> Lambda k6 실측(처리 한계 약 50 rps, W p50 약 110ms)으로 D37 설정 확정 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-F11-1">
+        <header>
+          <span class="cid">F11-1</span>
+          <h4>성능 진단 도구로 정확한 성능 진단</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>시스템성능</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">부하 시험 도구(k6)로 재고, 느린 원인을 측정해 요청당 처리 시간을 약 110ms에서 40ms로 줄였다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D48</b> 처리 한계의 원인은 풀러 모드의 작업당 왕복 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-F11-2">
+        <header>
+          <span class="cid">F11-2</span>
+          <h4>처리 속도가 느린 작업은 사용자에게 사전 알림</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>시스템성능</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">요청이 3초를 넘으면 '처리 중', 15초를 넘으면 '응답이 늦다'고 화면에 알린다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D55</b> 느린 요청 안내 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        
+      </article></section><section class="area"><h2 class="sec">시스템·데이터·인터페이스·보안·사업지원·제약 <small>RFP p.6 세부 과업 표</small></h2><article class="clause short" id="c-N1-1">
+        <header>
+          <span class="cid">N1-1</span>
+          <h4>최종 도입 전 사전 이용 테스트 후 총괄담당자 승인</h4>
+          <span class="pill na">해당 없음</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>시스템도입</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">발주기관이 없어 승인 절차가 없다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-N1-2">
+        <header>
+          <span class="cid">N1-2</span>
+          <h4>기업 승인 후 납품·설치, 설치 단계별 작업계획서</h4>
+          <span class="pill na">해당 없음</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>시스템도입</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">발주기관이 없다. 배포 절차는 문서로 남겼다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-N2-1">
+        <header>
+          <span class="cid">N2-1</span>
+          <h4>소프트웨어 개발보안 준수</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>설치및운영</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">행정안전부 보안약점 49개 항목으로 점검해 고쳤고, 쓰는 라이브러리의 알려진 취약점은 0건이다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D63</b> 운영 의존성 취약점 <span class="where">결정 기록</span></li><li><b>D64</b> 개발 도구 취약점 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-N2-2">
+        <header>
+          <span class="cid">N2-2</span>
+          <h4>개발자·발주기관·전문가 검증</h4>
+          <span class="pill na">해당 없음</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>설치및운영</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">검증할 발주기관·전문가가 없어, 자동 검사(코드 검사·테스트·문서 검사)로 대신했다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-N2-3">
+        <header>
+          <span class="cid">N2-3</span>
+          <h4>제조사 공급 및 기술지원 확약서</h4>
+          <span class="pill na">해당 없음</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>설치및운영</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">납품 계약이 없어 확약서 대상이 없다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause" id="c-N3-1">
+        <header>
+          <span class="cid">N3-1</span>
+          <h4>데이터 표준관리 방안과 변경 이력 관리 방안 제시·적용</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>데이터관리방안</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">데이터 정의를 한 문서에 모으고 DB가 규칙을 직접 지키며, 중요한 변경 9종은 누가·언제·무엇을 바꿨는지 남긴다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>ADR-STF-09</b> 인사 변경 신청 → 지점 관리자 1단계 승인 <span class="where">인사정보관리</span></li><li><b>D27</b> Lambda 이관 전제의 스키마 보강 <span class="where">결정 기록</span></li><li><b>D44</b> 변경 이력(AuditLog) <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/N3-1.png" target="_blank" rel="noopener"><img src="figs/rfp/N3-1.png" alt="N3-1 화면" loading="lazy"></a>
+          <figcaption>화면 N3-1</figcaption>
+        </figure></div>
+      </article><article class="clause short" id="c-N3-2">
+        <header>
+          <span class="cid">N3-2</span>
+          <h4>오류 데이터 진단 방안 및 개선 절차</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>데이터관리방안</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">잘못된 데이터를 찾는 점검 쿼리 9개와 고치는 절차를 문서로 만들었다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause" id="c-N4-1">
+        <header>
+          <span class="cid">N4-1</span>
+          <h4>화면 내 기능 사용 순서 안내</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>온라인도움말</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">관리자 웹의 모든 화면에 '도움말' 버튼이 있어 역할별 사용 순서를 보여 주고, 회원 앱에는 이용 안내가 있다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/N4-1.png" target="_blank" rel="noopener"><img src="figs/rfp/N4-1.png" alt="N4-1 화면" loading="lazy"></a>
+          <figcaption>화면 N4-1</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-N4-2">
+        <header>
+          <span class="cid">N4-2</span>
+          <h4>오류 처리 사항과 해결 방법</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>온라인도움말</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">오류가 나면 문구 아래 '해결' 한 줄로 어떻게 하면 되는지 알려 준다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/N4-2.png" target="_blank" rel="noopener"><img src="figs/rfp/N4-2.png" alt="N4-2 화면" loading="lazy"></a>
+          <figcaption>화면 N4-2</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-N5-1">
+        <header>
+          <span class="cid">N5-1</span>
+          <h4>사용자-시스템 상호작용에 대한 확인 메시지</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>상호작용메시지</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">저장하면 알림이 뜨고, 되돌리기 어려운 작업은 확인 창을 한 번 더 띄운다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/N5-1.png" target="_blank" rel="noopener"><img src="figs/rfp/N5-1.png" alt="N5-1 화면" loading="lazy"></a>
+          <figcaption>화면 N5-1</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-N6-1">
+        <header>
+          <span class="cid">N6-1</span>
+          <h4>전체 시스템에서 통일성 있는 UI</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>UI/UX</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">색·글꼴·간격을 공통 값으로 정해 모든 화면이 같은 모양을 쓴다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D15</b> admin-web 디자인 토큰화(Rounded Rectangle 기준) <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/N6-2.png" target="_blank" rel="noopener"><img src="figs/rfp/N6-2.png" alt="N6-1 화면" loading="lazy"></a>
+          <figcaption>화면 N6-2 (이용자 편의 우선의 직관적·간략한 UX 화면을 함께 씀)</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-N6-2">
+        <header>
+          <span class="cid">N6-2</span>
+          <h4>이용자 편의 우선의 직관적·간략한 UX</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>UI/UX</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">대시보드 첫 칸에 '지금 처리할 일'을 모았고, 역할별로 화면을 점검해 불편 14건을 고쳤다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/N6-2.png" target="_blank" rel="noopener"><img src="figs/rfp/N6-2.png" alt="N6-2 화면" loading="lazy"></a>
+          <figcaption>화면 N6-2</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-N6-3">
+        <header>
+          <span class="cid">N6-3</span>
+          <h4>페이지 위치 정보를 MAP 형태로 표시</h4>
+          <span class="pill adj">조정</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>UI/UX</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">'지도 형태'를 지금 위치를 보여 주는 경로 표시(홈 › 메뉴 › 화면)로 해석해 모든 화면 위에 두었다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D51</b> 남은 일은 RFP 문구 기준으로 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/N6-3.png" target="_blank" rel="noopener"><img src="figs/rfp/N6-3.png" alt="N6-3 화면" loading="lazy"></a>
+          <figcaption>화면 N6-3</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-N6-4">
+        <header>
+          <span class="cid">N6-4</span>
+          <h4>권한에 따라 수정·삭제·조회 버튼 기능 제어</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>UI/UX</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">권한이 없는 사람에게는 등록·수정·삭제·내려받기 버튼이 보이지 않고, 서버도 한 번 더 막는다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D60</b> 세부 권한 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F1-2.png" target="_blank" rel="noopener"><img src="figs/rfp/F1-2.png" alt="N6-4 화면" loading="lazy"></a>
+          <figcaption>화면 F1-2 (사용자별·프로그램별 권한 설정(입력·수정·삭제·조회·출력) 화면을 함께 씀)</figcaption>
+        </figure></div>
+      </article><article class="clause short" id="c-N6-5">
+        <header>
+          <span class="cid">N6-5</span>
+          <h4>필드 속성에 맞는 입력 언어 우선 적용, 입력창 크기 최적화</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>UI/UX</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">전화·숫자·이메일 칸은 휴대폰에서 맞는 자판이 뜨고, 입력 길이와 칸 크기를 맞췄다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause" id="c-N6-6">
+        <header>
+          <span class="cid">N6-6</span>
+          <h4>예약 관리를 달력·스케줄표 형태로 표시</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>UI/UX</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">관리자는 주간 시간표로, 회원은 날짜 띠로 예약을 본다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>ADR-RSV-06</b> 예약 달력 보기 <span class="where">예약및결제</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/N6-6.png" target="_blank" rel="noopener"><img src="figs/rfp/N6-6.png" alt="N6-6 화면" loading="lazy"></a>
+          <figcaption>화면 N6-6</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-N7-1">
+        <header>
+          <span class="cid">N7-1</span>
+          <h4>인사·회원 개인정보가 별도 절차 없이 노출되지 않음</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>UI 보안</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">목록의 전화번호는 가운데를 가리고, 원문을 열어 볼 때마다 기록이 남는다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>ADR-MEM-04</b> 전화번호 응답 마스킹 <span class="where">회원관리</span></li><li><b>D47</b> 상세 전화번호 열람 기록 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F5-2.png" target="_blank" rel="noopener"><img src="figs/rfp/F5-2.png" alt="N7-1 화면" loading="lazy"></a>
+          <figcaption>화면 F5-2 (현장 관리자는 해당 현장 회원 정보만(타현장 조회 불가) 화면을 함께 씀)</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-N7-2">
+        <header>
+          <span class="cid">N7-2</span>
+          <h4>권한에 의한 접근 통제 — 그룹별·개인별·기능별</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>UI 보안</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">역할별·사람별·기능별로 접근을 나누고, 지점 단위로도 막는다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D60</b> 세부 권한 <span class="where">결정 기록</span></li><li><b>D46</b> 지점 격리 검사를 전역 BranchScopeGuard 한 곳으로 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F1-2.png" target="_blank" rel="noopener"><img src="figs/rfp/F1-2.png" alt="N7-2 화면" loading="lazy"></a>
+          <figcaption>화면 F1-2 (사용자별·프로그램별 권한 설정(입력·수정·삭제·조회·출력) 화면을 함께 씀)</figcaption>
+        </figure></div>
+      </article><article class="clause short" id="c-N7-3">
+        <header>
+          <span class="cid">N7-3</span>
+          <h4>결제 시스템의 금융·보안기관 연계 가능 여부 확인</h4>
+          <span class="pill part">부분</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>UI 보안</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">결제 회사를 바꿔 끼울 수 있게 만들고 연계 확인 문서를 썼지만, 실제 결제 호출은 하지 않았다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>ADR-RSV-03</b> 결제 모듈 <span class="where">예약및결제</span></li></ul></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-N8-1">
+        <header>
+          <span class="cid">N8-1</span>
+          <h4>인원·문서·장비 보안관리계획 수립</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>보안요건</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">인원·문서·장비·비밀값 보안관리계획을 문서로 세웠다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D63</b> 운영 의존성 취약점 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        
+      </article><article class="clause" id="c-N8-2">
+        <header>
+          <span class="cid">N8-2</span>
+          <h4>개인정보보호법 제26조(업무위탁) 준수</h4>
+          <span class="pill part">부분</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>보안요건</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">개인정보처리방침에 데이터를 맡긴 업체(위탁)를 밝혔다. 위탁계약 서명은 실제 운영 때 할 일이다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D51</b> 남은 일은 RFP 문구 기준으로 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="phone">
+          <a href="figs/rfp/N8-2.png" target="_blank" rel="noopener"><img src="figs/rfp/N8-2.png" alt="N8-2 화면" loading="lazy"></a>
+          <figcaption>화면 N8-2</figcaption>
+        </figure></div>
+      </article><article class="clause short" id="c-N9-1">
+        <header>
+          <span class="cid">N9-1</span>
+          <h4>무상 보증기간 12개월</h4>
+          <span class="pill na">해당 없음</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>하자보수</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">계약이 없어 보증기간 대상이 없다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-N9-2">
+        <header>
+          <span class="cid">N9-2</span>
+          <h4>O/S·유틸리티·상용 SW 신규 버전 업그레이드 여부 제시</h4>
+          <span class="pill na">해당 없음</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>하자보수</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">계약이 없어 업그레이드 약정 대상이 없다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-N10-1">
+        <header>
+          <span class="cid">N10-1</span>
+          <h4>산출물의 지식재산권 주의·준수</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>규정의준수</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">쓰는 라이브러리 243개의 라이선스를 목록으로 만들고, 모두 자유롭게 쓸 수 있는 종류임을 확인했다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-N10-2">
+        <header>
+          <span class="cid">N10-2</span>
+          <h4>저작권 문제가 없는 저작물 구현</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>규정의준수</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">이미지·아이콘은 직접 만들었고 외부 글꼴·이미지 파일을 쓰지 않는다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article></section><section class="area"><h2 class="sec">과업·산출물·개념도 <small>RFP p.3~4 과업, p.7 산출물, p.4 개념도</small></h2><article class="clause short" id="c-T1-1">
+        <header>
+          <span class="cid">T1-1</span>
+          <h4>기업 구조 분석(지점현황·지역분포·근무자 구조·조직도)</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>과업1 · p.3~4</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">지점 현황·지역 분포·근무자 구조·조직을 분석해 기업 분석 문서에 담았다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-T1-2">
+        <header>
+          <span class="cid">T1-2</span>
+          <h4>관리시스템 분석(인적/물적자원·본사와 지점 관리·현장관리·효율성)</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>과업1 · p.3~4</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">인적·물적 자원, 본사·지점 관리, 현장 관리를 분석했다. 물적 자원 관리가 빠져 있던 것을 찾아 채웠다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-T2-1">
+        <header>
+          <span class="cid">T2-1</span>
+          <h4>유사 기업체 관리 시스템 현황 분석</h4>
+          <span class="pill out">제외</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>과업2 · p.3~4</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">비교할 회사 자료에 접근할 수 없어 하지 않았다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-T2-2">
+        <header>
+          <span class="cid">T2-2</span>
+          <h4>당사에 적합한 ERP/앱 개발 컨설팅</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>과업2 · p.3~4</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">기업 분석과 제안서에서 위탁운영 회사에 맞는 시스템을 제안했다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-T2-3">
+        <header>
+          <span class="cid">T2-3</span>
+          <h4>탑재할 목표 프로세스·기능 설계</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>과업2 · p.3~4</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">9개 업무 영역마다 설계 문서를 쓰고 아키텍처 설계서로 묶었다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-T2-4">
+        <header>
+          <span class="cid">T2-4</span>
+          <h4>UI/UX 계획 수립 및 스타일 디자인</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>과업2 · p.3~4</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">디자인 시스템 문서로 화면 스타일을 정했다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D15</b> admin-web 디자인 토큰화(Rounded Rectangle 기준) <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-T3-1">
+        <header>
+          <span class="cid">T3-1</span>
+          <h4>요구사항 표를 반영한 프로그래밍</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>과업3 · p.3~4</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">요구사항 표의 기능·성능 조항을 모두 만들었다(위 기능·성능 절).</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-T3-2">
+        <header>
+          <span class="cid">T3-2</span>
+          <h4>앱 개발 → 테스트 → 검수 → 완료 → 도입 → 경영개선 기대효과 분석</h4>
+          <span class="pill part">부분</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>과업3 · p.3~4</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">개발·테스트·운영 배포까지 했다. 검수·도입·효과 분석은 실제 운영을 하지 않아 없다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause" id="c-T4-1">
+        <header>
+          <span class="cid">T4-1</span>
+          <h4>이용자 매뉴얼 제작·탑재</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>과업4 · p.3~4</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">역할별 사용자 매뉴얼(Word)을 만들고, 앱 안에도 화면 도움말과 이용 안내로 넣었다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="phone">
+          <a href="figs/rfp/T4-1.png" target="_blank" rel="noopener"><img src="figs/rfp/T4-1.png" alt="T4-1 화면" loading="lazy"></a>
+          <figcaption>화면 T4-1</figcaption>
+        </figure></div>
+      </article><article class="clause short" id="c-T4-2">
+        <header>
+          <span class="cid">T4-2</span>
+          <h4>팀장급 직원 대상 대면 교육 2회 이상</h4>
+          <span class="pill na">해당 없음</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>과업4 · p.3~4</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">대면 교육이라 대상이 없다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause" id="c-P1">
+        <header>
+          <span class="cid">P1</span>
+          <h4>ERP 시스템 앱 1개(본사의 현장관리·현장의 회원관리)</h4>
+          <span class="pill adj">조정</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>산출물1 · p.7</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">앱 하나 대신 관리자 웹과 회원용 모바일 웹(홈 화면에 설치 가능)으로 나눴다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D40</b> 범위 재설정 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/N6-2.png" target="_blank" rel="noopener"><img src="figs/rfp/N6-2.png" alt="P1 화면" loading="lazy"></a>
+          <figcaption>화면 N6-2 (이용자 편의 우선의 직관적·간략한 UX 화면을 함께 씀)</figcaption>
+        </figure><figure class="phone">
+          <a href="figs/rfp/F8-1.png" target="_blank" rel="noopener"><img src="figs/rfp/F8-1.png" alt="P1 화면" loading="lazy"></a>
+          <figcaption>화면 F8-1 (시설별 이용현황·혼잡도 5단계 게시 화면을 함께 씀)</figcaption>
+        </figure></div>
+      </article><article class="clause short" id="c-P2-1">
+        <header>
+          <span class="cid">P2-1</span>
+          <h4>기업 경영/관리 현황 분석 1부(20p 이상)</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>산출물2 · p.7</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">기업 분석 및 제안서(Word)로 냈다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-P2-2">
+        <header>
+          <span class="cid">P2-2</span>
+          <h4>어플 도입 후 기대효과 분석 1부(30p 이상)</h4>
+          <span class="pill out">제외</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>산출물2 · p.7</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">실제 매출·계약 데이터 없이 숫자를 예측하면 지어낸 값이 되어 하지 않았다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-P2-3">
+        <header>
+          <span class="cid">P2-3</span>
+          <h4>유사기업 직원 매뉴얼 형태·현황 분석 1부(30p 이상)</h4>
+          <span class="pill out">제외</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>산출물2 · p.7</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">비교할 회사의 매뉴얼에 접근할 수 없어 하지 않았다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-P3">
+        <header>
+          <span class="cid">P3</span>
+          <h4>개발 작업계획서 1부</h4>
+          <span class="pill adj">조정</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>산출물3 · p.7</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">개발 작업계획서 대신 아키텍처 설계서와 업무 영역별 작업 절차로 냈다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause short" id="c-P4">
+        <header>
+          <span class="cid">P4</span>
+          <h4>단계별 개발 진행 보고서 5부</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>산출물4 · p.7</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">단계별 개발 진행 보고서 5부(Word)를 냈다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        
+      </article><article class="clause" id="c-P5">
+        <header>
+          <span class="cid">P5</span>
+          <h4>어플 사용 교육 자료 1편(게시판 탑재)</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>산출물5 · p.7</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">역할별 빠른 시작 교육 자료를 만들어 운영 게시판 '직원 교육자료'에 올렸다.</dd></div>
+          <div><dt>결정 기록</dt><dd><p class="none">별도 결정 없음 — RFP 그대로 이행했거나 대상이 없다</p></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/F4-2.png" target="_blank" rel="noopener"><img src="figs/rfp/F4-2.png" alt="P5 화면" loading="lazy"></a>
+          <figcaption>화면 F4-2 (본사→현장 직원관리 탭에 교육 매뉴얼·자료 탑재 화면을 함께 씀)</figcaption>
+        </figure></div>
+      </article><article class="clause" id="c-C1">
+        <header>
+          <span class="cid">C1</span>
+          <h4>현장→본사 업무일지·업무지원 요청, 본사→현장 근태관리</h4>
+          <span class="pill done">완료</span>
+        </header>
+        <dl>
+          <div><dt>RFP</dt><dd>개념도(p.4) · p.4</dd></div>
+          <div><dt>구현한 것</dt><dd class="plain">현장은 업무일지와 업무지원 요청을 올리고, 본사는 근태 현황을 본다.</dd></div>
+          <div><dt>결정 기록</dt><dd><ul class="dec"><li><b>D56</b> 업무지원 요청 <span class="where">결정 기록</span></li></ul></dd></div>
+        </dl>
+        <div class="figs"><figure class="desk">
+          <a href="figs/rfp/C1.png" target="_blank" rel="noopener"><img src="figs/rfp/C1.png" alt="C1 화면" loading="lazy"></a>
+          <figcaption>화면 C1</figcaption>
+        </figure></div>
+      </article></section>
+
+  <footer class="end">저장소의 요구사항추적표 §3과 rfp-plain.json에서 scripts/deliverables/rfp-evidence.js가 만들었다. 화면은 capture-rfp.mjs가 화면 테스트 전용 DB에 시연 데이터를 넣고 찍었다(배포 환경과 무관).</footer>
+</main>
