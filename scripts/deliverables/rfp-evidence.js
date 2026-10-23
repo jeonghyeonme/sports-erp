@@ -5,7 +5,7 @@
 //     → scripts/deliverables/rfp-evidence.html(그림은 figs/rfp/를 상대 경로로 — 아티팩트로 올릴 때 함께 올린다)
 //     → docs/deliverables/RFP이행증빙.pdf(같은 HTML을 Chromium으로 인쇄)
 // 원천: 판정은 docs/reference/요구사항추적표.md §3(여기서 새로 판정하지 않는다), 한 줄 설명과 화면 연결은 rfp-plain.json(D67 —
-// 기술 근거 대신 쉬운 말로 교체), 결정 제목은 docs/decisions/README.md 요약표와 docs/domains/*.md의 ADR 절 제목.
+// 기술 근거 대신 쉬운 말로 교체), 결정 제목은 같은 파일의 _decisions(쉬운 말), 기록 위치는 docs/decisions/README.md 요약표와 docs/domains/*.md의 ADR 절.
 const fs = require('fs');
 const path = require('path');
 
@@ -47,7 +47,7 @@ function clauses() {
       out.push({ id, rfp, text, status: STATUS[verdict] ?? verdict, basis, area: s.area, page, ...plain });
     }
   }
-  const missing = Object.keys(PLAIN).filter((k) => k !== '_' && !out.some((c) => c.id === k));
+  const missing = Object.keys(PLAIN).filter((k) => !k.startsWith('_') && !out.some((c) => c.id === k));
   if (missing.length) throw new Error(`추적표에 없는 조항: ${missing.join(', ')}`);
   for (const c of out)
     for (const s of c.shots)
@@ -55,22 +55,27 @@ function clauses() {
   return out;
 }
 
-// 결정 제목 — 요약표·ADR 제목의 첫 구절만(" — " 앞), 코드 표기는 덜어 낸다
-function decisionTitles() {
-  const clean = (t) =>
-    t
-      .split(' — ')[0]
-      .replace(/\s*\([^)]*(?:ADR-|@|`|log\/|\d{4}-\d{2})[^)]*\)/g, '')
-      .replace(/`([^`]+)`/g, '$1')
-      .trim();
-  const titles = new Map();
+// 결정 제목 — 쉬운 말 제목(rfp-plain.json _decisions)을 쓰고, 어디 있는 기록인지는 원천에서 찾는다.
+// 원래 제목은 코드 이름·기술 용어가 섞여 있어 교체했다(사용자, log/181). 근거 칸에 새 결정이 나오면 쉬운 제목을 먼저 써야 멈추지 않는다.
+function decisionTitles(ids) {
+  const where = new Map();
   const readme = fs.readFileSync(path.join(ROOT, 'docs/decisions/README.md'), 'utf8');
-  for (const m of readme.matchAll(/^\| \[(D\d+)\]\(D\d+\.md\) \| ([^|]+) \|/gm)) titles.set(m[1], { title: clean(m[2]), where: '결정 기록' });
+  for (const m of readme.matchAll(/^\| \[(D\d+)\]\(D\d+\.md\) \|/gm)) where.set(m[1], '결정 기록');
   const domains = path.join(ROOT, 'docs/domains');
   for (const f of fs.readdirSync(domains).filter((n) => n.endsWith('.md'))) {
     const doc = fs.readFileSync(path.join(domains, f), 'utf8');
-    for (const m of doc.matchAll(/^### (ADR-[A-Z]+-\d+): (.+)$/gm)) titles.set(m[1], { title: clean(m[2]), where: f.replace('.md', '') });
+    for (const m of doc.matchAll(/^### (ADR-[A-Z]+-\d+):/gm)) where.set(m[1], f.replace('.md', ''));
   }
+  const titles = new Map();
+  const problems = [];
+  for (const id of ids) {
+    if (!where.has(id)) problems.push(`${id}: 결정 기록에 없음`);
+    else if (!PLAIN._decisions[id]) problems.push(`${id}: rfp-plain.json _decisions에 쉬운 제목 없음`);
+    else titles.set(id, { title: PLAIN._decisions[id], where: where.get(id) });
+  }
+  const unused = Object.keys(PLAIN._decisions).filter((id) => !ids.includes(id));
+  if (unused.length) problems.push(`쓰이지 않는 쉬운 제목: ${unused.join(', ')}`);
+  if (problems.length) throw new Error(problems.join('\n'));
   return titles;
 }
 
@@ -79,7 +84,7 @@ function decisionIds(basis) {
   basis = basis.replace(/\(?\bD\d+ 대체\)?/g, ''); // "D60(D1 대체)" — 대체된 옛 결정은 지금 이행의 근거가 아니다
   for (const m of basis.matchAll(/ADR-[A-Z]+-\d+/g)) ids.add(m[0]);
   for (const m of basis.matchAll(/\bD(\d+)(?:·D?(\d+))*/g))
-    for (const n of m[0].replace(/^D/, '').split('·')) if (/^\d+$/.test(n)) ids.add(`D${n}`);
+    for (const n of m[0].split('·').map((x) => x.replace(/^D/, ''))) if (/^\d+$/.test(n)) ids.add(`D${n}`); // "D5·D6"·"D44·47" 모두
   return [...ids];
 }
 
@@ -88,7 +93,7 @@ const pill = (status) => `<span class="pill ${STATUS_KEY[status]}">${esc(status)
 const MOBILE = new Set(['F8-1', 'F6-1', 'T4-1', 'N8-2']); // 회원 앱 화면(휴대폰 크기)
 
 const all = clauses();
-const titles = decisionTitles();
+const titles = decisionTitles([...new Set(all.flatMap((c) => decisionIds(c.basis)))]);
 const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
 const count = (list, s) => list.filter((c) => c.status === s).length;
 const judged = all.filter((c) => c.status !== '해당 없음');
