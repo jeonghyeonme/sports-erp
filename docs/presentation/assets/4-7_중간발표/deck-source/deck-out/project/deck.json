@@ -1,0 +1,43 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-23T00:00:00Z"
+  },
+  "lists": "css",
+  "title": "스포이즘 ERP 중간보고서",
+  "order": [
+    "cover",
+    "ctx-map",
+    "scn-hq-flow",
+    "scn-hq-shots",
+    "scn-branch-flow",
+    "scn-branch-shots",
+    "scn-member"
+  ],
+  "sections": {
+    "intro": {
+      "description": "표지",
+      "start": "cover"
+    },
+    "context": {
+      "description": "Ⅱ 맥락 — 한 장으로 보는 맞물림, 본사·지점·회원의 하루",
+      "start": "ctx-map"
+    }
+  },
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
+}
