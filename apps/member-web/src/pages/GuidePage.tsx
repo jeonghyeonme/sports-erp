@@ -41,7 +41,7 @@ export function GuidePage() {
         <h2 className="card-title">시설 혼잡도와 공지</h2>
         <ul className="doc-steps">
           <li>
-            <strong>홈</strong>에 다니는 지점의 시설별 혼잡도가 5단계(여유~매우 붐빔)로 보입니다. 지점 직원이 현재 인원을 입력하면 바뀝니다.
+            <strong>홈</strong>에 다니는 지점의 시설별 혼잡도가 5단계(여유~매우 붐빔)로 보입니다. 진행 중인 강습의 예약 인원은 바로 더해지고, 예약 없이 이용하는 현장 인원은 지점 직원이 입력합니다.
           </li>
           <li>
             지점과 본사의 공지는 홈의 <strong>공지</strong> 카드에서 최근 3건을 보고, <strong>전체 보기</strong>로 지난 공지까지 봅니다.

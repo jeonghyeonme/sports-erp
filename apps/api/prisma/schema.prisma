@@ -55,7 +55,7 @@ model Account {
   name               String // SUPER_ADMIN은 Staff/Member 프로필이 없어 이름을 여기 직접 둔다 — Staff/Member 보유 계정도 조회 편의상 함께 저장(항상 그쪽 name과 동기화)
   isActive           Boolean   @default(true)
   // 보안-6(log/164) — 본사가 채용하며 발급한 임시 비밀번호 상태. 바꾸기 전에는 인증 경로 밖 요청이 403이다.
-  mustChangePassword Boolean   @default(false)
+  mustChangePassword Boolean   @default(false) // 첫 로그인 비밀번호 변경 필요(채용 임시 비밀번호, 권한관리 ADR-AUTH-08)
   failedLoginCount   Int       @default(0)
   lockedUntil        DateTime?
   lastLoginAt        DateTime?
@@ -631,11 +631,11 @@ model Facility {
   type          FacilityType
   capacity      Int
   isActive      Boolean      @default(true)
-  // 혼잡도 현재값 — CongestionSnapshot(이력 테이블)은 스키마엔 있지만 Phase 1 범위 밖이라
-  // 아직 안 쓴다. 지금은 mock과 동일하게 Facility에 직접 현재값을 얹는다.
-  currentCount  Int          @default(0)
-  level         Int          @default(1) // 1~5
-  lastUpdatedAt DateTime?
+  // 혼잡도관리 ADR-FAC-05 — 조회 응답의 인원은 진행 중 회차의 예약 인원 + currentCount(조회 때 계산).
+  // CongestionSnapshot(이력 테이블)은 스키마엔 있지만 아직 안 쓴다.
+  currentCount  Int          @default(0) // 예약 외 현장 인원(관리자 입력)
+  level         Int          @default(1) // 1~5 — 현장 인원 기준 저장값(호환용). 응답의 단계는 예약+현장 합계로 계산
+  lastUpdatedAt DateTime? // 현장 인원을 마지막으로 입력한 시각(ADR-FAC-01)
 
   branch              Branch               @relation(fields: [branchId], references: [id])
   programs            Program[]
