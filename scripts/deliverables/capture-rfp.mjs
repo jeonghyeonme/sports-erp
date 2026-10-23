@@ -19,6 +19,8 @@ const env = { ...process.env, DATABASE_URL: DB, DIRECT_URL: DB };
 mkdirSync(OUT, { recursive: true });
 execSync('node e2e/reset-db.mjs', { cwd: ROOT, env, stdio: 'inherit' });
 execSync('npx ts-node prisma/seed-demo.ts', { cwd: `${ROOT}apps/api`, env, stdio: 'inherit' });
+// 시연 층의 현장 인원 입력 시각은 시연 기간 끝 18시라 찍는 시각에 따라 "N일 전"이 된다 — 운영 중인 시설은 방금 입력한 상태로 둔다(캡처 전용 DB).
+execSync(`psql "${DB.replace('?schema=public', '')}" -c "UPDATE \\"Facility\\" SET \\"lastUpdatedAt\\" = now() - interval '8 minutes' WHERE \\"isActive\\""`, { stdio: 'inherit' });
 
 const procs = [
   spawn('node', ['apps/api/dist/main.js'], { cwd: ROOT, env: { ...env, PORT: String(API_PORT) }, stdio: 'ignore' }),
@@ -81,8 +83,48 @@ async function admin(email, shots) {
   await ctx.close();
 }
 
+// 회원 웹(이수진, 서초점) — 휴대폰 크기. 갱신 토큰이 localStorage에 있어 goto로 옮겨 다녀도 로그인이 유지된다(D41).
+async function member(email, shots) {
+  const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2, timezoneId: 'Asia/Seoul', locale: 'ko-KR' });
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/m/login`);
+  await page.locator('input[type=email]').fill(email);
+  await page.locator('input[type=password]').fill(PASSWORD);
+  await page.locator('button[type=submit]').click();
+  await page.waitForURL((u) => !u.pathname.endsWith('/login'));
+  for (const [name, path, prepare] of shots) {
+    await page.goto(`${BASE}${path}`);
+    await settle(page);
+    if (prepare) await prepare(page);
+    await settle(page);
+    await page.screenshot({ path: `${OUT}${name}.png` });
+    console.log('찍음', name);
+  }
+  await ctx.close();
+}
+
+// 로그인 실패 — 오류 문구 아래 "해결" 한 줄(N4-2)
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'ko-KR' });
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/login`);
+  await page.locator('input[type=email]').fill('kim.minsu@spoism.example');
+  await page.locator('input[type=password]').fill('wrong-password-0');
+  await page.locator('button[type=submit]').click();
+  await page.locator('.error-text').first().waitFor();
+  await page.screenshot({ path: `${OUT}N4-2.png` });
+  console.log('찍음', 'N4-2');
+  await ctx.close();
+}
+
 // 본사(정하늘)
 await admin('jeong.haneul@spoism.example', [
+  ['N6-2', '/'],
+  ['N4-1', '/', (p) => p.locator('.help-btn').click()],
+  ['N6-3', '/branches/branch-seocho'],
+  ['N5-1', '/branches/branch-seocho', (p) => p.getByRole('button', { name: '계약 상태 변경' }).first().click()],
+  ['N3-1', '/audit-logs'],
+  ['C1', '/support-requests'],
   ['F1-1', '/permissions'],
   ['F1-2', '/permissions', (p) => p.getByRole('button', { name: '역할 기본 권한' }).click()],
   ['F2-1', '/staff', (p) => p.getByText('서초점', { exact: true }).first().click()],
@@ -98,9 +140,21 @@ await admin('kim.minsu@spoism.example', [
   ['F3-3', '/staff/staff-seoyeon', scrollTo('업무일지')],
   ['F4-1', '/board'],
   ['F4-3', '/board/new'],
+  ['F5-1', '/members/member-sujin'],
+  ['F5-2', '/members'],
+  ['F7-1', '/instructors'],
+  ['F7-2', '/programs'],
+  ['F8-2', '/facilities'],
+  ['N6-6', '/reservations', scrollTo('주간 시간표')],
 ]);
 // 직원(박서연)
 await admin('park.seoyeon@spoism.example', [['F3-2', '/attendance']]);
+await member('lee.sujin@example.com', [
+  ['F8-1', '/m/'],
+  ['F6-1', '/m/reservations'],
+  ['T4-1', '/m/guide'],
+  ['N8-2', '/m/privacy', scrollTo('위탁')],
+]);
 
 await browser.close();
 stop();
