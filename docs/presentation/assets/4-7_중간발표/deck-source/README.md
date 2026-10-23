@@ -1,13 +1,24 @@
 # 중간발표 덱 — 생성 소스
 
-구성안은 상위 문서 `4-7_중간발표_슬라이드구성.md`. **덱은 아직 만들지 않았다** — 지금은 캡처 6장(+ 회원 웹 흐름 보조 2장)만 있다. 덱 생성기는 6주차 소스(`../../4-6_6주차발표/deck-source/viz/deck46.js`)를 복사해 시작한다.
+구성안은 상위 문서 `4-7_중간발표_슬라이드구성.md`.
+
+- **게시된 덱(제작 중):** https://claude.ai/artifact/M2NBGeZcaBdTgkT1msjwQb (비공개 — 공유는 소유자가 Share 메뉴에서)
+- **1차(2026-10-23)**: 표지 + Ⅱ장 맞물림 지도·시나리오 6장만 — 사용자 확인 뒤 나머지 장을 잇는다.
+
+```bash
+node viz/deck47.js deck-out    # 6주차 deck46.js와 같은 디자인·린트
+```
+
+게시: `root`=`deck-out`, `file_path`=`project/deck.json`(순서·섹션을 바꿀 때만), 바뀐 슬라이드만 `files`로. 캡처는 아티팩트 자산(`/_blob/<id>`, `deck47.js`의 `IMG`)이다.
 
 ## 폴더
 
 | 폴더 | 내용 |
 |---|---|
 | `capture/` | `capture.cjs`(관리자 웹 4장 + 회원 웹 3장, Playwright) · `sheet.sh`(엑셀 판정 시트 1장, LibreOffice) |
-| `screenshots/` | 2026-10-22 로컬에서 찍은 캡처(아래 표) |
+| `viz/` | `deck47.js` — 덱 생성기 |
+| `deck-out/project/` | 생성 결과(`deck.json` + `slides/*.html`), 게시본과 같은 스냅샷 |
+| `screenshots/` | 로컬에서 찍은 캡처(아래 표) |
 
 | 파일 | 슬라이드 | 화면 · 계정 |
 |---|---|---|
@@ -17,6 +28,9 @@
 | `ov-scope-admin.png` | B3 `ov-scope` | 회원 상세(상단 경로 `홈 › 회원 서비스 › 회원 › 회원 상세`) · 김민수(서초점 지점 관리자) |
 | `ov-scope-member-2-pay.png` | B3 `ov-scope` | 회원 모바일 웹 결제 단계(모의 카드 결제, 실제 청구 없음) · 이수진(서초점 회원) — **덱에 넣는 장** |
 | `ov-scope-member-1-slot.png`·`-3-done.png` | (보조) | 같은 흐름의 회차 선택·결제 완료(승인 번호 `MOCK-…`) — 노트·질문용 |
+| `scn-hq-dashboard.png`·`scn-branch-attendance.png` | 시나리오 화면 | RFP 이행 증빙 캡처(`scripts/deliverables/figs/rfp/` N6-2·F3-1, 2026-10-23)를 복사 |
+| `scn-branch-timetable.png` | 시나리오 ② | 같은 캡처 N6-6에서 주간 시간표 부분만 잘라 냄 |
+| `scn-member-home.png` | 시나리오 ③ | 같은 캡처 F8-1(회원 홈)의 위쪽을 휴대폰 틀 비율로 잘라 냄 |
 | `appx-sheet.png` | X1 `appx-sheet` | 요구사항정의서.xlsx "RFP 충족 판정" — 집계(58/64 = 91%)·판정 기준·F1~F4 |
 
 ## 다시 찍기
