@@ -8,21 +8,89 @@
   "title": "스포이즘 ERP 중간보고서",
   "order": [
     "cover",
+    "summary",
+    "guide",
+    "p2",
+    "ctx-business",
+    "ctx-scope",
     "ctx-map",
     "scn-hq-flow",
     "scn-hq-shots",
     "scn-branch-flow",
     "scn-branch-shots",
-    "scn-member"
+    "scn-member",
+    "p3",
+    "arch-rules",
+    "arch-data",
+    "arch-permission",
+    "arch-system",
+    "p4",
+    "rfp-method",
+    "rfp-count",
+    "rfp-func-1",
+    "rfp-func-2",
+    "rfp-func-3",
+    "rfp-func-4",
+    "rfp-perf",
+    "rfp-sys-1",
+    "rfp-sys-2",
+    "rfp-sys-3",
+    "rfp-task-1",
+    "rfp-task-2",
+    "rfp-task-3",
+    "p5",
+    "verify-tests",
+    "verify-perf",
+    "verify-security",
+    "p6",
+    "prog-timeline",
+    "prog-weeks",
+    "after-rfp",
+    "after-support",
+    "after-dense",
+    "after-defects",
+    "after-qa",
+    "after-permission",
+    "after-quality",
+    "after-final",
+    "p7",
+    "end-adjust",
+    "end-gap",
+    "next-all",
+    "next-ux",
+    "next-ai",
+    "next-app",
+    "ai-method",
+    "demo"
   ],
   "sections": {
     "intro": {
-      "description": "표지",
+      "description": "Ⅰ 들어가며 — 표지, 한 장 요약, 읽는 법",
       "start": "cover"
     },
     "context": {
-      "description": "Ⅱ 맥락 — 한 장으로 보는 맞물림, 본사·지점·회원의 하루",
-      "start": "ctx-map"
+      "description": "Ⅱ 맥락 — 사업 구조, 만든 것, 맞물림 지도, 본사·지점·회원의 하루",
+      "start": "p2"
+    },
+    "design": {
+      "description": "Ⅲ 설계 — 깨지면 안 되는 규칙 3개, 계약·파견 데이터, 세부 권한, 시스템 구성",
+      "start": "p3"
+    },
+    "rfp": {
+      "description": "Ⅳ RFP 이행 현황 — 나눈 방법, 영역별 조항 수, 조항별 구현한 것(원문 순서)",
+      "start": "p4"
+    },
+    "verify": {
+      "description": "Ⅴ 확인 — 자동 테스트, 운영 측정, 보안과 운영",
+      "start": "p5"
+    },
+    "progress": {
+      "description": "Ⅵ 진행 경과 — 타임라인, 1~6주차 요약, 6주차 이후 작업",
+      "start": "p6"
+    },
+    "wrap": {
+      "description": "Ⅶ 마무리 — 바꾼 것, 남은 것, 다음 계획, AI 협업, 직접 써 보기",
+      "start": "p7"
     }
   },
   "faces": {

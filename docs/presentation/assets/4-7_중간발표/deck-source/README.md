@@ -2,8 +2,8 @@
 
 구성안은 상위 문서 `4-7_중간발표_슬라이드구성.md`.
 
-- **게시된 덱(제작 중):** https://claude.ai/artifact/M2NBGeZcaBdTgkT1msjwQb (비공개 — 공유는 소유자가 Share 메뉴에서)
-- **1차(2026-10-23)**: 표지 + Ⅱ장 맞물림 지도·시나리오 6장만 — 사용자 확인 뒤 나머지 장을 잇는다.
+- **게시된 덱:** https://claude.ai/artifact/M2NBGeZcaBdTgkT1msjwQb (비공개 — 공유는 소유자가 Share 메뉴에서)
+- 2026-10-23 1차(맞물림 지도·시나리오) 확인 후 Ⅰ~Ⅶ 전체 55장을 게시했다. 게시 후 렌더 결과는 눈으로 확인하지 않았다(사용자 확인).
 
 ```bash
 node viz/deck47.js deck-out    # 6주차 deck46.js와 같은 디자인·린트
