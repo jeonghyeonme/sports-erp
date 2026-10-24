@@ -404,12 +404,13 @@ partSlide('p4', 'Ⅳ', 'RFP 이행 현황', '제안요청서 72조항을 원문 
     ['과업·산출물·개념도', 'p.3~4 · p.7', (c) => /^[TPC]/.test(c.id)],
   ];
   const cell = (s, n) => `<td style="text-align:right">${n || '·'}</td>`;
-  const rows = AREAS.map(([a, pg, f]) => { const l = all.filter(f); return `<tr><td>${a} <span style="color:${SOFT}">${pg}</span></td><td style="text-align:right"><b>${l.length}</b></td>${STATES.map((s) => cell(s, count(l, s))).join('')}</tr>`; }).join('');
-  const total = `<tr style="background:${SURFACE2}"><td><b>합계</b></td><td style="text-align:right"><b>${all.length}</b></td>${STATES.map((s) => `<td style="text-align:right"><b>${count(all, s)}</b></td>`).join('')}</tr>`;
-  section('rfp-count', { notes: '영역별 조항 수(요구사항추적표 §3, 2026-10-23). 기능·성능은 판정 대상 28개가 모두 완료 또는 조정이다. 시스템~제약의 부분 2개는 결제의 금융기관 연계 확인(테스트 키 실제 호출 전)과 개인정보 업무위탁 계약서 — 둘 다 실운영이 있어야 끝난다. 과업의 부분 1개는 발주기관 검수·도입·기대효과 분석. 제외 3개는 유사기업 분석 둘과 도입 후 기대효과 분석 — 접근할 자료가 없고, 실데이터 없이 숫자를 지어내지 않으려고 뺐다. 해당 없음 8개는 발주기관·납품 계약·대면 교육처럼 대상이 없는 조항.' },
-    head('Ⅳ. RFP 이행 · 영역별 조항 수', `${all.length}조항 중 완료 ${count(all, '완료')} · 조정 ${count(all, '조정')} — 기능·성능은 모두 충족`) +
+  const rate = (l) => `${Math.round(((count(l, '완료') + count(l, '조정')) / l.length) * 100)}%`; // 완료+조정 비율 — 분모는 그 행의 조항 수 전부(증빙서와 같다)
+  const rows = AREAS.map(([a, pg, f]) => { const l = all.filter(f); return `<tr><td style="white-space:nowrap">${a} <span style="color:${SOFT}">${pg}</span></td><td style="text-align:right"><b>${l.length}</b></td>${STATES.map((s) => cell(s, count(l, s))).join('')}<td style="text-align:right; color:${GREEN}"><b>${rate(l)}</b></td></tr>`; }).join('');
+  const total = `<tr style="background:${SURFACE2}"><td><b>합계</b></td><td style="text-align:right"><b>${all.length}</b></td>${STATES.map((s) => `<td style="text-align:right"><b>${count(all, s)}</b></td>`).join('')}<td style="text-align:right; color:${GREEN}"><b>${rate(all)}</b></td></tr>`;
+  section('rfp-count', { notes: '영역별 조항 수(요구사항추적표 §3, 2026-10-23). 완료+조정 비율은 그 행의 조항 수 전부를 분모로 한다(해당 없음·제외도 빼지 않는다) — 전체 58/72 = 81%, 기능·성능 28/29 = 97%(남은 1개는 원문이 "추후 논의"로 남긴 해당 없음). 시스템~제약의 부분 2개는 결제의 금융기관 연계 확인(테스트 키 실제 호출 전)과 개인정보 업무위탁 계약서 — 둘 다 실운영이 있어야 끝난다. 과업의 부분 1개는 발주기관 검수·도입·기대효과 분석. 제외 3개는 유사기업 분석 둘과 도입 후 기대효과 분석 — 접근할 자료가 없고, 실데이터 없이 숫자를 지어내지 않으려고 뺐다. 해당 없음 8개는 발주기관·납품 계약·대면 교육처럼 대상이 없는 조항.' },
+    head('Ⅳ. RFP 이행 · 영역별 조항 수', `${all.length}조항 중 완료 ${count(all, '완료')} · 조정 ${count(all, '조정')} — 완료·조정 ${rate(all)}`) +
     fill(`<div style="background:${SURFACE}; border:1px solid ${LINE}; border-radius:14px; padding:20px 32px; box-shadow:${SHADOW}">` +
-      `<table style="font-size:32px; color:${INK}; font-family:${BODY}"><tr><th style="width:34%; text-align:left; color:${SOFT}">영역</th><th style="width:11%; text-align:right; color:${SOFT}">조항</th>${STATES.map((s) => `<th style="width:11%; text-align:right; color:${STATUS_C[s][1]}">${s}</th>`).join('')}</tr>${rows}${total}</table></div>` +
+      `<table style="font-size:32px; color:${INK}; font-family:${BODY}"><tr><th style="width:28%; text-align:left; color:${SOFT}">영역</th><th style="width:8%; text-align:right; color:${SOFT}">조항</th>${STATES.map((s) => `<th style="width:${s === '해당 없음' ? 13 : 8.5}%; text-align:right; white-space:nowrap; color:${STATUS_C[s][1]}">${s}</th>`).join('')}<th style="width:17%; text-align:right; white-space:nowrap; color:${GREEN}">완료+조정 비율</th></tr>${rows}${total}</table></div>` +
       `<div style="display:flex; gap:16px">` +
         card(h3('부분 3 · 제외 3', 30) + ptxt('부분은 실운영이 있어야 끝나는 조항, 제외는 자료 없이 숫자를 지어내지 않으려고 뺀 분석 — Ⅶ장에서 자세히', 25), 'flex:1') +
         card(h3('해당 없음 8', 30) + ptxt('발주기관 승인·납품 계약·하자보수·대면 교육처럼 이 프로젝트에 대상이 없는 조항', 25), 'flex:1') +
