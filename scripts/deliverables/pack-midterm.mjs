@@ -7,8 +7,9 @@
 // 산출물을 고쳤다면 먼저 각 생성기(scripts/deliverables/*)로 다시 만든 뒤 이 스크립트를 돌린다.
 import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('../..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // .pathname은 Windows에서 /C:/…가 되어 경로가 깨진다
 const SRC = join(ROOT, 'docs/deliverables');
 const args = process.argv.slice(2);
 const OUTPUTS_ONLY = args.includes('--outputs-only');
@@ -48,7 +49,7 @@ const EVIDENCE = 'RFP이행증빙.pdf';
 for (const f of [EVIDENCE, ...OUTPUTS.map(([n]) => n)])
   if (!existsSync(join(SRC, f))) throw new Error(`docs/deliverables에 없음: ${f} — 생성기를 먼저 돌린다`);
 const known = new Set([EVIDENCE, ...OUTPUTS.map(([n]) => n), '교육자료_빠른시작.docx']);
-const unknown = readdirSync(SRC).filter((f) => !known.has(f));
+const unknown = readdirSync(SRC, { withFileTypes: true }).filter((e) => e.isFile() && !known.has(e.name)).map((e) => e.name); // 폴더(사용자가 둔 제출 묶음 등)는 보지 않는다
 if (unknown.length) throw new Error(`목록에 없는 산출물: ${unknown.join(', ')} — OUTPUTS에 넣을지 정한다`);
 
 if (OUTPUTS_ONLY) {

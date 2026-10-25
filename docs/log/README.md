@@ -191,3 +191,4 @@
 | [181](181.md) | 2026-10-23 | RFP 이행 증빙 결정 기록 제목을 쉬운 말로(36개, rfp-plain.json _decisions), 이어 쓴 결정 번호(D5·D6 등)의 두 번째가 빠지던 결함 수정(31 → 36개) |
 | [182](182.md) | 2026-10-25 | RFP 충족률 분모를 조항 수 전부로(91% → 81%), 영역별 완료+조정 비율 — 추적표 §3-0·증빙·덱 rfp-count·산출물 4종 재생성, 제출 압축을 UTF-8 이름으로 |
 | [183](183.md) | 2026-10-25 | 중간 제출 04_산출물을 RFP 산출물 표 기준 폴더 6개로(산출물1~5 + 과업4 매뉴얼), 읽어보기.txt, `--outputs-only`(01·03 보존), docs/midterm-submission gitignore |
+| [184](184.md) | 2026-10-25 | pack-midterm.mjs Windows 경로 깨짐(`.pathname` → `fileURLToPath`) 수정, docs/deliverables 안의 제출 폴더 허용·gitignore |
