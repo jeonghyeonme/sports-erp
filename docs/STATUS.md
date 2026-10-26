@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-25 · [log/184](log/184.md)(pack-midterm Windows 경로 수정), [log/183](log/183.md)(산출물 폴더를 RFP 산출물 표 기준으로), [log/182](log/182.md)(충족률 분모 = 조항 수 전부, 81%), [log/181](log/181.md)(증빙 결정 기록 제목 쉬운 말), [log/180](log/180.md)(STATUS 정리 — 실운영 안 함 반영), [log/179](log/179.md)(중간 제출 폴더 조립), [log/178](log/178.md)(중간보고서 덱 55장), [log/177](log/177.md)(RFP 이행 증빙), [log/176](log/176.md)(산출물 전부 재생성), [log/175](log/175.md)(중간 제출 구성 D67). 그 이전 경위는 [log/README](log/README.md) 인덱스에서 찾는다.
+> 마지막 갱신: 2026-10-26 · [log/185](log/185.md)(계약 갱신 기능 계획 D68), [log/184](log/184.md)(pack-midterm Windows 경로 수정), [log/183](log/183.md)(산출물 폴더를 RFP 산출물 표 기준으로), [log/182](log/182.md)(충족률 분모 = 조항 수 전부, 81%), [log/181](log/181.md)(증빙 결정 기록 제목 쉬운 말), [log/180](log/180.md)(STATUS 정리 — 실운영 안 함 반영), [log/179](log/179.md)(중간 제출 폴더 조립), [log/178](log/178.md)(중간보고서 덱 55장), [log/177](log/177.md)(RFP 이행 증빙), [log/176](log/176.md)(산출물 전부 재생성), [log/175](log/175.md)(중간 제출 구성 D67). 그 이전 경위는 [log/README](log/README.md) 인덱스에서 찾는다.
 
 ## 현재 상태
 
@@ -24,10 +24,11 @@
 ## 다음 할 일 (우선순위순)
 
 1. **중간 제출 마무리(사용자)** — 덱·주차별 발표자료 PDF는 세션이 로컬에서 그려 넣었다(1주차 pptx는 원본 글꼴 고양덕양 EB 대신 Noto Sans KR, 2주차는 스크롤 HTML을 장별 캡처). 남은 것: 압축(`midterm-submission.zip`, UTF-8 이름)이 Windows에서 풀리는지 확인 → 제출. `04_산출물/`은 RFP 산출물 표 기준 폴더 6개(log/183). 이미 PDF를 채운 묶음은 `pack-midterm.mjs <폴더> --outputs-only`로 04·README만 다시 만든다(인자 없이 돌리면 빈 01·03으로 새로 만든다).
-2. **사용자 답을 기다리는 것** — 쉬운 말 72줄과 결정 제목 36개(`scripts/deliverables/rfp-plain.json` — 한 줄은 증빙·덱이 함께, 결정 제목은 증빙만 쓴다, log/181) 표현 검토, 덱의 조항별 이행 표 11장을 줄일지.
-3. **Worker 재배포(선택, 사용자)** — #128의 회원 앱 이용 안내 문장 1곳. `npm install` → `npm run build:web` → `cd cloudflare-worker && npx wrangler deploy`(저장소 루트에서 실행하면 오류). admin-web 프로덕션 빌드는 api 주소에 localhost가 있으면 멈춘다(PR #96).
-4. **다음 계획 세 갈래(D67, 계획 수준 — 착수 순서는 사용자)** — ① 사용감 확보: 목록 쪽 나누기·검색·정렬을 화면마다 같은 방식으로, 대시보드·운영 실적 시각화, 자주 하는 작업의 단계 줄이기 ② 계약서 OCR·AI 분석 적용 검토(차별화전략 §1-1, 관리자 확인 후 반영) ③ 회원 앱 형태 재검토(휴대폰 웹 · 하이브리드 · 네이티브, D40 재검토).
-5. 사용자(선택): GitHub 원격의 끝난 작업 브랜치 삭제(`claude/deliverables-refresh`·`claude/rfp-evidence`·`claude/midterm-deck`·`claude/midterm-pack`), 폐기된 Render `sports-erp-web` 삭제.
+2. **위탁계약 갱신 기능(D68, 계획 확정 · 착수는 사용자)** — 지금은 계약 상대방·기간을 바꾸는 API·화면이 없고(시드 값), 상태 변경도 이력에 안 남는다. 계획: 갱신·정정(본사) → 이력(AuditLog, 스키마 변경 없음) → 종료 임박 표시 → 신규 지점 등록(범위가 커 따로). 지점 상세 안내 문구가 코드와 어긋난다("본사가 입력한 계약 정보").
+3. **사용자 답을 기다리는 것** — 쉬운 말 72줄과 결정 제목 36개(`scripts/deliverables/rfp-plain.json` — 한 줄은 증빙·덱이 함께, 결정 제목은 증빙만 쓴다, log/181) 표현 검토, 덱의 조항별 이행 표 11장을 줄일지.
+4. **Worker 재배포(선택, 사용자)** — #128의 회원 앱 이용 안내 문장 1곳. `npm install` → `npm run build:web` → `cd cloudflare-worker && npx wrangler deploy`(저장소 루트에서 실행하면 오류). admin-web 프로덕션 빌드는 api 주소에 localhost가 있으면 멈춘다(PR #96).
+5. **다음 계획 세 갈래(D67, 계획 수준 — 착수 순서는 사용자)** — ① 사용감 확보: 목록 쪽 나누기·검색·정렬을 화면마다 같은 방식으로, 대시보드·운영 실적 시각화, 자주 하는 작업의 단계 줄이기 ② 계약서 OCR·AI 분석 적용 검토(차별화전략 §1-1, 관리자 확인 후 반영) ③ 회원 앱 형태 재검토(휴대폰 웹 · 하이브리드 · 네이티브, D40 재검토).
+6. 사용자(선택): GitHub 원격의 끝난 작업 브랜치 삭제(`claude/deliverables-refresh`·`claude/rfp-evidence`·`claude/midterm-deck`·`claude/midterm-pack`), 폐기된 Render `sports-erp-web` 삭제.
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 
