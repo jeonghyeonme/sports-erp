@@ -122,7 +122,8 @@ jobs:
   # 브라우저로 따라간다. 화면 테스트 전용 DB(sports_erp_e2e)는 e2e/reset-db.mjs가 실행마다 새로 만든다.
   e2e:
     name: e2e (Playwright)
-    runs-on: ubuntu-latest
+    # ubuntu-latest가 26.04로 넘어가자 Playwright 1.56.1이 브라우저 설치를 거부했다(log/188) — 지원하는 판으로 고정
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
       postgres:
