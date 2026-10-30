@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-30 · [log/188](log/188.md)(매뉴얼 재생성·CI e2e 러너 고정), [log/187](log/187.md)(신규 지점 등록, D68 2차), [log/186](log/186.md)(계약 갱신·정정·이력·임박 표시 구현, D68 1차), [log/185](log/185.md)(계약 갱신 기능 계획 D68), [log/184](log/184.md)(pack-midterm Windows 경로 수정), [log/183](log/183.md)(산출물 폴더를 RFP 산출물 표 기준으로), [log/182](log/182.md)(충족률 분모 = 조항 수 전부, 81%), [log/181](log/181.md)(증빙 결정 기록 제목 쉬운 말), [log/180](log/180.md)(STATUS 정리 — 실운영 안 함 반영), [log/179](log/179.md)(중간 제출 폴더 조립), [log/178](log/178.md)(중간보고서 덱 55장), [log/177](log/177.md)(RFP 이행 증빙), [log/176](log/176.md)(산출물 전부 재생성), [log/175](log/175.md)(중간 제출 구성 D67). 그 이전 경위는 [log/README](log/README.md) 인덱스에서 찾는다.
+> 마지막 갱신: 2026-10-30 · [log/189](log/189.md)(신규 테이블 3개 RLS 켜기 — Supabase 경고), [log/188](log/188.md)(매뉴얼 재생성·CI e2e 러너 고정), [log/187](log/187.md)(신규 지점 등록, D68 2차), [log/186](log/186.md)(계약 갱신·정정·이력·임박 표시 구현, D68 1차), [log/185](log/185.md)(계약 갱신 기능 계획 D68), [log/184](log/184.md)(pack-midterm Windows 경로 수정), [log/183](log/183.md)(산출물 폴더를 RFP 산출물 표 기준으로), [log/182](log/182.md)(충족률 분모 = 조항 수 전부, 81%), [log/181](log/181.md)(증빙 결정 기록 제목 쉬운 말), [log/180](log/180.md)(STATUS 정리 — 실운영 안 함 반영), [log/179](log/179.md)(중간 제출 폴더 조립), [log/178](log/178.md)(중간보고서 덱 55장), [log/177](log/177.md)(RFP 이행 증빙), [log/176](log/176.md)(산출물 전부 재생성), [log/175](log/175.md)(중간 제출 구성 D67). 그 이전 경위는 [log/README](log/README.md) 인덱스에서 찾는다.
 
 ## 현재 상태
 
@@ -36,6 +36,7 @@
 - **무료 한도**: 방문당 호출이 가정(10회)을 넘으면(실측 3~11회) Workers 하루 10만 건에 닿는다 — 일일 요청 9만이면 유료 검토(D40). DB 500MB는 예약·결제 이력만으로 1~1.5년(design-constants ⑮, 가정).
 - **Worker 로그인 rate limit은 연결을 재사용할 때만 걸린다**(log/079) — 2차 방어는 Lambda 상한 10 + 503.
 - **비밀값 노출 수용**: `ORIGIN_SECRET`·DB 비밀번호가 대화에 노출된 채(security-plan S1, log/168). 이상 접속·비용 경보가 오면 즉시 교체: `.env` → `set-lambda-env.sh` → Actions 재배포, Worker는 `wrangler secret put ORIGIN_SECRET`.
+- **새 테이블 RLS는 손으로**: 배포 DB의 RLS(정책 없이 켜서 PostgREST 차단)는 저장소 밖에만 있다. 테이블을 만드는 Prisma 마이그레이션을 배포하면 Supabase에서 `ENABLE ROW LEVEL SECURITY`를 따로 해야 한다 — 빠뜨린 3개를 log/189에서 켬.
 - **AWS 지출 한도 없음**: 예산 경보($1/$5/$20)·Lambda 경보(오류·지연·메모리 85%, SNS 이메일)는 있고 대응은 수동. 경보 메일의 unsubscribe 링크를 누르면 구독이 지워진다.
 - **열람 기록 누적**: 자동 삭제가 없어 2027-10-10부터 연 1회 [data-retention](architecture/data-retention.md) 절차로 수동 삭제(배포 DB 쓰기, 승인).
 - **회원 웹 refresh token이 localStorage**(D41) — 공지 서식 HTML(D62)은 허용 목록 정화 두 겹. 허용 목록을 넓히면 쿠키 전환을 함께 검토. 빌드 순서(admin → member)를 어기면 `dist/m`이 지워진 채 배포된다(`npm run build:web` 사용).
