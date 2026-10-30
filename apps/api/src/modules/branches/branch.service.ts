@@ -21,7 +21,7 @@ interface ContractRow {
 }
 
 /**
- * 지점(Branch) 조회 — D29. 원천은 DB다. 쓰기는 본사의 계약 상태 변경(ADR-STF-07)과 계약 갱신·정정(D68)이다.
+ * 지점(Branch) 조회 — D29. 원천은 DB다. 쓰기는 본사의 계약 상태 변경(ADR-STF-07)과 지점 등록·계약 갱신·정정(D68)이다.
  * 계약 종료(TERMINATED) 규칙이 여기 한 곳으로 모인다 — CLAUDE.md가 실DB 전환 이후로 미뤄둔
  * "공통 검사 중앙화"의 첫 조각.
  */
@@ -76,6 +76,60 @@ export class BranchService {
         unassignedMembers: ended.unassignedMembers,
       };
     });
+  }
+
+  /**
+   * 신규 지점 등록(SUPER_ADMIN) — D68 결정 5. 새 위탁계약 = 새 지점, 상태는 정상으로 시작한다.
+   * 지점 코드는 유일(중복 409). 채번 시퀀스(CodeSequence)는 첫 채번 때 만들어지므로 여기서 준비하지 않는다.
+   * 등록도 계약 이력의 첫 줄로 남긴다(같은 트랜잭션).
+   */
+  async createBranch(
+    input: {
+      name: string;
+      code: string;
+      region: string;
+      address?: string;
+      phone?: string;
+      standardCheckInTime?: string;
+      contractPartner: string;
+      contractStartAt: string;
+      contractEndAt?: string;
+    },
+    actorAccountId: string,
+  ) {
+    if (input.contractEndAt && input.contractEndAt < input.contractStartAt) {
+      throw new AppException('INVALID_CONTRACT_PERIOD', '계약 종료일이 시작일보다 앞설 수 없습니다.', 400);
+    }
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const branch = await tx.branch.create({
+          data: {
+            ...input,
+            contractStartAt: dateOf(input.contractStartAt),
+            contractEndAt: input.contractEndAt ? dateOf(input.contractEndAt) : null,
+            contractStatus: 'ACTIVE',
+          },
+        });
+        await recordAudit(tx, {
+          actorId: actorAccountId,
+          entity: 'Branch',
+          entityId: branch.id,
+          action: 'BRANCH_CREATED',
+          after: {
+            code: branch.code,
+            contractPartner: input.contractPartner,
+            contractStartAt: input.contractStartAt,
+            contractEndAt: input.contractEndAt ?? null,
+          },
+        });
+        return BranchService.toContractView(branch);
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new AppException('BRANCH_CODE_TAKEN', `지점 코드 ${input.code}는 이미 쓰고 있습니다.`, 409);
+      }
+      throw e;
+    }
   }
 
   /**

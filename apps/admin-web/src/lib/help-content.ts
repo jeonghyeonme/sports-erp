@@ -30,6 +30,7 @@ const HELP_ROUTES: HelpRoute[] = [
           '갱신 임박 카드를 누르면 그 지점들만 걸러 보입니다.',
           '지점명으로 검색하거나 지역 묶음을 펼쳐 지점을 찾습니다.',
           '지점 행을 누르면 지점 상세(직원 → 회원, 프로그램 → 혼잡도)로 들어갑니다.',
+          '새 위탁계약을 맺으면 "+ 지점 등록"으로 지점명·지점 코드·지역·계약 상대방·기간을 넣습니다. 등록 후 지점 상세로 옮겨 가니 시설·프로그램·직원 파견을 이어서 준비합니다.',
         ],
         BRANCH_ADMIN: [
           '맨 위 "처리 대기"에 승인 대기 휴가·인사 변경 신청, 오늘 체크인 대기 예약, 30분 넘게 안 고친 혼잡도가 뜹니다. 누르면 처리 화면으로 갑니다.',
@@ -42,7 +43,7 @@ const HELP_ROUTES: HelpRoute[] = [
           '카드를 누르면 지점 상세로 들어갑니다.',
         ],
       },
-      errors: ['BRANCH_SCOPE_VIOLATION', 'UPSTREAM_UNAVAILABLE'],
+      errors: ['BRANCH_SCOPE_VIOLATION', 'BRANCH_CODE_TAKEN', 'INVALID_CONTRACT_PERIOD', 'UPSTREAM_UNAVAILABLE'],
     },
   },
   {

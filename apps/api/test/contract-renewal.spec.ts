@@ -7,10 +7,10 @@ import { setBranchStatus } from './helpers/branch-status';
 import { resetWorkerDb } from './helpers/worker-db';
 
 /**
- * D68 — 위탁계약 갱신·정정과 계약 이력. 본사만 쓰고, 갱신·정정·상태 변경은 변경과 같은 트랜잭션에서
+ * D68 — 신규 지점 등록, 위탁계약 갱신·정정과 계약 이력. 본사만 쓰고, 갱신·정정·상태 변경은 변경과 같은 트랜잭션에서
  * AuditLog(entity 'Branch')에 남는다. 종료 지점은 갱신하지 못한다(409). 계약 종료 차단 규칙(loadGate)은 그대로다.
  */
-describe('위탁계약 갱신·정정·이력 (D68)', () => {
+describe('지점 등록·위탁계약 갱신·정정·이력 (D68)', () => {
   let app: INestApplication;
   let superAdmin: string;
   let seochoAdmin: string;
@@ -185,6 +185,68 @@ describe('위탁계약 갱신·정정·이력 (D68)', () => {
       await setBranchStatus(BRANCH.seocho, 'ACTIVE');
       await correct(superAdmin, { contractEndAt: plusDays(-1) });
       expect(await listed()).toMatchObject({ contractDaysLeft: -1, renewalNotice: false, contractStatus: 'ACTIVE' });
+    });
+  });
+
+  describe('신규 지점 등록', () => {
+    const newBranch = {
+      name: '판교점',
+      code: 'PANGYO',
+      region: '경기',
+      address: '경기 성남시 분당구 판교역로 1',
+      phone: '031-000-0000',
+      standardCheckInTime: '08:30',
+      contractPartner: '판교 OO오피스텔 관리단',
+      contractStartAt: '2026-11-01',
+      contractEndAt: '2028-10-31',
+    };
+    const create = (auth: string, body: object) => api(auth).post('/branches', body);
+
+    it('지점 관리자는 등록하지 못한다(403), 본사가 등록하면 목록·공개 목록·계약 이력에 바로 보인다', async () => {
+      expect((await create(seochoAdmin, newBranch)).status).toBe(403);
+      expect(await db(app).branch.count({ where: { code: 'PANGYO' } })).toBe(0);
+
+      const res = await create(superAdmin, newBranch);
+      expect(res.status).toBe(201);
+      expect(res.body.data).toMatchObject({
+        name: '판교점',
+        region: '경기',
+        contractStatus: 'ACTIVE',
+        contractStartAt: '2026-11-01',
+        contractEndAt: '2028-10-31',
+        memberCount: 0,
+        staffCount: 0,
+      });
+      const id = res.body.data.id as string;
+
+      const listed = (await api(superAdmin).get('/branches')).body.data.map((b: { id: string }) => b.id);
+      expect(listed).toContain(id);
+      const publicList = await request(app.getHttpServer()).get('/api/v1/branches/public');
+      expect(publicList.body.data.map((b: { id: string }) => b.id)).toContain(id);
+
+      const logs = await db(app).auditLog.findMany({ where: { entity: 'Branch', entityId: id } });
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toMatchObject({ action: 'BRANCH_CREATED', after: { code: 'PANGYO', contractEndAt: '2028-10-31' } });
+    });
+
+    it('새 지점에 채용하면 지점 코드로 직원코드가 매겨진다(채번 시퀀스는 첫 채번 때 생긴다)', async () => {
+      const id = (await create(superAdmin, newBranch)).body.data.id as string;
+      const hired = await api(superAdmin).post('/staff', { branchId: id, name: '판교 첫 직원', email: 'pangyo.first@spoism.example' });
+      expect(hired.status).toBe(201);
+      expect(hired.body.data).toMatchObject({ staffCode: 'PANGYO-001', branchId: id, branchName: '판교점' });
+    });
+
+    it('지점 코드가 겹치면 409, 형식이 틀리거나 기간이 거꾸로면 400 — 어느 쪽도 지점이 생기지 않는다', async () => {
+      const before = await db(app).branch.count();
+      const taken = await create(superAdmin, { ...newBranch, code: 'SEOCHO' });
+      expect(taken.status).toBe(409);
+      expect(taken.body.error.code).toBe('BRANCH_CODE_TAKEN');
+      expect((await create(superAdmin, { ...newBranch, code: 'pangyo' })).status).toBe(400);
+      expect((await create(superAdmin, { ...newBranch, code: 'PANGYO2' })).status).toBe(400);
+      const reversed = await create(superAdmin, { ...newBranch, contractEndAt: '2026-10-01' });
+      expect(reversed.status).toBe(400);
+      expect(reversed.body.error.code).toBe('INVALID_CONTRACT_PERIOD');
+      expect(await db(app).branch.count()).toBe(before);
     });
   });
 });
