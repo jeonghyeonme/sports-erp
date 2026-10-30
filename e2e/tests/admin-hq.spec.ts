@@ -33,6 +33,8 @@ test('본사: 지점 상세에서 계약을 갱신하고 계약 이력으로 확
   await expect(card.locator('table')).toContainText(`→ ${newEnd}`);
 
   await openMenu(page, '/audit-logs');
+  // 주소가 바뀐 직후에는 지점 상세의 표들이 아직 남아 있다 — 변경 이력 화면이 그려진 뒤에 표를 본다
+  await expect(page.locator('main h2', { hasText: '변경 이력' })).toBeVisible();
   await expect(page.locator('main table')).toContainText('지점 서초점');
 });
 
