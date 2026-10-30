@@ -5,11 +5,12 @@ import { api } from '../lib/api';
 import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { ApiEnvelope, AuditLogRow, BranchSummary, PermissionCatalog } from '../lib/types';
 import { useAuth } from '../lib/use-auth';
+import { CONTRACT_ACTION_LABEL, describeContractChange } from '../lib/contract-status';
 
 const PAGE_SIZE = 20;
 
-// D44 — 지금 기록하는 이벤트 10종(파견 종료는 ADR-STF-07, 전화번호 열람은 D47, 근태 정정·회원/자산 상태는 D52,
-// 인사 정보 변경 신청 승인은 ADR-STF-09, 세부 권한 변경은 D60).
+// D44 — 지금 기록하는 이벤트 13종(파견 종료는 ADR-STF-07, 전화번호 열람은 D47, 근태 정정·회원/자산 상태는 D52,
+// 인사 정보 변경 신청 승인은 ADR-STF-09, 세부 권한 변경은 D60, 위탁계약 갱신·정정·상태 변경은 D68).
 // 늘릴 때는 api `prisma/audit.ts`의 AuditAction과 함께 고친다.
 const ACTION_LABEL: Record<string, string> = {
   ROLE_CHANGED: '권한 변경',
@@ -22,6 +23,7 @@ const ACTION_LABEL: Record<string, string> = {
   ASSET_STATUS_CHANGED: '자산 상태 변경',
   STAFF_PROFILE_CHANGED: '인사 정보 변경(신청 승인)',
   PERMISSION_CHANGED: '세부 권한 변경',
+  ...CONTRACT_ACTION_LABEL,
 };
 
 const ATTENDANCE_LABEL: Record<string, string> = {
@@ -53,7 +55,7 @@ function attendanceSide(v: Record<string, unknown>): string {
   return `${ATTENDANCE_LABEL[String(v.status)] ?? v.status}${times}`;
 }
 
-const ENTITY_LABEL: Record<string, string> = { Staff: '직원', Member: '회원', Asset: '자산', Role: '역할' };
+const ENTITY_LABEL: Record<string, string> = { Staff: '직원', Member: '회원', Asset: '자산', Role: '역할', Branch: '지점' };
 
 const ROLE_LABEL: Record<string, string> = {
   SUPER_ADMIN: '본사 관리자',
@@ -156,6 +158,7 @@ export function AuditLogsPage() {
       const label = (v: unknown) => ASSET_STATUS_LABEL[String(v)] ?? String(v);
       return `${branchName(after.branchId)} · ${label(before.status)} → ${label(after.status)}`;
     }
+    if (r.action in CONTRACT_ACTION_LABEL) return describeContractChange(r);
     return '-';
   };
 
@@ -179,7 +182,7 @@ export function AuditLogsPage() {
       <div className="page-header">
         <h2>변경 이력</h2>
         <p className="page-desc">
-          D44 — 직원 권한 변경·퇴사 처리·파견·파견 종료와 근태 정정·회원 상태·자산 상태 변경(D52)을 누가 언제 했는지 남긴 기록입니다. 본사 관리자만 볼 수 있고, 변경과 같은
+          D44 — 직원 권한 변경·퇴사 처리·파견·파견 종료와 근태 정정·회원 상태·자산 상태 변경(D52), 위탁계약 갱신·정정·상태 변경(D68)을 누가 언제 했는지 남긴 기록입니다. 본사 관리자만 볼 수 있고, 변경과 같은
           트랜잭션에서 기록되어 실패한 요청은 남지 않습니다. 관리자가 회원·직원 상세를 열어 전화번호 원문을 본 기록도 함께
           남습니다(D47, 보존 1년).
         </p>

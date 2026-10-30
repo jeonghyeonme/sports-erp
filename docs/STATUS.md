@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-10-26 · [log/185](log/185.md)(계약 갱신 기능 계획 D68), [log/184](log/184.md)(pack-midterm Windows 경로 수정), [log/183](log/183.md)(산출물 폴더를 RFP 산출물 표 기준으로), [log/182](log/182.md)(충족률 분모 = 조항 수 전부, 81%), [log/181](log/181.md)(증빙 결정 기록 제목 쉬운 말), [log/180](log/180.md)(STATUS 정리 — 실운영 안 함 반영), [log/179](log/179.md)(중간 제출 폴더 조립), [log/178](log/178.md)(중간보고서 덱 55장), [log/177](log/177.md)(RFP 이행 증빙), [log/176](log/176.md)(산출물 전부 재생성), [log/175](log/175.md)(중간 제출 구성 D67). 그 이전 경위는 [log/README](log/README.md) 인덱스에서 찾는다.
+> 마지막 갱신: 2026-10-30 · [log/186](log/186.md)(계약 갱신·정정·이력·임박 표시 구현, D68 1차), [log/185](log/185.md)(계약 갱신 기능 계획 D68), [log/184](log/184.md)(pack-midterm Windows 경로 수정), [log/183](log/183.md)(산출물 폴더를 RFP 산출물 표 기준으로), [log/182](log/182.md)(충족률 분모 = 조항 수 전부, 81%), [log/181](log/181.md)(증빙 결정 기록 제목 쉬운 말), [log/180](log/180.md)(STATUS 정리 — 실운영 안 함 반영), [log/179](log/179.md)(중간 제출 폴더 조립), [log/178](log/178.md)(중간보고서 덱 55장), [log/177](log/177.md)(RFP 이행 증빙), [log/176](log/176.md)(산출물 전부 재생성), [log/175](log/175.md)(중간 제출 구성 D67). 그 이전 경위는 [log/README](log/README.md) 인덱스에서 찾는다.
 
 ## 현재 상태
 
@@ -13,8 +13,8 @@
 | 데이터 | 전 도메인 Prisma(Supabase Postgres, 34개 테이블) — `MockDataService` 삭제 | [D36](decisions/D36.md) |
 | api 호스팅 | **AWS Lambda(서울) 운영 중**, Worker origin = Function URL(별칭 `live`). 배포는 `dev` push 또는 Actions 수동 실행(OIDC, 헬스체크 실패 시 이전 버전). 운영 실측 W 약 40ms, 과부하 실제 처리 약 80~90 rps(D50). 동시 실행 상한 10·1,024MB(D42), DB는 Session pooler 5432(D49). NestJS 11(D65) | [D37](decisions/D37.md), [D50](decisions/D50.md) |
 | 웹·엣지 | Cloudflare Worker(정적 자산 + 프록시 + 로그인 rate limit). 관리자 웹은 직원 계정만(D66), 회원 기능은 `apps/member-web`(`/m/`, PWA — D41·D45). 마지막 Worker 재배포 2026-10-22(log/174) | [D25](decisions/D25.md), [D66](decisions/D66.md) |
-| 규칙의 자리 | 지점 격리 = 전역 `BranchScopeGuard`(D46), 세부 권한 = 전역 `PermissionGuard`(D60), 계약 종료 = `BranchService.loadGate()`, 종료 전이 시 파견 종료(ADR-STF-07·08). 변경 이력 9종(D44·D47·D52·ADR-STF-09), 혼잡도 = 진행 중 강습 예약 + 현장 입력(ADR-FAC-05) | [D46](decisions/D46.md), [D60](decisions/D60.md) |
-| 검증 | API jest 52개 파일 556건(실DB, 기준·고밀도 템플릿 둘 — D58), 화면 자동 테스트 14건(D59, CI만), 그 밖 화면은 lint·빌드와 시연 데이터 점검(log/125~130) | [D59](decisions/D59.md) |
+| 규칙의 자리 | 지점 격리 = 전역 `BranchScopeGuard`(D46), 세부 권한 = 전역 `PermissionGuard`(D60), 계약 종료 = `BranchService.loadGate()`, 종료 전이 시 파견 종료(ADR-STF-07·08). 변경 이력 12종(D44·D47·D52·ADR-STF-09·D68 계약 3종), 혼잡도 = 진행 중 강습 예약 + 현장 입력(ADR-FAC-05) | [D46](decisions/D46.md), [D60](decisions/D60.md) |
+| 검증 | API jest 54개 파일 571건(실DB, 기준·고밀도 템플릿 둘 — D58), 화면 자동 테스트 15건(D59, CI만), 그 밖 화면은 lint·빌드와 시연 데이터 점검(log/125~130) | [D59](decisions/D59.md) |
 | 시연 데이터 | 계약 상태별 5곳(서초·강남 정상, 마포 갱신 임박, 송파 만료, 노원 종료). `npm run seed:demo`가 실행일 기준 지난 90일·앞으로 3주를 얹는다(회원 211명 등). 배포 DB도 같은 데이터(2026-10-20 재시드, log/143) | [D58](decisions/D58.md) |
 | 산출물 | 요구사항·데이터 정의서(Excel), 기업 분석·제안서·아키텍처 설계서·사용자 매뉴얼·진행 보고서 5부(Word), 교육 자료(PDF), RFP 이행 증빙(PDF) — 2026-10-23 기준(충족률 문장만 10-25 재생성, log/182), `scripts/deliverables/`로 재생성 | [log/176](log/176.md), [log/177](log/177.md) |
 | 중간 제출 | 중간보고서 덱 55장(https://claude.ai/artifact/M2NBGeZcaBdTgkT1msjwQb, 생성기 `presentation/assets/4-7_중간발표/deck-source/viz/deck47.js`), RFP 이행 증빙(https://claude.ai/artifact/K1RjzzmZN4Er8tiKitEZ4e), 제출 폴더 조립 `node scripts/deliverables/pack-midterm.mjs` → `중간제출/`(저장소 밖) | [D67](decisions/D67.md), [log/178](log/178.md), [log/179](log/179.md) |
@@ -23,12 +23,9 @@
 
 ## 다음 할 일 (우선순위순)
 
-1. **중간 제출 마무리(사용자)** — 덱·주차별 발표자료 PDF는 세션이 로컬에서 그려 넣었다(1주차 pptx는 원본 글꼴 고양덕양 EB 대신 Noto Sans KR, 2주차는 스크롤 HTML을 장별 캡처). 남은 것: 압축(`midterm-submission.zip`, UTF-8 이름)이 Windows에서 풀리는지 확인 → 제출. `04_산출물/`은 RFP 산출물 표 기준 폴더 6개(log/183). 이미 PDF를 채운 묶음은 `pack-midterm.mjs <폴더> --outputs-only`로 04·README만 다시 만든다(인자 없이 돌리면 빈 01·03으로 새로 만든다).
-2. **위탁계약 갱신 기능(D68, 계획 확정 · 착수는 사용자)** — 지금은 계약 상대방·기간을 바꾸는 API·화면이 없고(시드 값), 상태 변경도 이력에 안 남는다. 계획: 갱신·정정(본사) → 이력(AuditLog, 스키마 변경 없음) → 종료 임박 표시 → 신규 지점 등록(범위가 커 따로). 지점 상세 안내 문구가 코드와 어긋난다("본사가 입력한 계약 정보").
-3. **사용자 답을 기다리는 것** — 쉬운 말 72줄과 결정 제목 36개(`scripts/deliverables/rfp-plain.json` — 한 줄은 증빙·덱이 함께, 결정 제목은 증빙만 쓴다, log/181) 표현 검토, 덱의 조항별 이행 표 11장을 줄일지.
-4. **Worker 재배포(선택, 사용자)** — #128의 회원 앱 이용 안내 문장 1곳. `npm install` → `npm run build:web` → `cd cloudflare-worker && npx wrangler deploy`(저장소 루트에서 실행하면 오류). admin-web 프로덕션 빌드는 api 주소에 localhost가 있으면 멈춘다(PR #96).
-5. **다음 계획 세 갈래(D67, 계획 수준 — 착수 순서는 사용자)** — ① 사용감 확보: 목록 쪽 나누기·검색·정렬을 화면마다 같은 방식으로, 대시보드·운영 실적 시각화, 자주 하는 작업의 단계 줄이기 ② 계약서 OCR·AI 분석 적용 검토(차별화전략 §1-1, 관리자 확인 후 반영) ③ 회원 앱 형태 재검토(휴대폰 웹 · 하이브리드 · 네이티브, D40 재검토).
-6. 사용자(선택): GitHub 원격의 끝난 작업 브랜치 삭제(`claude/deliverables-refresh`·`claude/rfp-evidence`·`claude/midterm-deck`·`claude/midterm-pack`), 폐기된 Render `sports-erp-web` 삭제.
+1. **신규 지점 등록(D68 2차, 착수는 사용자)** — 새 위탁계약 = 새 지점. 이름·지점 코드(유일, 중복 409)·지역·주소·전화·출근 기준 시각 + 계약 상대방·시작일·종료일, 대시보드에 [지점 등록]. 1차(갱신·정정·이력·임박 표시)는 끝났다(log/186). 지점 코드는 회원번호·직원코드 채번에 쓰이므로 `CodeSequence` 시작값을 함께 본다.
+2. **다음 계획 세 갈래(D67, 계획 수준 — 착수 순서는 사용자)** — ① 사용감 확보: 목록 쪽 나누기·검색·정렬을 화면마다 같은 방식으로, 대시보드·운영 실적 시각화, 자주 하는 작업의 단계 줄이기 ② 계약서 OCR·AI 분석 적용 검토(차별화전략 §1-1, 관리자 확인 후 반영 — D68의 수기 입력 API가 토대) ③ 회원 앱 형태 재검토(휴대폰 웹 · 하이브리드 · 네이티브, D40 재검토).
+3. 사용자(선택): log/186 화면을 운영에 올리려면 `dev` 병합 후 Lambda는 자동, Worker는 `npm run build:web` → `cd cloudflare-worker && npx wrangler deploy`. 사용자 매뉴얼(산출물)은 화면 도움말이 바뀐 만큼 재생성 대상(`scripts/deliverables/`).
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 

@@ -233,6 +233,10 @@ describe('지점 데이터 격리', () => {
     { name: '서초점 운영 실적 조회', method: 'get', path: () => `/branches/${BRANCH.seocho}/performance` },
     // ADR-STF-07 — 계약 상태 변경은 본사 전용(지점 관리자는 자기 지점도 403 — contract-termination.spec).
     { name: '서초점 계약 상태 변경', method: 'patch', path: () => `/branches/${BRANCH.seocho}/contract-status`, body: () => ({ status: 'TERMINATED' }) },
+    // D68 — 계약 갱신·정정도 본사 전용(지점 관리자 403 대조군은 contract-renewal.spec).
+    { name: '서초점 계약 갱신', method: 'post', path: () => `/branches/${BRANCH.seocho}/contract/renewals`, body: () => ({ contractEndAt: '2099-12-31' }) },
+    { name: '서초점 계약 정보 정정', method: 'patch', path: () => `/branches/${BRANCH.seocho}/contract`, body: () => ({ contractPartner: 'x' }) },
+    { name: '서초점 계약 이력 조회', method: 'get', path: () => `/audit-logs?entity=Branch&entityId=${BRANCH.seocho}` },
     // D44 — 변경 이력은 본사 감사 기록이라 지점 관리자는 자기 지점 직원 것도 볼 수 없다(403).
     { name: '서초 직원 변경 이력 조회', method: 'get', path: (c) => `/audit-logs?entity=Staff&entityId=${c.seocho.staffId}` },
     // 목록 API에 타 지점 branchId를 직접 지정하는 시도
