@@ -59,12 +59,15 @@ const HELP_ROUTES: HelpRoute[] = [
       ],
       byRole: {
         SUPER_ADMIN: [
+          '계약을 연장했으면 계약 정보 카드의 "계약 갱신"에 새 종료일을 넣습니다. 상태가 "계약 정상"으로 돌아갑니다(종료된 계약은 갱신되지 않습니다).',
+          '입력 실수는 "정보 수정"으로 고칩니다. 갱신으로 세지 않고 상태도 그대로입니다.',
+          '갱신·수정·상태 변경은 카드 아래 "계약 이력"에 처리자와 함께 남습니다. "종료 60일 이내" 표시는 상태를 자동으로 바꾸지 않습니다.',
           '계약 정보 카드의 "계약 상태 변경"을 누르고 새 상태를 고릅니다.',
           '"계약 종료"를 고르면 파견 종료·담당 해제 안내를 확인한 뒤 "계약 종료 처리"를 누릅니다.',
           '결과 창의 재배치 대기 직원 이름을 눌러 직원 상세로 가서 "파견 발령"으로 다른 지점에 보냅니다.',
         ],
       },
-      errors: ['BRANCH_NOT_FOUND', 'BRANCH_SCOPE_VIOLATION', 'BRANCH_TERMINATED'],
+      errors: ['BRANCH_NOT_FOUND', 'BRANCH_SCOPE_VIOLATION', 'BRANCH_TERMINATED', 'INVALID_CONTRACT_PERIOD'],
     },
   },
   {

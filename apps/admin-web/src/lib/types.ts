@@ -41,6 +41,10 @@ export interface BranchSummary {
   contractStartAt?: string;
   contractEndAt?: string;
   contractPartner?: string;
+  // D68 결정 4 — 서버가 조회 때 KST 오늘 기준으로 계산한다(상시 계약이면 없음). 지난 종료일은 음수.
+  contractDaysLeft?: number;
+  // 상태가 정상인데 종료가 60일 안으로 들어온 지점 — 표시만 하고 상태를 바꾸지는 않는다.
+  renewalNotice: boolean;
 }
 
 // PATCH /branches/:branchId/contract-status 응답(인사정보관리 ADR-STF-07). 종료 전이가 아니면 두 목록은 빈 배열.

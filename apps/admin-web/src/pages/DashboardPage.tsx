@@ -85,7 +85,13 @@ function BranchTable({ branches, statusFilter, onStatusFilterChange }: {
   const regionGroups = useMemo(() => {
     const term = search.trim().toLowerCase();
     const rows = branches
-      .filter((b) => statusFilter === 'ALL' || b.contractStatus === statusFilter)
+      // D68 — "갱신임박" 필터(위 알림 카드)는 정상이지만 종료 60일 이내인 지점도 함께 보인다.
+      .filter(
+        (b) =>
+          statusFilter === 'ALL' ||
+          b.contractStatus === statusFilter ||
+          (statusFilter === 'RENEWAL_DUE' && b.renewalNotice),
+      )
       .filter((b) => !term || b.name.toLowerCase().includes(term))
       .sort((a, b) => {
         const rankDiff = CONTRACT_STATUS_RANK[a.contractStatus] - CONTRACT_STATUS_RANK[b.contractStatus];
@@ -157,7 +163,15 @@ function BranchTable({ branches, statusFilter, onStatusFilterChange }: {
                   <td>{b.memberCount}명</td>
                   <td>{b.staffCount}명</td>
                   <td>{b.runningProgramCount}개</td>
-                  <td>{b.contractEndAt ?? '-'}</td>
+                  <td>
+                    {b.contractEndAt ?? '-'}
+                    {/* D68 결정 4 — 정상인데 종료 60일 이내. 상태는 바꾸지 않고 표시만 한다. */}
+                    {b.renewalNotice && (
+                      <span className="badge RENEWAL_DUE" style={{ marginLeft: 6 }}>
+                        {b.contractDaysLeft}일 남음
+                      </span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -180,7 +194,8 @@ export function DashboardPage() {
       memberCount: acc.memberCount + b.memberCount,
       staffCount: acc.staffCount + b.staffCount,
       runningProgramCount: acc.runningProgramCount + b.runningProgramCount,
-      renewalDueCount: acc.renewalDueCount + (b.contractStatus === 'RENEWAL_DUE' ? 1 : 0),
+      // D68 결정 4 — 갱신 임박 상태 + 정상인데 종료 60일 이내(조회 때 계산)
+      renewalDueCount: acc.renewalDueCount + (b.contractStatus === 'RENEWAL_DUE' || b.renewalNotice ? 1 : 0),
     }),
     { memberCount: 0, staffCount: 0, runningProgramCount: 0, renewalDueCount: 0 },
   );

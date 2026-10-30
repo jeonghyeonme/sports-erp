@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -9,6 +9,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { toMockProgram } from '../programs/program.service';
 import { BranchService } from './branch.service';
 import { ChangeContractStatusDto } from './dto/change-contract-status.dto';
+import { RenewContractDto } from './dto/renew-contract.dto';
+import { CorrectContractDto } from './dto/correct-contract.dto';
 import { branchPerformance } from './branch-performance';
 import { Permission } from '../../common/permissions/permission.decorator';
 
@@ -50,6 +52,28 @@ export class BranchesController {
     @CurrentUser() user: RequestUser,
   ) {
     return ok(await this.branchService.changeContractStatus(branchId, dto.status, user.accountId));
+  }
+
+  // D68 결정 1 — 계약 갱신(본사 전용). 새 종료일 + 필요하면 상대방, 상태는 정상으로. 종료 지점은 409.
+  @Post(':branchId/contract/renewals')
+  @Roles('SUPER_ADMIN')
+  async renewContract(
+    @Param('branchId') branchId: string,
+    @Body() dto: RenewContractDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return ok(await this.branchService.renewContract(branchId, dto, user.accountId));
+  }
+
+  // D68 결정 2 — 계약 정보 정정(본사 전용). 오타 수정이라 상태는 그대로다.
+  @Patch(':branchId/contract')
+  @Roles('SUPER_ADMIN')
+  async correctContract(
+    @Param('branchId') branchId: string,
+    @Body() dto: CorrectContractDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return ok(await this.branchService.correctContract(branchId, dto, user.accountId));
   }
 
   // log/125 F3 — 지점 운영 실적(최근 3개월, 월별). 본사가 계약 갱신 판단에 쓴다. 지점 관리자는 자기 지점만(전역 가드).

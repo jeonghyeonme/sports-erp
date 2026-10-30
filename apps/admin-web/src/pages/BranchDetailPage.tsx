@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
 import { Pager } from '../components/Pager';
 import {
   ApiEnvelope,
   AssetRow,
+  AuditLogRow,
   BranchSummary,
   FacilityRow,
   MemberRow,
@@ -17,9 +19,15 @@ import {
   StaffRow,
 } from '../lib/types';
 import { BriefcaseIcon } from '../components/icons';
-import { CONTRACT_STATUS_LABEL, contractRemainingLabel } from '../lib/contract-status';
+import {
+  CONTRACT_ACTION_LABEL,
+  CONTRACT_STATUS_LABEL,
+  contractRemainingLabel,
+  describeContractChange,
+} from '../lib/contract-status';
 import { useAuth } from '../lib/use-auth';
 import { ContractStatusModal } from '../components/ContractStatusModal';
+import { ContractEditMode, ContractEditModal } from '../components/ContractEditModal';
 import { MEMBER_STATUS_LABEL } from '../lib/status-labels';
 
 const PRICING_LABEL: Record<ProgramRow['pricingType'], string> = {
@@ -36,6 +44,46 @@ const STATUS_LABEL: Record<ProgramStatus, string> = {
 };
 
 const MEMBER_PAGE_SIZE = 20;
+const CONTRACT_HISTORY_LIMIT = 20;
+
+// D68 결정 3 — 계약 갱신·정정·상태 변경 이력(변경 이력 entity 'Branch', 본사 전용 — D44). 최신 20건.
+function ContractHistory({ branchId }: { branchId: string }) {
+  const query = useQuery<AuditLogRow[], AxiosError>({
+    queryKey: ['audit-logs', 'Branch', branchId],
+    queryFn: async () =>
+      (
+        await api.get<ApiEnvelope<AuditLogRow[]>>(
+          `/audit-logs?entity=Branch&entityId=${branchId}&limit=${CONTRACT_HISTORY_LIMIT}`,
+        )
+      ).data.data ?? [],
+  });
+  if (query.isLoading) return <div className="loading-state">불러오는 중...</div>;
+  if (query.isError) return <div className="forbidden-note">{apiErrorMessage(query.error)}</div>;
+  const rows = query.data ?? [];
+  if (rows.length === 0) return <div className="empty-state">기록된 계약 변경이 없습니다.</div>;
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>시각</th>
+          <th>내용</th>
+          <th>변경</th>
+          <th>처리자</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.id}>
+            <td>{new Date(r.createdAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false })}</td>
+            <td>{CONTRACT_ACTION_LABEL[r.action] ?? r.action}</td>
+            <td>{describeContractChange(r)}</td>
+            <td>{r.actorName ?? '(삭제된 계정)'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
 
 // D43 — 지점 회원 전체를 받아 화면에서 나누지 않고, 직원을 펼칠 때(또는 "담당 없음" 절에서) 그 조건의 쪽만 부른다
 // (B8 사용자 결정, assignedStaffId 필터 — 'none'이면 미배정).
@@ -97,6 +145,7 @@ export function BranchDetailPage() {
   const { branchId = '' } = useParams<{ branchId: string }>();
   const [expandedStaffId, setExpandedStaffId] = useState<string | null>(null);
   const [contractModalOpen, setContractModalOpen] = useState(false);
+  const [contractEditMode, setContractEditMode] = useState<ContractEditMode | null>(null);
   const { user } = useAuth();
   // ADR-STF-07 — 계약 상태 변경은 본사 전용(서버도 SUPER_ADMIN 외에는 403).
   const canChangeContract = user?.role === 'SUPER_ADMIN';
@@ -156,10 +205,21 @@ export function BranchDetailPage() {
             </div>
             <div className="stat-row" style={{ marginBottom: 0 }}>
               <span>잔여</span>
-              <strong>{contractRemainingLabel(branch.contractEndAt)}</strong>
+              <strong>
+                {contractRemainingLabel(branch.contractDaysLeft)}
+                {branch.renewalNotice && <span className="badge RENEWAL_DUE" style={{ marginLeft: 8 }}>종료 60일 이내</span>}
+              </strong>
             </div>
             {canChangeContract && (
               <div className="action-row" style={{ marginTop: 12, justifyContent: 'flex-end' }}>
+                {branch.contractStatus !== 'TERMINATED' && (
+                  <button type="button" className="btn-secondary primary" onClick={() => setContractEditMode('renew')}>
+                    계약 갱신
+                  </button>
+                )}
+                <button type="button" className="btn-secondary" onClick={() => setContractEditMode('correct')}>
+                  정보 수정
+                </button>
                 <button type="button" className="btn-secondary" onClick={() => setContractModalOpen(true)}>
                   계약 상태 변경
                 </button>
@@ -170,6 +230,9 @@ export function BranchDetailPage() {
         {contractModalOpen && branch && (
           <ContractStatusModal branch={branch} onClose={() => setContractModalOpen(false)} />
         )}
+        {contractEditMode && branch && (
+          <ContractEditModal branch={branch} mode={contractEditMode} onClose={() => setContractEditMode(null)} />
+        )}
         {branch?.contractStatus === 'TERMINATED' && unprocessedAssetCount > 0 && (
           <div className="forbidden-note" style={{ marginTop: 8 }}>
             미처리 자산 {unprocessedAssetCount}건 — 위탁계약이 종료됐지만 아직 폐기 처리되지 않은 자산이
@@ -177,9 +240,16 @@ export function BranchDetailPage() {
           </div>
         )}
         <p className="page-desc">
-          계약서 스캔본을 업로드하면 OCR·AI가 이 필드들을 자동으로 채우는 기능은 설계돼 있습니다(차별화전략 §1-1,
-          Phase 2~3 예정) — 지금은 본사가 입력한 계약 정보를 보여 줍니다.
+          {canChangeContract
+            ? '계약을 연장하면 "계약 갱신", 입력 실수는 "정보 수정"으로 고칩니다. 종료 60일 이내 표시는 상태를 자동으로 바꾸지 않습니다 — 갱신 임박으로 둘지는 본사가 정합니다.'
+            : '계약 정보는 본사가 관리합니다.'}
         </p>
+        {canChangeContract && (
+          <>
+            <h4 style={{ margin: '16px 0 8px', fontSize: 14 }}>계약 이력</h4>
+            <ContractHistory branchId={branchId} />
+          </>
+        )}
       </section>
 
       <section className="detail-section">
