@@ -35,3 +35,23 @@ test('본사: 지점 상세에서 계약을 갱신하고 계약 이력으로 확
   await openMenu(page, '/audit-logs');
   await expect(page.locator('main table')).toContainText('지점 서초점');
 });
+
+// D68 결정 5 — 새 위탁계약 = 새 지점. 등록하면 상세로 옮겨 가고, 계약 이력 첫 줄이 "지점 등록"이다.
+test('본사: 대시보드에서 새 지점을 등록하면 지점 상세로 간다', async ({ page }) => {
+  await adminLogin(page, ACCOUNTS.hq);
+  await page.getByRole('button', { name: '+ 지점 등록' }).click();
+  await field(page, '지점명').fill('판교점');
+  await field(page, '지점 코드').fill('pangyo'); // 소문자로 쳐도 대문자로 바뀐다
+  await field(page, '지역').fill('경기');
+  await field(page, '계약 상대방').fill('판교 OO오피스텔 관리단');
+  await field(page, '계약 시작일').fill(kstDate(0));
+  await field(page, '계약 종료일').fill(kstDate(730));
+  await page.getByRole('button', { name: '등록', exact: true }).click();
+
+  await expect(page).toHaveURL(/\/branches\//);
+  await expect(page.locator('main h2', { hasText: '판교점' })).toBeVisible();
+  const card = page.locator('.detail-section', { hasText: '계약 정보' });
+  await expect(card).toContainText('판교 OO오피스텔 관리단');
+  await expect(card.locator('table')).toContainText('지점 등록');
+  await expect(card.locator('table')).toContainText('코드 PANGYO');
+});

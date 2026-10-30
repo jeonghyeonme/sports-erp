@@ -11,6 +11,7 @@ import { BranchService } from './branch.service';
 import { ChangeContractStatusDto } from './dto/change-contract-status.dto';
 import { RenewContractDto } from './dto/renew-contract.dto';
 import { CorrectContractDto } from './dto/correct-contract.dto';
+import { CreateBranchDto } from './dto/create-branch.dto';
 import { branchPerformance } from './branch-performance';
 import { Permission } from '../../common/permissions/permission.decorator';
 
@@ -41,6 +42,14 @@ export class BranchesController {
     const branches = await this.branchService.listVisibleTo(user);
     const counts = await this.branchService.counts(branches.map((b) => b.id));
     return ok(branches.map((b) => ({ ...BranchService.toContractView(b), ...counts.get(b.id)! })));
+  }
+
+  // D68 결정 5 — 신규 지점 등록(새 위탁계약). 본사 전용, 지점 코드 중복은 409.
+  @Post()
+  @Roles('SUPER_ADMIN')
+  async create(@Body() dto: CreateBranchDto, @CurrentUser() user: RequestUser) {
+    const branch = await this.branchService.createBranch(dto, user.accountId);
+    return ok({ ...branch, memberCount: 0, staffCount: 0, runningProgramCount: 0 });
   }
 
   // ADR-STF-07 — 계약 상태 변경은 본사 전용. TERMINATED 전이 시 그 지점의 진행 중 파견을 같은 트랜잭션에서 종료한다.

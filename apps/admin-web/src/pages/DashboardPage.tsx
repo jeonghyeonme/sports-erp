@@ -6,6 +6,7 @@ import { BranchContractStatus, BranchSummary } from '../lib/types';
 import { AlertTriangleIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, UsersIcon } from '../components/icons';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { WorkInbox } from '../components/WorkInbox';
+import { BranchCreateModal } from '../components/BranchCreateModal';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_RANK } from '../lib/contract-status';
 
 const AUTO_EXPAND_MAX_BRANCHES = 10;
@@ -186,6 +187,9 @@ export function DashboardPage() {
   const { user } = useAuth();
   const { data, isLoading } = useApiList<BranchSummary>(['branches'], '/branches');
   const [statusFilter, setStatusFilter] = useState<BranchContractStatus | 'ALL'>('ALL');
+  const [showCreate, setShowCreate] = useState(false);
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const regions = [...new Set((data ?? []).map((b) => b.region))].sort((a, b) => a.localeCompare(b, 'ko'));
 
   const showTable = (data?.length ?? 0) > 1;
   const branchCount = data?.length ?? 0;
@@ -202,14 +206,23 @@ export function DashboardPage() {
 
   return (
     <>
-      <div className="page-header">
-        <h2>대시보드</h2>
-        <p className="page-desc">
-          {user?.role === 'SUPER_ADMIN'
-            ? '전체 지점 현황입니다. 지역별로 묶어서 보여줍니다 — 검색·필터하거나 행을 눌러 소속 직원·회원·프로그램·혼잡도를 확인하세요. (D2: SUPER_ADMIN만 모든 지점을 넘나들 수 있습니다)'
-            : `${user?.branchName ?? '소속 지점'} 현황입니다. 지점 카드를 눌러 소속 직원·회원·프로그램·혼잡도를 확인하세요.`}
-        </p>
+      <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h2>대시보드</h2>
+          <p className="page-desc" style={{ marginBottom: 0 }}>
+            {isSuperAdmin
+              ? '전체 지점 현황입니다. 지역별로 묶어서 보여줍니다 — 검색·필터하거나 행을 눌러 소속 직원·회원·프로그램·혼잡도를 확인하세요. (D2: SUPER_ADMIN만 모든 지점을 넘나들 수 있습니다)'
+              : `${user?.branchName ?? '소속 지점'} 현황입니다. 지점 카드를 눌러 소속 직원·회원·프로그램·혼잡도를 확인하세요.`}
+          </p>
+        </div>
+        {/* D68 결정 5 — 새 위탁계약 = 새 지점(본사 전용) */}
+        {isSuperAdmin && (
+          <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowCreate(true)}>
+            + 지점 등록
+          </button>
+        )}
       </div>
+      {showCreate && <BranchCreateModal regions={regions} onClose={() => setShowCreate(false)} />}
 
       {/* D61 — 로그인하면 할 일이 먼저 보인다 */}
       <WorkInbox />

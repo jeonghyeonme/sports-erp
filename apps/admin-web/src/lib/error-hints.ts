@@ -33,6 +33,7 @@ export const ERROR_HINTS: Record<string, string> = {
   // 계약 종료(TERMINATED) 지점
   BRANCH_TERMINATED: '위탁계약이 종료된 지점이라 새 등록·예약·작성·파견이 막혀 있습니다. 과거 기록 조회만 됩니다.',
   // D68 — 계약 갱신·정정
+  BRANCH_CODE_TAKEN: '이미 쓰고 있는 지점 코드입니다. 다른 코드를 넣으세요(회원번호·직원코드 앞부분이라 겹칠 수 없습니다).',
   INVALID_CONTRACT_PERIOD: '계약 기간이 맞지 않습니다. 갱신의 새 종료일은 지금 종료일보다 뒤, 종료일은 시작일보다 뒤여야 합니다.',
 
   // 지점 불일치
