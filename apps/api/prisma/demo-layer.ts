@@ -206,7 +206,11 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
   const nowMs = now.getTime();
   const notAfterNow = (d: Date) => new Date(Math.min(d.getTime(), nowMs - 3_600_000));
 
-  const branches = await prisma.branch.findMany({ orderBy: { id: 'asc' } });
+  // D69 — 계약 기간은 진행 중 회차(가장 최근 회차)에 있다.
+  const branches = await prisma.branch.findMany({
+    orderBy: { id: 'asc' },
+    include: { contractRounds: { orderBy: { roundNo: 'desc' }, take: 1 } },
+  });
   const planned = branches.filter((b) => BRANCH_PLAN[b.id]);
   const hq = await prisma.account.findFirstOrThrow({ where: { role: 'SUPER_ADMIN', isActive: true }, orderBy: { id: 'asc' } });
 
@@ -257,7 +261,7 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
   // 지점별 활동 기간 — 계약 종료 지점은 종료일까지, 나머지는 어제까지(+ 앞으로 3주 회차)
   const windowOf = (b: (typeof branches)[number]) => {
     const terminated = b.contractStatus === 'TERMINATED';
-    const end = terminated && b.contractEndAt ? b.contractEndAt.toISOString().slice(0, 10) : yesterday;
+    const end = terminated ? b.contractRounds[0].endAt.toISOString().slice(0, 10) : yesterday;
     return { start: addDays(end, -(HISTORY_DAYS - 1)), end, future: terminated ? 0 : FUTURE_DAYS, terminated };
   };
 
@@ -558,19 +562,7 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
       });
     }
 
-    // ── 문서 ── 위탁운영 계약서(보존기한 필수, D28 CHECK)·직원 근로계약서
-    documents.push({
-      id: `demo-document-${key}-contract`,
-      category: 'CONTRACT',
-      branchId: b.id,
-      title: `${b.name} 위탁운영 계약서`,
-      fileUrl: `demo://documents/${key}/contract.pdf`,
-      fileType: 'application/pdf',
-      fileSize: rng.int(200_000, 900_000),
-      uploadedBy: hq.id,
-      retentionUntil: asDate(addDays(today, 365 * 5)),
-      createdAt: kstAt(b.contractStartAt.toISOString().slice(0, 10), 11 * 60),
-    });
+    // ── 문서 ── 직원 근로계약서(위탁운영 계약서는 문서가 아니라 계약 회차에 있다 — D69)
     for (const s of branchStaff) {
       const st = staffRows.find((r) => r.id === s.id)!;
       documents.push({

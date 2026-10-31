@@ -26,6 +26,8 @@ export function ContractStatusModal({ branch, onClose }: { branch: BranchSummary
   const [result, setResult] = useState<ContractStatusChangeResult | null>(null);
 
   const terminating = status === 'TERMINATED' && branch.contractStatus !== 'TERMINATED';
+  // D69 결정 5 — 종료 확정은 진행 중 회차에 해지 합의서가 있어야 한다(서버도 409로 막는다).
+  const missingAgreement = terminating && !branch.hasTerminationAgreement;
   const unchanged = status === branch.contractStatus;
 
   const mutation = useMutation<ContractStatusChangeResult, AxiosError<ApiErrorBody>>({
@@ -102,7 +104,7 @@ export function ContractStatusModal({ branch, onClose }: { branch: BranchSummary
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (!unchanged) mutation.mutate();
+          if (!unchanged && !missingAgreement) mutation.mutate();
         }}
       >
         <p style={{ marginTop: 0 }}>
@@ -124,6 +126,7 @@ export function ContractStatusModal({ branch, onClose }: { branch: BranchSummary
             <li>그 직원들이 담당하던 회원의 담당과 강사 프로필 연결이 풀립니다.</li>
             <li>신규 회원 등록·예약·게시글·채용·파견 발령이 막힙니다. 과거 기록 조회는 그대로 됩니다.</li>
             <li>다시 다른 상태로 돌려도 끝난 파견은 되살아나지 않습니다(새로 발령해야 합니다).</li>
+            <li>확정하면 이 지점에는 계약서·해지 합의서를 더 올릴 수 없습니다.</li>
           </ul>
         ) : (
           <p className="page-desc">
@@ -131,6 +134,12 @@ export function ContractStatusModal({ branch, onClose }: { branch: BranchSummary
               ? '계약 종료를 되돌립니다. 신규 활동이 다시 열리지만, 끝난 파견은 되살아나지 않습니다.'
               : '갱신 임박·만료·정상은 신규 활동을 막지 않고, 파견도 그대로 둡니다.'}
           </p>
+        )}
+        {missingAgreement && (
+          <div className="forbidden-note">
+            계약 종료를 확정하려면 진행 중인 {branch.contractRoundNo}회차에 해지 합의서를 먼저 올려야 합니다(계약 회차의 "해지 합의서
+            올리기").
+          </div>
         )}
         {mutation.isError && <div className="forbidden-note">{apiErrorMessage(mutation.error)}</div>}
         <div className="action-row" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
@@ -140,7 +149,7 @@ export function ContractStatusModal({ branch, onClose }: { branch: BranchSummary
           <button
             type="submit"
             className={terminating ? 'btn-danger-outline' : 'btn-secondary primary'}
-            disabled={unchanged || mutation.isPending}
+            disabled={unchanged || missingAgreement || mutation.isPending}
           >
             {terminating ? '계약 종료 처리' : '변경'}
           </button>

@@ -82,21 +82,21 @@ describe('문서 규칙 (D34)', () => {
   it('삭제는 본사만 — 지점 관리자는 403, 본사는 소프트 삭제(행은 남고 조회·목록에서 빠짐), 두 번째 삭제는 404', async () => {
     const branchAdmin = await login(app, ACCOUNTS.seochoAdmin);
     const hq = await login(app, ACCOUNTS.superAdmin);
-    expect((await call(branchAdmin, 'delete', '/documents/doc-seocho-contract')).status).toBe(403);
+    expect((await call(branchAdmin, 'delete', '/documents/doc-seocho-ops')).status).toBe(403);
 
-    expect((await call(hq, 'delete', '/documents/doc-seocho-contract')).status).toBe(200);
-    const row = await db(app).document.findUniqueOrThrow({ where: { id: 'doc-seocho-contract' } });
+    expect((await call(hq, 'delete', '/documents/doc-seocho-ops')).status).toBe(200);
+    const row = await db(app).document.findUniqueOrThrow({ where: { id: 'doc-seocho-ops' } });
     expect(row.deletedAt).not.toBeNull(); // D9 — 감사 목적으로 행은 남는다
-    expect((await call(hq, 'get', '/documents/doc-seocho-contract')).status).toBe(404);
+    expect((await call(hq, 'get', '/documents/doc-seocho-ops')).status).toBe(404);
     const list = await call(hq, 'get', '/documents');
-    expect(list.body.data.map((d: { id: string }) => d.id)).not.toContain('doc-seocho-contract');
-    expect((await call(hq, 'delete', '/documents/doc-seocho-contract')).status).toBe(404);
+    expect(list.body.data.map((d: { id: string }) => d.id)).not.toContain('doc-seocho-ops');
+    expect((await call(hq, 'delete', '/documents/doc-seocho-ops')).status).toBe(404);
   });
 
   it('보존기한 임박 목록: 기준일(오늘+30일) 이하만, 보존기한 순, 영구 보관·삭제 문서는 제외', async () => {
     const prisma = db(app);
     const day = (d: string) => new Date(`${d}T00:00:00Z`);
-    const base = { category: 'CONTRACT' as const, uploadedBy: 'account-haneul', fileUrl: 'https://files.example/c.pdf' };
+    const base = { category: 'MANUAL' as const, uploadedBy: 'account-haneul', fileUrl: 'https://files.example/c.pdf' };
     const far = addYearsToDateString(todayKst(), 1);
     await prisma.document.createMany({
       data: [
@@ -107,7 +107,6 @@ describe('문서 규칙 (D34)', () => {
     });
     const res = await call(await login(app, ACCOUNTS.superAdmin), 'get', '/documents/retention-alerts');
     const ids = res.body.data.map((d: { id: string }) => d.id);
-    // 시드 서초 계약서(보존기한 2026-10-05)는 실행일에 따라 30일 안팎이 달라지므로 순서만 본다
     expect(ids[0]).toBe('doc-t-overdue');
     expect(ids).not.toContain('doc-t-far');
     expect(ids).not.toContain('doc-t-deleted');
@@ -118,9 +117,9 @@ describe('문서 규칙 (D34)', () => {
     const seocho = await call(await login(app, ACCOUNTS.seochoAdmin), 'get', '/documents');
     const gangnam = await call(await login(app, ACCOUNTS.gangnamAdmin), 'get', '/documents');
     const idsOf = (res: request.Response) => res.body.data.map((d: { id: string }) => d.id);
-    expect(idsOf(seocho)).toEqual(expect.arrayContaining(['doc-hq-manual', 'doc-seocho-contract']));
+    expect(idsOf(seocho)).toEqual(expect.arrayContaining(['doc-hq-manual', 'doc-seocho-ops']));
     expect(idsOf(gangnam)).toContain('doc-hq-manual');
-    expect(idsOf(gangnam)).not.toContain('doc-seocho-contract');
+    expect(idsOf(gangnam)).not.toContain('doc-seocho-ops');
     const manual = seocho.body.data.find((d: { id: string }) => d.id === 'doc-hq-manual');
     expect(manual.uploadedByName).toBe('정하늘');
     expect(manual.branchName).toBeUndefined(); // 전사 문서는 지점 이름이 없다

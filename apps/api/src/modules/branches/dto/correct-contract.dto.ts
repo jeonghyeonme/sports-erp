@@ -2,7 +2,7 @@ import { IsDateString, IsOptional, IsString, Matches, MaxLength, MinLength } fro
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
-// D68 결정 2 — 오타 정정. 보낸 필드만 바꾼다(상태는 건드리지 않는다).
+// D68 결정 2 — 오타 정정. 보낸 필드만 바꾼다(상태는 건드리지 않는다). D69 결정 4 — 진행 중인 회차만 고친다.
 export class CorrectContractDto {
   @IsOptional()
   @IsString()

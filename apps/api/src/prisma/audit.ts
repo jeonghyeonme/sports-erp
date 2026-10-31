@@ -7,7 +7,8 @@ type Tx = Prisma.TransactionClient;
  * D44 — 지금 기록하는 이벤트(ASSIGNMENT_ENDED는 인사정보관리 ADR-STF-07, PHONE_VIEWED는 D47,
  * ATTENDANCE_CORRECTED·MEMBER_STATUS_CHANGED·ASSET_STATUS_CHANGED는 D52, STAFF_PROFILE_CHANGED는 인사정보관리 ADR-STF-09,
  * PERMISSION_CHANGED는 D60 — 역할 기본값은 entity 'Role'(entityId = 역할), 개인 예외는 'Staff',
- * BRANCH_CREATED·CONTRACT_*는 D68 — entity 'Branch'의 지점 등록과 위탁계약 갱신·정정·상태 변경).
+ * BRANCH_CREATED·CONTRACT_*는 D68 — entity 'Branch'의 지점 등록과 위탁계약 갱신·정정·상태 변경,
+ * CONTRACT_FILE_*는 D69 — 계약서·해지 합의서 올리기·교체와 열람).
  * 늘릴 때는 근거 ADR과 admin-web 변경 이력 화면의 문구를 함께 고친다.
  */
 export type AuditAction =
@@ -24,7 +25,10 @@ export type AuditAction =
   | 'BRANCH_CREATED'
   | 'CONTRACT_RENEWED'
   | 'CONTRACT_CORRECTED'
-  | 'CONTRACT_STATUS_CHANGED';
+  | 'CONTRACT_STATUS_CHANGED'
+  | 'CONTRACT_FILE_UPLOADED'
+  | 'CONTRACT_FILE_REPLACED'
+  | 'CONTRACT_FILE_VIEWED';
 export type AuditEntity = 'Staff' | 'Member' | 'Asset' | 'Role' | 'Branch';
 
 /**

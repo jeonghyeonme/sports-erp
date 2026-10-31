@@ -22,7 +22,9 @@
 | 지점 공지는 항상 회원 공개·지점 필수 | ADR-BRD-01 | CHECK | **DB 적용**(D28) |
 | 혼잡도 단계 1~5, 인원 ≥ 0, 정원 ≥ 1 | ADR-FAC-01 | CHECK(Facility·CongestionSnapshot) | **DB 적용**(D28) |
 | 고정자산 수량 1, 수량·취득가 ≥ 0 | 자원문서관리 부록 A, RES-T01 | CHECK | **DB 적용**(D28) |
-| CONTRACT 문서 보존기한 필수 | ADR-RES-03 | CHECK | **DB 적용**(D28) |
+| ~~CONTRACT 문서 보존기한 필수~~ | ADR-RES-03 | CHECK | **삭제**(D69 — 문서의 계약서 분류 폐지) |
+| 계약 회차 번호 ≥ 1, 시작일 ≤ 종료일, 지점·회차 번호 유일 | D69 | CHECK·unique | **DB 적용**(D69) |
+| 회차·종류마다 지금 계약 파일 1개 | D69 | 부분 unique 인덱스(`replacedAt IS NULL`) | **DB 적용**(D69) |
 | HR_RECORD 문서 대상 직원 필수 | RES-T05 | CHECK | **DB 적용**(D28) |
 | 문서 대상 직원·업로더, 게시글 작성자가 실제로 존재 | D34 숙제, log/093 | FK(ON DELETE RESTRICT) | **DB 적용**(log/093 — 로컬·CI는 마이그레이션, 배포 DB는 2026-10-09 SQL Editor로 적용·확인) |
 | 업무일지 직원·날짜당 1건 | 근태관리 A-3, D33 숙제 | unique(staffId, date) — 앱의 advisory lock은 그대로 둔다 | **DB 적용**(log/093, 배포 DB 동일) |

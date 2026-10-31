@@ -33,12 +33,20 @@ async function main() {
       region: b.region,
       standardCheckInTime: b.standardCheckInTime,
       cancellationDeadlineHours: b.cancellationDeadlineHours,
-      contractPartner: b.contractPartner,
-      contractStartAt: new Date(`${b.contractStartAt}T00:00:00Z`),
-      contractEndAt: b.contractEndAt ? new Date(`${b.contractEndAt}T00:00:00Z`) : null,
       contractStatus: b.contractStatus,
     };
     await prisma.branch.upsert({ where: { id: b.id }, update: data, create: { id: b.id, ...data } });
+    // D69 — 계약은 1회차로. 계약서 파일은 없다(로컬 저장소는 메모리라 시드가 파일을 넣어 둘 수 없다 — 화면에서 올린다).
+    const round = {
+      partner: b.contractPartner,
+      startAt: new Date(`${b.contractStartAt}T00:00:00Z`),
+      endAt: new Date(`${b.contractEndAt}T00:00:00Z`),
+    };
+    await prisma.contractRound.upsert({
+      where: { branchId_roundNo: { branchId: b.id, roundNo: 1 } },
+      update: round,
+      create: { branchId: b.id, roundNo: 1, ...round },
+    });
   }
 
   // ── 직원·파견·관리자 계정 — D30: 원천은 DB, (D36 이후 mock 미러 없음) ─────────

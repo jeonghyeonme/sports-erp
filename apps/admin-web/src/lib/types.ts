@@ -38,13 +38,45 @@ export interface BranchSummary {
   staffCount: number;
   runningProgramCount: number;
   contractStatus: BranchContractStatus;
-  contractStartAt?: string;
-  contractEndAt?: string;
-  contractPartner?: string;
-  // D68 결정 4 — 서버가 조회 때 KST 오늘 기준으로 계산한다(상시 계약이면 없음). 지난 종료일은 음수.
-  contractDaysLeft?: number;
+  // D69 — 계약 값은 진행 중 회차(가장 최근 회차)의 것이다. 종료일은 필수(상시 계약 없음).
+  contractRoundNo: number;
+  contractStartAt: string;
+  contractEndAt: string;
+  contractPartner: string;
+  // D68 결정 4 — 서버가 조회 때 KST 오늘 기준으로 계산한다. 지난 종료일은 음수.
+  contractDaysLeft: number;
   // 상태가 정상인데 종료가 60일 안으로 들어온 지점 — 표시만 하고 상태를 바꾸지는 않는다.
   renewalNotice: boolean;
+  // 진행 중 회차에 지금 붙어 있는 파일(교체된 것 제외)
+  hasContractFile: boolean;
+  hasTerminationAgreement: boolean;
+}
+
+export type ContractFileKind = 'CONTRACT' | 'TERMINATION_AGREEMENT';
+
+// GET /branches/:branchId/contract/rounds — D69 계약 회차(최근 회차부터). 지난 회차·교체된 파일은 읽기 전용.
+export interface ContractFileRow {
+  id: string;
+  kind: ContractFileKind;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  uploadedByName: string;
+  uploadedAt: string;
+  replacedAt?: string;
+}
+
+export interface ContractRoundRow {
+  id: string;
+  roundNo: number;
+  current: boolean;
+  contractPartner: string;
+  contractStartAt: string;
+  contractEndAt: string;
+  terminatedAt?: string;
+  createdByName?: string;
+  createdAt: string;
+  files: ContractFileRow[];
 }
 
 // PATCH /branches/:branchId/contract-status 응답(인사정보관리 ADR-STF-07). 종료 전이가 아니면 두 목록은 빈 배열.
@@ -353,7 +385,8 @@ export interface FacilityRow {
 export type AssetCategory = 'EXERCISE_EQUIPMENT' | 'SAFETY_EQUIPMENT' | 'OFFICE_FURNITURE' | 'OTHER';
 export type AssetType = 'FIXED_ASSET' | 'CONSUMABLE';
 export type AssetStatus = 'NORMAL' | 'REPAIRING' | 'DISPOSAL_PENDING' | 'DISPOSED';
-export type DocumentCategory = 'CONTRACT' | 'HR_RECORD' | 'MANUAL' | 'OTHER';
+// D69 — 계약서는 문서가 아니라 지점 상세의 계약 회차에서 다룬다(분류 없음).
+export type DocumentCategory = 'HR_RECORD' | 'MANUAL' | 'OTHER';
 
 export interface AssetRow {
   id: string;

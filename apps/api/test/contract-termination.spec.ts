@@ -4,6 +4,7 @@ import { BranchContractStatus } from '@prisma/client';
 import { todayKst, toKstDateString } from '../src/common/date/kst-date';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
 import { setBranchStatus } from './helpers/branch-status';
+import { attachTerminationAgreement } from './helpers/contract-files';
 import { resetWorkerDb } from './helpers/worker-db';
 
 /**
@@ -259,6 +260,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
       expect(await prisma.member.count({ where: { assignedStaffId: 'staff-seoyeon' } })).toBe(1);
       expect(await prisma.instructor.count({ where: { staffId: 'staff-seoyeon' } })).toBe(1);
 
+      await attachTerminationAgreement(app, superAdmin, BRANCH.seocho); // D69 결정 5 — 종료 확정의 전제
       const res = await changeStatus(superAdmin, 'TERMINATED');
       expect(res.status).toBe(200);
       expect(res.body.data.contractStatus).toBe('TERMINATED');
@@ -284,6 +286,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
     });
 
     it('재배치 대상 직원은 본사가 다른 지점으로 발령할 수 있다(빼내는 발령 허용, ADR-STF-05)', async () => {
+      await attachTerminationAgreement(app, superAdmin, BRANCH.seocho);
       await changeStatus(superAdmin, 'TERMINATED');
       const res = await api(superAdmin).post('/staff/staff-seoyeon/assignments', { branchId: BRANCH.gangnam });
       expect(res.status).toBe(201);
@@ -334,6 +337,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
         orderBy: { staffCode: 'asc' },
         take: 6,
       });
+      await attachTerminationAgreement(app, superAdmin, BRANCH.seocho);
       const assigns = others.map((s) => api(superAdmin).post(`/staff/${s.id}/assignments`, { branchId: BRANCH.seocho }));
       const [terminate, ...results] = await Promise.all([changeStatus(superAdmin, 'TERMINATED'), ...assigns]);
       expect(terminate.status).toBe(200);
@@ -363,6 +367,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
 
     it('종료 전이 후 그 지점 직원이 재배치 대기에 더해지고, 다시 발령하면 빠진다', async () => {
       expect(await unassigned(superAdmin)).not.toContain('staff-seoyeon');
+      await attachTerminationAgreement(app, superAdmin, BRANCH.seocho);
       await api(superAdmin).patch(`/branches/${BRANCH.seocho}/contract-status`, { status: 'TERMINATED' });
       const after = await unassigned(superAdmin);
       expect(after).toEqual(expect.arrayContaining(['staff-minsu', 'staff-seoyeon', ...SEED_TERMINATED_STAFF]));
@@ -373,6 +378,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
 
     it('지점 관리자는 자기 지점 재배치 대기만 본다(다른 지점 대기 인원은 안 보인다)', async () => {
       expect(await unassigned(admin)).toEqual([]);
+      await attachTerminationAgreement(app, superAdmin, BRANCH.seocho);
       await api(superAdmin).patch(`/branches/${BRANCH.seocho}/contract-status`, { status: 'TERMINATED' });
       expect((await unassigned(admin)).sort()).toEqual(['staff-minsu', 'staff-seoyeon']);
     });
@@ -385,6 +391,7 @@ describe('위탁계약 종료 지점의 신규 활동 차단', () => {
     });
 
     it('본사는 계약 종료 지점 직원을 퇴사 처리해 계정을 비활성화한다 — 재배치 대기에서도 빠진다', async () => {
+      await attachTerminationAgreement(app, superAdmin, BRANCH.seocho);
       await api(superAdmin).patch(`/branches/${BRANCH.seocho}/contract-status`, { status: 'TERMINATED' });
       const res = await api(superAdmin).patch('/staff/staff-seoyeon/resign');
       expect(res.status).toBe(200);

@@ -5,6 +5,7 @@ import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useToast } from '../lib/use-toast';
 import { apiErrorMessage } from '../lib/use-api-list';
+import { CONTRACT_FILE_ACCEPT, CONTRACT_FILE_MAX_BYTES, uploadContractFile } from '../lib/contract-files';
 import { ApiEnvelope, BranchSummary } from '../lib/types';
 import { Modal } from './Modal';
 
@@ -26,18 +27,23 @@ const EMPTY = {
 };
 
 // D68 결정 5 — 새 위탁계약 = 새 지점(본사 전용). 등록하면 상세로 옮겨 시설·프로그램·파견을 이어서 한다.
+// D69 — 계약은 1회차로 만들어지고, 계약서와 종료일이 필수다.
 export function BranchCreateModal({ regions, onClose }: { regions: string[]; onClose: () => void }) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY);
+  const [file, setFile] = useState<File | null>(null);
   const set = (key: keyof typeof EMPTY) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const mutation = useMutation<BranchSummary, AxiosError<ApiErrorBody>>({
+  const mutation = useMutation<BranchSummary, AxiosError<ApiErrorBody> | Error>({
     mutationFn: async () => {
+      if (!file) throw new Error('계약서를 올려야 지점을 등록할 수 있습니다.');
+      if (file.size > CONTRACT_FILE_MAX_BYTES) throw new Error('파일 하나는 10MB까지 올릴 수 있습니다.');
       // 비운 선택 칸은 보내지 않는다(서버가 형식을 검사한다).
       const body = Object.fromEntries(Object.entries(form).filter(([, v]) => v.trim() !== '').map(([k, v]) => [k, v.trim()]));
-      return (await api.post<ApiEnvelope<BranchSummary>>('/branches', body)).data.data!;
+      const contractFile = await uploadContractFile(file);
+      return (await api.post<ApiEnvelope<BranchSummary>>('/branches', { ...body, contractFile })).data.data!;
     },
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['branches'] });
@@ -94,6 +100,10 @@ export function BranchCreateModal({ regions, onClose }: { regions: string[]; onC
           <input type="time" value={form.standardCheckInTime} onChange={set('standardCheckInTime')} />
         </div>
         <div className="field">
+          <label>계약서 *</label>
+          <input type="file" accept={CONTRACT_FILE_ACCEPT} onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
+        </div>
+        <div className="field">
           <label>계약 상대방 *</label>
           <input value={form.contractPartner} onChange={set('contractPartner')} maxLength={100} placeholder="예: 판교 OO오피스텔 관리단" required />
         </div>
@@ -102,11 +112,15 @@ export function BranchCreateModal({ regions, onClose }: { regions: string[]; onC
           <input type="date" value={form.contractStartAt} onChange={set('contractStartAt')} required />
         </div>
         <div className="field">
-          <label>계약 종료일</label>
-          <input type="date" value={form.contractEndAt} min={form.contractStartAt} onChange={set('contractEndAt')} />
+          <label>계약 종료일 *</label>
+          <input type="date" value={form.contractEndAt} min={form.contractStartAt} onChange={set('contractEndAt')} required />
         </div>
-        <p className="page-desc">종료일을 비우면 상시 계약입니다. 등록하면 계약 상태는 "계약 정상"으로 시작합니다.</p>
-        {mutation.isError && <div className="forbidden-note">{apiErrorMessage(mutation.error)}</div>}
+        <p className="page-desc">계약서를 보고 상대방·기간을 넣으세요. 1회차로 등록되고 계약 상태는 "계약 정상"으로 시작합니다.</p>
+        {mutation.error && (
+          <div className="forbidden-note">
+            {mutation.error instanceof AxiosError ? apiErrorMessage(mutation.error) : mutation.error.message}
+          </div>
+        )}
         <div className="action-row" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
           <button type="button" className="btn-secondary" onClick={onClose}>
             취소

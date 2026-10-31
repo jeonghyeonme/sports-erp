@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { todayKst } from '../src/common/date/kst-date';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
+import { uploadContractFile } from './helpers/contract-files';
 import { useDenseTemplate } from './helpers/worker-db';
 
 // D58 — 시연 데이터 층(고밀도 템플릿) 위에서 돈다. 기대값은 시드 개수를 박지 않고 DB에서 센다.
@@ -31,6 +32,7 @@ interface Ctx {
     leaveId: string;
     changeRequestId: string;
     supportRequestId: string;
+    contractFileId: string;
     ids: string[]; // 서초점 소유 리소스 id 전체 (목록 누수 스캔용)
   };
   gangnam: { memberId: string; staffId: string; programId: string; facilityId: string; ids: string[] };
@@ -100,6 +102,11 @@ describe('지점 데이터 격리', () => {
     if (changeReq.status !== 201) throw new Error(`픽스처 실패(인사 변경 신청): ${changeReq.status} ${JSON.stringify(changeReq.body)}`);
     const supportReq = await call(tok.seochoAdmin, 'post', '/support-requests', { category: 'OTHER', title: '격리 확인', content: '격리 테스트 요청' });
     if (supportReq.status !== 201) throw new Error(`픽스처 실패(업무지원 요청): ${supportReq.status} ${JSON.stringify(supportReq.body)}`);
+    // D69 — 서초점 계약서(본사가 올린다). 열람 라우트 공격에 쓴다.
+    const contractFile = await uploadContractFile(app, tok.superAdmin);
+    const setFile = await call(tok.superAdmin, 'post', `/branches/${BRANCH.seocho}/contract/files`, { kind: 'CONTRACT', ...contractFile });
+    if (setFile.status !== 201) throw new Error(`픽스처 실패(계약서): ${setFile.status} ${JSON.stringify(setFile.body)}`);
+    const seochoContractFile = await db(app).contractFile.findUniqueOrThrow({ where: { path: contractFile.path } });
     await call(tok.seochoStaff, 'post', '/attendance/check-in');
     await call(tok.seochoStaff, 'post', '/work-logs', { date: '2026-09-20', content: '격리 테스트 업무일지' });
 
@@ -139,6 +146,7 @@ describe('지점 데이터 격리', () => {
         leaveId: leave.body.data.id,
         changeRequestId: changeReq.body.data.id,
         supportRequestId: supportReq.body.data.id,
+        contractFileId: seochoContractFile.id,
         ids: [...ownedBy(BRANCH.seocho), ...seochoSlots.map((s) => s.id)],
       },
       gangnam: { memberId: gm.id, staffId: gs.id, programId: gp.id, facilityId: gf.id, ids: ownedBy(BRANCH.gangnam) },
@@ -177,6 +185,9 @@ describe('지점 데이터 격리', () => {
   });
 
   // ── 강남 관리자 → 서초 리소스 (서초점이 전 도메인 데이터를 가지고 있어 주력 시나리오) ──────────────
+  // 거부 케이스도 유효한 본문을 보내야 400이 아니라 403이 나온다(apps/api/CLAUDE.md).
+  const VALID_PERIOD = { contractPartner: 'x', contractStartAt: '2098-01-01', contractEndAt: '2099-12-31' };
+  const VALID_FILE = { path: 'contracts/00000000-0000-0000-0000-000000000000.pdf', fileName: 'x.pdf' };
   const attacksOnSeocho: Attack[] = [
     { name: '회원 상세 조회', method: 'get', path: (c) => `/members/${c.seocho.memberId}` },
     { name: '회원 수정', method: 'patch', path: (c) => `/members/${c.seocho.memberId}`, body: () => ({ memo: 'x' }) },
@@ -234,8 +245,24 @@ describe('지점 데이터 격리', () => {
     // ADR-STF-07 — 계약 상태 변경은 본사 전용(지점 관리자는 자기 지점도 403 — contract-termination.spec).
     { name: '서초점 계약 상태 변경', method: 'patch', path: () => `/branches/${BRANCH.seocho}/contract-status`, body: () => ({ status: 'TERMINATED' }) },
     // D68 — 계약 갱신·정정도 본사 전용(지점 관리자 403 대조군은 contract-renewal.spec).
-    { name: '서초점 계약 갱신', method: 'post', path: () => `/branches/${BRANCH.seocho}/contract/renewals`, body: () => ({ contractEndAt: '2099-12-31' }) },
+    {
+      name: '서초점 계약 갱신',
+      method: 'post',
+      path: () => `/branches/${BRANCH.seocho}/contract/renewals`,
+      body: () => ({ ...VALID_PERIOD, contractFile: VALID_FILE }),
+    },
     { name: '서초점 계약 정보 정정', method: 'patch', path: () => `/branches/${BRANCH.seocho}/contract`, body: () => ({ contractPartner: 'x' }) },
+    // D69 — 계약 회차·파일. 올리기는 본사 전용, 열람은 자기 지점만(지점 관리자 열람 대조군은 contract-rounds.spec).
+    { name: '서초점 계약 회차 조회', method: 'get', path: () => `/branches/${BRANCH.seocho}/contract/rounds` },
+    {
+      name: '서초점 계약 파일 올리기',
+      method: 'post',
+      path: () => `/branches/${BRANCH.seocho}/contract/files`,
+      body: () => ({ kind: 'TERMINATION_AGREEMENT', ...VALID_FILE }),
+    },
+    { name: '서초점 계약서 열람', method: 'get', path: (c) => `/branches/${BRANCH.seocho}/contract/files/${c.seocho.contractFileId}/download` },
+    // 경로는 자기 지점(강남)인데 파일 id만 서초 것 — @ScopedResource('contractFile')가 잡는다.
+    { name: '서초점 계약서 열람(강남 경로)', method: 'get', path: (c) => `/branches/${BRANCH.gangnam}/contract/files/${c.seocho.contractFileId}/download` },
     { name: '서초점 계약 이력 조회', method: 'get', path: () => `/audit-logs?entity=Branch&entityId=${BRANCH.seocho}` },
     // D44 — 변경 이력은 본사 감사 기록이라 지점 관리자는 자기 지점 직원 것도 볼 수 없다(403).
     { name: '서초 직원 변경 이력 조회', method: 'get', path: (c) => `/audit-logs?entity=Staff&entityId=${c.seocho.staffId}` },

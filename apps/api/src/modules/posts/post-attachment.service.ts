@@ -4,7 +4,8 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import { ALLOWED_TYPES, ATTACHMENT_MAX_BYTES, ATTACHMENTS_PER_POST } from './dto/attachment.dto';
+import { ATTACHMENT_MAX_BYTES, ATTACHMENTS_PER_POST } from './dto/attachment.dto';
+import { badType, checkType, extensionOf, tooLarge } from './attachment-rules';
 import { PostService } from './post.service';
 
 export interface AttachmentView {
@@ -97,28 +98,6 @@ export class PostAttachmentService {
     if (post.authorId !== user.accountId) throw notAuthor();
     return post;
   }
-}
-
-function extensionOf(name: string): string {
-  const m = /\.([A-Za-z0-9]+)$/.exec(name);
-  return m ? m[1].toLowerCase() : '';
-}
-
-function checkType(ext: string, fileType: string) {
-  const allowed = ALLOWED_TYPES[ext];
-  if (!allowed || !allowed.includes(fileType.toLowerCase())) throw badType();
-}
-
-function badType() {
-  return new AppException(
-    'ATTACHMENT_TYPE_NOT_ALLOWED',
-    'PDF·이미지(png·jpg·webp)·오피스(docx·xlsx·pptx)·한글(hwp) 파일만 올릴 수 있습니다.',
-    400,
-  );
-}
-
-function tooLarge() {
-  return new AppException('ATTACHMENT_TOO_LARGE', '파일 하나는 10MB까지 올릴 수 있습니다.', 400);
 }
 
 function tooMany() {
