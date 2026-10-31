@@ -21,7 +21,8 @@ export type PaymentStatus = 'PENDING' | 'APPROVED' | 'FAILED' | 'REFUNDED';
 export type AssetCategory = 'EXERCISE_EQUIPMENT' | 'SAFETY_EQUIPMENT' | 'OFFICE_FURNITURE' | 'OTHER';
 export type AssetType = 'FIXED_ASSET' | 'CONSUMABLE';
 export type AssetStatus = 'NORMAL' | 'REPAIRING' | 'DISPOSAL_PENDING' | 'DISPOSED';
-export type DocumentCategory = 'CONTRACT' | 'HR_RECORD' | 'MANUAL' | 'OTHER';
+// D69 — 계약서(CONTRACT) 분류는 없앴다. 계약서는 계약 회차(ContractFile)에만 있다.
+export type DocumentCategory = 'HR_RECORD' | 'MANUAL' | 'OTHER';
 
 // 지점 원천 레코드 — D29부터 원천은 DB(Prisma Branch)다. 이 형태는 시드(prisma/seed.ts)와 mock 사본이
 // 같은 원천(branch-fixtures.ts의 HERO_BRANCHES + side-branch-fixtures.ts)에서 만들어지도록 공유하는 입력 형식이다.
@@ -36,7 +37,7 @@ export interface BranchRecord {
   // 위탁계약 필드 — architecture/entities.md §2-1. Branch는 매장이 아니라 위탁운영 계약 현장이라는 재해석의 핵심 데이터.
   contractPartner: string;
   contractStartAt: string;
-  contractEndAt?: string;
+  contractEndAt: string; // D69 — 종료일 필수(상시 계약 없음)
   contractStatus: BranchContractStatus;
 }
 

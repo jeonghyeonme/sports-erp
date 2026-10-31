@@ -1,8 +1,9 @@
-import { IsDateString, IsIn, IsInt, IsOptional, IsString, Matches, Max, Min, MinLength } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Matches, Max, Min, MinLength } from 'class-validator';
 import { INPUT_LIMITS } from '../../../common/validation/input-limits';
 import { DocumentCategory } from '../../../fixtures/mock-data.types';
 
-const CATEGORIES: DocumentCategory[] = ['CONTRACT', 'HR_RECORD', 'MANUAL', 'OTHER'];
+// D69 — 계약서는 문서가 아니라 계약 회차에서 다룬다(분류 없음).
+const CATEGORIES: DocumentCategory[] = ['HR_RECORD', 'MANUAL', 'OTHER'];
 
 export class CreateDocumentDto {
   @IsIn(CATEGORIES)
@@ -38,10 +39,4 @@ export class CreateDocumentDto {
   @Min(0)
   @Max(INPUT_LIMITS.DOCUMENT_BYTES)
   fileSize?: number;
-
-  // category=CONTRACT일 때 필수(직접 입력, 미입력 시 서비스 계층이 400으로 거부 — ADR-RES-03).
-  // 다른 카테고리는 서버가 자동 계산하거나 영구 보관이라 이 필드를 무시한다.
-  @IsOptional()
-  @IsDateString()
-  retentionUntil?: string;
 }

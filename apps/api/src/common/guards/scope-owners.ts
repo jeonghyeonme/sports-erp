@@ -18,7 +18,8 @@ export type ScopedKind =
   | 'reservation'
   | 'leaveRequest'
   | 'staffChangeRequest'
-  | 'supportRequest';
+  | 'supportRequest'
+  | 'contractFile';
 
 export interface ScopeOwner {
   branchId: string | null;
@@ -64,6 +65,12 @@ export const SCOPED_KINDS: Record<ScopedKind, KindInfo> = {
   supportRequest: {
     label: '업무지원 요청',
     notFound: ['SUPPORT_REQUEST_NOT_FOUND', '업무지원 요청을 찾을 수 없습니다.'],
+    violation: 'BRANCH_SCOPE_VIOLATION',
+  },
+  // D69 — 계약 파일은 그 회차의 지점 것이다.
+  contractFile: {
+    label: '계약 파일',
+    notFound: ['CONTRACT_FILE_NOT_FOUND', '계약 파일을 찾을 수 없습니다.'],
     violation: 'BRANCH_SCOPE_VIOLATION',
   },
 };
@@ -113,6 +120,10 @@ export class ScopeOwners {
       }
       case 'supportRequest':
         return branchOnly(await p.supportRequest.findUnique({ where: { id }, select: { branchId: true } }));
+      case 'contractFile': {
+        const row = await p.contractFile.findUnique({ where: { id }, select: { round: { select: { branchId: true } } } });
+        return row ? { branchId: row.round.branchId } : null;
+      }
       case 'staffChangeRequest': {
         const row = await p.staffProfileChangeRequest.findUnique({
           where: { id },

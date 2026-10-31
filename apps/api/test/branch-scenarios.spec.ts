@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { todayKst } from '../src/common/date/kst-date';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
+import { attachTerminationAgreement } from './helpers/contract-files';
 import { resetWorkerDb } from './helpers/worker-db';
 
 /**
@@ -30,6 +31,7 @@ describe('지점별 시나리오 (engineering-risks §4)', () => {
 
   it('마포(갱신 임박) 종료 전이와 동시에 들어온 채용 5건 — 종료 지점에 활성 파견이 남지 않는다', async () => {
     const hq = await login(app, ACCOUNTS.superAdmin);
+    await attachTerminationAgreement(app, hq, MAPO); // D69 결정 5 — 종료 확정의 전제
     const hires = Array.from({ length: 5 }, (_, i) =>
       api(hq).post('/staff', { branchId: MAPO, name: `동시채용${i}`, email: `race-hire-${i}@spoism.example` }),
     );

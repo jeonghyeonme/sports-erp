@@ -28,6 +28,7 @@ import {
 import { useAuth } from '../lib/use-auth';
 import { ContractStatusModal } from '../components/ContractStatusModal';
 import { ContractEditMode, ContractEditModal } from '../components/ContractEditModal';
+import { ContractRounds } from '../components/ContractRounds';
 import { MEMBER_STATUS_LABEL } from '../lib/status-labels';
 
 const PRICING_LABEL: Record<ProgramRow['pricingType'], string> = {
@@ -188,13 +189,20 @@ export function BranchDetailPage() {
         {branch && (
           <div className="card">
             <div className="stat-row">
+              <span>계약 회차</span>
+              <strong>
+                {branch.contractRoundNo}회차
+                {!branch.hasContractFile && <span className="badge PAUSED" style={{ marginLeft: 8 }}>계약서 미등록</span>}
+              </strong>
+            </div>
+            <div className="stat-row">
               <span>계약 상대방</span>
-              <strong>{branch.contractPartner ?? '-'}</strong>
+              <strong>{branch.contractPartner}</strong>
             </div>
             <div className="stat-row">
               <span>계약 기간</span>
               <strong>
-                {branch.contractStartAt ?? '-'} ~ {branch.contractEndAt ?? '상시'}
+                {branch.contractStartAt} ~ {branch.contractEndAt}
               </strong>
             </div>
             <div className="stat-row">
@@ -241,9 +249,15 @@ export function BranchDetailPage() {
         )}
         <p className="page-desc">
           {canChangeContract
-            ? '계약을 연장하면 "계약 갱신", 입력 실수는 "정보 수정"으로 고칩니다. 종료 60일 이내 표시는 상태를 자동으로 바꾸지 않습니다 — 갱신 임박으로 둘지는 본사가 정합니다.'
-            : '계약 정보는 본사가 관리합니다.'}
+            ? '계약을 연장하면 새 계약서와 함께 "계약 갱신"(새 회차), 지금 회차의 입력 실수는 "정보 수정"으로 고칩니다. 종료 60일 이내·기간 종료 표시는 상태를 자동으로 바꾸지 않습니다. 계약 종료 확정은 해지 합의서를 올린 뒤 "계약 상태 변경"에서 합니다.'
+            : '계약 정보는 본사가 관리합니다. 계약서는 아래 회차 목록에서 열람만 할 수 있고, 열람 기록이 남습니다.'}
         </p>
+        {branch && (
+          <>
+            <h4 style={{ margin: '16px 0 8px', fontSize: 14 }}>계약 회차</h4>
+            <ContractRounds branch={branch} canEdit={canChangeContract} />
+          </>
+        )}
         {canChangeContract && (
           <>
             <h4 style={{ margin: '16px 0 8px', fontSize: 14 }}>계약 이력</h4>

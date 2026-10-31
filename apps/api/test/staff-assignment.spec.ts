@@ -125,7 +125,7 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
         { ...base, id: 'doc-test-hr-stale', category: 'HR_RECORD', relatedStaffId: STAFF_ID, title: '근로계약서', fileUrl: 'https://files.example/contract.pdf' },
         // 대조군: 다른 직원의 HR_RECORD, 다른 카테고리 문서, 소프트 삭제된 문서 — 전부 안 바뀌어야 한다.
         { ...base, id: 'doc-test-hr-other-staff', category: 'HR_RECORD', relatedStaffId: 'staff-minsu', title: '다른 직원 근로계약서', fileUrl: 'https://files.example/other.pdf' },
-        { ...base, id: 'doc-test-contract', category: 'CONTRACT', title: '위탁계약서', fileUrl: 'https://files.example/contract2.pdf' },
+        { ...base, id: 'doc-test-contract', category: 'OTHER', title: '시설 점검표', fileUrl: 'https://files.example/contract2.pdf' },
         { ...base, id: 'doc-test-hr-deleted', category: 'HR_RECORD', relatedStaffId: STAFF_ID, title: '삭제된 근로계약서', fileUrl: 'https://files.example/deleted.pdf', deletedAt: new Date() },
       ],
     });

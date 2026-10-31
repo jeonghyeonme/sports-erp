@@ -73,6 +73,8 @@ model Account {
   supportRequestsMade    SupportRequest[]    @relation("SupportRequestRequester") // D56 — 지점 관리자가 올린 업무지원 요청
   supportRequestsHandled SupportRequest[]    @relation("SupportRequestHandler") // D56 — 본사가 처리한 요청
   permissions            AccountPermission[] // D60 — 개인 예외 권한
+  contractRoundsCreated  ContractRound[]     @relation("ContractRoundCreator") // D69 — 본사가 만든 계약 회차
+  contractFilesUploaded  ContractFile[]      @relation("ContractFileUploader") // D69 — 본사가 올린 계약 파일
 
   @@index([email])
   @@index([role])
@@ -101,10 +103,7 @@ model Branch {
   standardCheckInTime       String? // "HH:mm" — 근태관리 문서 지각 판정 기준
   cancellationDeadlineHours Int? // 예약 무료취소 기준 시간(예: 24) — nullable이면 전역 기본값 사용, 예약및결제 A-6 참고. architecture/entities.md §2-1의 cancellationPolicy를 단순 컬럼으로 구현
   isActive                  Boolean              @default(true)
-  // 위탁계약 필드 — architecture/entities.md §2-1. Branch는 매장이 아니라 위탁운영 계약 현장이라는 재해석의 핵심 데이터.
-  contractPartner           String // 위탁계약 상대방(예: "서초 OO아파트 입주자대표회의") — 관리자 전용 정보
-  contractStartAt           DateTime             @db.Date
-  contractEndAt             DateTime?            @db.Date
+  // 위탁계약 상태 — architecture/entities.md §2-1. 상대방·기간은 회차(ContractRound)에만 있다(D69 — 지점 행에 사본을 두지 않는다).
   contractStatus            BranchContractStatus @default(ACTIVE)
   createdAt                 DateTime             @default(now())
   updatedAt                 DateTime             @updatedAt
@@ -121,10 +120,10 @@ model Branch {
   documents         Document[]
   codeSequences     CodeSequence[]
   supportRequests   SupportRequest[]
+  contractRounds    ContractRound[]
 
   @@index([isActive])
   @@index([contractStatus])
-  @@index([contractEndAt])
   @@index([region])
 }
 
@@ -133,6 +132,52 @@ enum BranchContractStatus {
   RENEWAL_DUE
   EXPIRED
   TERMINATED
+}
+
+// ── 위탁계약 회차(D69) ─────────────────────────────────
+// 지점마다 회차 번호(1, 2, 3…), 회차마다 상대방·기간·계약서. 지점의 계약 정보 = 가장 최근 회차.
+// 정정·파일 교체는 가장 최근 회차만(앱이 지킨다). 회차·파일을 지우는 경로는 없다.
+model ContractRound {
+  id           String    @id @default(uuid())
+  branchId     String
+  roundNo      Int
+  partner      String // 위탁계약 상대방(예: "서초 OO아파트 입주자대표회의") — 관리자 전용 정보
+  startAt      DateTime  @db.Date
+  endAt        DateTime  @db.Date // 필수 — 상시 계약 없음(D69 결정 3)
+  terminatedAt DateTime? @db.Date // 해지 합의서로 종료 확정한 날(D69 결정 5) — 보존기한 기산일
+  createdBy    String? // 마이그레이션으로 옮긴 1회차는 처리자가 없다
+  createdAt    DateTime  @default(now())
+
+  branch  Branch         @relation(fields: [branchId], references: [id])
+  creator Account?       @relation("ContractRoundCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  files   ContractFile[]
+
+  @@unique([branchId, roundNo])
+}
+
+enum ContractFileKind {
+  CONTRACT // 계약서
+  TERMINATION_AGREEMENT // 해지 합의서
+}
+
+// 회차의 계약 파일. 교체하면 옛 행에 replacedAt을 남기고 새 행을 만든다(옛 파일도 보존 규칙을 따른다, D69 결정 7).
+// 회차·종류마다 지금 파일(replacedAt null)은 하나 — 마이그레이션 SQL의 부분 unique 인덱스가 지킨다.
+model ContractFile {
+  id         String           @id @default(uuid())
+  roundId    String
+  kind       ContractFileKind
+  path       String           @unique // 저장소 경로 contracts/<uuid>.<확장자>(D57 저장소)
+  fileName   String
+  fileType   String
+  fileSize   Int
+  uploadedBy String
+  uploadedAt DateTime         @default(now())
+  replacedAt DateTime?
+
+  round    ContractRound @relation(fields: [roundId], references: [id])
+  uploader Account       @relation("ContractFileUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
+
+  @@index([roundId])
 }
 
 // ── 1-3. 인사정보관리 ───────────────────────────────────
@@ -719,8 +764,8 @@ model Asset {
   @@index([branchId])
 }
 
+// D69 — 계약서(CONTRACT) 분류는 없앴다. 계약서·해지 합의서는 계약 회차(ContractFile)에만 있다.
 enum DocumentCategory {
-  CONTRACT
   HR_RECORD
   MANUAL
   OTHER

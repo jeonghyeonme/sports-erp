@@ -10,7 +10,7 @@ type Tx = Prisma.TransactionClient;
 type DocumentRow = Document & { branch: { name: string } | null };
 export type DocumentView = MockDocument & { branchName?: string; relatedStaffName?: string; uploadedByName?: string };
 
-const CATEGORIES: DocumentCategory[] = ['CONTRACT', 'HR_RECORD', 'MANUAL', 'OTHER'];
+const CATEGORIES: DocumentCategory[] = ['HR_RECORD', 'MANUAL', 'OTHER'];
 const dateOf = (d: string) => new Date(`${d.slice(0, 10)}T00:00:00Z`);
 const withBranch = { branch: { select: { name: true } } } as const;
 
@@ -22,7 +22,6 @@ export type CreateDocumentInput = {
   fileUrl: string;
   fileType?: string;
   fileSize?: number;
-  retentionUntil?: string;
 };
 
 /**
@@ -83,7 +82,8 @@ export class DocumentService {
 
   // ── 쓰기 ──────────────────────────────────────────────
 
-  // 검사 순서는 mock 그대로(지점 없음 → 계약 종료 → HR 대상 직원 → CONTRACT 보존기한) — 에러 코드 우선순위가 테스트로 고정돼 있다.
+  // 검사 순서는 mock 그대로(지점 없음 → 계약 종료 → HR 대상 직원) — 에러 코드 우선순위가 테스트로 고정돼 있다.
+  // D69 — 계약서 분류(ADR-RES-03 보존기한 직접 입력)는 없앴다. 계약서는 계약 회차에서 다룬다.
   // ADR-RES-01 — 계약종료 지점의 신규 문서 차단. 전사 문서(branchId 없음)는 특정 지점 계약과 무관해 대상 아님.
   async create(uploadedBy: string, input: CreateDocumentInput): Promise<DocumentView> {
     if (input.branchId) {
@@ -102,10 +102,6 @@ export class DocumentService {
       if (!staff) throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
       resignDate = staff.resignDate;
     }
-    // ADR-RES-03 — CONTRACT는 자동계산이 없어 미입력을 허용하면 조용히 "영구 보관"이 된다.
-    if (input.category === 'CONTRACT' && !input.retentionUntil) {
-      throw new AppException('RETENTION_UNTIL_REQUIRED', '계약서 문서는 보존기한을 직접 입력해야 합니다.', 400);
-    }
     const row = await this.prisma.document.create({
       data: {
         category: input.category,
@@ -116,7 +112,7 @@ export class DocumentService {
         fileType: input.fileType,
         fileSize: input.fileSize,
         uploadedBy,
-        retentionUntil: retentionUntil(input.category, resignDate, input.retentionUntil),
+        retentionUntil: retentionUntil(input.category, resignDate),
       },
       include: withBranch,
     });
@@ -166,9 +162,8 @@ export async function recalculateHrRetention(tx: Tx, staffId: string, resignDate
   return count;
 }
 
-// 자원문서관리 A-6 — HR_RECORD는 근로관계 종료일(없으면 업로드일=오늘 KST)+3년, CONTRACT는 직접 입력, 나머지는 영구 보관.
-function retentionUntil(category: DocumentCategory, resignDate: Date | null, manual?: string): Date | null {
-  if (category === 'CONTRACT') return manual ? dateOf(manual) : null;
+// 자원문서관리 A-6 — HR_RECORD는 근로관계 종료일(없으면 업로드일=오늘 KST)+3년, 나머지는 영구 보관.
+function retentionUntil(category: DocumentCategory, resignDate: Date | null): Date | null {
   if (category === 'HR_RECORD') {
     const base = resignDate ? toKstDateString(resignDate) : todayKst();
     return dateOf(addYearsToDateString(base, 3));

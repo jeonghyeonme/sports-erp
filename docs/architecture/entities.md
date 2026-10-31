@@ -66,18 +66,20 @@ AuditLog(변경 이력) N─1 Account(actorId, nullable) — 모든 엔티티가
 | phone | string, nullable | 지점 대표 전화 |
 | region | string | 광역 단위(예: "서울", "경기") — `address`(상세 주소)와 별개로 대시보드에서 지점을 지역별로 묶어 보여주는 데 사용(2026-09-09 추가, D21) |
 | code | string, unique | 지점 코드(staffCode/memberNo 생성에 사용, 3f6ea31 커밋에서 이미 추가됨) |
-| contractPartner | string | 위탁계약 상대방(예: "서초 OO아파트 입주자대표회의") — 회원에게 노출되지 않는 관리자 전용 정보 |
-| contractStartAt | date | 계약 시작일 |
-| contractEndAt | date, nullable | 계약 종료(예정)일 — 상시계약 등 미정이면 null |
+| (계약 상대방·기간) | — | **지점 행에 없다**([D69](../decisions/D69.md)) — 계약 회차(`ContractRound`, 아래)에만 있고, 지점의 계약 정보 = 가장 최근 회차다 |
 | contractStatus | enum(ACTIVE, RENEWAL_DUE, EXPIRED, TERMINATED) | 계약 상태. **본사가 `PATCH /branches/:branchId/contract-status`로 수동 변경한다**(자동 전이 배치는 없다 — 아래 비즈니스 로직) |
-| renewalNoticeAt | (컬럼 없음, 조회 때 계산) | `contractEndAt - 60일`(정책값) — 갱신 알림 기준일. 응답의 `contractDaysLeft`·`renewalNotice`(상태가 정상인데 60일 이내)로 조회 때 계산해 대시보드·지점 상세에 표시만 한다([D68](../decisions/D68.md)). 상태 자동 전이는 없다 |
+| renewalNoticeAt | (컬럼 없음, 조회 때 계산) | 진행 중 회차 `endAt - 60일`(정책값) — 갱신 알림 기준일. 응답의 `contractDaysLeft`·`renewalNotice`(상태가 정상인데 60일 이내)로 조회 때 계산해 대시보드·지점 상세에 표시만 한다([D68](../decisions/D68.md)). 상태 자동 전이는 없다 |
 | standardCheckInTime | string("HH:mm"), nullable | 지점별 출근 기준 시각(예: "09:00"). 10분 초과 시 지각 자동 판정에 사용 — [03_근태관리 §6](../domains/근태관리.md) |
 | cancellationDeadlineHours | int, nullable | 예약 무료취소 기준 시간(예: 24 → 24시간 전까지 무료 취소, 그 이내는 환불 불가). nullable이면 전역 기본값 사용. Program 단위로 override 가능하면 Program에도 nullable로 둘 수 있음 — [06_예약및결제 §6](../domains/예약및결제.md) |
 | isActive | boolean, default true | 지점 사용 여부(계약 상태와 별개) |
 
-인덱스: `Branch.contractStatus`(본사 대시보드에서 "갱신 임박 지점" 조회용), `Branch.contractEndAt`, `Branch.isActive`, `Branch.region`
+인덱스: `Branch.contractStatus`(본사 대시보드에서 "갱신 임박 지점" 조회용), `Branch.isActive`, `Branch.region`
 
-**비즈니스 로직**: 계약 상태는 본사가 지점 상세의 "계약 상태 변경"(`PATCH /branches/:branchId/contract-status`)으로 바꾸고, 계약 갱신(`POST /branches/:branchId/contract/renewals` — 새 종료일, 상태를 정상으로, 종료 지점은 409)도 상태를 정상으로 돌린다. 오타 정정(`PATCH /branches/:branchId/contract`)은 상태를 바꾸지 않는다. 셋 다 본사 전용이고 변경 이력(AuditLog, entity `Branch`)에 같은 트랜잭션으로 남는다([D68](../decisions/D68.md)). 새 위탁계약은 본사가 `POST /branches`로 새 지점을 등록한다(상태 정상으로 시작, 지점 코드는 영문 대문자·유일, 등록도 이력 첫 줄). 원래 설계한 "매일 배치로 임박 지점을 `RENEWAL_DUE`로 자동 전이 + 대시보드 알림 카드"는 스케줄러가 없어 구현하지 않았다(설계만). `TERMINATED` 지점은 물리 삭제하지 않고(소프트 삭제 원칙, §5) 과거 데이터(회원/결제 이력) 조회는 유지하되 신규 회원 등록·예약은 차단합니다. 상세 기능 설계는 [13_차별화전략](../reference/차별화전략.md) §1을 참고하세요 — 이 필드들은 "위탁계약 라이프사이클 관리"라는 차별화 기능의 기반 데이터입니다. 이 필드들을 수기 입력 대신 계약서 스캔본에서 OCR·AI로 자동 추출하는 기능은 [차별화전략 §1-1](../reference/차별화전략.md#1-1-계약서-ocrai-분석-2026-09-08-추가-스코프를-계약서-1종으로-한정)에서 다룹니다(계약서 1종에 한정, 프로그램 신청서·자격증 등은 보류).
+**계약 회차 `ContractRound`**([D69](../decisions/D69.md)): `id, branchId(FK), roundNo(지점별 1부터, branchId+roundNo 유일), partner(상대방 — 관리자 전용), startAt, endAt(필수 — 상시 계약 없음), terminatedAt(nullable — 해지 합의서로 종료를 확정한 날, 보존기한 기산일), createdBy(FK Account, nullable — 마이그레이션으로 옮긴 1회차), createdAt`. CHECK: `roundNo ≥ 1`, `startAt ≤ endAt`. 갱신 = 새 회차, 정정은 가장 최근 회차만(앱 규칙), 회차를 지우는 경로 없음.
+
+**계약 파일 `ContractFile`**([D69](../decisions/D69.md)): `id, roundId(FK), kind(CONTRACT 계약서 / TERMINATION_AGREEMENT 해지 합의서), path(저장소 경로 contracts/…, 유일), fileName, fileType, fileSize, uploadedBy(FK Account), uploadedAt, replacedAt(nullable — 교체되면 시각)`. 회차·종류마다 지금 파일(replacedAt null)은 하나(부분 unique 인덱스, 마이그레이션 SQL). 교체는 옛 행을 남기고 새 행을 만든다. 문서(`Document`)와는 분리돼 있고 문서의 계약서 분류는 없다.
+
+**비즈니스 로직**: 계약 상태는 본사가 지점 상세의 "계약 상태 변경"(`PATCH /branches/:branchId/contract-status`)으로 바꾸고, 계약 갱신(`POST /branches/:branchId/contract/renewals` — 새 계약서 필수, 새 회차를 만들고 상태를 정상으로, 종료 지점은 409)도 상태를 정상으로 돌린다. 오타 정정(`PATCH /branches/:branchId/contract`)은 가장 최근 회차만 고치고 상태를 바꾸지 않는다. 종료 확정(TERMINATED로의 전이)은 가장 최근 회차에 해지 합의서가 있어야 하고(409 `TERMINATION_AGREEMENT_REQUIRED`), 계약 파일 올리기·교체(`POST /branches/:branchId/contract/files`)는 종료 지점에서 409다(D69). 모두 본사 전용이고 변경 이력(AuditLog, entity `Branch`)에 같은 트랜잭션으로 남는다([D68](../decisions/D68.md)). 새 위탁계약은 본사가 `POST /branches`로 새 지점을 등록한다(1회차·계약서·종료일 필수, 상태 정상으로 시작, 지점 코드는 영문 대문자·유일, 등록도 이력 첫 줄). 계약서 열람(`GET .../contract/files/:fileId/download`, 본사·자기 지점 관리자)은 열 때마다 열람 기록을 남긴다. 원래 설계한 "매일 배치로 임박 지점을 `RENEWAL_DUE`로 자동 전이 + 대시보드 알림 카드"는 스케줄러가 없어 구현하지 않았다(설계만). `TERMINATED` 지점은 물리 삭제하지 않고(소프트 삭제 원칙, §5) 과거 데이터(회원/결제 이력) 조회는 유지하되 신규 회원 등록·예약은 차단합니다. 상세 기능 설계는 [13_차별화전략](../reference/차별화전략.md) §1을 참고하세요 — 이 필드들은 "위탁계약 라이프사이클 관리"라는 차별화 기능의 기반 데이터입니다. 계약서 스캔본에서 OCR·AI로 값을 자동 추출하는 안([차별화전략 §1-1](../reference/차별화전략.md#1-1-계약서-ocrai-분석-2026-09-08-추가-스코프를-계약서-1종으로-한정))은 기각했다 — 본사가 계약서를 올리고 보면서 직접 입력한다([D69](../decisions/D69.md)).
 
 **TERMINATED 전이가 하위 도메인에 미치는 영향** — "신규 회원 등록·예약 차단"은 선언만으로 끝나지 않고, 각 도메인의 실제 API 전제조건에 반영되어야 합니다:
 - 회원 등록(`POST /api/v1/members`): `Branch.contractStatus`가 `TERMINATED`면 409 — [05_회원관리](../domains/회원관리.md) 참고

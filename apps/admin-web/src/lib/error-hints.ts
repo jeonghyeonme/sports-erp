@@ -34,7 +34,11 @@ export const ERROR_HINTS: Record<string, string> = {
   BRANCH_TERMINATED: '위탁계약이 종료된 지점이라 새 등록·예약·작성·파견이 막혀 있습니다. 과거 기록 조회만 됩니다.',
   // D68 — 계약 갱신·정정
   BRANCH_CODE_TAKEN: '이미 쓰고 있는 지점 코드입니다. 다른 코드를 넣으세요(회원번호·직원코드 앞부분이라 겹칠 수 없습니다).',
-  INVALID_CONTRACT_PERIOD: '계약 기간이 맞지 않습니다. 갱신의 새 종료일은 지금 종료일보다 뒤, 종료일은 시작일보다 뒤여야 합니다.',
+  INVALID_CONTRACT_PERIOD: '계약 기간이 맞지 않습니다. 종료일은 시작일 이후, 갱신(새 회차)의 시작일은 지금 회차 시작일보다 뒤여야 합니다.',
+  // D69 — 계약 회차·계약서
+  TERMINATION_AGREEMENT_REQUIRED: '계약 종료를 확정하려면 계약 회차에서 해지 합의서를 먼저 올리세요.',
+  CONTRACT_FILE_NOT_FOUND: '계약 파일이 없습니다. 지점 상세를 새로고침하세요.',
+  CONTRACT_ROUND_MISSING: '이 지점의 계약 회차가 없습니다. 데이터 문제라 본사 관리자에게 알려 주세요.',
 
   // 지점 불일치
   MEMBER_BRANCH_MISMATCH: '회원과 프로그램(또는 직원)의 지점이 다릅니다. 같은 지점 것을 고르세요.',
@@ -71,7 +75,6 @@ export const ERROR_HINTS: Record<string, string> = {
   INVALID_CAPACITY: '정원은 1 이상이어야 합니다.',
   INVALID_CURRENT_COUNT: '현장 인원은 0 이상으로 넣으세요(예약 인원은 빼고).',
   INVALID_QUANTITY: '고정자산은 수량이 항상 1입니다. 소모품 재고 수량은 0 이상으로 넣으세요.',
-  RETENTION_UNTIL_REQUIRED: '이 분류의 문서는 보존기한이 필요합니다. 보존기한을 넣으세요.',
 
   // 상태 전환
   INVALID_STATUS_TRANSITION: '지금 상태에서는 그 상태로 바꿀 수 없습니다. 화면에 보이는 전환 버튼만 쓰세요.',
