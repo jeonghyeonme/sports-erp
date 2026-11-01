@@ -104,7 +104,7 @@ describe('지점 데이터 격리', () => {
     if (supportReq.status !== 201) throw new Error(`픽스처 실패(업무지원 요청): ${supportReq.status} ${JSON.stringify(supportReq.body)}`);
     // D69 — 서초점 계약서(본사가 올린다). 열람 라우트 공격에 쓴다.
     const contractFile = await uploadContractFile(app, tok.superAdmin);
-    const setFile = await call(tok.superAdmin, 'post', `/branches/${BRANCH.seocho}/contract/files`, { kind: 'CONTRACT', ...contractFile });
+    const setFile = await call(tok.superAdmin, 'post', `/branches/${BRANCH.seocho}/contract/files`, { kind: 'CONTRACT', roundNo: 1, ...contractFile });
     if (setFile.status !== 201) throw new Error(`픽스처 실패(계약서): ${setFile.status} ${JSON.stringify(setFile.body)}`);
     const seochoContractFile = await db(app).contractFile.findUniqueOrThrow({ where: { path: contractFile.path } });
     await call(tok.seochoStaff, 'post', '/attendance/check-in');
@@ -251,14 +251,14 @@ describe('지점 데이터 격리', () => {
       path: () => `/branches/${BRANCH.seocho}/contract/renewals`,
       body: () => ({ ...VALID_PERIOD, contractFile: VALID_FILE }),
     },
-    { name: '서초점 계약 정보 정정', method: 'patch', path: () => `/branches/${BRANCH.seocho}/contract`, body: () => ({ contractPartner: 'x' }) },
+    { name: '서초점 계약 정보 정정', method: 'patch', path: () => `/branches/${BRANCH.seocho}/contract`, body: () => ({ roundNo: 1, contractPartner: 'x' }) },
     // D69 — 계약 회차·파일. 올리기는 본사 전용, 열람은 자기 지점만(지점 관리자 열람 대조군은 contract-rounds.spec).
     { name: '서초점 계약 회차 조회', method: 'get', path: () => `/branches/${BRANCH.seocho}/contract/rounds` },
     {
       name: '서초점 계약 파일 올리기',
       method: 'post',
       path: () => `/branches/${BRANCH.seocho}/contract/files`,
-      body: () => ({ kind: 'TERMINATION_AGREEMENT', ...VALID_FILE }),
+      body: () => ({ kind: 'TERMINATION_AGREEMENT', roundNo: 1, ...VALID_FILE }),
     },
     { name: '서초점 계약서 열람', method: 'get', path: (c) => `/branches/${BRANCH.seocho}/contract/files/${c.seocho.contractFileId}/download` },
     // 경로는 자기 지점(강남)인데 파일 id만 서초 것 — @ScopedResource('contractFile')가 잡는다.

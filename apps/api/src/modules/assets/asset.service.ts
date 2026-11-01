@@ -5,9 +5,8 @@ import { toKstDateString } from '../../common/date/kst-date';
 import { PageRequest } from '../../common/http/pagination';
 import { recordAudit } from '../../prisma/audit';
 import { PrismaService } from '../../prisma/prisma.service';
-import { allocateBranchCode } from '../../prisma/integrity';
+import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
 import { MockAsset } from '../../fixtures/mock-data.types';
-import { BranchService } from '../branches/branch.service';
 
 type AssetRow = Asset & { branch: { name: string } };
 export type AssetView = MockAsset & { branchName: string };
@@ -46,10 +45,7 @@ export type UpdateAssetInput = Partial<{ name: string; location: string; quantit
  */
 @Injectable()
 export class AssetService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly branchService: BranchService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   // 지점 이름은 조인으로(목록 N+1 제거, D35 결정 1).
   /**
@@ -92,16 +88,17 @@ export class AssetService {
 
   // 검사 순서는 mock 그대로(지점 없음 → 계약 종료). ADR-RES-01 — 자산은 본사도 직접 만들 수 있어 역할 분기 없이 대상 지점으로 판정.
   // 자산번호는 D28 헬퍼로 채번(RES-T04, D35 결정 1) — 시퀀스는 증가만 해서 폐기 자산 번호도 재사용하지 않는다.
+  // D70 — 종료 판정은 쓰기 트랜잭션 안에서 지점 행 공유 락으로(종료 확정과 직렬화).
   async create(input: CreateAssetInput): Promise<AssetView> {
-    const branch = await this.prisma.branch.findUnique({ where: { id: input.branchId }, select: { id: true, code: true } });
-    if (!branch) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
-    if ((await this.branchService.loadGate()).isTerminated(input.branchId)) {
-      throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 새 자산을 등록할 수 없습니다.', 409);
-    }
     // 자동 판정 결과를 관리자가 수동으로 덮어쓸 수 있다(고가 소모품을 고정자산 취급하는 경우 등).
     const assetType = input.assetType ?? classifyAssetType(input.acquisitionCost);
-    const row = await this.prisma.$transaction(async (tx) =>
-      tx.asset.create({
+    const row = await this.prisma.$transaction(async (tx) => {
+      const branch = await lockBranchForShare(tx, input.branchId);
+      if (!branch) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+      if (branch.contractStatus === 'TERMINATED') {
+        throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 새 자산을 등록할 수 없습니다.', 409);
+      }
+      return tx.asset.create({
         data: {
           assetCode: await allocateBranchCode(tx, branch, 'ASSET'),
           branchId: input.branchId,
@@ -117,8 +114,8 @@ export class AssetService {
           note: input.note,
         },
         include: withBranch,
-      }),
-    );
+      });
+    });
     return toView(row);
   }
 

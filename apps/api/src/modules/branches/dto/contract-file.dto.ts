@@ -1,5 +1,5 @@
 import { ContractFileKind } from '@prisma/client';
-import { IsIn, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsIn, IsInt, IsString, Matches, Min, MaxLength, MinLength } from 'class-validator';
 
 // D69 — 계약 파일은 브라우저가 저장소에 먼저 올리고(업로드 URL은 RequestUploadDto, 게시판 첨부와 같은 한도 D57),
 // 갱신·지점 등록·파일 올리기 요청에 그 경로를 싣는다. 서버가 저장소에서 크기·형식을 다시 확인한다.
@@ -18,4 +18,9 @@ export class ContractFileRefDto {
 export class SetContractFileDto extends ContractFileRefDto {
   @IsIn(['CONTRACT', 'TERMINATION_AGREEMENT'])
   kind!: ContractFileKind;
+
+  // D70 — 화면이 보고 있던 회차 번호. 그사이 갱신으로 회차가 바뀌었으면 409(CONTRACT_ROUND_CHANGED)로 다시 불러오게 한다.
+  @IsInt()
+  @Min(1)
+  roundNo!: number;
 }

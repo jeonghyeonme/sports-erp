@@ -4,8 +4,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PageRequest } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ACTIVE_RESERVATION_STATUSES, lockReservation, lockScheduleSlot } from '../../prisma/integrity';
-import { BranchService } from '../branches/branch.service';
+import { ACTIVE_RESERVATION_STATUSES, lockBranchForShare, lockReservation, lockScheduleSlot } from '../../prisma/integrity';
 import { MockPayment, MockReservation, MockScheduleSlot } from '../../fixtures/mock-data.types';
 
 export type ReservationView = MockReservation & {
@@ -35,10 +34,7 @@ type ReservationRow = Prisma.ReservationGetPayload<{ include: typeof withContext
  */
 @Injectable()
 export class ReservationService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly branchService: BranchService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string): Promise<ReservationView | null> {
     const row = await this.prisma.reservation.findUnique({ where: { id }, include: withContext });
@@ -91,7 +87,6 @@ export class ReservationService {
    * 정원·중복은 회차 행을 잠근 트랜잭션 안에서 센다 — 동시 요청이 같은 마지막 좌석을 둘 다 잡지 못한다.
    */
   async create(memberId: string, scheduleSlotId: string): Promise<{ reservation: ReservationView; payment?: MockPayment }> {
-    const gate = await this.branchService.loadGate();
     const reservationId = await this.withDuplicateGuard(() =>
       this.prisma.$transaction(async (tx) => {
         const locked = await lockScheduleSlot(tx, scheduleSlotId);
@@ -109,7 +104,8 @@ export class ReservationService {
         if (!member || member.branchId !== program.branchId) {
           throw new AppException('MEMBER_BRANCH_MISMATCH', '본인이 등록된 지점의 프로그램만 예약할 수 있습니다.', 403);
         }
-        if (gate.isTerminated(program.branchId)) {
+        // D70 — 계약 상태는 이 트랜잭션 안에서 지점 행 공유 락으로 읽는다(종료 확정과 직렬화).
+        if ((await lockBranchForShare(tx, program.branchId))?.contractStatus === 'TERMINATED') {
           throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 예약할 수 없습니다.', 409);
         }
         // ADR-RSV-05 — 이미 시작했거나 지난 회차는 예약하지 않는다. 회차 날짜·시각은 KST라 +09:00으로 해석한다(D32 결정 5).

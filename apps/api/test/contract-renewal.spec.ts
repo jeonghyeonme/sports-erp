@@ -52,8 +52,8 @@ describe('위탁계약 회차·계약서 (D68·D69)', () => {
     it('지점 관리자는 갱신·정정·파일 올리기·업로드 URL이 403, 본사는 된다', async () => {
       const body = await renewal({ contractStartAt: '2027-03-01', contractEndAt: '2030-02-28' });
       expect((await renew(seochoAdmin, body)).status).toBe(403);
-      expect((await correct(seochoAdmin, { contractPartner: '바뀐 상대방' })).status).toBe(403);
-      expect((await setFile(seochoAdmin, { kind: 'CONTRACT', ...body.contractFile })).status).toBe(403);
+      expect((await correct(seochoAdmin, { roundNo: 1, contractPartner: '바뀐 상대방' })).status).toBe(403);
+      expect((await setFile(seochoAdmin, { kind: 'CONTRACT', roundNo: 1, ...body.contractFile })).status).toBe(403);
       const url = await api(seochoAdmin).post('/branches/contract-files/upload-url', {
         fileName: 'a.pdf',
         fileType: 'application/pdf',
@@ -64,12 +64,12 @@ describe('위탁계약 회차·계약서 (D68·D69)', () => {
       expect(await history()).toHaveLength(0);
 
       expect((await renew(superAdmin, body)).status).toBe(201);
-      expect((await correct(superAdmin, { contractPartner: '바뀐 상대방' })).status).toBe(200);
+      expect((await correct(superAdmin, { roundNo: 2, contractPartner: '바뀐 상대방' })).status).toBe(200);
     });
 
     it('지점 관리자는 자기 지점 회차를 보고 계약서를 연다(열람 기록이 남는다), 본사도 열람이 기록된다', async () => {
       const file = await uploadContractFile(app, superAdmin);
-      expect((await setFile(superAdmin, { kind: 'CONTRACT', ...file })).status).toBe(201);
+      expect((await setFile(superAdmin, { kind: 'CONTRACT', roundNo: 1, ...file })).status).toBe(201);
       const list = await api(seochoAdmin).get(`/branches/${BRANCH.seocho}/contract/rounds`);
       expect(list.status).toBe(200);
       const fileId = list.body.data[0].files[0].id as string;
@@ -174,7 +174,7 @@ describe('위탁계약 회차·계약서 (D68·D69)', () => {
     it('바뀐 필드만 이력에 남기고 상태는 그대로 둔다', async () => {
       await setBranchStatus(BRANCH.seocho, 'EXPIRED');
       const before = await round1();
-      const res = await correct(superAdmin, { contractStartAt: '2024-03-04', contractPartner: before.partner });
+      const res = await correct(superAdmin, { roundNo: 1, contractStartAt: '2024-03-04', contractPartner: before.partner });
       expect(res.status).toBe(200);
       expect(res.body.data).toMatchObject({ contractStartAt: '2024-03-04', contractStatus: 'EXPIRED', contractRoundNo: 1 });
       const logs = await history();
@@ -189,21 +189,47 @@ describe('위탁계약 회차·계약서 (D68·D69)', () => {
     it('갱신 뒤의 정정은 2회차만 고치고 지난 회차는 바뀌지 않는다', async () => {
       await renew(superAdmin, await renewal({ contractStartAt: '2027-03-01', contractEndAt: '2030-02-28' }));
       const before = await round1();
-      expect((await correct(superAdmin, { contractEndAt: '2030-03-31' })).status).toBe(200);
+      expect((await correct(superAdmin, { roundNo: 2, contractEndAt: '2030-03-31' })).status).toBe(200);
       const [r1, r2] = await rounds();
       expect(r1).toEqual(before);
       expect(toKstDateString(r2.endAt)).toBe('2030-03-31');
       // 2회차 시작일을 1회차 시작일 이전으로 고칠 수는 없다
-      const back = await correct(superAdmin, { contractStartAt: toKstDateString(r1.startAt) });
+      const back = await correct(superAdmin, { roundNo: 2, contractStartAt: toKstDateString(r1.startAt) });
       expect(back.status).toBe(400);
       expect(back.body.error.code).toBe('INVALID_CONTRACT_PERIOD');
     });
 
+    it('D70 — 화면이 보던 회차가 그사이 갱신으로 바뀌었으면 정정·파일 올리기가 409이고 아무것도 바뀌지 않는다', async () => {
+      // 1회차를 띄워 둔 화면(roundNo 1) — 그사이 다른 본사 관리자가 갱신해 2회차가 생겼다.
+      await renew(superAdmin, await renewal({ contractStartAt: '2027-03-01', contractEndAt: '2030-02-28' }));
+      const [r1Before, r2Before] = await rounds();
+      const historyBefore = (await history()).length;
+
+      const stale = await correct(superAdmin, { roundNo: 1, contractEndAt: '2031-12-31' });
+      expect(stale.status).toBe(409);
+      expect(stale.body.error.code).toBe('CONTRACT_ROUND_CHANGED');
+      const staleFile = await setFile(superAdmin, { kind: 'CONTRACT', roundNo: 1, ...(await uploadContractFile(app, superAdmin)) });
+      expect(staleFile.status).toBe(409);
+      expect(staleFile.body.error.code).toBe('CONTRACT_ROUND_CHANGED');
+
+      expect(await rounds()).toEqual([r1Before, r2Before]);
+      expect(await db(app).contractFile.count({ where: { roundId: r2Before.id } })).toBe(1); // 갱신 때 올린 계약서만
+      expect(await history()).toHaveLength(historyBefore);
+      // 대조군 — 지금 회차 번호면 된다
+      expect((await correct(superAdmin, { roundNo: 2, contractEndAt: '2031-12-31' })).status).toBe(200);
+    });
+
+    it('회차 번호 없이 보내면 400', async () => {
+      expect((await correct(superAdmin, { contractEndAt: '2031-12-31' })).status).toBe(400);
+      const file = await uploadContractFile(app, superAdmin);
+      expect((await setFile(superAdmin, { kind: 'CONTRACT', ...file })).status).toBe(400);
+    });
+
     it('바뀐 것이 없으면 이력을 남기지 않고, 종료일이 시작일보다 앞서면 400', async () => {
       const before = await round1();
-      expect((await correct(superAdmin, { contractPartner: before.partner })).status).toBe(200);
+      expect((await correct(superAdmin, { roundNo: 1, contractPartner: before.partner })).status).toBe(200);
       expect(await history()).toHaveLength(0);
-      const res = await correct(superAdmin, { contractEndAt: '2024-02-01' });
+      const res = await correct(superAdmin, { roundNo: 1, contractEndAt: '2024-02-01' });
       expect(res.status).toBe(400);
       expect(await round1()).toEqual(before);
     });
@@ -213,11 +239,11 @@ describe('위탁계약 회차·계약서 (D68·D69)', () => {
     it('기존 지점(1회차)은 계약서 미등록으로 시작하고, 올리면 등록, 다시 올리면 교체(옛 파일은 교체 시각을 남긴다)', async () => {
       expect(await listed()).toMatchObject({ contractRoundNo: 1, hasContractFile: false });
       const first = await uploadContractFile(app, superAdmin, { fileName: '원본.pdf' });
-      expect((await setFile(superAdmin, { kind: 'CONTRACT', ...first })).status).toBe(201);
+      expect((await setFile(superAdmin, { kind: 'CONTRACT', roundNo: 1, ...first })).status).toBe(201);
       expect(await listed()).toMatchObject({ hasContractFile: true });
 
       const second = await uploadContractFile(app, superAdmin, { fileName: '재스캔.pdf' });
-      expect((await setFile(superAdmin, { kind: 'CONTRACT', ...second })).status).toBe(201);
+      expect((await setFile(superAdmin, { kind: 'CONTRACT', roundNo: 1, ...second })).status).toBe(201);
       const files = await db(app).contractFile.findMany({ orderBy: { uploadedAt: 'asc' } });
       expect(files.map((f) => [f.fileName, f.replacedAt === null])).toEqual([
         ['원본.pdf', false],
@@ -226,16 +252,16 @@ describe('위탁계약 회차·계약서 (D68·D69)', () => {
       expect((await history()).map((l) => l.action)).toEqual(['CONTRACT_FILE_UPLOADED', 'CONTRACT_FILE_REPLACED']);
 
       // 같은 경로를 두 번 붙이지 못한다
-      const again = await setFile(superAdmin, { kind: 'CONTRACT', ...second });
+      const again = await setFile(superAdmin, { kind: 'CONTRACT', roundNo: 1, ...second });
       expect(again.status).toBe(409);
     });
 
     it('교체는 진행 중인 회차에만 붙는다 — 갱신 뒤에 올리면 1회차 파일은 그대로다', async () => {
       const original = await uploadContractFile(app, superAdmin, { fileName: '1회차.pdf' });
-      await setFile(superAdmin, { kind: 'CONTRACT', ...original });
+      await setFile(superAdmin, { kind: 'CONTRACT', roundNo: 1, ...original });
       await renew(superAdmin, await renewal({ contractStartAt: '2027-03-01', contractEndAt: '2030-02-28' }));
       const fix = await uploadContractFile(app, superAdmin, { fileName: '2회차 재스캔.pdf' });
-      await setFile(superAdmin, { kind: 'CONTRACT', ...fix });
+      await setFile(superAdmin, { kind: 'CONTRACT', roundNo: 2, ...fix });
       const [r1, r2] = await rounds();
       const current = (roundId: string) => db(app).contractFile.findMany({ where: { roundId, replacedAt: null } });
       expect((await current(r1.id)).map((f) => f.fileName)).toEqual(['1회차.pdf']);
@@ -272,7 +298,7 @@ describe('위탁계약 회차·계약서 (D68·D69)', () => {
       expect(await status()).toBe('TERMINATED');
       expect(toKstDateString((await round1()).terminatedAt!)).toBe(todayKst());
 
-      const late = await setFile(superAdmin, { kind: 'TERMINATION_AGREEMENT', ...(await uploadContractFile(app, superAdmin)) });
+      const late = await setFile(superAdmin, { kind: 'TERMINATION_AGREEMENT', roundNo: 1, ...(await uploadContractFile(app, superAdmin)) });
       expect(late.status).toBe(409);
       expect(late.body.error.code).toBe('BRANCH_TERMINATED');
     });
@@ -293,14 +319,14 @@ describe('위탁계약 회차·계약서 (D68·D69)', () => {
     };
 
     it('정상 상태에서 종료 60일 안이면 알림, 남은 일수를 함께 준다', async () => {
-      await correct(superAdmin, { contractEndAt: plusDays(60) });
+      await correct(superAdmin, { roundNo: 1, contractEndAt: plusDays(60) });
       expect(await listed()).toMatchObject({ contractDaysLeft: 60, renewalNotice: true });
-      await correct(superAdmin, { contractEndAt: plusDays(61) });
+      await correct(superAdmin, { roundNo: 1, contractEndAt: plusDays(61) });
       expect(await listed()).toMatchObject({ contractDaysLeft: 61, renewalNotice: false });
     });
 
     it('종료일이 지나도 상태는 자동으로 바뀌지 않는다(지난 일수만 음수로)', async () => {
-      await correct(superAdmin, { contractEndAt: plusDays(-1) });
+      await correct(superAdmin, { roundNo: 1, contractEndAt: plusDays(-1) });
       expect(await listed()).toMatchObject({ contractDaysLeft: -1, renewalNotice: false, contractStatus: 'ACTIVE' });
     });
   });

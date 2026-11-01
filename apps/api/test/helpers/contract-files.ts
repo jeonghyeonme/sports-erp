@@ -20,12 +20,17 @@ export async function uploadContractFile(
   return { path: url.body.data.path, fileName };
 }
 
-/** 종료 확정의 전제(D69 결정 5) — 진행 중 회차에 해지 합의서를 올린다. 본사 토큰이어야 한다. */
-export async function attachTerminationAgreement(app: INestApplication, hqAuth: string, branchId: string): Promise<void> {
+/** 종료 확정의 전제(D69 결정 5) — 진행 중 회차(기본 시드 1회차)에 해지 합의서를 올린다. 본사 토큰이어야 한다. */
+export async function attachTerminationAgreement(
+  app: INestApplication,
+  hqAuth: string,
+  branchId: string,
+  roundNo = 1,
+): Promise<void> {
   const file = await uploadContractFile(app, hqAuth, { fileName: '해지합의서.pdf' });
   const res = await request(app.getHttpServer())
     .post(`/api/v1/branches/${branchId}/contract/files`)
     .set('Authorization', hqAuth)
-    .send({ kind: 'TERMINATION_AGREEMENT', ...file });
+    .send({ kind: 'TERMINATION_AGREEMENT', roundNo, ...file });
   if (res.status !== 201) throw new Error(`해지 합의서 올리기 실패 ${res.status} ${JSON.stringify(res.body)}`);
 }

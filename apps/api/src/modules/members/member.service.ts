@@ -11,14 +11,14 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PageRequest } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
-import { allocateBranchCode } from '../../prisma/integrity';
+import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
 import { recordAudit, recordPhoneView } from '../../prisma/audit';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-import { BranchService } from '../branches/branch.service';
 import { MockCourseEnrollment, MockMember, MockPTSession, MockPTSessionLog } from '../../fixtures/mock-data.types';
 
 export type MemberView = MockMember & { branchName?: string; assignedStaffName?: string };
 type PTView = MockPTSession & { remainingSessions: number; programName?: string };
+type Tx = Prisma.TransactionClient;
 
 const MEMBER_STATUSES: MemberStatus[] = ['ACTIVE', 'DORMANT', 'WITHDRAWN'];
 // ADR-MEM-01 — 회원번호+전화번호 브루트포스 방어: 대상 회원번호별 시간당 5회 실패 제한.
@@ -45,10 +45,7 @@ type ProfileInput = {
  */
 @Injectable()
 export class MemberService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly branchService: BranchService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   // ── 조회 ──────────────────────────────────────────────
 
@@ -147,12 +144,12 @@ export class MemberService {
 
   // 회원관리 A-5 POST /members — 현장 오프라인 등록. BRANCH_ADMIN 전용(컨트롤러에서 강제).
   async create(branchId: string, input: ProfileInput): Promise<{ member: MemberView; warnings: string[] }> {
-    const branch = await this.assertCanRegister(branchId, input);
-    const warnings = await this.duplicatePhoneWarnings(branchId, input.phone);
     const id = await this.prisma.$transaction(async (tx) => {
+      const branch = await this.assertCanRegister(tx, branchId, input);
       const member = await tx.member.create({ data: await this.memberData(tx, branch, input) });
       return member.id;
     });
+    const warnings = await this.duplicatePhoneWarnings(branchId, input.phone, id);
     return { member: await this.view(id), warnings };
   }
 
@@ -164,10 +161,9 @@ export class MemberService {
     warnings: string[];
   }> {
     await this.assertEmailAvailable(input.email);
-    const branch = await this.assertCanRegister(input.branchId, input);
-    const warnings = await this.duplicatePhoneWarnings(input.branchId, input.phone);
     const { memberId, accountId } = await this.withEmailConflict(() =>
       this.prisma.$transaction(async (tx) => {
+        const branch = await this.assertCanRegister(tx, input.branchId, input);
         const account = await tx.account.create({
           data: { email: input.email, passwordHash: input.passwordHash, role: 'MEMBER', name: input.name },
         });
@@ -177,6 +173,7 @@ export class MemberService {
         return { memberId: member.id, accountId: account.id };
       }),
     );
+    const warnings = await this.duplicatePhoneWarnings(input.branchId, input.phone, memberId);
     return { member: await this.view(memberId), accountId, warnings };
   }
 
@@ -274,16 +271,19 @@ export class MemberService {
     memberId: string,
     input: { programId: string; enrolledAt: string; expiresAt?: string },
   ): Promise<MockCourseEnrollment & { programName?: string }> {
-    const member = await this.assertBranchNotTerminatedForMember(memberId);
-    const program = await this.assertProgramInBranch(input.programId, member.branchId);
-    const row = await this.prisma.courseEnrollment.create({
-      data: {
-        memberId,
-        programId: input.programId,
-        enrolledAt: dateOf(input.enrolledAt),
-        expiresAt: input.expiresAt ? dateOf(input.expiresAt) : null,
-        status: 'ACTIVE',
-      },
+    const { row, program } = await this.prisma.$transaction(async (tx) => {
+      const member = await this.assertBranchNotTerminatedForMember(tx, memberId);
+      const program = await this.assertProgramInBranch(tx, input.programId, member.branchId);
+      const row = await tx.courseEnrollment.create({
+        data: {
+          memberId,
+          programId: input.programId,
+          enrolledAt: dateOf(input.enrolledAt),
+          expiresAt: input.expiresAt ? dateOf(input.expiresAt) : null,
+          status: 'ACTIVE',
+        },
+      });
+      return { row, program };
     });
     return { ...toMockEnrollment(row), programName: program.name };
   }
@@ -293,16 +293,19 @@ export class MemberService {
     memberId: string,
     input: { programId: string; totalSessions: number; purchasedAt: string },
   ): Promise<PTView> {
-    const member = await this.assertBranchNotTerminatedForMember(memberId);
-    const program = await this.assertProgramInBranch(input.programId, member.branchId);
-    const row = await this.prisma.pTSession.create({
-      data: {
-        memberId,
-        programId: input.programId,
-        totalSessions: input.totalSessions,
-        usedSessions: 0,
-        purchasedAt: dateOf(input.purchasedAt),
-      },
+    const { row, program } = await this.prisma.$transaction(async (tx) => {
+      const member = await this.assertBranchNotTerminatedForMember(tx, memberId);
+      const program = await this.assertProgramInBranch(tx, input.programId, member.branchId);
+      const row = await tx.pTSession.create({
+        data: {
+          memberId,
+          programId: input.programId,
+          totalSessions: input.totalSessions,
+          usedSessions: 0,
+          purchasedAt: dateOf(input.purchasedAt),
+        },
+      });
+      return { row, program };
     });
     return toPTView(row, program.name);
   }
@@ -334,14 +337,17 @@ export class MemberService {
     return row;
   }
 
-  /** 등록 공통 검증(예전 mock createMember 순서): 지점 존재 → 계약 종료 → 담당 직원 지점 → 미성년 동의. */
-  private async assertCanRegister(branchId: string, input: ProfileInput): Promise<{ id: string; code: string }> {
-    const branch = await this.prisma.branch.findUnique({ where: { id: branchId }, select: { id: true, code: true } });
+  /**
+   * 등록 공통 검증(예전 mock createMember 순서): 지점 존재 → 계약 종료 → 담당 직원 지점 → 미성년 동의.
+   * D70 — 등록 트랜잭션 안에서 부른다. 지점 행 공유 락으로 계약 상태를 읽어 종료 확정과 직렬화한다.
+   */
+  private async assertCanRegister(tx: Tx, branchId: string, input: ProfileInput): Promise<{ id: string; code: string }> {
+    const branch = await lockBranchForShare(tx, branchId);
     if (!branch) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
-    if ((await this.branchService.loadGate()).isTerminated(branchId)) {
+    if (branch.contractStatus === 'TERMINATED') {
       throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 신규 회원을 등록할 수 없습니다.', 409);
     }
-    if (input.assignedStaffId) await this.assertStaffInBranch(input.assignedStaffId, branchId);
+    if (input.assignedStaffId) await this.assertStaffInBranch(input.assignedStaffId, branchId, tx);
     // 회원관리 A-6 — 만 19세 미만은 법정대리인 동의 없이는 등록 자체를 막는다. birthDate가 없으면 검사 대상 아님.
     if (input.birthDate && isMinor(input.birthDate) && !input.guardianConsent) {
       throw new AppException('GUARDIAN_CONSENT_REQUIRED', '만 19세 미만 회원은 법정대리인 동의가 필요합니다.', 400);
@@ -349,9 +355,10 @@ export class MemberService {
     return branch;
   }
 
-  private async duplicatePhoneWarnings(branchId: string, phone?: string): Promise<string[]> {
+  // 등록이 커밋된 뒤 본다 — 방금 만든 회원 자신은 빼고 센다.
+  private async duplicatePhoneWarnings(branchId: string, phone: string | undefined, newMemberId: string): Promise<string[]> {
     if (!phone) return [];
-    const dup = await this.prisma.member.count({ where: { branchId, phone, status: 'ACTIVE' } });
+    const dup = await this.prisma.member.count({ where: { branchId, phone, status: 'ACTIVE', id: { not: newMemberId } } });
     return dup > 0 ? ['같은 지점에 동일한 전화번호를 쓰는 활성 회원이 이미 있습니다.'] : [];
   }
 
@@ -376,24 +383,25 @@ export class MemberService {
     };
   }
 
-  private async assertStaffInBranch(staffId: string, branchId: string): Promise<void> {
-    const staff = await this.prisma.staff.findUnique({ where: { id: staffId }, select: { branchId: true } });
+  private async assertStaffInBranch(staffId: string, branchId: string, db: Tx = this.prisma): Promise<void> {
+    const staff = await db.staff.findUnique({ where: { id: staffId }, select: { branchId: true } });
     if (!staff || staff.branchId !== branchId) {
       throw new AppException('STAFF_BRANCH_MISMATCH', '담당 직원은 회원과 같은 지점 소속이어야 합니다.', 400);
     }
   }
 
-  // ADR-MEM-03 — 다른 도메인과 같은 계약종료 지점 신규활동 차단.
-  private async assertBranchNotTerminatedForMember(memberId: string): Promise<Member> {
-    const member = await this.requireMember(memberId);
-    if ((await this.branchService.loadGate()).isTerminated(member.branchId)) {
+  // ADR-MEM-03 — 다른 도메인과 같은 계약종료 지점 신규활동 차단. D70 — 쓰기 트랜잭션 안에서 지점 행 공유 락으로 판정.
+  private async assertBranchNotTerminatedForMember(tx: Tx, memberId: string): Promise<Member> {
+    const member = await tx.member.findUnique({ where: { id: memberId } });
+    if (!member) throw new AppException('MEMBER_NOT_FOUND', '회원을 찾을 수 없습니다.', 404);
+    if ((await lockBranchForShare(tx, member.branchId))?.contractStatus === 'TERMINATED') {
       throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 신규 수강·PT 세션을 등록할 수 없습니다.', 409);
     }
     return member;
   }
 
-  private async assertProgramInBranch(programId: string, branchId: string): Promise<{ name: string }> {
-    const program = await this.prisma.program.findUnique({ where: { id: programId }, select: { branchId: true, name: true } });
+  private async assertProgramInBranch(tx: Tx, programId: string, branchId: string): Promise<{ name: string }> {
+    const program = await tx.program.findUnique({ where: { id: programId }, select: { branchId: true, name: true } });
     if (!program || program.branchId !== branchId) {
       throw new AppException('PROGRAM_BRANCH_MISMATCH', '프로그램은 회원과 같은 지점 소속이어야 합니다.', 400);
     }

@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { Document, DocumentCategory, Prisma } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { addYearsToDateString, todayKst, toKstDateString } from '../../common/date/kst-date';
+import { lockBranchForShare } from '../../prisma/integrity';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MockDocument } from '../../fixtures/mock-data.types';
-import { BranchService } from '../branches/branch.service';
 
 type Tx = Prisma.TransactionClient;
 type DocumentRow = Document & { branch: { name: string } | null };
@@ -30,10 +30,7 @@ export type CreateDocumentInput = {
  */
 @Injectable()
 export class DocumentService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly branchService: BranchService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   // ── 조회 ──────────────────────────────────────────────
 
@@ -85,36 +82,39 @@ export class DocumentService {
   // 검사 순서는 mock 그대로(지점 없음 → 계약 종료 → HR 대상 직원) — 에러 코드 우선순위가 테스트로 고정돼 있다.
   // D69 — 계약서 분류(ADR-RES-03 보존기한 직접 입력)는 없앴다. 계약서는 계약 회차에서 다룬다.
   // ADR-RES-01 — 계약종료 지점의 신규 문서 차단. 전사 문서(branchId 없음)는 특정 지점 계약과 무관해 대상 아님.
+  // D70 — 종료 판정은 쓰기 트랜잭션 안에서 지점 행 공유 락으로(종료 확정과 직렬화).
   async create(uploadedBy: string, input: CreateDocumentInput): Promise<DocumentView> {
-    if (input.branchId) {
-      const branch = await this.prisma.branch.findUnique({ where: { id: input.branchId }, select: { id: true } });
-      if (!branch) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
-      if ((await this.branchService.loadGate()).isTerminated(input.branchId)) {
-        throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 새 문서를 등록할 수 없습니다.', 409);
+    const row = await this.prisma.$transaction(async (tx) => {
+      if (input.branchId) {
+        const branch = await lockBranchForShare(tx, input.branchId);
+        if (!branch) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
+        if (branch.contractStatus === 'TERMINATED') {
+          throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 새 문서를 등록할 수 없습니다.', 409);
+        }
       }
-    }
-    let resignDate: Date | null = null;
-    if (input.category === 'HR_RECORD') {
-      if (!input.relatedStaffId) {
-        throw new AppException('STAFF_REQUIRED', '인사서류는 대상 직원을 지정해야 합니다.', 400);
+      let resignDate: Date | null = null;
+      if (input.category === 'HR_RECORD') {
+        if (!input.relatedStaffId) {
+          throw new AppException('STAFF_REQUIRED', '인사서류는 대상 직원을 지정해야 합니다.', 400);
+        }
+        const staff = await tx.staff.findUnique({ where: { id: input.relatedStaffId }, select: { resignDate: true } });
+        if (!staff) throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
+        resignDate = staff.resignDate;
       }
-      const staff = await this.prisma.staff.findUnique({ where: { id: input.relatedStaffId }, select: { resignDate: true } });
-      if (!staff) throw new AppException('STAFF_NOT_FOUND', '직원을 찾을 수 없습니다.', 404);
-      resignDate = staff.resignDate;
-    }
-    const row = await this.prisma.document.create({
-      data: {
-        category: input.category,
-        branchId: input.branchId ?? null,
-        relatedStaffId: input.category === 'HR_RECORD' ? input.relatedStaffId : null,
-        title: input.title,
-        fileUrl: input.fileUrl,
-        fileType: input.fileType,
-        fileSize: input.fileSize,
-        uploadedBy,
-        retentionUntil: retentionUntil(input.category, resignDate),
-      },
-      include: withBranch,
+      return tx.document.create({
+        data: {
+          category: input.category,
+          branchId: input.branchId ?? null,
+          relatedStaffId: input.category === 'HR_RECORD' ? input.relatedStaffId : null,
+          title: input.title,
+          fileUrl: input.fileUrl,
+          fileType: input.fileType,
+          fileSize: input.fileSize,
+          uploadedBy,
+          retentionUntil: retentionUntil(input.category, resignDate),
+        },
+        include: withBranch,
+      });
     });
     return (await this.toViews([row]))[0];
   }

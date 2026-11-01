@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Facility } from '@prisma/client';
 import { FacilityType, MockFacility } from '../../fixtures/mock-data.types';
 import { AppException } from '../../common/exceptions/app.exception';
+import { lockBranchForShare } from '../../prisma/integrity';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BranchService } from '../branches/branch.service';
 import { kstHoursMinutes, toKstDateString } from '../../common/date/kst-date';
 
 // ADR-FAC-05 — 혼잡도 = 지금 진행 중인 회차의 예약 인원(자동) + 예약 외 현장 인원(currentCount, 관리자 입력).
@@ -16,10 +16,7 @@ export type FacilityView = MockFacility & { branchName?: string; reservedCount: 
  */
 @Injectable()
 export class FacilityService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly branchService: BranchService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   // ADR-FAC-02 — 운영 중단(isActive=false)된 시설은 기본 목록에서 제외한다.
   async list(filter: { branchId?: string; isActive: boolean }): Promise<FacilityView[]> {
@@ -69,24 +66,26 @@ export class FacilityService {
 
   // 혼잡도관리 A-5 POST /facilities — capacity 1 이상 필수(혼잡도관리 A-6 나눗셈 오류 방지).
   // ADR-FAC-03 — 계약종료(TERMINATED) 지점의 신규 시설 등록 차단. 기존 시설 정정(update)은 대상 아님.
+  // D70 — 종료 판정은 쓰기 트랜잭션 안에서 지점 행 공유 락으로(종료 확정과 직렬화).
   async create(branchId: string, input: { name: string; type: FacilityType; capacity: number }): Promise<FacilityView> {
-    const gate = await this.branchService.loadGate();
-    if (gate.isTerminated(branchId)) {
-      throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 새 시설을 등록할 수 없습니다.', 409);
-    }
-    if (input.capacity < 1) {
-      throw new AppException('INVALID_CAPACITY', '정원은 1명 이상이어야 합니다.', 400);
-    }
-    const row = await this.prisma.facility.create({
-      data: {
-        branchId,
-        name: input.name,
-        type: input.type,
-        capacity: input.capacity,
-        currentCount: 0,
-        level: 1,
-        lastUpdatedAt: new Date(),
-      },
+    const row = await this.prisma.$transaction(async (tx) => {
+      if ((await lockBranchForShare(tx, branchId))?.contractStatus === 'TERMINATED') {
+        throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에는 새 시설을 등록할 수 없습니다.', 409);
+      }
+      if (input.capacity < 1) {
+        throw new AppException('INVALID_CAPACITY', '정원은 1명 이상이어야 합니다.', 400);
+      }
+      return tx.facility.create({
+        data: {
+          branchId,
+          name: input.name,
+          type: input.type,
+          capacity: input.capacity,
+          currentCount: 0,
+          level: 1,
+          lastUpdatedAt: new Date(),
+        },
+      });
     });
     return this.afterWrite(row.id);
   }
@@ -119,16 +118,18 @@ export class FacilityService {
   // ADR-FAC-03 — 계약종료 지점의 신규 혼잡도 보정 차단. ADR-FAC-01 — 보정 시각을 lastUpdatedAt에 남긴다.
   async setManualCongestion(id: string, currentCount: number): Promise<FacilityView> {
     const facility = await this.requireFacility(id);
-    const gate = await this.branchService.loadGate();
-    if (gate.isTerminated(facility.branchId)) {
-      throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점의 혼잡도는 보정할 수 없습니다.', 409);
-    }
-    if (currentCount < 0) {
-      throw new AppException('INVALID_CURRENT_COUNT', '현장 인원은 0명 이상이어야 합니다.', 400);
-    }
-    await this.prisma.facility.update({
-      where: { id },
-      data: { currentCount, level: congestionLevel(currentCount, facility.capacity), lastUpdatedAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      // D70 — 종료 판정은 쓰기 트랜잭션 안에서 지점 행 공유 락으로(종료 확정과 직렬화).
+      if ((await lockBranchForShare(tx, facility.branchId))?.contractStatus === 'TERMINATED') {
+        throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점의 혼잡도는 보정할 수 없습니다.', 409);
+      }
+      if (currentCount < 0) {
+        throw new AppException('INVALID_CURRENT_COUNT', '현장 인원은 0명 이상이어야 합니다.', 400);
+      }
+      await tx.facility.update({
+        where: { id },
+        data: { currentCount, level: congestionLevel(currentCount, facility.capacity), lastUpdatedAt: new Date() },
+      });
     });
     return this.afterWrite(id);
   }

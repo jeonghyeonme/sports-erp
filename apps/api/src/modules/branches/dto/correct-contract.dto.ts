@@ -1,9 +1,14 @@
-import { IsDateString, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsDateString, IsInt, IsOptional, IsString, Matches, Min, MaxLength, MinLength } from 'class-validator';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 // D68 결정 2 — 오타 정정. 보낸 필드만 바꾼다(상태는 건드리지 않는다). D69 결정 4 — 진행 중인 회차만 고친다.
 export class CorrectContractDto {
+  // D70 — 화면이 보고 있던 회차 번호. 그사이 갱신으로 회차가 바뀌었으면 409(CONTRACT_ROUND_CHANGED)로 다시 불러오게 한다.
+  @IsInt()
+  @Min(1)
+  roundNo!: number;
+
   @IsOptional()
   @IsString()
   @MinLength(1)

@@ -6,7 +6,7 @@ import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { recordAudit, recordPhoneView } from '../../prisma/audit';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { PrismaService } from '../../prisma/prisma.service';
-import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
+import { allocateBranchCode, lockBranchForShare, lockStaff } from '../../prisma/integrity';
 import { recalculateHrRetention } from '../documents/document.service';
 import * as bcrypt from 'bcrypt';
 import { generateTemporaryPassword } from '../../common/validation/temporary-password';
@@ -177,6 +177,8 @@ export class StaffService {
     const actorAccountId = actor.accountId;
     const today = todayKst();
     const unassignedMembers = await this.prisma.$transaction(async (tx) => {
+      // D70 — 직원 행을 먼저 잠가 같은 직원의 파견 발령·퇴사와 직렬화한다(락 뒤에 상태를 읽는다).
+      if (!(await lockStaff(tx, id))) throw staffNotFound();
       const staff = await tx.staff.findUnique({ where: { id }, include: { branch: { select: { contractStatus: true } } } });
       if (!staff) throw staffNotFound();
       // ADR-STF-08(ADR-AUTH-02의 "수동 비활성화") — 본사는 계약 종료 지점 직원만 퇴사 처리한다. 그 지점은 운영이 끝나
@@ -231,6 +233,9 @@ export class StaffService {
   ): Promise<StaffView & { unassignedMembers: Array<{ id: string; name: string }> }> {
     const today = dateOf(todayKst());
     const unassignedMembers = await this.prisma.$transaction(async (tx) => {
+      // D70 — 직원 행을 먼저 잠근다. 잠그지 않으면 아직 커밋 안 된 퇴사를 ACTIVE로 읽고 발령해, 퇴사자에게 진행 중
+      // 파견이 남는다. 같은 직원의 동시 발령도 이 락으로 줄을 서 진행 중 파견 유일 제약(500) 대신 차례로 처리된다.
+      if (!(await lockStaff(tx, id))) throw staffNotFound();
       const staff = await tx.staff.findUnique({ where: { id } });
       if (!staff) throw staffNotFound();
       if (staff.status === 'RESIGNED') {
@@ -239,7 +244,7 @@ export class StaffService {
       // ADR-STF-07 — 공유 락. 계약 종료 전이와 직렬화해 "ACTIVE로 읽고 종료 뒤에 커밋되는" 발령을 막는다.
       const target = await lockBranchForShare(tx, newBranchId);
       if (!target) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
-      // Prisma 도메인이라 gate 대신 트랜잭션 안에서 지점을 직접 읽는다(branch-gate.ts 주석). 떠나는 지점이 종료여도 막지 않는다(log/090).
+      // 계약 상태는 트랜잭션 안에서 지점 행 공유 락으로 읽는다(D70의 공통 방식). 떠나는 지점이 종료여도 막지 않는다(log/090).
       if (target.contractStatus === 'TERMINATED') throw terminatedBranch();
       await tx.staffAssignment.updateMany({ where: { staffId: id, endDate: null }, data: { endDate: today } });
       await tx.staffAssignment.create({

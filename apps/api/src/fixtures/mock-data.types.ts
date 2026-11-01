@@ -42,7 +42,7 @@ export interface BranchRecord {
 }
 
 // D29 — 아직 mock인 도메인이 동기적으로 쓰는 지점 "이름표". 계약 필드는 일부러 뺐다: 계약 상태의 원천은 DB 하나뿐이고,
-// mock에서 계약 상태를 읽는 코드가 남아 있으면 컴파일이 실패하게 하려는 것(계약 종료 판정은 BranchGate로 받는다).
+// mock에서 계약 상태를 읽는 코드가 남아 있으면 컴파일이 실패하게 하려는 것(계약 종료 판정은 쓰기 트랜잭션 안 지점 행 공유 락으로 한다, D70).
 // 남은 필드가 DB와 같은지는 test/branch-parity.spec.ts가 검증한다.
 export type MockBranch = Omit<BranchRecord, 'contractPartner' | 'contractStartAt' | 'contractEndAt' | 'contractStatus'>;
 
