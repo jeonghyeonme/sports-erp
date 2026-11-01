@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, SupportRequest, SupportRequestStatus } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { PageRequest } from '../../common/http/pagination';
+import { lockBranchForShare } from '../../prisma/integrity';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BranchService } from '../branches/branch.service';
 
 export interface SupportRequestView {
   id: string;
@@ -46,27 +46,27 @@ type Row = Prisma.SupportRequestGetPayload<{ include: typeof withNames }>;
  */
 @Injectable()
 export class SupportRequestService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly branchService: BranchService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(
     requester: { accountId: string; branchId: string },
     input: { category: SupportRequest['category']; title: string; content: string },
   ): Promise<SupportRequestView> {
-    if ((await this.branchService.loadGate()).isTerminated(requester.branchId)) {
-      throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에서는 새 업무지원 요청을 올릴 수 없습니다.', 409);
-    }
-    const row = await this.prisma.supportRequest.create({
-      data: {
-        branchId: requester.branchId,
-        requesterId: requester.accountId,
-        category: input.category,
-        title: input.title.trim(),
-        content: input.content.trim(),
-      },
-      include: withNames,
+    const row = await this.prisma.$transaction(async (tx) => {
+      // D70 — 종료 판정은 쓰기 트랜잭션 안에서 지점 행 공유 락으로(종료 확정과 직렬화).
+      if ((await lockBranchForShare(tx, requester.branchId))?.contractStatus === 'TERMINATED') {
+        throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에서는 새 업무지원 요청을 올릴 수 없습니다.', 409);
+      }
+      return tx.supportRequest.create({
+        data: {
+          branchId: requester.branchId,
+          requesterId: requester.accountId,
+          category: input.category,
+          title: input.title.trim(),
+          content: input.content.trim(),
+        },
+        include: withNames,
+      });
     });
     return toView(row);
   }

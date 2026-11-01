@@ -6,7 +6,6 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { PrismaService } from '../../prisma/prisma.service';
 import { recordAudit } from '../../prisma/audit';
 import { endAssignmentsAtTerminatedBranch } from '../staff/terminated-branch-assignments';
-import { BranchGate, branchGateFrom } from './branch-gate';
 import { ContractFileService } from './contract-file.service';
 
 // entities.md §2-1 renewalNoticeAt — 종료 60일 전부터 갱신 알림 대상(정책값, D68 결정 4).
@@ -43,15 +42,6 @@ export class BranchService {
     private readonly prisma: PrismaService,
     private readonly files: ContractFileService,
   ) {}
-
-  /** 아직 mock인 도메인의 쓰기 메서드에 넘길 종료 지점 판정기. 요청마다 한 번 읽는다(종료 지점은 소수). */
-  async loadGate(): Promise<BranchGate> {
-    const rows = await this.prisma.branch.findMany({
-      where: { contractStatus: 'TERMINATED' },
-      select: { id: true },
-    });
-    return branchGateFrom(rows.map((r) => r.id));
-  }
 
   /**
    * 계약 상태 변경(SUPER_ADMIN) — ADR-STF-07. TERMINATED로 **바뀔 때** 그 지점의 진행 중 파견을 같은 트랜잭션에서
@@ -240,11 +230,11 @@ export class BranchService {
    */
   async correctContract(
     branchId: string,
-    input: { contractPartner?: string; contractStartAt?: string; contractEndAt?: string },
+    { roundNo, ...input }: { roundNo: number; contractPartner?: string; contractStartAt?: string; contractEndAt?: string },
     actorAccountId: string,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      const { round } = await this.lockContract(tx, branchId);
+      const { round } = await this.lockContract(tx, branchId, roundNo);
       const current = {
         contractPartner: round.partner,
         contractStartAt: toKstDateString(round.startAt),
@@ -286,10 +276,14 @@ export class BranchService {
    * 진행 중인 회차에 계약서를 올리거나 바꾸고, 종료 확정 전에 해지 합의서를 올린다(SUPER_ADMIN) — D69 결정 4·5.
    * 종료 지점에는 올리지 못한다(409, ADR-RES-01과 같은 태도 — 해지 합의서는 확정 전에 올린다).
    */
-  async setContractFile(branchId: string, input: FileRef & { kind: ContractFileKind }, actorAccountId: string) {
+  async setContractFile(
+    branchId: string,
+    input: FileRef & { kind: ContractFileKind; roundNo: number },
+    actorAccountId: string,
+  ) {
     const file = await this.files.verify(input);
     return this.prisma.$transaction(async (tx) => {
-      const { contractStatus, round } = await this.lockContract(tx, branchId);
+      const { contractStatus, round } = await this.lockContract(tx, branchId, input.roundNo);
       if (contractStatus === 'TERMINATED') {
         throw new AppException('BRANCH_TERMINATED', '계약이 종료된 지점에는 계약 파일을 올릴 수 없습니다.', 409);
       }
@@ -305,13 +299,28 @@ export class BranchService {
     });
   }
 
-  /** 계약 쓰기끼리와 채용·발령의 공유 락(lockBranchForShare)을 직렬화하는 지점 행 배타 락 + 진행 중 회차. */
-  private async lockContract(tx: Prisma.TransactionClient, branchId: string): Promise<LockedContract> {
+  /**
+   * 계약 쓰기끼리와 채용·발령의 공유 락(lockBranchForShare)을 직렬화하는 지점 행 배타 락 + 진행 중 회차.
+   * expectedRoundNo — D70. 정정·파일 교체는 화면이 보고 있던 회차에만 적용한다. 그사이 갱신으로 새 회차가 생겼으면
+   * 락 뒤에 읽은 진행 중 회차와 달라 409 — 1회차를 고친다고 생각한 정정이 2회차에 들어가지 않게 한다.
+   */
+  private async lockContract(
+    tx: Prisma.TransactionClient,
+    branchId: string,
+    expectedRoundNo?: number,
+  ): Promise<LockedContract> {
     const [row] = await tx.$queryRaw<Array<{ contractStatus: BranchContractStatus }>>`
       SELECT "contractStatus" FROM "Branch" WHERE "id" = ${branchId} FOR UPDATE`;
     if (!row) throw new AppException('BRANCH_NOT_FOUND', '지점을 찾을 수 없습니다.', 404);
     const round = await tx.contractRound.findFirst({ where: { branchId }, orderBy: { roundNo: 'desc' } });
     if (!round) throw missingRound(branchId);
+    if (expectedRoundNo !== undefined && expectedRoundNo !== round.roundNo) {
+      throw new AppException(
+        'CONTRACT_ROUND_CHANGED',
+        `진행 중인 계약이 ${round.roundNo}회차로 바뀌었습니다. 화면을 다시 불러와 확인하세요.`,
+        409,
+      );
+    }
     return { contractStatus: row.contractStatus, round };
   }
 

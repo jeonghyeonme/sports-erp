@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { Post, PostCategory, PostScope, Prisma } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
+import { lockBranchForShare } from '../../prisma/integrity';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MockPost } from '../../fixtures/mock-data.types';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-import { BranchService } from '../branches/branch.service';
 import { hasText, sanitizePostContent } from './post-content';
 
 type PostRow = Post & { branch: { name: string } | null; author: { name: string }; facility: { name: string } | null };
@@ -26,10 +26,7 @@ const withBranch = {
  */
 @Injectable()
 export class PostService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly branchService: BranchService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   // ADR-BRD-01 — 본사는 전부, 그 외는 전사 공지 + 자기 지점 글, 회원은 회원 비노출 본사 공지 제외.
   private visibleWhere(user: RequestUser): Prisma.PostWhereInput {
@@ -121,27 +118,30 @@ export class PostService {
       if (!author.branchId) {
         throw new AppException('BRANCH_REQUIRED', '소속 지점이 없는 계정입니다.', 403);
       }
-      if ((await this.branchService.loadGate()).isTerminated(author.branchId)) {
-        throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에서는 새 게시글을 작성할 수 없습니다.', 409);
-      }
       scope = 'BRANCH_TO_MEMBER';
       branchId = author.branchId;
     }
-    const row = await this.prisma.post.create({
-      data: {
-        scope,
-        branchId,
-        authorId: author.accountId,
-        category: input.category,
-        title: input.title,
-        content,
-        publishedAt: new Date(`${todayKst()}T00:00:00Z`),
-        // ADR-BRD-01 — BRANCH_TO_MEMBER는 scope로 이미 회원에게 노출되므로 항상 true, HQ 공지는 명시 안 하면 false.
-        visibleToMember: scope === 'BRANCH_TO_MEMBER' ? true : (input.visibleToMember ?? false),
-        // 시설이 작성자 지점 소속인지는 BranchScopeGuard(@ScopedResource('facility', body))가 이미 봤다.
-        facilityId: input.facilityId,
-      },
-      include: withBranch,
+    const row = await this.prisma.$transaction(async (tx) => {
+      // D70 — 종료 판정은 쓰기 트랜잭션 안에서 지점 행 공유 락으로(종료 확정과 직렬화). 본사 공지는 대상 아님.
+      if (scope === 'BRANCH_TO_MEMBER' && branchId && (await lockBranchForShare(tx, branchId))?.contractStatus === 'TERMINATED') {
+        throw new AppException('BRANCH_TERMINATED', '위탁계약이 종료된 지점에서는 새 게시글을 작성할 수 없습니다.', 409);
+      }
+      return tx.post.create({
+        data: {
+          scope,
+          branchId,
+          authorId: author.accountId,
+          category: input.category,
+          title: input.title,
+          content,
+          publishedAt: new Date(`${todayKst()}T00:00:00Z`),
+          // ADR-BRD-01 — BRANCH_TO_MEMBER는 scope로 이미 회원에게 노출되므로 항상 true, HQ 공지는 명시 안 하면 false.
+          visibleToMember: scope === 'BRANCH_TO_MEMBER' ? true : (input.visibleToMember ?? false),
+          // 시설이 작성자 지점 소속인지는 BranchScopeGuard(@ScopedResource('facility', body))가 이미 봤다.
+          facilityId: input.facilityId,
+        },
+        include: withBranch,
+      });
     });
     return toViews([row])[0];
   }

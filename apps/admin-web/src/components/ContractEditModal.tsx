@@ -48,8 +48,9 @@ export function ContractEditModal({
         });
         return res.data.data!;
       }
-      // 바뀐 칸만 보낸다 — 서버도 바뀐 필드만 이력에 남긴다.
+      // 바뀐 칸만 보낸다 — 서버도 바뀐 필드만 이력에 남긴다. 회차 번호는 이 창을 연 때의 회차(D70 — 그사이 갱신되면 409).
       const res = await api.patch<ApiEnvelope<BranchSummary>>(`/branches/${branch.id}/contract`, {
+        roundNo: branch.contractRoundNo,
         ...(partner.trim() !== branch.contractPartner ? { contractPartner: partner.trim() } : {}),
         ...(startAt !== branch.contractStartAt ? { contractStartAt: startAt } : {}),
         ...(endAt !== branch.contractEndAt ? { contractEndAt: endAt } : {}),

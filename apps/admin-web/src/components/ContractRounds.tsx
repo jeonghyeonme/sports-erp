@@ -107,7 +107,9 @@ function ContractFileModal({ branch, kind, onClose }: { branch: BranchSummary; k
       if (!file) throw new Error('파일을 고르세요.');
       if (file.size > CONTRACT_FILE_MAX_BYTES) throw new Error('파일 하나는 10MB까지 올릴 수 있습니다.');
       const ref = await uploadContractFile(file);
-      return (await api.post<ApiEnvelope<BranchSummary>>(`/branches/${branch.id}/contract/files`, { kind, ...ref })).data.data!;
+      // 회차 번호는 이 창을 연 때의 진행 중 회차(D70 — 그사이 갱신되면 409로 다시 불러오게 한다).
+      const body = { kind, roundNo: branch.contractRoundNo, ...ref };
+      return (await api.post<ApiEnvelope<BranchSummary>>(`/branches/${branch.id}/contract/files`, body)).data.data!;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branches'] });

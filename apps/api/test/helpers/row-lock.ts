@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 /**
  * 동시 요청의 순서를 결정적으로 만드는 도구 — engineering-risks R1·R2 재현(docs/log/123).
@@ -6,7 +6,12 @@ import { PrismaClient } from '@prisma/client';
  * 요청들이 그 행에서 기다리는 것을 pg_stat_activity로 확인한 뒤 놓으면 "둘 다 읽은 뒤에 쓰기" 같은 순서를 매번 만든다.
  * 앱과 다른 연결(별도 PrismaClient)이어야 한다 — 앱 풀의 연결을 잡으면 요청이 연결을 못 얻어 다른 이유로 멈춘다.
  */
-export async function holdRowLock(table: string, id: string): Promise<{ release: () => Promise<void> }> {
+export async function holdRowLock(
+  table: string,
+  id: string,
+  // 락을 잡은 채 커밋 전에 할 쓰기(D70) — "아직 커밋 안 된 계약 종료·퇴사"를 만든다. 놓을 때 함께 커밋된다.
+  during?: (tx: Prisma.TransactionClient) => Promise<unknown>,
+): Promise<{ release: () => Promise<void> }> {
   const client = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
   let unlock!: () => void;
   const unlocked = new Promise<void>((resolve) => (unlock = resolve));
@@ -15,6 +20,7 @@ export async function holdRowLock(table: string, id: string): Promise<{ release:
   const held = client.$transaction(
     async (tx) => {
       await tx.$queryRawUnsafe(`SELECT 1 FROM "${table}" WHERE "id" = $1 FOR UPDATE`, id);
+      if (during) await during(tx);
       onLocked();
       await unlocked;
     },

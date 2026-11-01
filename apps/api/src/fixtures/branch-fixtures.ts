@@ -44,7 +44,7 @@ export function allBranchRecords(): BranchRecord[] {
   return [...HERO_BRANCHES, ...sideBranchDataset().branches];
 }
 
-/** 계약 필드를 뺀 mock 사본 — 계약 상태는 DB에서만 읽는다(BranchGate). */
+/** 계약 필드를 뺀 mock 사본 — 계약 상태는 DB에서만 읽는다(D70 — 쓰기 트랜잭션 안 지점 행 공유 락). */
 export function toMockBranch(record: BranchRecord): MockBranch {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { contractPartner, contractStartAt, contractEndAt, contractStatus, ...rest } = record;
