@@ -199,3 +199,4 @@
 | [189](189.md) | 2026-10-28 | 배포 DB 신규 테이블 3개(SupportRequest·AccountPermission·RolePermission) RLS 켜기 — Supabase rls_disabled_in_public 경고 대응, 정책 없음 |
 | [190](190.md) | 2026-10-31 | Worker 재배포로 D68 계약 화면 운영 반영(사용자) — STATUS 정리, 계약서 OCR·AI 검토(D67 ②) 착수 |
 | [191](191.md) | 2026-10-31 | 계약서 OCR·AI 대신 계약 회차와 계약서 파일(D69 1차) — 갱신은 새 계약서로 새 회차, 정정·교체는 진행 중 회차만, 종료 확정은 해지 합의서, 문서의 계약서 분류 폐지, 열람 기록 |
+| [192](192.md) | 2026-11-01 | D69 1차 운영 반영 — 배포 DB 마이그레이션·RLS(승인), PR #137 병합·Lambda 배포, Worker 재배포(사용자), 원격 claude/* 브랜치 50개 정리 |
