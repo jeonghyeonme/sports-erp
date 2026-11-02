@@ -261,6 +261,8 @@ describe('지점 데이터 격리', () => {
       body: () => ({ kind: 'TERMINATION_AGREEMENT', roundNo: 1, ...VALID_FILE }),
     },
     { name: '서초점 계약서 열람', method: 'get', path: (c) => `/branches/${BRANCH.seocho}/contract/files/${c.seocho.contractFileId}/download` },
+    // D71 — 실물 이관 표시는 본사 전용(지점 관리자는 자기 지점이어도 403 — 대조군은 contract-retention.spec)
+    { name: '서초점 계약 파일 실물 이관', method: 'post', path: (c) => `/branches/${BRANCH.seocho}/contract/files/${c.seocho.contractFileId}/archive` },
     // 경로는 자기 지점(강남)인데 파일 id만 서초 것 — @ScopedResource('contractFile')가 잡는다.
     { name: '서초점 계약서 열람(강남 경로)', method: 'get', path: (c) => `/branches/${BRANCH.gangnam}/contract/files/${c.seocho.contractFileId}/download` },
     { name: '서초점 계약 이력 조회', method: 'get', path: () => `/audit-logs?entity=Branch&entityId=${BRANCH.seocho}` },

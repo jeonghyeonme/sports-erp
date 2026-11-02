@@ -4,6 +4,7 @@ import { todayKst } from '../../common/date/kst-date';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { PermissionService } from '../../common/permissions/permission.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { retentionState } from '../branches/contract-retention';
 
 export interface InboxItem {
   key: string;
@@ -41,6 +42,16 @@ export class InboxService {
     return visible.map((c, i) => ({ key: c.key, label: c.label, link: c.link, count: counts[i] }));
   }
 
+  /** 정리 전 계약 파일의 보존 상태(지점당 몇 개라 전부 읽어 날짜를 앱에서 계산 — ContractFileService와 같은 함수). */
+  private async contractFileStates() {
+    const today = todayKst();
+    const files = await this.prisma.contractFile.findMany({
+      where: { purgedAt: null },
+      select: { archivedAt: true, purgedAt: true, round: { select: { endAt: true, terminatedAt: true } } },
+    });
+    return files.map((f) => ({ archived: f.archivedAt !== null, ...retentionState(f, f.round, today) }));
+  }
+
   private checksFor(user: RequestUser): Check[] {
     const today = new Date(`${todayKst()}T00:00:00Z`);
     if (user.role === 'SUPER_ADMIN') {
@@ -72,6 +83,19 @@ export class InboxService {
           link: '/documents',
           count: () =>
             this.prisma.document.count({ where: { deletedAt: null, retentionUntil: { not: null, lte: retentionLimit } } }),
+        },
+        // D71 — 계약 파일 보존(본사만): 보존 끝 6개월 안·미이관, 이관 완료 + 보존 끝 지남(정리 대상)
+        {
+          key: 'contractArchive',
+          label: '실물 이관이 필요한 계약 파일',
+          link: '/contract-retention',
+          count: async () => (await this.contractFileStates()).filter((s) => s.needsArchive).length,
+        },
+        {
+          key: 'contractPurge',
+          label: '보존 끝나 정리할 계약 파일',
+          link: '/contract-retention',
+          count: async () => (await this.contractFileStates()).filter((s) => s.archived && s.retentionEnded).length,
         },
       ];
     }

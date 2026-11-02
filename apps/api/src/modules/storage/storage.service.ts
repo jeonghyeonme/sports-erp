@@ -170,6 +170,11 @@ export class StorageService {
     return this.d.info(path);
   }
 
+  // D71 — 지우기가 실패하면 그대로 던진다. 계약 파일 정리처럼 "지웠다"는 기록이 실제 삭제와 같아야 하는 곳에서 쓴다.
+  remove(paths: string[]): Promise<void> {
+    return this.d.remove(paths);
+  }
+
   // 지우기는 DB 행을 지운 뒤 한 번 시도한다 — 실패해도 요청은 성공으로 두고 기록만 남긴다(고아 파일은 용량만 쓴다).
   async removeQuietly(paths: string[]): Promise<void> {
     try {

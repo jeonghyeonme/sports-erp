@@ -47,6 +47,8 @@ const NAV_BY_ROLE: Record<Role, NavEntry[]> = {
       { to: '/facilities', label: '시설·혼잡도' },
       { to: '/assets', label: '자산·비품' },
       { to: '/documents', label: '문서함' },
+      // D71 — 계약 파일 실물 이관·보존 끝난 파일 정리(본사 전용)
+      { to: '/contract-retention', label: '계약 파일 보존' },
       // D56 — 현장이 올린 업무지원 요청 처리
       { to: '/support-requests', label: '업무지원 요청' },
     ]),
