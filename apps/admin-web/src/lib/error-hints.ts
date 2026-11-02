@@ -38,6 +38,9 @@ export const ERROR_HINTS: Record<string, string> = {
   // D69 — 계약 회차·계약서
   TERMINATION_AGREEMENT_REQUIRED: '계약 종료를 확정하려면 계약 회차에서 해지 합의서를 먼저 올리세요.',
   CONTRACT_FILE_NOT_FOUND: '계약 파일이 없습니다. 지점 상세를 새로고침하세요.',
+  CONTRACT_FILE_ALREADY_ARCHIVED: '이미 실물 이관을 표시한 파일입니다. 지점 상세를 새로고침하세요.',
+  CONTRACT_FILE_PURGED: '보존 기간이 끝나 시스템 파일을 정리했습니다. 실물 보관본을 확인하세요.',
+  CONTRACT_FILE_NOT_PURGEABLE: '정리할 수 없는 파일이 섞여 있습니다. 화면을 새로고침한 뒤 다시 정리하세요.',
   CONTRACT_ROUND_CHANGED: '그사이 계약이 갱신돼 회차가 바뀌었습니다. 창을 닫고 지점 상세를 새로고침한 뒤 다시 확인하세요.',
   CONTRACT_ROUND_MISSING: '이 지점의 계약 회차가 없습니다. 데이터 문제라 본사 관리자에게 알려 주세요.',
 

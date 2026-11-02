@@ -32,6 +32,8 @@ export const CONTRACT_ACTION_LABEL: Record<string, string> = {
   CONTRACT_FILE_UPLOADED: '계약 파일 등록',
   CONTRACT_FILE_REPLACED: '계약 파일 교체',
   CONTRACT_FILE_VIEWED: '계약 파일 열람',
+  CONTRACT_FILE_ARCHIVED: '계약 파일 실물 이관',
+  CONTRACT_FILE_PURGED: '계약 파일 시스템 정리',
 };
 
 export const CONTRACT_FILE_KIND_LABEL: Record<ContractFileKind, string> = {

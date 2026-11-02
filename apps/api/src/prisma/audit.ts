@@ -28,7 +28,9 @@ export type AuditAction =
   | 'CONTRACT_STATUS_CHANGED'
   | 'CONTRACT_FILE_UPLOADED'
   | 'CONTRACT_FILE_REPLACED'
-  | 'CONTRACT_FILE_VIEWED';
+  | 'CONTRACT_FILE_VIEWED'
+  | 'CONTRACT_FILE_ARCHIVED'
+  | 'CONTRACT_FILE_PURGED';
 export type AuditEntity = 'Staff' | 'Member' | 'Asset' | 'Role' | 'Branch';
 
 /**

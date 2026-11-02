@@ -75,6 +75,8 @@ model Account {
   permissions            AccountPermission[] // D60 — 개인 예외 권한
   contractRoundsCreated  ContractRound[]     @relation("ContractRoundCreator") // D69 — 본사가 만든 계약 회차
   contractFilesUploaded  ContractFile[]      @relation("ContractFileUploader") // D69 — 본사가 올린 계약 파일
+  contractFilesArchived  ContractFile[]      @relation("ContractFileArchiver") // D71 — 실물 이관을 확인한 본사 관리자
+  contractFilesPurged    ContractFile[]      @relation("ContractFilePurger") // D71 — 보존 끝난 시스템 파일을 정리한 본사 관리자
 
   @@index([email])
   @@index([role])
@@ -173,9 +175,18 @@ model ContractFile {
   uploadedBy String
   uploadedAt DateTime         @default(now())
   replacedAt DateTime?
+  // D71 — 보존: 회차가 끝난 날(해지 확정일 또는 종료일) + 3년까지 시스템에 둔다. 실물 이관은 언제든 표시할 수 있고
+  // 표시해도 3년이 끝날 때까지 열람된다. 시스템 파일은 "이관 완료 + 3년 경과"일 때만 본사가 정리(저장소에서 삭제)한다.
+  // 정리 = 이관 뒤에만(CHECK ContractFile_purge_after_archive_ck, 마이그레이션 SQL).
+  archivedAt DateTime?
+  archivedBy String?
+  purgedAt   DateTime?
+  purgedBy   String?
 
   round    ContractRound @relation(fields: [roundId], references: [id])
   uploader Account       @relation("ContractFileUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
+  archiver Account?      @relation("ContractFileArchiver", fields: [archivedBy], references: [id], onDelete: Restrict)
+  purger   Account?      @relation("ContractFilePurger", fields: [purgedBy], references: [id], onDelete: Restrict)
 
   @@index([roundId])
 }

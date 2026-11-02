@@ -1,5 +1,5 @@
 import { ContractFileKind } from '@prisma/client';
-import { IsIn, IsInt, IsString, Matches, Min, MaxLength, MinLength } from 'class-validator';
+import { ArrayMaxSize, ArrayNotEmpty, IsArray, IsIn, IsInt, IsString, Matches, Min, MaxLength, MinLength } from 'class-validator';
 
 // D69 — 계약 파일은 브라우저가 저장소에 먼저 올리고(업로드 URL은 RequestUploadDto, 게시판 첨부와 같은 한도 D57),
 // 갱신·지점 등록·파일 올리기 요청에 그 경로를 싣는다. 서버가 저장소에서 크기·형식을 다시 확인한다.
@@ -23,4 +23,13 @@ export class SetContractFileDto extends ContractFileRefDto {
   @IsInt()
   @Min(1)
   roundNo!: number;
+}
+
+// D71 — 보존 끝난 시스템 파일 정리. 화면에서 고른(보고 있던) 파일만 정리한다 — 서버가 다시 판정한다.
+export class PurgeContractFilesDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(200)
+  @IsString({ each: true })
+  fileIds!: string[];
 }

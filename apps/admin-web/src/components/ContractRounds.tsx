@@ -18,6 +18,7 @@ interface ApiErrorBody {
 // 지난 회차와 교체된 파일은 읽기 전용이다. 올리기·교체는 본사만, 진행 중 회차에만.
 export function ContractRounds({ branch, canEdit }: { branch: BranchSummary; canEdit: boolean }) {
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [uploadKind, setUploadKind] = useState<ContractFileKind | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
   const query = useQuery<ContractRoundRow[], AxiosError<ApiErrorBody>>({
@@ -25,6 +26,19 @@ export function ContractRounds({ branch, canEdit }: { branch: BranchSummary; can
     queryFn: async () => (await api.get<ApiEnvelope<ContractRoundRow[]>>(`/branches/${branch.id}/contract/rounds`)).data.data ?? [],
   });
   const terminated = branch.contractStatus === 'TERMINATED';
+
+  // D71 — 실물 이관 완료 표시(본사, 파일 하나씩, 보존 끝 전에도). 계약 종료 지점에도 된다.
+  const archive = useMutation<unknown, AxiosError<ApiErrorBody>, ContractFileRow>({
+    mutationFn: async (f) => api.post(`/branches/${branch.id}/contract/files/${f.id}/archive`),
+    onSuccess: (_, f) => {
+      queryClient.invalidateQueries({ queryKey: ['contract-rounds', branch.id] });
+      queryClient.invalidateQueries({ queryKey: ['contract-retention'] });
+      queryClient.invalidateQueries({ queryKey: ['inbox'] });
+      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+      toast.success(`${f.fileName}을(를) 실물 이관 완료로 표시했습니다.`);
+    },
+    onError: (err) => toast.error(apiErrorMessage(err) ?? '표시하지 못했습니다.'),
+  });
 
   async function open(f: ContractFileRow) {
     setOpening(f.id);
@@ -40,9 +54,16 @@ export function ContractRounds({ branch, canEdit }: { branch: BranchSummary; can
   if (query.isLoading) return <div className="loading-state">불러오는 중...</div>;
   if (query.isError) return <div className="forbidden-note">{apiErrorMessage(query.error)}</div>;
   const rounds = query.data ?? [];
+  const archiveNeeded = rounds.flatMap((r) => r.files).filter((f) => f.needsArchive).length;
 
   return (
     <>
+      {canEdit && archiveNeeded > 0 && (
+        <div className="forbidden-note" style={{ marginBottom: 8 }}>
+          보존 끝(회차가 끝난 날 + 3년)이 6개월 안이거나 지난 파일 {archiveNeeded}개가 아직 실물 이관 전입니다. 실물로 보관한 뒤 파일마다
+          [실물 이관 완료]를 눌러 주세요.
+        </div>
+      )}
       <table>
         <thead>
           <tr>
@@ -67,12 +88,41 @@ export function ContractRounds({ branch, canEdit }: { branch: BranchSummary; can
               <td>
                 {r.files.length === 0 && <span className="badge PAUSED">계약서 미등록</span>}
                 {r.files.map((f) => (
-                  <div key={f.id} style={{ opacity: f.replacedAt ? 0.6 : 1 }}>
+                  <div key={f.id} style={{ opacity: f.replacedAt || f.purgedAt ? 0.6 : 1, marginBottom: 4 }}>
                     {CONTRACT_FILE_KIND_LABEL[f.kind]} ·{' '}
-                    <button type="button" className="link-button" disabled={opening !== null} onClick={() => open(f)}>
-                      {f.fileName}
-                    </button>
+                    {f.purgedAt ? (
+                      f.fileName
+                    ) : (
+                      <button type="button" className="link-button" disabled={opening !== null} onClick={() => open(f)}>
+                        {f.fileName}
+                      </button>
+                    )}
                     {f.replacedAt && ' (교체됨)'}
+                    <div className="page-desc" style={{ margin: 0 }}>
+                      보존 끝 {f.retentionUntil}
+                      {f.purgedAt ? (
+                        <span className="badge" style={{ marginLeft: 6 }}>시스템 파일 정리됨</span>
+                      ) : f.archivedAt ? (
+                        <span className="badge ACTIVE" style={{ marginLeft: 6 }}>실물 이관 완료</span>
+                      ) : f.needsArchive ? (
+                        <span className="badge PAUSED" style={{ marginLeft: 6 }}>{f.retentionEnded ? '보존 끝 지남 · 이관 필요' : '이관 필요'}</span>
+                      ) : null}
+                      {canEdit && !f.archivedAt && !f.purgedAt && (
+                        <button
+                          type="button"
+                          className="link-button"
+                          style={{ marginLeft: 8 }}
+                          disabled={archive.isPending}
+                          onClick={() => {
+                            if (window.confirm(`${f.fileName}을(를) 실물로 보관했나요? 실물 이관 완료로 표시합니다(보존 끝까지는 계속 열람할 수 있습니다).`)) {
+                              archive.mutate(f);
+                            }
+                          }}
+                        >
+                          실물 이관 완료
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </td>

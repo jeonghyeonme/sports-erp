@@ -64,6 +64,34 @@ export interface ContractFileRow {
   uploadedByName: string;
   uploadedAt: string;
   replacedAt?: string;
+  // D71 — 보존 끝(회차가 끝난 날 + 3년)·실물 이관·정리
+  retentionUntil: string;
+  needsArchive: boolean;
+  retentionEnded: boolean;
+  archivedAt?: string;
+  archivedByName?: string;
+  purgedAt?: string;
+}
+
+// D71 — GET /branches/contract-files/retention(본사)
+export interface ContractRetentionRow {
+  id: string;
+  branchId: string;
+  branchName: string;
+  roundNo: number;
+  kind: ContractFileKind;
+  fileName: string;
+  replacedAt?: string;
+  archivedAt?: string;
+  archivedByName?: string;
+  retentionUntil: string;
+  needsArchive: boolean;
+  retentionEnded: boolean;
+}
+
+export interface ContractRetentionOverview {
+  archiveNeeded: ContractRetentionRow[];
+  purgeCandidates: ContractRetentionRow[];
 }
 
 export interface ContractRoundRow {

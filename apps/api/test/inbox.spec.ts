@@ -31,7 +31,7 @@ describe('처리 대기함 (D61)', () => {
   it('역할마다 항목이 다르다 — 회원은 403', async () => {
     const keys = async (email: string) =>
       ((await api(await login(app, email)).get('/inbox')).body.data as Array<{ key: string }>).map((i) => i.key);
-    expect(await keys(ACCOUNTS.superAdmin)).toEqual(['support', 'contract', 'unassigned', 'retention']);
+    expect(await keys(ACCOUNTS.superAdmin)).toEqual(['support', 'contract', 'unassigned', 'retention', 'contractArchive', 'contractPurge']);
     expect(await keys(ACCOUNTS.seochoAdmin)).toEqual(['leave', 'changeRequest', 'checkIn', 'congestion']);
     expect(await keys(ACCOUNTS.seochoStaff)).toEqual(['checkInToday', 'myLeave']);
     expect((await api(await login(app, ACCOUNTS.seochoMember)).get('/inbox')).status).toBe(403);

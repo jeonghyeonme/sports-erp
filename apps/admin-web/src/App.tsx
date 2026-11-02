@@ -25,6 +25,7 @@ import { DocumentsPage } from './pages/DocumentsPage';
 import { PermissionsPage } from './pages/PermissionsPage';
 import { SupportRequestsPage } from './pages/SupportRequestsPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
+import { ContractRetentionPage } from './pages/ContractRetentionPage';
 
 // D62 — 서식 편집기(TipTap)는 무거워서 글쓰기·수정 화면에 들어갈 때만 내려받는다
 const PostEditorPage = lazy(() => import('./pages/PostEditorPage').then((m) => ({ default: m.PostEditorPage })));
@@ -79,6 +80,7 @@ export default function App() {
                   <Route path="/documents" element={<DocumentsPage />} />
                   <Route path="/permissions" element={<PermissionsPage />} />
                   <Route path="/audit-logs" element={<AuditLogsPage />} />
+                  <Route path="/contract-retention" element={<ContractRetentionPage />} />
                   <Route path="/support-requests" element={<SupportRequestsPage />} />
                 </Route>
               </Route>

@@ -12,7 +12,7 @@ import { ChangeContractStatusDto } from './dto/change-contract-status.dto';
 import { RenewContractDto } from './dto/renew-contract.dto';
 import { CorrectContractDto } from './dto/correct-contract.dto';
 import { CreateBranchDto } from './dto/create-branch.dto';
-import { SetContractFileDto } from './dto/contract-file.dto';
+import { PurgeContractFilesDto, SetContractFileDto } from './dto/contract-file.dto';
 import { RequestUploadDto } from '../posts/dto/attachment.dto';
 import { ContractFileService } from './contract-file.service';
 import { branchPerformance } from './branch-performance';
@@ -74,6 +74,20 @@ export class BranchesController {
     return ok(await this.contractFiles.requestUpload(dto));
   }
 
+  // D71 — 계약 파일 보존 현황(본사 전용): 실물 이관이 필요한 파일, 정리할 수 있는 파일(이관 완료 + 보존 끝 지남).
+  @Get('contract-files/retention')
+  @Roles('SUPER_ADMIN')
+  async contractFileRetention() {
+    return ok(await this.contractFiles.retentionOverview());
+  }
+
+  // D71 — 보존 끝난 시스템 파일 정리(본사 전용). 저장소에서 지우고 행에 정리 기록을 남긴다. 사람이 지우는 유일한 경로.
+  @Post('contract-files/purge')
+  @Roles('SUPER_ADMIN')
+  async purgeContractFiles(@Body() dto: PurgeContractFilesDto, @CurrentUser() user: RequestUser) {
+    return ok(await this.contractFiles.purge(dto.fileIds, user.accountId));
+  }
+
   // D69 결정 3 — 계약 갱신(본사 전용) = 새 회차. 새 계약서·상대방·기간, 상태는 정상으로. 종료 지점은 409.
   @Post(':branchId/contract/renewals')
   @Roles('SUPER_ADMIN')
@@ -114,6 +128,18 @@ export class BranchesController {
     @CurrentUser() user: RequestUser,
   ) {
     return ok(await this.branchService.setContractFile(branchId, dto, user.accountId));
+  }
+
+  // D71 — 실물 이관 완료 표시(본사 전용, 파일 하나씩, 보존 끝 전에도). 계약 종료 지점에도 된다.
+  @Post(':branchId/contract/files/:fileId/archive')
+  @Roles('SUPER_ADMIN')
+  @ScopedResource('contractFile', { param: 'fileId' })
+  async archiveContractFile(
+    @Param('branchId') branchId: string,
+    @Param('fileId') fileId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return ok(await this.contractFiles.archive(branchId, fileId, user.accountId));
   }
 
   // D69 결정 6·8 — 계약 파일 열람(60초 URL). 본사와 자기 지점 관리자, 열 때마다 열람 기록이 남는다.
