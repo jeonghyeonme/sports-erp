@@ -1,0 +1,65 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-02T00:00:00Z"
+  },
+  "lists": "css",
+  "title": "스포이즘 ERP 8주차 발표",
+  "order": [
+    "cover",
+    "agenda",
+    "p1",
+    "ai-why",
+    "p2",
+    "c-round",
+    "c-files",
+    "c-termination",
+    "c-guard",
+    "c-limit",
+    "c-retention",
+    "c-shot",
+    "p3",
+    "conc-lock",
+    "conc-round",
+    "wrap",
+    "closing"
+  ],
+  "sections": {
+    "intro": {
+      "description": "표지, 오늘 순서",
+      "start": "cover"
+    },
+    "ai": {
+      "description": "01 계약서 OCR·AI — 넣지 않은 이유",
+      "start": "p1"
+    },
+    "contract": {
+      "description": "02 계약 관리 — 계약 회차, 계약서 종류별 처리, 종료 확정, 입력 오류 방지, 한계, 보존, 화면",
+      "start": "p2"
+    },
+    "conc": {
+      "description": "03 동시성 점검 — 잠금으로 순서대로, 잠금으로 안 되는 회차 번호 확인",
+      "start": "p3"
+    },
+    "wrap": {
+      "description": "정리와 마무리",
+      "start": "wrap"
+    }
+  },
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
+}
