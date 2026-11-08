@@ -1,13 +1,19 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/use-auth';
-import { useApiList } from '../lib/use-api-list';
-import { BranchContractStatus, BranchSummary } from '../lib/types';
+import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { ApiEnvelope, BranchContractStatus, BranchSummary, CompanyPerformance, MonthlyPerformance } from '../lib/types';
 import { AlertTriangleIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, UsersIcon } from '../components/icons';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { WorkInbox } from '../components/WorkInbox';
 import { BranchCreateModal } from '../components/BranchCreateModal';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_RANK } from '../lib/contract-status';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
+import { useCan } from '../lib/use-can';
+import { PerformanceCharts, PerformanceStatTiles } from '../components/charts/PerformanceCharts';
+import { RankedBarChart } from '../components/charts/RankedBarChart';
+import { monthLabel } from '../lib/chart-scale';
 
 const AUTO_EXPAND_MAX_BRANCHES = 10;
 
@@ -185,10 +191,24 @@ function BranchTable({ branches, statusFilter, onStatusFilterChange }: {
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const can = useCan();
   const { data, isLoading } = useApiList<BranchSummary>(['branches'], '/branches');
   const [statusFilter, setStatusFilter] = useState<BranchContractStatus | 'ALL'>('ALL');
   const [showCreate, setShowCreate] = useState(false);
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  // D75 — 운영 실적: 본사는 전사 합계 + 지난달 지점 비교, 지점 관리자는 자기 지점(지난 12개월 + 이번 달).
+  const companyQuery = useQuery<CompanyPerformance>({
+    queryKey: ['company-performance'],
+    queryFn: async () => (await api.get<ApiEnvelope<CompanyPerformance>>('/branches/performance?months=13')).data.data!,
+    enabled: isSuperAdmin,
+  });
+  const ownBranchId = user?.role === 'BRANCH_ADMIN' ? user.branchId : undefined;
+  const ownQuery = useApiList<MonthlyPerformance>(
+    ['branch-performance', ownBranchId, 13],
+    `/branches/${ownBranchId}/performance?months=13`,
+    !!ownBranchId && can('branch', 'READ'),
+  );
+  const performanceRows = isSuperAdmin ? companyQuery.data?.trend : ownQuery.data;
   const regions = [...new Set((data ?? []).map((b) => b.region))].sort((a, b) => a.localeCompare(b, 'ko'));
 
   const showTable = (data?.length ?? 0) > 1;
@@ -242,6 +262,9 @@ export function DashboardPage() {
         </div>
       )}
 
+      {/* D75 — 지난달(끝난 달) 운영 실적과 전달 대비, 12개월 추세선 */}
+      {performanceRows && <PerformanceStatTiles rows={performanceRows} />}
+
       {showTable ? (
         <BranchTable branches={data ?? []} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} />
       ) : (
@@ -269,6 +292,34 @@ export function DashboardPage() {
             </Link>
           ))}
         </div>
+      )}
+
+      {/* D75 — 월별 추이(차트 4장 + 표로 보기). 본사는 지난달 지점별 순매출 비교도 */}
+      {performanceRows && (
+        <section className="detail-section" style={{ marginTop: 22 }}>
+          <h3 className="section-title">{isSuperAdmin ? '전사 운영 실적' : '우리 지점 운영 실적'} (지난 12개월 + 이번 달)</h3>
+          <PerformanceCharts
+            rows={performanceRows}
+            note="순매출은 회차 예약 결제의 그달 승인액에서 그달 환불액을 뺀 값입니다(수강·PT 패키지 판매는 빠집니다). 이번 달은 오늘까지라 옅게 그립니다."
+          />
+          {isSuperAdmin && companyQuery.data && companyQuery.data.byBranch.rows.length > 1 && (
+            <div style={{ marginTop: 14 }}>
+              <RankedBarChart
+                title={`지점별 순매출 · ${monthLabel(companyQuery.data.byBranch.month, true)}`}
+                unit="원"
+                rows={companyQuery.data.byBranch.rows.map((r) => ({
+                  key: r.branchId,
+                  label: r.branchName,
+                  value: r.revenue,
+                  note: CONTRACT_STATUS_LABEL[r.contractStatus],
+                }))}
+              />
+            </div>
+          )}
+        </section>
+      )}
+      {(companyQuery.isError || ownQuery.isError) && (
+        <div className="forbidden-note">{apiErrorMessage((companyQuery.error ?? ownQuery.error) as never)}</div>
       )}
     </>
   );
