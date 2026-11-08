@@ -8,6 +8,7 @@ import { useCan } from '../lib/use-can';
 import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
 import { Pager } from '../components/Pager';
 import { useToast } from '../lib/use-toast';
+import { kstToday } from '../lib/kst-date';
 import {
   ApiEnvelope,
   CourseEnrollmentRow,
@@ -71,7 +72,8 @@ function EnrollmentsTab({ member, canManage }: { member: MemberRow; canManage: b
   const queryClient = useQueryClient();
   const toast = useToast();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ programId: '', enrolledAt: '', expiresAt: '' });
+  // log/199 — 등록일·구매일은 거의 항상 오늘이라 오늘로 채워 둔다(고칠 수 있다).
+  const [form, setForm] = useState({ programId: '', enrolledAt: kstToday(), expiresAt: '' });
 
   const enrollmentsQuery = useApiList<CourseEnrollmentRow>(
     ['members', member.id, 'enrollments'],
@@ -91,7 +93,7 @@ function EnrollmentsTab({ member, canManage }: { member: MemberRow; canManage: b
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members', member.id, 'enrollments'] });
       queryClient.invalidateQueries({ queryKey: ['members', member.id] });
-      setForm({ programId: '', enrolledAt: '', expiresAt: '' });
+      setForm({ programId: '', enrolledAt: kstToday(), expiresAt: '' });
       setShowForm(false);
       toast.success('수강을 등록했습니다.');
     },
@@ -202,7 +204,7 @@ function PTSessionsTab({ member, canManage, canUse }: { member: MemberRow; canMa
   const queryClient = useQueryClient();
   const toast = useToast();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ programId: '', totalSessions: '', purchasedAt: '' });
+  const [form, setForm] = useState({ programId: '', totalSessions: '', purchasedAt: kstToday() });
   const [noteBySession, setNoteBySession] = useState<Record<string, string>>({});
 
   const sessionsQuery = useApiList<PTSessionRow>(
@@ -228,7 +230,7 @@ function PTSessionsTab({ member, canManage, canUse }: { member: MemberRow; canMa
       ).data.data!,
     onSuccess: () => {
       invalidate();
-      setForm({ programId: '', totalSessions: '', purchasedAt: '' });
+      setForm({ programId: '', totalSessions: '', purchasedAt: kstToday() });
       setShowForm(false);
       toast.success('PT 이용권을 등록했습니다.');
     },

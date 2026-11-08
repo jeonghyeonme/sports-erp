@@ -42,7 +42,7 @@ test('B03 PT 패키지 등록', async ({ page }, info) => {
   await s.click(page.getByRole('button', { name: '+ PT 패키지 등록' }), '+ PT 패키지 등록');
   await s.select(field(page, '프로그램 *'), { label: '퍼스널 트레이닝' }, '프로그램');
   await s.fill(field(page, '세션 수 *'), '10', '세션 수');
-  await s.fill(field(page, '구매일 *'), kstDate(0), '구매일(기본값 없음)');
+  await expect(field(page, '구매일 *')).toHaveValue(kstDate(0)); // log/199 — 오늘로 채워져 있다
   await s.click(page.getByRole('button', { name: '등록', exact: true }), '등록');
   await expect(page.getByText('10 / 10회 남음')).toBeVisible();
   s.save(info);
@@ -153,7 +153,7 @@ test('B10 직원 근태 누락일 등록', async ({ page }, info) => {
   await s.click(page.getByRole('button', { name: '+ 누락일 등록' }), '+ 누락일 등록');
   const modal = page.locator('.modal-card').last();
   await s.fill(modal.locator('.field', { hasText: '날짜' }).locator('input'), kstDate(-3), '날짜');
-  await s.fill(modal.locator('.field', { hasText: '출근 시각' }).locator('input'), '09:00', '출근 시각');
+  await expect(modal.locator('.field', { hasText: '출근 시각' }).locator('input')).toHaveValue('09:00'); // log/199 — 서초점 기준 출근 시각
   await s.fill(modal.locator('.field', { hasText: '퇴근 시각' }).locator('input'), '18:00', '퇴근 시각');
   await s.fill(modal.locator('.field', { hasText: '정정 사유' }).locator('input'), '체크인 누락 확인', '정정 사유');
   await s.click(modal.getByRole('button', { name: '저장' }), '저장');

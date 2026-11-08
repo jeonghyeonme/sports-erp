@@ -383,6 +383,8 @@ export class BranchService {
       renewalNotice: branch.contractStatus === 'ACTIVE' && daysLeft >= 0 && daysLeft <= RENEWAL_NOTICE_DAYS,
       hasContractFile: has('CONTRACT'),
       hasTerminationAgreement: has('TERMINATION_AGREEMENT'),
+      // 근태관리 A-6 지각 판정 기준 — 관리자 웹 누락일 등록의 출근 시각 기본값(log/199)
+      standardCheckInTime: branch.standardCheckInTime,
     };
   }
 }
