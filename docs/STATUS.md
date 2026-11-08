@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-11-08 · [log/206](log/206.md)(문서 실제 파일 업로드·열람 기록·목록 쪽 나누기, 자원문서관리 ADR-RES-05 — 배포 DB 마이그레이션 승인 대기), [log/205](log/205.md)(회원·자산·업무지원 서버 정렬, D74 2차), [log/204](log/204.md)(예약·자산·업무지원·변경 이력 서버 검색 q, D74 2차), [log/203](log/203.md)(CSV 확대 — 직원·자산·문서·프로그램, 권한관리 ADR-AUTH-09), [log/202](log/202.md)(목록·확인 창 일관화 1차 D74), [log/201](log/201.md)(화면 안 순서 D73 — 근태관리 재배치·회차 등록 모달, 대상 작업 스크롤 0), [log/200](log/200.md)(회원 빠른 찾기·상세 PT 탭 먼저 D72 — PT 세션 차감 6→3), [log/199](log/199.md)(기본값 채우기 — PT 구매일·누락일 출근, 회원 찾기 대안), [log/198](log/198.md)(작업 단계 측정 기준선 20건·측정 도구), [log/197](log/197.md)(사용감 전수조사 목록·추적표 D68~D71 재대조), [log/196](log/196.md)(D70·D71 운영 반영 — 배포 DB D71·Worker 재배포), [log/195](log/195.md)(계약 파일 보존·실물 이관·정리 D71), [log/194](log/194.md)(동시성 빈틈 세 곳 수정 D70), [log/193](log/193.md)(D69 운영 확인 — 계약서 업로드·열람 기록, Throttles 알람), [log/192](log/192.md)(D69 1차 운영 반영 — 배포 DB·병합·Worker), [log/191](log/191.md)(계약 회차·계약서 D69 1차 — OCR·AI 기각), [log/190](log/190.md)(Worker 재배포 — D68 화면 운영 반영), [log/189](log/189.md)(신규 테이블 3개 RLS 켜기 — Supabase 경고), [log/188](log/188.md)(매뉴얼 재생성·CI e2e 러너 고정), [log/187](log/187.md)(신규 지점 등록, D68 2차), [log/186](log/186.md)(계약 갱신·정정·이력·임박 표시 구현, D68 1차), [log/185](log/185.md)(계약 갱신 기능 계획 D68), [log/184](log/184.md)(pack-midterm Windows 경로 수정), [log/183](log/183.md)(산출물 폴더를 RFP 산출물 표 기준으로), [log/182](log/182.md)(충족률 분모 = 조항 수 전부, 81%), [log/181](log/181.md)(증빙 결정 기록 제목 쉬운 말), [log/180](log/180.md)(STATUS 정리 — 실운영 안 함 반영), [log/179](log/179.md)(중간 제출 폴더 조립), [log/178](log/178.md)(중간보고서 덱 55장), [log/177](log/177.md)(RFP 이행 증빙). 그 이전 경위는 [log/README](log/README.md) 인덱스에서 찾는다.
+> 마지막 갱신: 2026-11-08 · [log/207](log/207.md)(문서 파일 운영 반영 — 배포 DB 마이그레이션·PR #148 병합), [log/206](log/206.md)(문서 실제 파일 업로드·열람 기록·목록 쪽 나누기, 자원문서관리 ADR-RES-05), [log/205](log/205.md)(회원·자산·업무지원 서버 정렬, D74 2차), [log/204](log/204.md)(예약·자산·업무지원·변경 이력 서버 검색 q, D74 2차), [log/203](log/203.md)(CSV 확대 — 직원·자산·문서·프로그램, 권한관리 ADR-AUTH-09), [log/202](log/202.md)(목록·확인 창 일관화 1차 D74), [log/201](log/201.md)(화면 안 순서 D73 — 근태관리 재배치·회차 등록 모달, 대상 작업 스크롤 0), [log/200](log/200.md)(회원 빠른 찾기·상세 PT 탭 먼저 D72 — PT 세션 차감 6→3), [log/199](log/199.md)(기본값 채우기 — PT 구매일·누락일 출근, 회원 찾기 대안), [log/198](log/198.md)(작업 단계 측정 기준선 20건·측정 도구), [log/197](log/197.md)(사용감 전수조사 목록·추적표 D68~D71 재대조), [log/196](log/196.md)(D70·D71 운영 반영 — 배포 DB D71·Worker 재배포), [log/195](log/195.md)(계약 파일 보존·실물 이관·정리 D71), [log/194](log/194.md)(동시성 빈틈 세 곳 수정 D70), [log/193](log/193.md)(D69 운영 확인 — 계약서 업로드·열람 기록, Throttles 알람), [log/192](log/192.md)(D69 1차 운영 반영 — 배포 DB·병합·Worker), [log/191](log/191.md)(계약 회차·계약서 D69 1차 — OCR·AI 기각), [log/190](log/190.md)(Worker 재배포 — D68 화면 운영 반영), [log/189](log/189.md)(신규 테이블 3개 RLS 켜기 — Supabase 경고), [log/188](log/188.md)(매뉴얼 재생성·CI e2e 러너 고정), [log/187](log/187.md)(신규 지점 등록, D68 2차), [log/186](log/186.md)(계약 갱신·정정·이력·임박 표시 구현, D68 1차), [log/185](log/185.md)(계약 갱신 기능 계획 D68), [log/184](log/184.md)(pack-midterm Windows 경로 수정), [log/183](log/183.md)(산출물 폴더를 RFP 산출물 표 기준으로), [log/182](log/182.md)(충족률 분모 = 조항 수 전부, 81%), [log/181](log/181.md)(증빙 결정 기록 제목 쉬운 말), [log/180](log/180.md)(STATUS 정리 — 실운영 안 함 반영), [log/179](log/179.md)(중간 제출 폴더 조립), [log/178](log/178.md)(중간보고서 덱 55장), [log/177](log/177.md)(RFP 이행 증빙). 그 이전 경위는 [log/README](log/README.md) 인덱스에서 찾는다.
 
 ## 현재 상태
 
@@ -10,7 +10,7 @@
 | 방향 | **실운영은 하지 않는다**(2026-10-22, 사용자). 실운영이 있어야 끝나는 RFP 부분 3조항(PG 실제 호출 N7-3 · 업무위탁 계약서 N8-2 · 검수·도입 T3-2)과 순간 몰림 거절 원인 확인은 범위 밖. 키오스크 제외 | [D67](decisions/D67.md) |
 | RFP | 72조항 중 완료+조정 58/72(81%) — 분모는 조항 수 전부(해당 없음·제외도 남김, log/182). D68~D71 재대조 결과 판정 변동 없음(2026-11-08, log/197). 영역별 기능·성능 97% · 시스템~제약 68% · 과업·산출물 72%. 판정 원천은 [요구사항추적표](reference/요구사항추적표.md) §3 한 곳 — 요구사항 정의서·RFP 이행 증빙·중간보고서 덱이 여기서 생성된다 | [log/160](log/160.md), [log/182](log/182.md) |
 | 도메인 9개 | 문서화·핵심 ADR 구현 완료. 도메인별 검증 범위는 각 도메인 문서 §11 | `domains/` |
-| 데이터 | 전 도메인 Prisma(Supabase Postgres, 36개 테이블, 배포 DB도 같음 — D71 2026-11-02 적용) — `MockDataService` 삭제 | [D36](decisions/D36.md) |
+| 데이터 | 전 도메인 Prisma(Supabase Postgres, 36개 테이블, 배포 DB도 같음 — 문서 파일 칸 2026-11-08 적용, log/207) — `MockDataService` 삭제 | [D36](decisions/D36.md) |
 | api 호스팅 | **AWS Lambda(서울) 운영 중**, Worker origin = Function URL(별칭 `live`). 배포는 `dev` push 또는 Actions 수동 실행(OIDC, 헬스체크 실패 시 이전 버전). 운영 실측 W 약 40ms, 과부하 실제 처리 약 80~90 rps(D50). 동시 실행 상한 10·1,024MB(D42), DB는 Session pooler 5432(D49). NestJS 11(D65) | [D37](decisions/D37.md), [D50](decisions/D50.md) |
 | 웹·엣지 | Cloudflare Worker(정적 자산 + 프록시 + 로그인 rate limit). 관리자 웹은 직원 계정만(D66), 회원 기능은 `apps/member-web`(`/m/`, PWA — D41·D45). 마지막 Worker 재배포 2026-11-02(D70 계약 회차 번호 전송·D71 계약 파일 보존 화면 포함, log/196) | [D25](decisions/D25.md), [D66](decisions/D66.md) |
 | 규칙의 자리 | 지점 격리 = 전역 `BranchScopeGuard`(D46), 세부 권한 = 전역 `PermissionGuard`(D60), 계약 종료 = 쓰기 트랜잭션 안 지점 행 공유 락(D70), 종료 전이 시 파견 종료(ADR-STF-07·08), 종료 확정은 해지 합의서 필요(D69). 계약 정보 = 계약 회차(`ContractRound`, D69). 변경 이력 19종(D44·D47·D52·ADR-STF-09·D60 권한·D68 지점 등록·계약 3종·D69 계약 파일 3종·D71 실물 이관·정리), 혼잡도 = 진행 중 강습 예약 + 현장 입력(ADR-FAC-05) | [D46](decisions/D46.md), [D60](decisions/D60.md) |
@@ -23,8 +23,8 @@
 
 ## 다음 할 일 (우선순위순 — 전수조사 목록 A~E는 [log/197](log/197.md))
 
-1. **Worker 재배포**(사용자): PR #143·#144(사용감 log/197~202) 병합됨, CSV 확대·검색·정렬(log/203~205) 포함 — 화면 변경은 재배포 뒤 운영에 보인다. 원격 작업 브랜치 `claude/jolly-brahmagupta-bmaxnp`·`claude/list-consistency`·`claude/csv-export`·`claude/list-search`·`claude/list-sort`(병합 뒤) 삭제도(세션은 브랜치 삭제·강제 push 불가).
-2. **문서 파일 업로드 PR 병합**(log/206): 병합 **전에** 배포 DB에 마이그레이션 `20261108120000_d69_document_files` 적용(승인 대기, D39) → PR 병합 → Lambda 자동 배포 → Worker 재배포. 새 테이블이 없어 RLS 작업은 없다. 적용 뒤 운영 저장소로 올리기·열기를 한 번 확인(사용자).
+1. **Worker 재배포**(사용자): PR #143~#148(사용감 log/197~205, 문서 파일 log/206) 병합됨 — 화면 변경은 재배포 뒤 운영에 보인다. 원격 작업 브랜치 `claude/jolly-brahmagupta-bmaxnp`·`claude/list-consistency`·`claude/csv-export`·`claude/list-search`·`claude/list-sort`·`claude/document-files`·`claude/document-files-ops`(병합 뒤) 삭제도(세션은 브랜치 삭제·강제 push 불가).
+2. **문서 파일 운영 확인**(사용자, log/207): Worker 재배포 뒤 운영에서 문서 하나를 올리고 열어 본다(운영 저장소 Supabase Storage 첫 사용 — 버킷·한도는 D57 설정 그대로). 배포 DB 마이그레이션·PR #148 병합은 끝.
 3. 남은 스크롤: 공지 작성 등록 버튼(B09)·회원 웹 예약 취소(M02, 시연 데이터) — 작업 단계 측정(log/198).
 4. **시각화(A-5)** — 기간 집계 API가 필요해 가장 크다. 차별화전략 §2 영업 리포트와 묶을지 결정.
 5. **회원 앱 형태 재검토(D67 ③, D40)** — 착수 순서는 사용자.
@@ -33,7 +33,7 @@
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 
-- **배포 DB(Supabase) 마이그레이션** `20261108120000_d69_document_files`(Document 칸 2개 추가·`fileUrl` nullable·CHECK 2개) — 스키마 변경은 2026-11-08 승인, 배포 DB 쓰기는 별도 승인. 기존 행은 모두 `fileUrl`이 있어 CHECK를 통과해야 한다(적용 전에 `fileUrl IS NULL` 행 수 확인).
+- 지금은 없다.
 
 ## 열린 위험 (실운영을 하지 않아 대응은 보류 — 실운영을 다시 검토하면 여기서 시작)
 
