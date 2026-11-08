@@ -47,6 +47,8 @@ export interface BranchSummary {
   contractDaysLeft: number;
   // 상태가 정상인데 종료가 60일 안으로 들어온 지점 — 표시만 하고 상태를 바꾸지는 않는다.
   renewalNotice: boolean;
+  // 근태관리 A-6 지각 판정 기준("HH:mm") — 누락일 등록의 출근 시각 기본값(log/199). 없을 수 있다.
+  standardCheckInTime: string | null;
   // 진행 중 회차에 지금 붙어 있는 파일(교체된 것 제외)
   hasContractFile: boolean;
   hasTerminationAgreement: boolean;

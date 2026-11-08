@@ -461,9 +461,11 @@ interface CorrectionForm {
 function CorrectAttendanceModal({
   staffId,
   record,
+  defaultCheckIn,
   onClose,
 }: {
   staffId: string;
+  defaultCheckIn: string;
   // 없으면 누락일 등록(날짜를 고른다)
   record?: AttendanceRecordRow;
   onClose: () => void;
@@ -474,7 +476,8 @@ function CorrectAttendanceModal({
   const [form, setForm] = useState<CorrectionForm>(() => ({
     date: record?.date ?? kstToday(),
     status: record?.status ?? 'NORMAL',
-    checkInTime: kstHhmm(record?.checkInAt),
+    // 정정은 그 기록의 값, 누락일 등록은 지점 기준 출근 시각(없으면 빈칸) — 퇴근은 기준이 없어 비운다
+    checkInTime: record ? kstHhmm(record.checkInAt) : defaultCheckIn,
     checkOutTime: kstHhmm(record?.checkOutAt),
     reason: '',
   }));
@@ -582,7 +585,16 @@ function CorrectAttendanceModal({
   );
 }
 
-function AttendanceHistory({ staffId, canCorrect }: { staffId: string; canCorrect: boolean }) {
+function AttendanceHistory({
+  staffId,
+  canCorrect,
+  defaultCheckIn,
+}: {
+  staffId: string;
+  canCorrect: boolean;
+  // log/199 — 누락일 등록의 출근 시각 기본값 = 파견 지점의 기준 출근 시각(지각 판정 기준, 근태관리 A-6)
+  defaultCheckIn: string;
+}) {
   const [month, setMonth] = useState(kstMonth);
   // undefined = 닫힘, null = 누락일 등록, 행 = 그 기록 정정
   const [editing, setEditing] = useState<AttendanceRecordRow | null | undefined>(undefined);
@@ -661,7 +673,12 @@ function AttendanceHistory({ staffId, canCorrect }: { staffId: string; canCorrec
         </>
       )}
       {editing !== undefined && (
-        <CorrectAttendanceModal staffId={staffId} record={editing ?? undefined} onClose={() => setEditing(undefined)} />
+        <CorrectAttendanceModal
+          staffId={staffId}
+          record={editing ?? undefined}
+          defaultCheckIn={defaultCheckIn}
+          onClose={() => setEditing(undefined)}
+        />
       )}
     </div>
   );
@@ -878,7 +895,13 @@ export function StaffDetailPage() {
 
       {user?.role !== 'STAFF' && <AssignmentHistory staffId={staff.id} />}
       {/* ADR-ATT-04 — 정정은 그 직원이 파견된 지점의 관리자만(본사는 조회). */}
-      {user?.role !== 'STAFF' && <AttendanceHistory staffId={staff.id} canCorrect={isOwnBranchAdmin && can('attendance', 'UPDATE')} />}
+      {user?.role !== 'STAFF' && (
+        <AttendanceHistory
+          staffId={staff.id}
+          canCorrect={isOwnBranchAdmin && can('attendance', 'UPDATE')}
+          defaultCheckIn={branchesQuery.data?.find((b) => b.id === staff.branchId)?.standardCheckInTime ?? ''}
+        />
+      )}
       {user?.role !== 'STAFF' && <LeaveHistory staffId={staff.id} />}
       {user?.role !== 'STAFF' && <WorkLogHistory staffId={staff.id} />}
       {user?.role !== 'STAFF' && <HrDocuments staffId={staff.id} />}

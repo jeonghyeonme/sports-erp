@@ -71,6 +71,7 @@ describe('지점 원천(DB)과 시드 원천', () => {
         contractStatus: 'ACTIVE',
         contractStartAt: '2024-03-01',
         contractEndAt: '2027-02-28',
+        standardCheckInTime: '09:00', // 누락일 등록 출근 시각 기본값(log/199)
         memberCount: expect.any(Number),
         staffCount: expect.any(Number),
         runningProgramCount: expect.any(Number),
