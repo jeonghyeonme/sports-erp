@@ -67,6 +67,8 @@ test('B04 PT 세션 차감', async ({ page }, info) => {
 });
 
 test('B05 오늘 예약 회원 체크인', async ({ page }, info) => {
+  // 체크인은 회차 당일만(ADR-RSV-08)이고 지난 회차는 예약할 수 없다 — 23시(KST) 이후에는 오늘 23:00 회차를 만들 수 없어 건너뛴다(log/204).
+  test.skip(new Date(Date.now() + 9 * 3600_000).getUTCHours() >= 23, '23시(KST) 이후에는 오늘 회차를 만들 수 없다');
   // 준비: 오늘 늦은 회차 + 회원 예약·결제(화면 대상이 아님 — api)
   const admin = await apiAs(ACCOUNTS.seochoAdmin);
   const slot = await admin.post('programs/program-seocho-yoga/slots', { data: { date: kstDate(0), startTime: '23:00', endTime: '23:50' } });

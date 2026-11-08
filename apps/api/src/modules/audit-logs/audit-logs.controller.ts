@@ -19,10 +19,11 @@ export class AuditLogsController {
     @Query('action') action?: string,
     @Query('page') pageQuery?: string,
     @Query('limit') limitQuery?: string,
+    @Query('q') q?: string,
   ) {
     const page = Math.max(1, Math.trunc(Number(pageQuery)) || 1);
     const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.trunc(Number(limitQuery)) || 20));
-    const { items, total } = await this.auditLogs.list({ entity, entityId, action, page, pageSize });
+    const { items, total } = await this.auditLogs.list({ entity, entityId, action, q, page, pageSize });
     return ok(items, { page, pageSize, total });
   }
 }

@@ -9,6 +9,7 @@ import { apiErrorMessage, useApiPage } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
 import { Pager } from '../components/Pager';
 import { ApiEnvelope, SupportCategory, SupportRequestRow, SupportStatus } from '../lib/types';
+import { useDebouncedValue } from '../lib/use-debounced';
 
 // D56 — 업무지원 요청(RFP 개념도 현장→본사). 지점 관리자는 요청·자기 지점 요청 확인, 본사는 전 지점 요청 처리.
 
@@ -210,10 +211,14 @@ export function SupportRequestsPage() {
   const isBranchAdmin = user?.role === 'BRANCH_ADMIN';
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [status, setStatus] = useState<SupportStatus | ''>(isSuperAdmin ? 'REQUESTED' : '');
+  // D74 2차(log/204) — 치는 대로 검색(0.3초 뒤 서버). 검색어가 바뀌면 1쪽부터.
+  const [searchInput, setSearchInput] = useState('');
+  const q = useDebouncedValue(searchInput.trim());
   const [page, setPage] = useState(1);
-  const [prevStatus, setPrevStatus] = useState(status);
-  if (status !== prevStatus) {
-    setPrevStatus(status);
+  const filterKey = `${status}|${q}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setPage(1);
   }
   const [showNew, setShowNew] = useState(false);
@@ -221,8 +226,9 @@ export function SupportRequestsPage() {
 
   const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
   if (status) params.set('status', status);
+  if (q) params.set('q', q);
   const { data, isLoading, isFetching, isError, error } = useApiPage<SupportRequestRow>(
-    ['support-requests', status, page],
+    ['support-requests', status, q, page],
     `/support-requests?${params}`,
     { enabled: isBranchAdmin || isSuperAdmin },
   );
@@ -251,6 +257,15 @@ export function SupportRequestsPage() {
       </div>
 
       <div className="list-toolbar">
+        <input
+          className="search-input"
+          type="search"
+          placeholder="제목 · 요청자 검색"
+          aria-label="업무지원 요청 검색"
+          value={searchInput}
+          maxLength={50}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
         <select
           className="role-select"
           aria-label="상태"

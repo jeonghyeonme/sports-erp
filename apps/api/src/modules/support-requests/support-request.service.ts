@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, SupportRequest, SupportRequestStatus } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
-import { PageRequest } from '../../common/http/pagination';
+import { PageRequest, searchTerm } from '../../common/http/pagination';
 import { lockBranchForShare } from '../../prisma/integrity';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -72,11 +72,19 @@ export class SupportRequestService {
   }
 
   // 최근 것부터. 지점 관리자는 가드가 branchId를 본인 지점으로 고정해 넘긴다(D46).
-  async list(filter: { branchId?: string; status?: string }, page: PageRequest): Promise<{ items: SupportRequestView[]; total: number }> {
+  async list(
+    filter: { branchId?: string; status?: string; q?: string },
+    page: PageRequest,
+  ): Promise<{ items: SupportRequestView[]; total: number }> {
     if (filter.status && !STATUSES.includes(filter.status as SupportRequestStatus)) return { items: [], total: 0 };
+    // D74 2차(log/204) — 제목·요청자 이름으로 찾는다.
+    const q = searchTerm(filter.q);
     const where: Prisma.SupportRequestWhereInput = {
       branchId: filter.branchId || undefined,
       status: (filter.status as SupportRequestStatus) || undefined,
+      OR: q
+        ? [{ title: { contains: q, mode: 'insensitive' } }, { requester: { name: { contains: q, mode: 'insensitive' } } }]
+        : undefined,
     };
     const [total, rows] = await Promise.all([
       this.prisma.supportRequest.count({ where }),

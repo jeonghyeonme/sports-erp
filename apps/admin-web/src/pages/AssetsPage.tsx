@@ -15,6 +15,7 @@ import { ASSET_CATEGORY_LABEL, ASSET_STATUS_LABEL, ASSET_TYPE_LABEL } from '../l
 import { ExportCsvButton } from '../components/ExportCsvButton';
 import { fetchAllPages, kstDateStamp } from '../lib/csv';
 import { ASSET_COLUMNS } from '../lib/export-columns';
+import { useDebouncedValue } from '../lib/use-debounced';
 
 const PAGE_SIZE = 20;
 const FIXED_ASSET_THRESHOLD = 1_000_000;
@@ -328,9 +329,12 @@ export function AssetsPage() {
   const [branchId, setBranchId] = useState('');
   // '' = 기본 목록(폐기 제외, B8 사용자 결정). 폐기 자산은 'DISPOSED'를 골라 따로 본다.
   const [statusFilter, setStatusFilter] = useState<'' | AssetStatus>('');
+  // D74 2차(log/204) — 치는 대로 검색(0.3초 뒤 서버). 검색어가 바뀌면 1쪽부터.
+  const [searchInput, setSearchInput] = useState('');
+  const q = useDebouncedValue(searchInput.trim());
   const [page, setPage] = useState(1);
 
-  const filterKey = `${branchId}|${statusFilter}`;
+  const filterKey = `${branchId}|${statusFilter}|${q}`;
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
   if (filterKey !== prevFilterKey) {
     setPrevFilterKey(filterKey);
@@ -341,8 +345,9 @@ export function AssetsPage() {
   const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
   if (branchId) params.set('branchId', branchId);
   if (statusFilter) params.set('status', statusFilter);
+  if (q) params.set('q', q);
   const { data, isLoading, isFetching, isError, error } = useApiPage<AssetRow>(
-    ['assets', branchId, statusFilter, page],
+    ['assets', branchId, statusFilter, q, page],
     `/assets?${params}`,
   );
   const rows = data?.rows ?? [];
@@ -380,6 +385,15 @@ export function AssetsPage() {
 
       <div className="list-toolbar" style={{ gap: 8 }}>
         {isSuperAdmin && <BranchFilter value={branchId} onChange={setBranchId} />}
+        <input
+          className="search-input"
+          type="search"
+          placeholder="자산코드 · 품명 · 위치 검색"
+          aria-label="자산 검색"
+          value={searchInput}
+          maxLength={50}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
         {(['', 'NORMAL', 'REPAIRING', 'DISPOSAL_PENDING', 'DISPOSED'] as const).map((s) => (
           <button
             key={s || 'BASE'}
@@ -399,6 +413,7 @@ export function AssetsPage() {
             const p = new URLSearchParams({ export: 'true' });
             if (branchId) p.set('branchId', branchId);
             if (statusFilter) p.set('status', statusFilter);
+            if (q) p.set('q', q);
             return fetchAllPages<AssetRow>('/assets', p);
           }}
         />

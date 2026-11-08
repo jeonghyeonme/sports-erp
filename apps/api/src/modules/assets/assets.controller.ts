@@ -30,12 +30,13 @@ export class AssetsController {
     @Query('assetType') assetType?: string,
     @Query('page') pageQuery?: string,
     @Query('limit') limitQuery?: string,
+    @Query('q') q?: string,
   ) {
     const page = parsePage(pageQuery, limitQuery);
     // BRANCH_ADMIN이면 가드가 branchId를 본인 지점으로 고정해 넘긴다(다른 지점 지정은 403).
     if (user.role === 'BRANCH_ADMIN' && !branchId) return ok([], pageMeta(page, 0));
     // D43 — offset 페이지네이션(page·limit, 상한 100).
-    const { items, total } = await this.assets.list({ branchId, category, status, assetType }, page);
+    const { items, total } = await this.assets.list({ branchId, category, status, assetType, q }, page);
     return ok(items, pageMeta(page, total));
   }
 

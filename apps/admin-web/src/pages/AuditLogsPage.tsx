@@ -6,6 +6,7 @@ import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { ApiEnvelope, AuditLogRow, BranchSummary, PermissionCatalog } from '../lib/types';
 import { useAuth } from '../lib/use-auth';
 import { CONTRACT_ACTION_LABEL, describeContractChange } from '../lib/contract-status';
+import { useDebouncedValue } from '../lib/use-debounced';
 
 const PAGE_SIZE = 20;
 
@@ -80,21 +81,26 @@ export function AuditLogsPage() {
   // 다른 역할이면 부르지 않고 바로 안내한다(권한 판정 자체는 서버가 한다).
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [action, setAction] = useState('');
+  // D74 2차(log/204) — 치는 대로 검색(0.3초 뒤 서버). 검색어가 바뀌면 1쪽부터.
+  const [searchInput, setSearchInput] = useState('');
+  const q = useDebouncedValue(searchInput.trim());
   const [page, setPage] = useState(1);
 
   // 필터가 바뀌면 페이지를 1로 — effect 대신 렌더 중 이전 값 비교(BoardPage와 같은 패턴).
-  const [prevAction, setPrevAction] = useState(action);
-  if (action !== prevAction) {
-    setPrevAction(action);
+  const filterKey = `${action}|${q}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setPage(1);
   }
 
   const { data, isLoading, isError, error } = useQuery<{ rows: AuditLogRow[]; total: number }, AxiosError<ApiErrorBody>>({
-    queryKey: ['audit-logs', action, page],
+    queryKey: ['audit-logs', action, q, page],
     enabled: isSuperAdmin,
     queryFn: async () => {
       const actionParam = action ? `&action=${action}` : '';
-      const res = await api.get<ApiEnvelope<AuditLogRow[]>>(`/audit-logs?page=${page}&limit=${PAGE_SIZE}${actionParam}`);
+      const qParam = q ? `&q=${encodeURIComponent(q)}` : '';
+      const res = await api.get<ApiEnvelope<AuditLogRow[]>>(`/audit-logs?page=${page}&limit=${PAGE_SIZE}${actionParam}${qParam}`);
       return { rows: res.data.data ?? [], total: res.data.meta?.total ?? 0 };
     },
   });
@@ -189,6 +195,15 @@ export function AuditLogsPage() {
       </div>
 
       <div className="list-toolbar">
+        <input
+          className="search-input"
+          type="search"
+          placeholder="대상 · 처리자 이름 검색"
+          aria-label="변경 이력 검색"
+          value={searchInput}
+          maxLength={50}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
         <select className="role-select" value={action} onChange={(e) => setAction(e.target.value)} aria-label="이벤트 종류">
           <option value="">전체 이벤트</option>
           {Object.entries(ACTION_LABEL).map(([value, label]) => (

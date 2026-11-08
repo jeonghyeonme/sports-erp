@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Payment, PaymentStatus, Prisma, Reservation, ReservationStatus, ScheduleSlot } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
-import { PageRequest } from '../../common/http/pagination';
+import { PageRequest, searchTerm } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACTIVE_RESERVATION_STATUSES, lockBranchForShare, lockReservation, lockScheduleSlot } from '../../prisma/integrity';
 import { MockPayment, MockReservation, MockScheduleSlot } from '../../fixtures/mock-data.types';
@@ -44,7 +44,7 @@ export class ReservationService {
   /** 예약및결제 A-5·A-7 — 범위(회원 본인·지점·회원 지정)는 컨트롤러가 정해서 넘긴다. */
   /** D43 — 쪽 단위 + total, 최근 예약부터(B8 사용자 결정, log/088). 회원 웹 "내 예약"도 이 순서로 받는다. */
   async list(
-    filter: { memberId?: string; branchId?: string; status?: string; dateFrom?: string; dateTo?: string },
+    filter: { memberId?: string; branchId?: string; status?: string; dateFrom?: string; dateTo?: string; q?: string },
     page: PageRequest,
   ): Promise<{ items: ReservationView[]; total: number }> {
     if (filter.status && !RESERVATION_STATUSES.includes(filter.status as ReservationStatus)) return { items: [], total: 0 };
@@ -59,9 +59,18 @@ export class ReservationService {
           ...(filter.dateTo ? { lte: new Date(`${filter.dateTo}T00:00:00Z`) } : {}),
         }
       : undefined;
+    // D74 2차(log/204) — 회원 이름·회원번호·프로그램 이름으로 찾는다(체크인할 사람 찾기).
+    const q = searchTerm(filter.q);
     const where: Prisma.ReservationWhereInput = {
       memberId: filter.memberId,
       status: filter.status as ReservationStatus | undefined,
+      OR: q
+        ? [
+            { member: { name: { contains: q, mode: 'insensitive' } } },
+            { member: { memberNo: { contains: q, mode: 'insensitive' } } },
+            { scheduleSlot: { program: { name: { contains: q, mode: 'insensitive' } } } },
+          ]
+        : undefined,
       scheduleSlot:
         filter.branchId || date ? { program: filter.branchId ? { branchId: filter.branchId } : undefined, date } : undefined,
     };

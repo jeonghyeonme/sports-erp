@@ -57,6 +57,33 @@ test('지점 관리자: 프로그램 목록 머리글을 누르면 이름순·�
   expect(await names()).toEqual([...asc].reverse());
 });
 
+// D74 2차(log/204) — 예약 현황은 회원 이름으로 찾는다(치는 대로). 이틀 뒤 예약을 api로 만들고(오늘 늦은 시각은 지나 있을 수 있다)
+// 화면의 날짜 범위를 그날로 맞춘 뒤 거른다.
+test('지점 관리자: 예약 현황에서 회원 이름을 치면 그 회원 예약만 남는다', async ({ page }) => {
+  const admin = await apiAs(ACCOUNTS.seochoAdmin);
+  const day = kstDate(2);
+  const slot = await admin.post('programs/program-seocho-yoga/slots', { data: { date: day, startTime: '23:10', endTime: '23:55' } });
+  expect(slot.ok(), await slot.text()).toBeTruthy();
+  const slotId = (await slot.json()).data.id as string;
+  await admin.dispose();
+  const member = await apiAs(ACCOUNTS.seochoMember);
+  const r = await member.post('reservations', { data: { scheduleSlotId: slotId } });
+  expect(r.ok(), await r.text()).toBeTruthy();
+  await member.dispose();
+
+  await adminLogin(page, ACCOUNTS.seochoAdmin);
+  await openMenu(page, '/reservations');
+  await page.getByLabel('회차 종료일').fill(day);
+  await page.getByLabel('회차 시작일').fill(day);
+  const search = page.getByRole('searchbox', { name: '예약 검색' });
+  await search.fill('이수진');
+  const rows = page.locator('.detail-section', { hasText: '예약 현황' }).locator('tbody tr');
+  await expect(rows.filter({ hasText: '23:10' })).toHaveCount(1);
+  for (const text of await rows.allInnerTexts()) expect(text).toContain('이수진');
+  await search.fill('없는회원zz');
+  await expect(page.getByText('조건에 맞는 예약이 없습니다.')).toBeVisible();
+});
+
 test('지점 관리자: 내일 회차를 등록하면 주간 시간표에 보인다', async ({ page }) => {
   await adminLogin(page, ACCOUNTS.seochoAdmin);
   await openMenu(page, '/reservations');
