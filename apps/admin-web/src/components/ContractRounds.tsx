@@ -8,6 +8,7 @@ import { CONTRACT_FILE_ACCEPT, CONTRACT_FILE_MAX_BYTES, openContractFile, upload
 import { CONTRACT_FILE_KIND_LABEL } from '../lib/contract-status';
 import { ApiEnvelope, BranchSummary, ContractFileKind, ContractFileRow, ContractRoundRow } from '../lib/types';
 import { Modal } from './Modal';
+import { ConfirmModal } from './ConfirmModal';
 
 interface ApiErrorBody {
   code?: string;
@@ -21,6 +22,8 @@ export function ContractRounds({ branch, canEdit }: { branch: BranchSummary; can
   const queryClient = useQueryClient();
   const [uploadKind, setUploadKind] = useState<ContractFileKind | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
+  // D74 — 실물 이관 확인(브라우저 confirm 대신)
+  const [confirmArchive, setConfirmArchive] = useState<ContractFileRow | null>(null);
   const query = useQuery<ContractRoundRow[], AxiosError<ApiErrorBody>>({
     queryKey: ['contract-rounds', branch.id],
     queryFn: async () => (await api.get<ApiEnvelope<ContractRoundRow[]>>(`/branches/${branch.id}/contract/rounds`)).data.data ?? [],
@@ -113,11 +116,7 @@ export function ContractRounds({ branch, canEdit }: { branch: BranchSummary; can
                           className="link-button"
                           style={{ marginLeft: 8 }}
                           disabled={archive.isPending}
-                          onClick={() => {
-                            if (window.confirm(`${f.fileName}을(를) 실물로 보관했나요? 실물 이관 완료로 표시합니다(보존 끝까지는 계속 열람할 수 있습니다).`)) {
-                              archive.mutate(f);
-                            }
-                          }}
+                          onClick={() => setConfirmArchive(f)}
                         >
                           실물 이관 완료
                         </button>
@@ -141,6 +140,20 @@ export function ContractRounds({ branch, canEdit }: { branch: BranchSummary; can
         </div>
       )}
       {uploadKind && <ContractFileModal branch={branch} kind={uploadKind} onClose={() => setUploadKind(null)} />}
+      {confirmArchive && (
+        <ConfirmModal
+          title="실물 이관 완료 표시"
+          confirmLabel="실물 이관 완료"
+          pending={archive.isPending}
+          onClose={() => setConfirmArchive(null)}
+          onConfirm={() => archive.mutate(confirmArchive, { onSettled: () => setConfirmArchive(null) })}
+        >
+          <p style={{ marginTop: 0 }}>
+            <strong>{confirmArchive.fileName}</strong>을(를) 실물로 보관했나요?
+          </p>
+          <p className="page-desc">실물 이관 완료로 표시합니다. 보존 끝까지는 계속 열람할 수 있습니다.</p>
+        </ConfirmModal>
+      )}
     </>
   );
 }

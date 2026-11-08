@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { Link } from 'react-router-dom';
@@ -7,6 +8,7 @@ import { useAuth } from '../lib/use-auth';
 import { useToast } from '../lib/use-toast';
 import { CONTRACT_FILE_KIND_LABEL } from '../lib/contract-status';
 import { ApiEnvelope, ContractRetentionOverview, ContractRetentionRow } from '../lib/types';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 interface ApiErrorBody {
   code?: string;
@@ -20,6 +22,7 @@ export function ContractRetentionPage() {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const queryClient = useQueryClient();
   const toast = useToast();
+  const [confirmPurge, setConfirmPurge] = useState(false);
   const query = useQuery<ContractRetentionOverview, AxiosError<ApiErrorBody>>({
     queryKey: ['contract-retention'],
     enabled: isSuperAdmin,
@@ -89,19 +92,25 @@ export function ContractRetentionPage() {
                     type="button"
                     className="btn-secondary primary"
                     disabled={purge.isPending}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `위 ${purgeCandidates.length}개 파일을 시스템에서 지웁니다. 되돌릴 수 없고, 이후에는 실물 보관본만 남습니다. 정리할까요?`,
-                        )
-                      ) {
-                        purge.mutate(purgeCandidates.map((r) => r.id));
-                      }
-                    }}
+                    onClick={() => setConfirmPurge(true)}
                   >
                     보존 끝난 파일 정리
                   </button>
                 </div>
+                {/* D74 — 되돌릴 수 없는 정리라 확인 창의 버튼을 빨간 테두리로 */}
+                {confirmPurge && (
+                  <ConfirmModal
+                    title="보존 끝난 파일 정리"
+                    confirmLabel={`${purgeCandidates.length}개 정리`}
+                    danger
+                    pending={purge.isPending}
+                    onClose={() => setConfirmPurge(false)}
+                    onConfirm={() => purge.mutate(purgeCandidates.map((r) => r.id), { onSettled: () => setConfirmPurge(false) })}
+                  >
+                    <p style={{ marginTop: 0 }}>위 {purgeCandidates.length}개 파일을 시스템에서 지웁니다.</p>
+                    <p className="page-desc">되돌릴 수 없고, 이후에는 실물 보관본만 남습니다.</p>
+                  </ConfirmModal>
+                )}
               </>
             )}
           </section>

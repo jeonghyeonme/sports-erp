@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AxiosError } from 'axios';
@@ -200,6 +200,13 @@ export function MembersPage() {
   const rows = data?.rows ?? [];
   const total = data?.total ?? 0;
 
+  // D74 — 검색은 치는 대로(0.3초 뒤 서버 검색, 다른 목록의 화면 검색·상단 빠른 찾기와 같은 방식). Enter는 바로 적용.
+  useEffect(() => {
+    const next = searchInput.trim();
+    const timer = setTimeout(() => setQ(next), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const submitSearch = (e: FormEvent) => {
     e.preventDefault();
     setQ(searchInput.trim());
@@ -239,9 +246,6 @@ export function MembersPage() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
-        <button type="submit" className="btn-secondary">
-          검색
-        </button>
         {/* M6 — 지금 조건(지점·상태·검색) 그대로 전체 쪽을 받는다. 연락처는 마스킹 값 그대로(ADR-MEM-04). */}
         <ExportCsvButton
           filename={`members_${kstDateStamp()}.csv`}

@@ -12,8 +12,7 @@ test('지점 관리자: 회원을 등록하고 검색으로 찾는다', async ({
   await field(page, '연락처').fill('010-5555-0101');
   await page.getByRole('button', { name: '등록', exact: true }).click();
 
-  await page.getByPlaceholder('이름 · 회원번호 · 전화번호').fill(name);
-  await page.getByRole('button', { name: '검색' }).click();
+  await page.getByPlaceholder('이름 · 회원번호 · 전화번호').fill(name); // D74 — 치는 대로 검색(검색 버튼 없음)
   const row = page.locator('main table tbody tr', { hasText: name });
   await expect(row).toHaveCount(1);
   await expect(row).toContainText('010-****-0101'); // 목록은 전화번호 마스킹(ADR-MEM-04)
@@ -41,6 +40,21 @@ test('지점 관리자: 상단 회원 찾기로 상세에 바로 가고, 남은 
 
   await page.getByRole('button', { name: '수강내역' }).click();
   await expect(page).toHaveURL(/\/members\/member-sujin\?tab=enrollments$/);
+});
+
+// D74 — 화면 전체 로드 목록은 머리글을 눌러 정렬한다(오름 → 내림 → 해제), 지금 방향은 aria-sort.
+test('지점 관리자: 프로그램 목록 머리글을 누르면 이름순·역순으로 정렬된다', async ({ page }) => {
+  await adminLogin(page, ACCOUNTS.seochoAdmin);
+  await openMenu(page, '/programs');
+  const header = page.getByRole('columnheader', { name: /프로그램명/ });
+  const names = async () => (await page.locator('main table tbody tr td:first-child').allInnerTexts()).map((t) => t.trim());
+  await header.getByRole('button').click();
+  await expect(header).toHaveAttribute('aria-sort', 'ascending');
+  const asc = await names();
+  expect(asc).toEqual([...asc].sort((a, b) => a.localeCompare(b, 'ko', { numeric: true })));
+  await header.getByRole('button').click();
+  await expect(header).toHaveAttribute('aria-sort', 'descending');
+  expect(await names()).toEqual([...asc].reverse());
 });
 
 test('지점 관리자: 내일 회차를 등록하면 주간 시간표에 보인다', async ({ page }) => {
