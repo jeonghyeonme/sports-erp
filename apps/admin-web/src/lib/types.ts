@@ -515,6 +515,12 @@ export interface MonthlyPerformance {
   newMembers: number;
 }
 
+// D75 — GET /branches/performance(본사): 전사 월별 추이 + 지난달 지점별 순매출(큰 것부터).
+export interface CompanyPerformance {
+  trend: MonthlyPerformance[];
+  byBranch: { month: string; rows: Array<{ branchId: string; branchName: string; contractStatus: BranchContractStatus; revenue: number }> };
+}
+
 // D60 — 세부 권한(권한관리 ADR-AUTH-07). GET /permissions/catalog·/permissions/roles·/permissions/staff/:id/overrides
 export type PermissionAction = 'READ' | 'CREATE' | 'UPDATE' | 'DELETE' | 'EXPORT';
 export type GovernedRole = 'BRANCH_ADMIN' | 'STAFF';

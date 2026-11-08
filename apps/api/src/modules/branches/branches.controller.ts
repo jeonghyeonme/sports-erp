@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -15,7 +15,14 @@ import { CreateBranchDto } from './dto/create-branch.dto';
 import { PurgeContractFilesDto, SetContractFileDto } from './dto/contract-file.dto';
 import { RequestUploadDto } from '../posts/dto/attachment.dto';
 import { ContractFileService } from './contract-file.service';
-import { branchPerformance } from './branch-performance';
+import {
+  PERFORMANCE_MAX_MONTHS,
+  branchPerformance,
+  branchRevenueForMonth,
+  companyPerformance,
+  monthKeys,
+  parseMonths,
+} from './branch-performance';
 import { Permission } from '../../common/permissions/permission.decorator';
 
 @Controller('branches')
@@ -155,13 +162,29 @@ export class BranchesController {
     return ok(await this.contractFiles.downloadUrl(branchId, fileId, user));
   }
 
-  // log/125 F3 — 지점 운영 실적(최근 3개월, 월별). 본사가 계약 갱신 판단에 쓴다. 지점 관리자는 자기 지점만(전역 가드).
+  // log/125 F3 — 지점 운영 실적(월별, 기본 최근 3개월). 본사가 계약 갱신 판단에 쓴다. 지점 관리자는 자기 지점만(전역 가드).
+  // D75(log/208) — 차트는 ?months=13(지난 12개월 + 이번 달 진행 중)까지.
   @Get(':branchId/performance')
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   @BranchScopeExempt('경로 파라미터가 branchId라 전역 BranchScopeGuard의 branchId 검사가 본다')
   @Permission('branch', 'READ')
-  async performance(@Param('branchId') branchId: string) {
-    return ok(await branchPerformance(this.prisma, branchId));
+  async performance(@Param('branchId') branchId: string, @Query('months') monthsQuery?: string) {
+    return ok(await branchPerformance(this.prisma, branchId, parseMonths(monthsQuery, 3)));
+  }
+
+  // D75(log/208) — 전사 운영 실적(본사 대시보드): 월별 추이 + 지난달(다 끝난 달) 지점별 순매출. 본사 전용.
+  @Get('performance')
+  @Roles('SUPER_ADMIN')
+  @BranchScopeExempt('본사 전용 전사 집계 — 지점 범위가 없다')
+  async companyPerformance(@Query('months') monthsQuery?: string) {
+    const months = parseMonths(monthsQuery, PERFORMANCE_MAX_MONTHS);
+    const keys = monthKeys(2);
+    const lastMonth = keys[0];
+    const [trend, byBranch] = await Promise.all([
+      companyPerformance(this.prisma, months),
+      branchRevenueForMonth(this.prisma, lastMonth),
+    ]);
+    return ok({ trend, byBranch: { month: lastMonth, rows: byBranch } });
   }
 
   // 강사프로그램게시 A-5 — 지점별 진행중 프로그램 현황판

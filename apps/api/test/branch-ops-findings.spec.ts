@@ -98,6 +98,42 @@ describe('예약 체크인·날짜 필터·지점 운영 실적 (log/125 F3·F5�
       return res.body.data as Array<{ month: string; revenue: number; refunded: number; reservations: number; completed: number; newMembers: number }>;
     };
 
+    // D75(log/208) — 차트용 기간·전사 집계
+    it('months는 1~13(지난 12개월 + 이번 달), 범위 밖은 13으로 자르고 숫자가 아니면 기본 3', async () => {
+      const hq = await login(app, ACCOUNTS.superAdmin);
+      const get = async (q: string) => (await call(hq, 'get', `/branches/${BRANCH.seocho}/performance${q}`)).body.data as unknown[];
+      expect(await get('?months=13')).toHaveLength(13);
+      expect(await get('?months=99')).toHaveLength(13);
+      expect(await get('?months=abc')).toHaveLength(3);
+    });
+
+    it('전사 추이는 모든 지점 월별 값의 합이고, 지점 비교는 지난달 지점별 순매출(큰 것부터)이다 — 본사 전용', async () => {
+      const hq = await login(app, ACCOUNTS.superAdmin);
+      const res = await call(hq, 'get', '/branches/performance?months=4');
+      expect(res.status).toBe(200);
+      const { trend, byBranch } = res.body.data as {
+        trend: Array<{ month: string; revenue: number; reservations: number; completed: number; newMembers: number }>;
+        byBranch: { month: string; rows: Array<{ branchId: string; revenue: number }> };
+      };
+      expect(trend).toHaveLength(4);
+      const branches = await db(app).branch.findMany({ select: { id: true } });
+      const per = await Promise.all(
+        branches.map(async (b) => (await call(hq, 'get', `/branches/${b.id}/performance?months=4`)).body.data as typeof trend),
+      );
+      for (const key of ['revenue', 'reservations', 'completed', 'newMembers'] as const) {
+        trend.forEach((m, i) => expect(m[key]).toBe(per.reduce((sum, rows) => sum + rows[i][key], 0)));
+      }
+      expect(byBranch.month).toBe(trend[2].month); // 지난달 = 이번 달 바로 앞
+      expect(byBranch.rows).toHaveLength(branches.length);
+      const revenues = byBranch.rows.map((r) => r.revenue);
+      expect(revenues).toEqual([...revenues].sort((a, b) => b - a));
+      const seochoIndex = branches.findIndex((b) => b.id === BRANCH.seocho);
+      expect(byBranch.rows.find((r) => r.branchId === BRANCH.seocho)!.revenue).toBe(per[seochoIndex][2].revenue);
+
+      const admin = await login(app, ACCOUNTS.seochoAdmin);
+      expect((await call(admin, 'get', '/branches/performance')).status).toBe(403);
+    });
+
     it('최근 3개월을 오래된 달부터 돌려주고, 마지막이 이번 달(KST)이다', async () => {
       const rows = await perf(await login(app, ACCOUNTS.superAdmin));
       expect(rows).toHaveLength(3);

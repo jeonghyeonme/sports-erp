@@ -30,6 +30,7 @@ import { ContractStatusModal } from '../components/ContractStatusModal';
 import { ContractEditMode, ContractEditModal } from '../components/ContractEditModal';
 import { ContractRounds } from '../components/ContractRounds';
 import { MEMBER_STATUS_LABEL } from '../lib/status-labels';
+import { PerformanceCharts, PerformanceStatTiles } from '../components/charts/PerformanceCharts';
 
 const PRICING_LABEL: Record<ProgramRow['pricingType'], string> = {
   FREE_ACCESS: '자유이용',
@@ -162,8 +163,12 @@ export function BranchDetailPage() {
     enabled: !!branchId,
   });
   const facilitiesQuery = useApiList<FacilityRow>(['facilities', branchId], `/facilities?branchId=${branchId}`);
-  // log/125 F3 — 계약 갱신 판단 근거(사업 구조의 "운영 데이터 → 계약 판단"). 최근 3개월, 오래된 달부터.
-  const performanceQuery = useApiList<MonthlyPerformance>(['branch-performance', branchId], `/branches/${branchId}/performance`, !!branchId);
+  // log/125 F3 — 계약 갱신 판단 근거(사업 구조의 "운영 데이터 → 계약 판단"). D75 — 지난 12개월 + 이번 달, 오래된 달부터.
+  const performanceQuery = useApiList<MonthlyPerformance>(
+    ['branch-performance', branchId, 13],
+    `/branches/${branchId}/performance?months=13`,
+    !!branchId,
+  );
   // ADR-RES-01 — 계약종료 지점의 잔여 자산은 자동 처리하지 않고 경고만 노출한다(자원문서관리 A-6).
   // D43 — 자산 기본 목록은 폐기를 뺀 목록이라 그 total이 곧 미처리 자산 수다(1건만 받아 total만 쓴다).
   const assetsQuery = useApiPage<AssetRow>(['assets', branchId, 'unprocessed'], `/assets?branchId=${branchId}&limit=1`);
@@ -267,41 +272,21 @@ export function BranchDetailPage() {
       </section>
 
       <section className="detail-section">
-        <h3 className="section-title">운영 실적 (최근 3개월)</h3>
+        <h3 className="section-title">운영 실적 (지난 12개월 + 이번 달)</h3>
         {performanceQuery.isError ? (
           <div className="forbidden-note">{apiErrorMessage(performanceQuery.error)}</div>
+        ) : performanceQuery.isLoading ? (
+          <div className="loading-state">불러오는 중...</div>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>월</th>
-                <th>회차 결제 순매출</th>
-                <th>환불</th>
-                <th>예약</th>
-                <th>이용 완료</th>
-                <th>신규 회원</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(performanceQuery.data ?? []).map((m) => (
-                <tr key={m.month}>
-                  <td>{m.month}</td>
-                  <td>{m.revenue.toLocaleString()}원</td>
-                  <td>{m.refunded > 0 ? `${m.refunded.toLocaleString()}원` : '-'}</td>
-                  <td>{m.reservations.toLocaleString()}건</td>
-                  <td>
-                    {m.completed.toLocaleString()}건
-                    {m.reservations > 0 && ` (${Math.round((m.completed / m.reservations) * 100)}%)`}
-                  </td>
-                  <td>{m.newMembers}명</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <>
+            {/* D75 — 끝난 달 기준 숫자 카드, 월별 차트 4장, 표로 보기 */}
+            <PerformanceStatTiles rows={performanceQuery.data ?? []} />
+            <PerformanceCharts
+              rows={performanceQuery.data ?? []}
+              note="순매출은 회차 예약 결제의 그달 승인액에서 그달 환불액을 뺀 값입니다(수강·PT 패키지 판매는 빠집니다). 이번 달은 오늘까지라 옅게 그립니다."
+            />
+          </>
         )}
-        <p className="page-desc">
-          순매출은 회차 예약 결제의 그달 승인액에서 그달 환불액을 뺀 값입니다(수강·PT 패키지 판매는 빠집니다). 이번 달은 오늘까지입니다.
-        </p>
       </section>
 
       <section className="detail-section">

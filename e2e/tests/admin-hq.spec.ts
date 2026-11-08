@@ -68,3 +68,23 @@ test('본사: 대시보드에서 계약서와 함께 새 지점을 등록하면 
   await expect(card.locator('table').last()).toContainText('지점 등록');
   await expect(card.locator('table').last()).toContainText('코드 PANGYO');
 });
+
+// D75 — 운영 실적 시각화: 대시보드 숫자 카드(지난달·전달 대비·추세선)와 월별 차트, 막대에 키보드 초점을 주면 툴팁,
+// 지점 상세는 13개월(지난 12개월 + 이번 달) 차트와 같은 값의 "표로 보기".
+test('본사: 대시보드에 운영 실적 숫자 카드·월별 차트가 있고, 지점 상세 표로 보기는 13개월이다', async ({ page }) => {
+  await adminLogin(page, ACCOUNTS.hq);
+  await expect(page.locator('.stat-tile')).toHaveCount(4);
+  await expect(page.locator('.stat-tile').first()).toContainText('회차 결제 순매출');
+  const revenueChart = page.locator('.chart-card', { hasText: '회차 결제 순매출' }).first();
+  await expect(revenueChart.locator('.chart-hit')).toHaveCount(13); // 달마다 마우스·키보드 대상(기준 시드는 매출 0이라 막대가 없을 수 있다)
+  await page.mouse.move(0, 0); // 마우스가 다른 막대 위에 남아 있으면 그 툴팁이 이긴다
+  await revenueChart.locator('.chart-hit').last().focus();
+  await expect(revenueChart.locator('.chart-tooltip')).toContainText('진행 중');
+
+  await page.getByText('서초점').first().click();
+  await expect(page).toHaveURL(/\/branches\//);
+  const section = page.locator('section', { hasText: '운영 실적 (지난 12개월' });
+  await section.getByText('표로 보기').click();
+  await expect(section.locator('.chart-table tbody tr')).toHaveCount(13);
+  await expect(section.locator('.chart-table tbody tr').first()).toContainText('(진행 중)');
+});
