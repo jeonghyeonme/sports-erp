@@ -20,7 +20,8 @@ export class AssetsController {
   constructor(private readonly assets: AssetService) {}
 
   @Get()
-  @Permission('asset', 'READ')
+  // ADR-AUTH-09 — CSV(?export=true)는 출력 권한을 함께 본다
+  @Permission('asset', 'READ', { exportable: true })
   async list(
     @CurrentUser() user: RequestUser,
     @Query('branchId') branchId?: string,

@@ -12,6 +12,10 @@ import { useToast } from '../lib/use-toast';
 import { kstToday } from '../lib/kst-date';
 import { SortTh } from '../components/SortTh';
 import { SortAccessors, sortRows, useSortState } from '../lib/table-sort';
+import { DOCUMENT_CATEGORY_LABEL } from '../lib/status-labels';
+import { ExportCsvButton } from '../components/ExportCsvButton';
+import { kstDateStamp } from '../lib/csv';
+import { DOCUMENT_COLUMNS } from '../lib/export-columns';
 interface ApiErrorBody {
   code?: string;
   message?: string;
@@ -22,17 +26,11 @@ interface ApiErrorBody {
 type DocumentSortKey = 'title' | 'category' | 'branchName' | 'relatedStaffName' | 'retentionUntil' | 'uploadedByName';
 const DOCUMENT_SORT: SortAccessors<DocumentRow, DocumentSortKey> = {
   title: (d) => d.title,
-  category: (d) => CATEGORY_LABEL[d.category],
+  category: (d) => DOCUMENT_CATEGORY_LABEL[d.category],
   branchName: (d) => d.branchName,
   relatedStaffName: (d) => d.relatedStaffName,
   retentionUntil: (d) => d.retentionUntil,
   uploadedByName: (d) => d.uploadedByName,
-};
-
-const CATEGORY_LABEL: Record<DocumentCategory, string> = {
-  HR_RECORD: '인사서류',
-  MANUAL: '매뉴얼',
-  OTHER: '기타',
 };
 
 // 자원문서관리 A-6 — 카테고리별 보존기한 정책 안내(입력 시 미리보기).
@@ -113,9 +111,9 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
               value={form.category}
               onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as DocumentCategory }))}
             >
-              {(Object.keys(CATEGORY_LABEL) as DocumentCategory[]).map((c) => (
+              {(Object.keys(DOCUMENT_CATEGORY_LABEL) as DocumentCategory[]).map((c) => (
                 <option key={c} value={c}>
-                  {CATEGORY_LABEL[c]}
+                  {DOCUMENT_CATEGORY_LABEL[c]}
                 </option>
               ))}
             </select>
@@ -244,7 +242,7 @@ export function DocumentsPage() {
               {alertsQuery.data!.map((d) => (
                 <tr key={d.id}>
                   <td>{d.title}</td>
-                  <td>{CATEGORY_LABEL[d.category]}</td>
+                  <td>{DOCUMENT_CATEGORY_LABEL[d.category]}</td>
                   <td>{d.branchName ?? '전사'}</td>
                   <td>
                     <RetentionCell retentionUntil={d.retentionUntil} />
@@ -263,9 +261,23 @@ export function DocumentsPage() {
       <div className="wf-tab-row" style={{ display: 'flex', gap: 4, margin: '14px 0' }}>
         {(['ALL', 'HR_RECORD', 'MANUAL', 'OTHER'] as const).map((c) => (
           <button key={c} className={category === c ? 'filter-chip active' : 'filter-chip'} onClick={() => setCategory(c)}>
-            {c === 'ALL' ? '전체' : CATEGORY_LABEL[c]}
+            {c === 'ALL' ? '전체' : DOCUMENT_CATEGORY_LABEL[c]}
           </button>
         ))}
+        {/* ADR-AUTH-09 — 지금 분류·정렬 그대로(파일 주소는 넣지 않는다). 서버가 출력 권한을 본다(export=true) */}
+        <span style={{ marginLeft: 'auto' }}>
+          <ExportCsvButton
+            filename={`documents_${kstDateStamp()}.csv`}
+            feature="document"
+            columns={DOCUMENT_COLUMNS}
+            disabled={rows.length === 0}
+            load={async () => {
+              const fresh = (await api.get<ApiEnvelope<DocumentRow[]>>('/documents?export=true')).data.data ?? [];
+              const shown = fresh.filter((d) => category === 'ALL' || d.category === category);
+              return { rows: sortRows(shown, DOCUMENT_SORT, sort) };
+            }}
+          />
+        </span>
       </div>
 
       {!isLoading && !isError && rows.length === 0 && <div className="empty-state">표시할 문서가 없습니다.</div>}
@@ -296,7 +308,7 @@ export function DocumentsPage() {
                     d.title
                   )}
                 </td>
-                <td>{CATEGORY_LABEL[d.category]}</td>
+                <td>{DOCUMENT_CATEGORY_LABEL[d.category]}</td>
                 <td>{d.branchName ?? '전사'}</td>
                 <td>{d.relatedStaffName ?? '-'}</td>
                 <td>

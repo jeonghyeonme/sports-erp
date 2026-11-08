@@ -11,6 +11,10 @@ import { BranchFilter } from '../components/BranchFilter';
 import { ApiEnvelope, AssetCategory, AssetRow, AssetStatus, AssetType, BranchSummary } from '../lib/types';
 import { useToast } from '../lib/use-toast';
 import { kstToday } from '../lib/kst-date';
+import { ASSET_CATEGORY_LABEL, ASSET_STATUS_LABEL, ASSET_TYPE_LABEL } from '../lib/status-labels';
+import { ExportCsvButton } from '../components/ExportCsvButton';
+import { fetchAllPages, kstDateStamp } from '../lib/csv';
+import { ASSET_COLUMNS } from '../lib/export-columns';
 
 const PAGE_SIZE = 20;
 const FIXED_ASSET_THRESHOLD = 1_000_000;
@@ -19,22 +23,6 @@ interface ApiErrorBody {
   code?: string;
   message?: string;
 }
-
-const CATEGORY_LABEL: Record<AssetCategory, string> = {
-  EXERCISE_EQUIPMENT: '운동기구',
-  SAFETY_EQUIPMENT: '안전설비',
-  OFFICE_FURNITURE: '사무비품',
-  OTHER: '기타',
-};
-
-const TYPE_LABEL: Record<AssetType, string> = { FIXED_ASSET: '고정자산', CONSUMABLE: '소모품' };
-
-const STATUS_LABEL: Record<AssetStatus, string> = {
-  NORMAL: '정상',
-  REPAIRING: '수리중',
-  DISPOSAL_PENDING: '폐기대상',
-  DISPOSED: '폐기됨',
-};
 
 // 자원문서관리 A-6 전이표 — 허용되지 않은 전이는 드롭다운에서부터 막는다.
 const STATUS_TRANSITIONS: Record<AssetStatus, AssetStatus[]> = {
@@ -145,9 +133,9 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
               value={form.category}
               onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as AssetCategory }))}
             >
-              {(Object.keys(CATEGORY_LABEL) as AssetCategory[]).map((c) => (
+              {(Object.keys(ASSET_CATEGORY_LABEL) as AssetCategory[]).map((c) => (
                 <option key={c} value={c}>
-                  {CATEGORY_LABEL[c]}
+                  {ASSET_CATEGORY_LABEL[c]}
                 </option>
               ))}
             </select>
@@ -181,7 +169,7 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
               value={form.assetType}
               onChange={(e) => setForm((f) => ({ ...f, assetType: e.target.value as '' | AssetType }))}
             >
-              <option value="">자동 판정 ({TYPE_LABEL[autoType]})</option>
+              <option value="">자동 판정 ({ASSET_TYPE_LABEL[autoType]})</option>
               <option value="FIXED_ASSET">고정자산</option>
               <option value="CONSUMABLE">소모품</option>
             </select>
@@ -274,7 +262,7 @@ function EditAssetModal({ asset, onClose }: { asset: AssetRow; onClose: () => vo
     <Modal title={`자산 수정 — ${asset.assetCode}`} onClose={onClose}>
       <form onSubmit={submit}>
         <p className="page-desc" style={{ marginTop: 0 }}>
-          {CATEGORY_LABEL[asset.category]} · {TYPE_LABEL[asset.assetType]} · 취득 {asset.acquiredAt.slice(0, 10)} ·{' '}
+          {ASSET_CATEGORY_LABEL[asset.category]} · {ASSET_TYPE_LABEL[asset.assetType]} · 취득 {asset.acquiredAt.slice(0, 10)} ·{' '}
           {asset.acquisitionCost.toLocaleString()}원 (취득 정보는 고칠 수 없습니다)
         </p>
         <div className="form-row">
@@ -398,9 +386,22 @@ export function AssetsPage() {
             className={statusFilter === s ? 'filter-chip active' : 'filter-chip'}
             onClick={() => setStatusFilter(s)}
           >
-            {s === '' ? '보유 중(폐기 제외)' : STATUS_LABEL[s]}
+            {s === '' ? '보유 중(폐기 제외)' : ASSET_STATUS_LABEL[s]}
           </button>
         ))}
+        {/* ADR-AUTH-09 — 지금 지점·상태 조건 그대로 모든 쪽. 서버가 출력 권한을 본다(export=true) */}
+        <ExportCsvButton
+          filename={`assets_${kstDateStamp()}.csv`}
+          feature="asset"
+          columns={ASSET_COLUMNS}
+          disabled={total === 0}
+          load={() => {
+            const p = new URLSearchParams({ export: 'true' });
+            if (branchId) p.set('branchId', branchId);
+            if (statusFilter) p.set('status', statusFilter);
+            return fetchAllPages<AssetRow>('/assets', p);
+          }}
+        />
       </div>
 
       {isError && <div className="forbidden-note">{apiErrorMessage(error)}</div>}
@@ -432,8 +433,8 @@ export function AssetsPage() {
                   {isSuperAdmin && <td>{a.branchName ?? '-'}</td>}
                   <td>{a.assetCode}</td>
                   <td>{a.name}</td>
-                  <td>{CATEGORY_LABEL[a.category]}</td>
-                  <td>{TYPE_LABEL[a.assetType]}</td>
+                  <td>{ASSET_CATEGORY_LABEL[a.category]}</td>
+                  <td>{ASSET_TYPE_LABEL[a.assetType]}</td>
                   <td>{a.acquisitionCost.toLocaleString()}원</td>
                   <td>{a.quantity}</td>
                   <td>{a.location ?? '-'}</td>
@@ -445,15 +446,15 @@ export function AssetsPage() {
                         disabled={statusMutation.isPending}
                         onChange={(e) => statusMutation.mutate({ id: a.id, status: e.target.value as AssetStatus })}
                       >
-                        <option value={a.status}>{STATUS_LABEL[a.status]}</option>
+                        <option value={a.status}>{ASSET_STATUS_LABEL[a.status]}</option>
                         {next.map((s) => (
                           <option key={s} value={s}>
-                            {STATUS_LABEL[s]}(으)로 전환
+                            {ASSET_STATUS_LABEL[s]}(으)로 전환
                           </option>
                         ))}
                       </select>
                     ) : (
-                      <span className={`badge ${STATUS_BADGE[a.status]}`}>{STATUS_LABEL[a.status]}</span>
+                      <span className={`badge ${STATUS_BADGE[a.status]}`}>{ASSET_STATUS_LABEL[a.status]}</span>
                     )}
                   </td>
                   <td>

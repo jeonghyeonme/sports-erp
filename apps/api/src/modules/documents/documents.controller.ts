@@ -18,7 +18,8 @@ export class DocumentsController {
   @Get()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   @ScopedResource('staff', { query: 'relatedStaffId' })
-  @Permission('document', 'READ')
+  // ADR-AUTH-09 — CSV(?export=true)는 출력 권한을 함께 본다
+  @Permission('document', 'READ', { exportable: true })
   async list(
     @CurrentUser() user: RequestUser,
     @Query('branchId') branchId?: string,
