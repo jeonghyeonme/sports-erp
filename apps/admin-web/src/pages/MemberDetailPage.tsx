@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
@@ -431,15 +431,18 @@ function MemberReservationsTab({ memberId }: { memberId: string }) {
   );
 }
 
+type MemberTab = 'enrollments' | 'pt' | 'payments';
+const isMemberTab = (v: string | null): v is MemberTab => v === 'enrollments' || v === 'pt' || v === 'payments';
+
 export function MemberDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const can = useCan();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm | null>(null);
-  const [tab, setTab] = useState<'enrollments' | 'pt' | 'payments'>('enrollments');
 
   const memberQuery = useQuery<MemberRow, AxiosError<ApiErrorBody>>({
     queryKey: ['members', id],
@@ -488,6 +491,18 @@ export function MemberDetailPage() {
     return <div className="forbidden-note">{apiErrorMessage(memberQuery.error)}</div>;
   }
   const member = memberQuery.data!;
+  // D72 — 탭은 주소(?tab=)에 둔다. 없으면 진행 중 PT가 있을 때 PT 탭, 아니면 수강내역.
+  const tabParam = searchParams.get('tab');
+  const tab: MemberTab = isMemberTab(tabParam) ? tabParam : (member.ptRemainingTotal ?? 0) > 0 ? 'pt' : 'enrollments';
+  const setTab = (next: MemberTab) =>
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('tab', next);
+        return p;
+      },
+      { replace: true },
+    );
   // ADR-MEM-03 — 등록·차감 같은 쓰기 액션은 백엔드와 동일하게 본인 지점 BRANCH_ADMIN만(컨트롤러가 이미 강제,
   // 화면에서는 403을 굳이 유도하지 않도록 버튼 자체를 숨긴다).
   const ownBranchAdmin = user?.role === 'BRANCH_ADMIN' && user.branchId === member.branchId;

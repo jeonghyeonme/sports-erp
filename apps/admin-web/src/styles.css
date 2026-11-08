@@ -1528,3 +1528,78 @@ tbody tr:hover td {
   background: var(--color-surface-alt);
   font-size: 0.92em;
 }
+
+/* D72 — 상단 바 회원 빠른 찾기 */
+.quick-search {
+  position: relative;
+  flex: 0 1 340px;
+  margin: 0 16px;
+}
+.quick-search-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.quick-search-input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1px;
+}
+.quick-search-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  padding: 4px 0;
+}
+.quick-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.quick-search-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.quick-search-item.active {
+  background: var(--color-primary-soft);
+}
+.quick-search-meta,
+.quick-search-note {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.quick-search-note {
+  padding: 6px 12px;
+}
+.quick-search-more {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 12px;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+@media (max-width: 900px) {
+  .quick-search {
+    flex-basis: 200px;
+    margin: 0 8px;
+  }
+}

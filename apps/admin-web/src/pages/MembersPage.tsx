@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { apiErrorMessage, useApiPage } from '../lib/use-api-list';
@@ -165,8 +165,17 @@ export function MembersPage() {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [branchId, setBranchId] = useState('');
   const [status, setStatus] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [q, setQ] = useState('');
+  // D72 — 상단 바 빠른 찾기의 "모두 보기"는 ?q=로 온다. 이미 이 화면이면 렌더 중 이전 값 비교로 검색어를 바꾼다.
+  const [searchParams] = useSearchParams();
+  const urlQ = searchParams.get('q') ?? '';
+  const [prevUrlQ, setPrevUrlQ] = useState(urlQ);
+  const [searchInput, setSearchInput] = useState(urlQ);
+  const [q, setQ] = useState(urlQ);
+  if (urlQ !== prevUrlQ) {
+    setPrevUrlQ(urlQ);
+    setSearchInput(urlQ);
+    setQ(urlQ);
+  }
   const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const navigate = useNavigate();

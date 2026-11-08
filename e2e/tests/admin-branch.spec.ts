@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { ACCOUNTS, adminLogin, field, kstDate, openMenu } from './helpers';
+import { ACCOUNTS, adminLogin, apiAs, field, kstDate, openMenu } from './helpers';
 
 // 지점 관리자(서초 김민수)의 하루 업무 — 회원 등록·검색, 회차 등록, 시설 지정 공지 작성(서식 편집기·D62)과 이미지 첨부·수정.
 
@@ -17,6 +17,30 @@ test('지점 관리자: 회원을 등록하고 검색으로 찾는다', async ({
   const row = page.locator('main table tbody tr', { hasText: name });
   await expect(row).toHaveCount(1);
   await expect(row).toContainText('010-****-0101'); // 목록은 전화번호 마스킹(ADR-MEM-04)
+});
+
+// D72 — 상단 바 회원 빠른 찾기: 어느 화면에서든 2자 이상 치면 결과가 뜨고, 고르면 회원 상세로. 남은 PT가 있으면 PT 탭이 먼저,
+// 탭은 주소(?tab=)에 남는다. 다른 지점 회원은 결과에 없다(목록 API의 지점 격리 — D46).
+test('지점 관리자: 상단 회원 찾기로 상세에 바로 가고, 남은 PT가 있으면 PT 탭이 먼저 열린다', async ({ page }) => {
+  const admin = await apiAs(ACCOUNTS.seochoAdmin);
+  const pt = await admin.post('members/member-sujin/pt-sessions', {
+    data: { programId: 'program-seocho-pt', totalSessions: 3, purchasedAt: kstDate(0) },
+  });
+  expect(pt.ok(), await pt.text()).toBeTruthy();
+  await admin.dispose();
+
+  await adminLogin(page, ACCOUNTS.seochoAdmin);
+  await openMenu(page, '/facilities'); // 회원 화면이 아닌 곳에서 시작
+  const search = page.getByRole('combobox', { name: '회원 빠른 찾기' });
+  await search.fill('오영'); // 강남점 회원 — 서초 지점 관리자에게는 나오지 않는다
+  await expect(page.locator('.quick-search-note')).toHaveText('일치하는 회원이 없습니다.');
+  await search.fill('이수');
+  await page.getByRole('option', { name: /이수진/ }).click();
+  await expect(page).toHaveURL(/\/members\/member-sujin$/);
+  await expect(page.getByRole('button', { name: '세션 사용' }).first()).toBeVisible();
+
+  await page.getByRole('button', { name: '수강내역' }).click();
+  await expect(page).toHaveURL(/\/members\/member-sujin\?tab=enrollments$/);
 });
 
 test('지점 관리자: 내일 회차를 등록하면 주간 시간표에 보인다', async ({ page }) => {
