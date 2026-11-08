@@ -81,6 +81,31 @@ describe('세부 권한 (D60)', () => {
     expect([res.status, res.body.error.code]).toEqual([403, 'PERMISSION_DENIED']);
   });
 
+  // ADR-AUTH-09 — 출력 칸을 직원·자산·문서·프로그램으로 넓혔다. 기본은 허용(대조군), 끄면 ?export=true만 403, 목록은 그대로.
+  it.each([
+    ['staff', '/staff'],
+    ['asset', '/assets'],
+    ['document', '/documents'],
+    ['program', '/programs'],
+  ])('%s 출력: 기본 허용, 역할 기본값에서 끄면 ?export=true만 403', async (feature, path) => {
+    const minsu = await login(app, ACCOUNTS.seochoAdmin);
+    expect((await api(minsu).get(`${path}?export=true`)).status).toBe(200);
+    await setRole('BRANCH_ADMIN', feature, 'EXPORT', false);
+    expect((await api(minsu).get(path)).status).toBe(200);
+    const res = await api(minsu).get(`${path}?export=true`);
+    expect([res.status, res.body.error.code]).toEqual([403, 'PERMISSION_DENIED']);
+  });
+
+  // D60 그대로 — 상한 밖 칸은 표가 다루지 않는다(PermissionService.allows: 상한 밖 = 허용). 직원의 프로그램 출력은 상한 밖이라
+  // ?export=true도 조회와 같은 응답이다(받는 데이터가 같다). 관리자 웹은 직원에게 CSV 버튼을 그리지 않는다(useCan — 적용 권한에 없음).
+  it('직원의 프로그램 ?export=true는 상한 밖이라 조회와 같다(출력 칸으로 막지 않는다)', async () => {
+    const seoyeon = await login(app, ACCOUNTS.seochoStaff);
+    const list = await api(seoyeon).get('/programs');
+    const exported = await api(seoyeon).get('/programs?export=true');
+    expect([list.status, exported.status]).toEqual([200, 200]);
+    expect(exported.body.data.length).toBe(list.body.data.length);
+  });
+
   it('개인 허용도 역할 상한을 넘지 못한다 — 직원에게 회원 입력을 허용해도 403', async () => {
     await setPersonal(SEOYEON, 'member', 'CREATE', true);
     const seoyeon = await login(app, ACCOUNTS.seochoStaff);

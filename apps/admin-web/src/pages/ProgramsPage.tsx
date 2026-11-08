@@ -11,6 +11,10 @@ import { Modal } from '../components/Modal';
 import { useToast } from '../lib/use-toast';
 import { SortTh } from '../components/SortTh';
 import { SortAccessors, sortRows, useSortState } from '../lib/table-sort';
+import { PRICING_LABEL, PROGRAM_STATUS_LABEL } from '../lib/status-labels';
+import { ExportCsvButton } from '../components/ExportCsvButton';
+import { kstDateStamp } from '../lib/csv';
+import { PROGRAM_COLUMNS } from '../lib/export-columns';
 import {
   AffectedReservations,
   AgeGroup,
@@ -29,12 +33,6 @@ interface ApiErrorBody {
   message?: string;
 }
 
-const PRICING_LABEL: Record<PricingType, string> = {
-  FREE_ACCESS: '자유이용',
-  PAID_SESSION: '회차 예약',
-  PT_PACKAGE: 'PT 패키지',
-};
-
 const AGE_GROUP_LABEL: Record<AgeGroup, string> = {
   ALL: '전체',
   CHILD: '유아동',
@@ -42,6 +40,13 @@ const AGE_GROUP_LABEL: Record<AgeGroup, string> = {
   ADULT: '성인',
   SENIOR: '시니어',
 };
+
+// 지점별로 묶고 지점명으로 거른다 — 화면과 CSV(ADR-AUTH-09)가 같이 쓴다.
+function filterProgramGroups(rows: ProgramRow[], search: string) {
+  const all = groupByBranch(rows);
+  const term = search.trim().toLowerCase();
+  return term ? all.filter((g) => g.branchName.toLowerCase().includes(term)) : all;
+}
 
 // D74 — 머리글 정렬(화면 전체 로드 목록). 상태는 진행 순서(준비 → 운영 → 휴강 → 종료)로.
 type ProgramSortKey = 'name' | 'category' | 'pricingType' | 'price' | 'instructorName' | 'status' | 'startDate';
@@ -54,13 +59,6 @@ const PROGRAM_SORT: SortAccessors<ProgramRow, ProgramSortKey> = {
   instructorName: (p) => p.instructorName,
   status: (p) => STATUS_RANK[p.status],
   startDate: (p) => p.startDate,
-};
-
-const STATUS_LABEL: Record<ProgramStatus, string> = {
-  PREPARING: '준비중',
-  RUNNING: '진행중',
-  PAUSED: '휴강',
-  ENDED: '종료',
 };
 
 // 강사프로그램게시 A-3 전이표 — 허용되지 않은 전이를 굳이 서버까지 보내지 않고 드롭다운에서부터 막는다.
@@ -403,11 +401,7 @@ export function ProgramsPage() {
     },
   });
 
-  const groups = useMemo(() => {
-    const all = groupByBranch(data ?? []);
-    const term = search.trim().toLowerCase();
-    return term ? all.filter((g) => g.branchName.toLowerCase().includes(term)) : all;
-  }, [data, search]);
+  const groups = useMemo(() => filterProgramGroups(data ?? [], search), [data, search]);
 
   const autoExpand = groups.length > 0 && groups.length <= AUTO_EXPAND_THRESHOLD;
   const { sort, toggle: toggleSort } = useSortState<ProgramSortKey>();
@@ -489,6 +483,21 @@ export function ProgramsPage() {
               </option>
             ))}
           </select>
+          {/* ADR-AUTH-09 — 지금 필터·지점명 검색·정렬 그대로. 직원에게는 CSV를 보이지 않는다(출력은 지점 관리자 상한) */}
+          {user?.role !== 'STAFF' && (
+            <ExportCsvButton
+              filename={`programs_${kstDateStamp()}.csv`}
+              feature="program"
+              columns={PROGRAM_COLUMNS}
+              disabled={groups.length === 0}
+              load={async () => {
+                const qs = new URLSearchParams(filterQs);
+                qs.set('export', 'true');
+                const fresh = (await api.get<ApiEnvelope<ProgramRow[]>>(`/programs?${qs}`)).data.data ?? [];
+                return { rows: filterProgramGroups(fresh, search).flatMap((g) => sortRows(g.rows, PROGRAM_SORT, sort)) };
+              }}
+            />
+          )}
         </div>
       )}
 
@@ -567,15 +576,15 @@ export function ProgramsPage() {
                               })
                             }
                           >
-                            <option value={p.status}>{STATUS_LABEL[p.status]}</option>
+                            <option value={p.status}>{PROGRAM_STATUS_LABEL[p.status]}</option>
                             {nextStatuses.map((s) => (
                               <option key={s} value={s}>
-                                {STATUS_LABEL[s]}(으)로 전환
+                                {PROGRAM_STATUS_LABEL[s]}(으)로 전환
                               </option>
                             ))}
                           </select>
                         ) : (
-                          <span className={`badge ${p.status}`}>{STATUS_LABEL[p.status]}</span>
+                          <span className={`badge ${p.status}`}>{PROGRAM_STATUS_LABEL[p.status]}</span>
                         )}
                       </td>
                       <td>{p.startDate}</td>

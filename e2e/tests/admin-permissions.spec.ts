@@ -69,3 +69,26 @@ test('지점 관리자: 권한이 꺼지면 메뉴·등록 버튼·CSV 버튼이
     await hq.dispose();
   }
 });
+
+// 권한관리 ADR-AUTH-09 — 출력(CSV)을 직원·자산으로 넓혔다. 받은 파일의 머리 줄이 화면 표와 같고, 직원 연락처는 들어가지 않는다.
+test('지점 관리자: 직원·자산 CSV를 받으면 화면 열 그대로이고 직원 연락처는 없다', async ({ page }) => {
+  const { readFileSync } = await import('node:fs');
+  await adminLogin(page, ACCOUNTS.seochoAdmin);
+
+  await openMenu(page, '/staff');
+  let wait = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'CSV 내려받기' }).click();
+  let file = await (await wait).path();
+  let text = readFileSync(file, 'utf8').replace(/^﻿/, '');
+  expect(text.split(/\r?\n/)[0]).toBe('지점,직원코드,이름,직급,고용형태,입사일,퇴사일,상태');
+  expect(text).toContain('박서연');
+  expect(text).not.toMatch(/010-/); // 연락처는 CSV에 없다
+
+  await openMenu(page, '/assets');
+  wait = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'CSV 내려받기' }).click();
+  file = await (await wait).path();
+  text = readFileSync(file, 'utf8').replace(/^﻿/, '');
+  expect(text.split(/\r?\n/)[0]).toBe('지점,자산코드,품명,분류,구분,수량,취득일,취득가액,위치,상태');
+  expect(text.split(/\r?\n/).filter(Boolean).length).toBeGreaterThan(1);
+});

@@ -22,7 +22,8 @@ export class StaffController {
   // 인사정보관리 A-5 — 퇴사자는 기본적으로 숨기고(status!=RESIGNED), status를 명시하면 그 값만 조회(인사정보관리 A-6).
   @Get()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
-  @Permission('staff', 'READ')
+  // ADR-AUTH-09 — CSV(?export=true)는 출력 권한을 함께 본다
+  @Permission('staff', 'READ', { exportable: true })
   async list(
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,

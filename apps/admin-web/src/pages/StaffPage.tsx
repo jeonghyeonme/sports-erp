@@ -14,6 +14,9 @@ import { ChangeRequestInbox, MyChangeRequests } from '../components/StaffChangeR
 import { ApiEnvelope, BranchSummary, StaffRow } from '../lib/types';
 import { SortTh } from '../components/SortTh';
 import { SortAccessors, SortState, sortRows, useSortState } from '../lib/table-sort';
+import { ExportCsvButton } from '../components/ExportCsvButton';
+import { kstDateStamp } from '../lib/csv';
+import { STAFF_COLUMNS } from '../lib/export-columns';
 
 const AUTO_EXPAND_THRESHOLD = 3;
 const EMPLOYMENT_TYPES = ['정규직', '계약직', '파트타임'];
@@ -21,6 +24,21 @@ const EMPLOYMENT_TYPES = ['정규직', '계약직', '파트타임'];
 interface ApiErrorBody {
   code?: string;
   message?: string;
+}
+
+// log/125 F12 — 지점 하나만 보는 지점 관리자에게 지점명 검색은 쓸모가 없다. 이름·직원코드로도 찾는다:
+// 지점명이 맞으면 그 지점 전체, 아니면 이름·코드가 맞는 직원만 남긴다. 화면과 CSV(ADR-AUTH-09)가 같이 쓴다.
+function filterStaffGroups(rows: StaffRow[], search: string) {
+  const all = groupByBranch(rows);
+  const term = search.trim().toLowerCase();
+  if (!term) return all;
+  return all
+    .map((g) =>
+      g.branchName.toLowerCase().includes(term)
+        ? g
+        : { ...g, rows: g.rows.filter((r) => r.name.toLowerCase().includes(term) || r.staffCode.toLowerCase().includes(term)) },
+    )
+    .filter((g) => g.rows.length > 0);
 }
 
 // D74 — 머리글 정렬. 정렬 상태는 화면에 하나(지점별 묶음이 같은 순서로 정렬된다).
@@ -263,20 +281,8 @@ export function StaffPage() {
     [isSelfServiceOnly, meQuery.data, listQuery.data],
   );
 
-  const groups = useMemo(() => {
-    const all = groupByBranch(rows);
-    const term = search.trim().toLowerCase();
-    if (!term) return all;
-    // log/125 F12 — 지점 하나만 보는 지점 관리자에게 지점명 검색은 쓸모가 없다. 이름·직원코드로도 찾는다:
-    // 지점명이 맞으면 그 지점 전체, 아니면 이름·코드가 맞는 직원만 남긴다.
-    return all
-      .map((g) =>
-        g.branchName.toLowerCase().includes(term)
-          ? g
-          : { ...g, rows: g.rows.filter((r) => r.name.toLowerCase().includes(term) || r.staffCode.toLowerCase().includes(term)) },
-      )
-      .filter((g) => g.rows.length > 0);
-  }, [rows, search]);
+  const groups = useMemo(() => filterStaffGroups(rows, search), [rows, search]);
+  const listPath = tab === 'resigned' ? '/staff?status=RESIGNED' : tab === 'unassigned' ? '/staff?unassigned=true' : '/staff';
 
   const autoExpand = groups.length > 0 && groups.length <= AUTO_EXPAND_THRESHOLD;
   const { sort, toggle: toggleSort } = useSortState<StaffSortKey>();
@@ -328,6 +334,18 @@ export function StaffPage() {
             placeholder="이름·직원코드·지점명 검색"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+          />
+          {/* ADR-AUTH-09 — 지금 탭·검색·정렬 그대로. 서버가 출력 권한을 보도록 export=true로 다시 받는다 */}
+          <ExportCsvButton
+            filename={`staff_${tab}_${kstDateStamp()}.csv`}
+            feature="staff"
+            columns={STAFF_COLUMNS}
+            disabled={groups.length === 0}
+            load={async () => {
+              const sep = listPath.includes('?') ? '&' : '?';
+              const fresh = (await api.get<ApiEnvelope<StaffRow[]>>(`${listPath}${sep}export=true`)).data.data ?? [];
+              return { rows: filterStaffGroups(fresh, search).flatMap((g) => sortRows(g.rows, STAFF_SORT, sort)) };
+            }}
           />
         </div>
       )}

@@ -19,7 +19,8 @@ export class ProgramsController {
   constructor(private readonly programService: ProgramService) {}
 
   @Get()
-  @Permission('program', 'READ')
+  // ADR-AUTH-09 — CSV(?export=true)는 출력 권한을 함께 본다
+  @Permission('program', 'READ', { exportable: true })
   async list(
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,

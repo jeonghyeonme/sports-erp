@@ -7,6 +7,7 @@ import { PermissionAction } from '@prisma/client';
  *
  * 표에 넣지 않는 것(@PermissionExempt): 인사 권한(채용·발령·역할 전환·퇴사·계약 상태 — 인사 권한 분리),
  * 본인 업무(출퇴근·내 휴가·내 업무일지·비밀번호·회원 본인 예약·결제), 본사 전용·공개 라우트.
+ * 출력(EXPORT)은 목록 라우트의 `exportable`로 `?export=true`일 때만 본다 — 회원·결제·근태(D60), 직원·자산·문서·프로그램(ADR-AUTH-09).
  */
 export type GovernedRole = 'BRANCH_ADMIN' | 'STAFF';
 export const GOVERNED_ROLES: GovernedRole[] = ['BRANCH_ADMIN', 'STAFF'];
@@ -18,19 +19,19 @@ export interface FeatureDef {
 
 export const PERMISSION_CATALOG = {
   member: { label: '회원', ceiling: { BRANCH_ADMIN: ['READ', 'CREATE', 'UPDATE', 'EXPORT'] } },
-  program: { label: '프로그램·회차', ceiling: { BRANCH_ADMIN: ['READ', 'CREATE', 'UPDATE', 'DELETE'], STAFF: ['READ'] } },
+  program: { label: '프로그램·회차', ceiling: { BRANCH_ADMIN: ['READ', 'CREATE', 'UPDATE', 'DELETE', 'EXPORT'], STAFF: ['READ'] } },
   reservation: { label: '예약(취소·체크인)', ceiling: { BRANCH_ADMIN: ['READ', 'UPDATE'] } },
   payment: { label: '결제', ceiling: { BRANCH_ADMIN: ['READ', 'EXPORT'] } },
   attendance: { label: '근태 관리(요약·정정·결근 확정)', ceiling: { BRANCH_ADMIN: ['READ', 'UPDATE', 'EXPORT'] } },
   leave: { label: '휴가 승인', ceiling: { BRANCH_ADMIN: ['READ', 'UPDATE'] } },
   worklog: { label: '업무일지 열람', ceiling: { BRANCH_ADMIN: ['READ'] } },
-  staff: { label: '직원 일상 관리(정보 수정·변경 신청 승인)', ceiling: { BRANCH_ADMIN: ['READ', 'UPDATE'] } },
+  staff: { label: '직원 일상 관리(정보 수정·변경 신청 승인)', ceiling: { BRANCH_ADMIN: ['READ', 'UPDATE', 'EXPORT'] } },
   branch: { label: '지점 현황·운영 실적', ceiling: { BRANCH_ADMIN: ['READ'] } },
   post: { label: '게시판', ceiling: { BRANCH_ADMIN: ['READ', 'CREATE', 'UPDATE', 'DELETE'], STAFF: ['READ'] } },
   facility: { label: '시설·혼잡도', ceiling: { BRANCH_ADMIN: ['READ', 'CREATE', 'UPDATE'], STAFF: ['READ'] } },
   instructor: { label: '강사', ceiling: { BRANCH_ADMIN: ['READ', 'CREATE', 'UPDATE', 'DELETE'], STAFF: ['READ'] } },
-  asset: { label: '자산', ceiling: { BRANCH_ADMIN: ['READ', 'CREATE', 'UPDATE'] } },
-  document: { label: '문서', ceiling: { BRANCH_ADMIN: ['READ', 'CREATE'] } },
+  asset: { label: '자산', ceiling: { BRANCH_ADMIN: ['READ', 'CREATE', 'UPDATE', 'EXPORT'] } },
+  document: { label: '문서', ceiling: { BRANCH_ADMIN: ['READ', 'CREATE', 'EXPORT'] } },
   support: { label: '업무지원 요청', ceiling: { BRANCH_ADMIN: ['READ', 'CREATE'] } },
 } satisfies Record<string, FeatureDef>;
 
