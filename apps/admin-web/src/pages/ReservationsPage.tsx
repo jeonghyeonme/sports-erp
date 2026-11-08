@@ -16,6 +16,7 @@ import { ApiEnvelope, PaymentRow, ProgramRow, ReservationRow, ReservationStatus,
 import { useToast } from '../lib/use-toast';
 import { kstToday } from '../lib/kst-date';
 import { PAYMENT_STATUS_LABEL } from '../lib/status-labels';
+import { useDebouncedValue } from '../lib/use-debounced';
 interface ApiErrorBody {
   code?: string;
   message?: string;
@@ -240,10 +241,20 @@ export function ReservationsPage() {
     setFilter((f) => ({ ...f, ...next }));
     setBranchPage(1);
   };
+  // D74 2차(log/204) — 회원 이름·회원번호·프로그램으로 찾는다(체크인할 사람 찾기). 치는 대로, 바뀌면 1쪽부터.
+  const [searchInput, setSearchInput] = useState('');
+  const q = useDebouncedValue(searchInput.trim());
+  const [prevQ, setPrevQ] = useState(q);
+  if (q !== prevQ) {
+    setPrevQ(q);
+    setBranchPage(1);
+  }
   const filterQuery =
-    `&dateFrom=${filter.dateFrom}&dateTo=${filter.dateTo}` + (filter.status ? `&status=${filter.status}` : '');
+    `&dateFrom=${filter.dateFrom}&dateTo=${filter.dateTo}` +
+    (filter.status ? `&status=${filter.status}` : '') +
+    (q ? `&q=${encodeURIComponent(q)}` : '');
   const branchReservationsQuery = useApiPage<ReservationRow>(
-    ['reservations', 'branch', branchPage, filter],
+    ['reservations', 'branch', branchPage, filter, q],
     `/reservations?page=${branchPage}&limit=${PAGE_SIZE}${filterQuery}`,
     { enabled: isAdmin },
   );
@@ -280,6 +291,15 @@ export function ReservationsPage() {
           <div className="detail-section">
             <h3 className="section-title">예약 현황</h3>
             <div className="action-row" style={{ gap: 8, marginBottom: 8, alignItems: 'center' }}>
+              <input
+                className="search-input"
+                type="search"
+                placeholder="회원 이름 · 회원번호 · 프로그램"
+                aria-label="예약 검색"
+                value={searchInput}
+                maxLength={50}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
               <input
                 type="date"
                 aria-label="회차 시작일"

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { searchTerm } from '../../common/http/pagination';
 
 export interface AuditLogView {
   id: string;
@@ -17,14 +18,43 @@ export interface AuditLogView {
 }
 
 /** D44 — 변경 이력 조회(본사 전용). 쓰기는 각 도메인이 같은 트랜잭션에서 `recordAudit`로 한다. */
+// D74 2차(log/204) — 대상마다 찾을 수 있는 id 수 상한. 이름이 넓게 맞으면(한 글자 등) 앞에서 자른다.
+const SEARCH_ID_CAP = 500;
+
 @Injectable()
 export class AuditLogService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * D74 2차(log/204) — 처리자 이름 또는 대상 이름(직원·회원·자산 이름·코드·지점)으로 찾는다.
+   * 대상은 entity마다 다른 표라 먼저 맞는 id를 모아 entityId로 거른다(대상 이름을 이력 행에 복사하지 않는다 — D44).
+   */
+  private async searchWhere(q: string | undefined): Promise<Prisma.AuditLogWhereInput[] | undefined> {
+    if (!q) return undefined;
+    const has = { contains: q, mode: 'insensitive' as const };
+    const take = SEARCH_ID_CAP;
+    const [staff, members, assets, branches] = await Promise.all([
+      this.prisma.staff.findMany({ where: { name: has }, select: { id: true }, take }),
+      this.prisma.member.findMany({ where: { OR: [{ name: has }, { memberNo: has }] }, select: { id: true }, take }),
+      this.prisma.asset.findMany({ where: { OR: [{ name: has }, { assetCode: has }] }, select: { id: true }, take }),
+      this.prisma.branch.findMany({ where: { name: has }, select: { id: true }, take }),
+    ]);
+    const target = (entity: string, rows: { id: string }[]) =>
+      rows.length ? [{ entity, entityId: { in: rows.map((r) => r.id) } }] : [];
+    return [
+      { actor: { name: has } },
+      ...target('Staff', staff),
+      ...target('Member', members),
+      ...target('Asset', assets),
+      ...target('Branch', branches),
+    ];
+  }
 
   async list(filter: {
     entity?: string;
     entityId?: string;
     action?: string;
+    q?: string;
     page: number;
     pageSize: number;
   }): Promise<{ items: AuditLogView[]; total: number }> {
@@ -32,6 +62,7 @@ export class AuditLogService {
       entity: filter.entity || undefined,
       entityId: filter.entityId || undefined,
       action: filter.action || undefined,
+      OR: await this.searchWhere(searchTerm(filter.q)),
     };
     const [total, rows] = await Promise.all([
       this.prisma.auditLog.count({ where }),

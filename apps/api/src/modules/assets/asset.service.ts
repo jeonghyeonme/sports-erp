@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Asset, AssetCategory, AssetStatus, AssetType, Prisma } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { toKstDateString } from '../../common/date/kst-date';
-import { PageRequest } from '../../common/http/pagination';
+import { PageRequest, searchTerm } from '../../common/http/pagination';
 import { recordAudit } from '../../prisma/audit';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
@@ -53,7 +53,7 @@ export class AssetService {
    * status=DISPOSED로 따로 본다. 이 기본 목록의 total이 곧 "미처리 자산 수"다(ADR-RES-01 계약 종료 경고).
    */
   async list(
-    filter: { branchId?: string; category?: string; status?: string; assetType?: string },
+    filter: { branchId?: string; category?: string; status?: string; assetType?: string; q?: string },
     page: PageRequest,
   ): Promise<{ items: AssetView[]; total: number }> {
     const empty = { items: [], total: 0 };
@@ -61,11 +61,20 @@ export class AssetService {
     if (filter.category && !CATEGORIES.includes(filter.category as AssetCategory)) return empty;
     if (filter.status && !STATUSES.includes(filter.status as AssetStatus)) return empty;
     if (filter.assetType && !TYPES.includes(filter.assetType as AssetType)) return empty;
+    // D74 2차(log/204) — 자산코드·품명·위치로 찾는다.
+    const q = searchTerm(filter.q);
     const where: Prisma.AssetWhereInput = {
       branchId: filter.branchId,
       category: filter.category as AssetCategory | undefined,
       status: filter.status ? (filter.status as AssetStatus) : { not: 'DISPOSED' },
       assetType: filter.assetType as AssetType | undefined,
+      OR: q
+        ? [
+            { assetCode: { contains: q, mode: 'insensitive' } },
+            { name: { contains: q, mode: 'insensitive' } },
+            { location: { contains: q, mode: 'insensitive' } },
+          ]
+        : undefined,
     };
     const [total, rows] = await Promise.all([
       this.prisma.asset.count({ where }),

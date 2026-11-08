@@ -21,3 +21,12 @@ export function parsePage(pageQuery?: string, limitQuery?: string, max = MAX_PAG
 export function pageMeta(p: PageRequest, total: number) {
   return { page: p.page, pageSize: p.pageSize, total };
 }
+
+/**
+ * D74 2차(log/204) — 목록 검색어(q). 앞뒤 공백을 자르고 50자까지만 본다. 비면 undefined(조건 없음).
+ * 회원 목록(ADR-MEM-04 화면)과 같은 방식: 부분 일치, 영문 대소문자 무시(Prisma `mode: 'insensitive'`).
+ */
+export function searchTerm(q?: string): string | undefined {
+  const term = q?.trim().slice(0, 50);
+  return term ? term : undefined;
+}

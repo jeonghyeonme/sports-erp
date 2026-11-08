@@ -33,9 +33,10 @@ export class SupportRequestsController {
     @Query('status') status?: string,
     @Query('page') pageQuery?: string,
     @Query('limit') limitQuery?: string,
+    @Query('q') q?: string,
   ) {
     const page = parsePage(pageQuery, limitQuery);
-    const { items, total } = await this.requests.list({ branchId, status }, page);
+    const { items, total } = await this.requests.list({ branchId, status, q }, page);
     return ok(items, pageMeta(page, total));
   }
 
