@@ -10,12 +10,25 @@ import { ApiEnvelope, BranchSummary, DocumentCategory, DocumentRow, StaffRow } f
 
 import { useToast } from '../lib/use-toast';
 import { kstToday } from '../lib/kst-date';
+import { SortTh } from '../components/SortTh';
+import { SortAccessors, sortRows, useSortState } from '../lib/table-sort';
 interface ApiErrorBody {
   code?: string;
   message?: string;
 }
 
 // D69 — 위탁운영 계약서는 문서 관리가 아니라 지점 상세의 계약 회차에서 올리고 연다(접근 경로 최소화).
+// D74 — 머리글 정렬(화면 전체 로드). 쌓이는 목록이라 서버 쪽 나누기로 옮기면(D69 2차) 서버 정렬로 바꾼다.
+type DocumentSortKey = 'title' | 'category' | 'branchName' | 'relatedStaffName' | 'retentionUntil' | 'uploadedByName';
+const DOCUMENT_SORT: SortAccessors<DocumentRow, DocumentSortKey> = {
+  title: (d) => d.title,
+  category: (d) => CATEGORY_LABEL[d.category],
+  branchName: (d) => d.branchName,
+  relatedStaffName: (d) => d.relatedStaffName,
+  retentionUntil: (d) => d.retentionUntil,
+  uploadedByName: (d) => d.uploadedByName,
+};
+
 const CATEGORY_LABEL: Record<DocumentCategory, string> = {
   HR_RECORD: '인사서류',
   MANUAL: '매뉴얼',
@@ -181,6 +194,7 @@ export function DocumentsPage() {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [category, setCategory] = useState<'ALL' | DocumentCategory>('ALL');
   const [showUpload, setShowUpload] = useState(false);
+  const { sort, toggle: toggleSort } = useSortState<DocumentSortKey>();
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -260,17 +274,17 @@ export function DocumentsPage() {
         <table>
           <thead>
             <tr>
-              <th>제목</th>
-              <th>분류</th>
-              <th>지점</th>
-              <th>대상 직원</th>
-              <th>보존기한</th>
-              <th>등록자</th>
+              <SortTh label="제목" sortKey="title" sort={sort} onToggle={toggleSort} />
+              <SortTh label="분류" sortKey="category" sort={sort} onToggle={toggleSort} />
+              <SortTh label="지점" sortKey="branchName" sort={sort} onToggle={toggleSort} />
+              <SortTh label="대상 직원" sortKey="relatedStaffName" sort={sort} onToggle={toggleSort} />
+              <SortTh label="보존기한" sortKey="retentionUntil" sort={sort} onToggle={toggleSort} />
+              <SortTh label="등록자" sortKey="uploadedByName" sort={sort} onToggle={toggleSort} />
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((d) => (
+            {sortRows(rows, DOCUMENT_SORT, sort).map((d) => (
               <tr key={d.id}>
                 <td>
                   {/* http(s)만 링크로 — 서버도 새 값은 http(s)만 받는다(log/139). 시연 데이터의 demo:// 경로는 글자로만. */}

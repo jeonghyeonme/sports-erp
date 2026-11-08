@@ -1603,3 +1603,31 @@ tbody tr:hover td {
     margin: 0 8px;
   }
 }
+
+/* D74 — 정렬 가능한 머리글: 머리글과 같은 글꼴, 지금 정렬 열만 포인트 색 */
+.sort-th {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+.sort-th:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+.sort-th.active {
+  color: var(--color-primary);
+}
+.sort-th-icon {
+  font-size: 9px;
+  opacity: 0.6;
+}
+.sort-th.active .sort-th-icon {
+  opacity: 1;
+}

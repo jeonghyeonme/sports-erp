@@ -12,6 +12,8 @@ import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection
 import { Modal } from '../components/Modal';
 import { ChangeRequestInbox, MyChangeRequests } from '../components/StaffChangeRequests';
 import { ApiEnvelope, BranchSummary, StaffRow } from '../lib/types';
+import { SortTh } from '../components/SortTh';
+import { SortAccessors, SortState, sortRows, useSortState } from '../lib/table-sort';
 
 const AUTO_EXPAND_THRESHOLD = 3;
 const EMPLOYMENT_TYPES = ['정규직', '계약직', '파트타임'];
@@ -21,21 +23,44 @@ interface ApiErrorBody {
   message?: string;
 }
 
-function StaffTable({ rows, onOpen }: { rows: StaffRow[]; onOpen?: (id: string) => void }) {
+// D74 — 머리글 정렬. 정렬 상태는 화면에 하나(지점별 묶음이 같은 순서로 정렬된다).
+type StaffSortKey = 'staffCode' | 'name' | 'position' | 'employmentType' | 'hireDate' | 'resignDate';
+const STAFF_SORT: SortAccessors<StaffRow, StaffSortKey> = {
+  staffCode: (s) => s.staffCode,
+  name: (s) => s.name,
+  position: (s) => s.position,
+  employmentType: (s) => s.employmentType,
+  hireDate: (s) => s.hireDate,
+  resignDate: (s) => s.resignDate,
+};
+
+function StaffTable({
+  rows,
+  onOpen,
+  sort = null,
+  onSort,
+}: {
+  rows: StaffRow[];
+  onOpen?: (id: string) => void;
+  sort?: SortState<StaffSortKey> | null;
+  onSort?: (key: StaffSortKey) => void;
+}) {
+  const th = (label: string, key: StaffSortKey) =>
+    onSort ? <SortTh label={label} sortKey={key} sort={sort} onToggle={onSort} /> : <th>{label}</th>;
   return (
     <table>
       <thead>
         <tr>
-          <th>직원코드</th>
-          <th>이름</th>
-          <th>직급</th>
-          <th>고용형태</th>
-          <th>입사일</th>
-          {rows.some((s) => s.resignDate) && <th>퇴사일</th>}
+          {th('직원코드', 'staffCode')}
+          {th('이름', 'name')}
+          {th('직급', 'position')}
+          {th('고용형태', 'employmentType')}
+          {th('입사일', 'hireDate')}
+          {rows.some((s) => s.resignDate) && th('퇴사일', 'resignDate')}
         </tr>
       </thead>
       <tbody>
-        {rows.map((s) => (
+        {sortRows(rows, STAFF_SORT, sort).map((s) => (
           <tr key={s.id} className={onOpen ? 'branch-row' : undefined} onClick={onOpen ? () => onOpen(s.id) : undefined}>
             <td>{s.staffCode}</td>
             <td>{s.name}</td>
@@ -254,6 +279,7 @@ export function StaffPage() {
   }, [rows, search]);
 
   const autoExpand = groups.length > 0 && groups.length <= AUTO_EXPAND_THRESHOLD;
+  const { sort, toggle: toggleSort } = useSortState<StaffSortKey>();
   const openDetail = (id: string) => navigate(`/staff/${id}`);
 
   return (
@@ -342,7 +368,7 @@ export function StaffPage() {
             countLabel="명"
             defaultExpanded={autoExpand}
           >
-            <StaffTable rows={group.rows} onOpen={openDetail} />
+            <StaffTable rows={group.rows} onOpen={openDetail} sort={sort} onSort={toggleSort} />
           </CollapsibleBranchSection>
         ))}
     </>

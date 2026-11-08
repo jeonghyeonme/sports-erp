@@ -9,6 +9,8 @@ import { groupByBranch } from '../lib/group-by-branch';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { Modal } from '../components/Modal';
 import { useToast } from '../lib/use-toast';
+import { SortTh } from '../components/SortTh';
+import { SortAccessors, sortRows, useSortState } from '../lib/table-sort';
 import {
   AffectedReservations,
   AgeGroup,
@@ -39,6 +41,19 @@ const AGE_GROUP_LABEL: Record<AgeGroup, string> = {
   TEEN: '청소년',
   ADULT: '성인',
   SENIOR: '시니어',
+};
+
+// D74 — 머리글 정렬(화면 전체 로드 목록). 상태는 진행 순서(준비 → 운영 → 휴강 → 종료)로.
+type ProgramSortKey = 'name' | 'category' | 'pricingType' | 'price' | 'instructorName' | 'status' | 'startDate';
+const STATUS_RANK: Record<ProgramStatus, number> = { PREPARING: 0, RUNNING: 1, PAUSED: 2, ENDED: 3 };
+const PROGRAM_SORT: SortAccessors<ProgramRow, ProgramSortKey> = {
+  name: (p) => p.name,
+  category: (p) => p.category,
+  pricingType: (p) => PRICING_LABEL[p.pricingType],
+  price: (p) => p.price,
+  instructorName: (p) => p.instructorName,
+  status: (p) => STATUS_RANK[p.status],
+  startDate: (p) => p.startDate,
 };
 
 const STATUS_LABEL: Record<ProgramStatus, string> = {
@@ -395,6 +410,7 @@ export function ProgramsPage() {
   }, [data, search]);
 
   const autoExpand = groups.length > 0 && groups.length <= AUTO_EXPAND_THRESHOLD;
+  const { sort, toggle: toggleSort } = useSortState<ProgramSortKey>();
 
   return (
     <>
@@ -499,18 +515,18 @@ export function ProgramsPage() {
             <table>
               <thead>
                 <tr>
-                  <th>프로그램명</th>
-                  <th>종목</th>
-                  <th>이용방식</th>
-                  <th>가격</th>
-                  <th>강사</th>
-                  <th>상태</th>
-                  <th>시작일</th>
+                  <SortTh label="프로그램명" sortKey="name" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="종목" sortKey="category" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="이용방식" sortKey="pricingType" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="가격" sortKey="price" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="강사" sortKey="instructorName" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="상태" sortKey="status" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="시작일" sortKey="startDate" sort={sort} onToggle={toggleSort} />
                   {canDelete && <th></th>}
                 </tr>
               </thead>
               <tbody>
-                {group.rows.map((p) => {
+                {sortRows(group.rows, PROGRAM_SORT, sort).map((p) => {
                   const nextStatuses = STATUS_TRANSITIONS[p.status];
                   return (
                     <tr key={p.id}>

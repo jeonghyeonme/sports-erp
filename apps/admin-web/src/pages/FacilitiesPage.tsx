@@ -11,6 +11,7 @@ import { useCan } from '../lib/use-can';
 import { ApiEnvelope, FacilityRow, FacilityType } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
+import { ConfirmModal } from '../components/ConfirmModal';
 const AUTO_EXPAND_THRESHOLD = 3;
 
 const TYPE_LABEL: Record<FacilityType, string> = {
@@ -187,6 +188,7 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [manualCount, setManualCount] = useState('');
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
 
   const correctMutation = useMutation<FacilityRow, AxiosError<ApiErrorBody>, number>({
     mutationFn: async (currentCount) =>
@@ -215,10 +217,9 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
     correctMutation.mutate(Number(manualCount));
   }
 
+  // D74 — 운영 중단 확인(브라우저 confirm 대신)
   function deactivate() {
-    if (window.confirm(`'${facility.name}'을(를) 운영 중단 처리하시겠습니까? "운영 중단" 탭에서 다시 활성화할 수 있습니다.`)) {
-      toggleActiveMutation.mutate(false);
-    }
+    setConfirmDeactivate(true);
   }
 
   function reactivate() {
@@ -327,6 +328,21 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
       )}
 
       {editing && <EditFacilityModal facility={facility} onClose={() => setEditing(false)} />}
+      {confirmDeactivate && (
+        <ConfirmModal
+          title="시설 운영 중단"
+          confirmLabel="운영 중단"
+          danger
+          pending={toggleActiveMutation.isPending}
+          onClose={() => setConfirmDeactivate(false)}
+          onConfirm={() => toggleActiveMutation.mutate(false, { onSettled: () => setConfirmDeactivate(false) })}
+        >
+          <p style={{ marginTop: 0 }}>
+            <strong>{facility.name}</strong>을(를) 운영 중단 처리할까요?
+          </p>
+          <p className="page-desc">"운영 중단" 탭에서 다시 운영할 수 있습니다.</p>
+        </ConfirmModal>
+      )}
     </div>
   );
 }

@@ -10,6 +10,16 @@ import { ApiEnvelope, InstructorRow } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
 import { useCan } from '../lib/use-can';
+import { SortTh } from '../components/SortTh';
+import { SortAccessors, sortRows, useSortState } from '../lib/table-sort';
+
+// D74 — 머리글 정렬. 연락처는 가려진 값이라 정렬하지 않는다. 상태는 활동 → 비활성 순.
+type InstructorSortKey = 'name' | 'specialty' | 'isActive';
+const INSTRUCTOR_SORT: SortAccessors<InstructorRow, InstructorSortKey> = {
+  name: (i) => i.name,
+  specialty: (i) => i.specialty,
+  isActive: (i) => (i.isActive ? 0 : 1),
+};
 const AUTO_EXPAND_THRESHOLD = 3;
 
 interface ApiErrorBody {
@@ -134,6 +144,7 @@ export function InstructorsPage() {
   }, [data, search]);
 
   const autoExpand = groups.length > 0 && groups.length <= AUTO_EXPAND_THRESHOLD;
+  const { sort, toggle: toggleSort } = useSortState<InstructorSortKey>();
 
   return (
     <>
@@ -184,15 +195,15 @@ export function InstructorsPage() {
             <table>
               <thead>
                 <tr>
-                  <th>이름</th>
-                  <th>전문분야</th>
+                  <SortTh label="이름" sortKey="name" sort={sort} onToggle={toggleSort} />
+                  <SortTh label="전문분야" sortKey="specialty" sort={sort} onToggle={toggleSort} />
                   <th>연락처</th>
-                  <th>상태</th>
+                  <SortTh label="상태" sortKey="isActive" sort={sort} onToggle={toggleSort} />
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {group.rows.map((i) => (
+                {sortRows(group.rows, INSTRUCTOR_SORT, sort).map((i) => (
                   <tr key={i.id}>
                     <td>{i.name}</td>
                     <td>{i.specialty ?? '-'}</td>
