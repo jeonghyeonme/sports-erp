@@ -46,13 +46,16 @@ test('지점 관리자: 상단 회원 찾기로 상세에 바로 가고, 남은 
 test('지점 관리자: 내일 회차를 등록하면 주간 시간표에 보인다', async ({ page }) => {
   await adminLogin(page, ACCOUNTS.seochoAdmin);
   await openMenu(page, '/reservations');
-  const form = page.locator('form', { has: page.locator('label', { hasText: '정원(비우면' }) });
+  await page.getByRole('button', { name: '+ 회차 등록' }).click(); // D73 — 머리글 버튼 + 모달
+  const form = page.locator('.modal-card form');
   await form.locator('select').first().selectOption({ label: '아침 요가' });
   await form.locator('.field', { hasText: '날짜' }).locator('input').fill(kstDate(1));
   await form.locator('.field', { hasText: '시작' }).locator('input').fill('19:00');
   await form.locator('.field', { hasText: '종료' }).locator('input').fill('20:00');
   await form.getByRole('button', { name: '회차 추가' }).click();
   await expect(page.getByText('회차를 등록했습니다.')).toBeVisible();
+  // 시간표는 이번 주(월~일)를 먼저 보인다 — 오늘이 일요일(KST)이면 내일은 다음 주라 넘겨서 본다(log/201: 일요일마다 실패하던 것).
+  if (new Date(`${kstDate(1)}T00:00:00Z`).getUTCDay() === 1) await page.getByRole('button', { name: '다음 주 →' }).click();
   await expect(page.locator('section, div', { hasText: '주간 시간표' }).getByText('19:00').first()).toBeVisible();
 });
 

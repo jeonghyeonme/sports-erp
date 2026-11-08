@@ -121,7 +121,8 @@ test('B08 회차 등록', async ({ page }, info) => {
   const s = new Steps(page, 'B08', '지점 관리자', '회차 등록');
   s.start();
   await s.click(nav(page, '/reservations'), '예약 메뉴');
-  const form = page.locator('form', { has: page.locator('label', { hasText: '정원(비우면' }) });
+  await s.click(page.getByRole('button', { name: '+ 회차 등록' }), '+ 회차 등록'); // D73
+  const form = page.locator('.modal-card form');
   await s.select(form.locator('select').first(), { label: '아침 요가' }, '프로그램');
   await s.fill(form.locator('.field', { hasText: '날짜' }).locator('input'), kstDate(2), '날짜');
   await s.fill(form.locator('.field', { hasText: '시작' }).locator('input'), '18:00', '시작');
