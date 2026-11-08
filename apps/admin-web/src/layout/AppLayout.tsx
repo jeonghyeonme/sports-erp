@@ -9,6 +9,7 @@ import { findScreenHelp } from '../lib/help-content';
 import { HelpPanel } from '../components/HelpPanel';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
 import { Breadcrumb, BreadcrumbNavItem } from '../components/Breadcrumb';
+import { MemberQuickSearch } from '../components/MemberQuickSearch';
 
 interface NavLinkItem {
   to: string;
@@ -253,6 +254,10 @@ export function AppLayout() {
             <span className="role-badge">{ROLE_LABEL[user.role]}</span>
             {user.branchName && <span className="role-badge">{user.branchName}</span>}
           </div>
+          {/* D72 — 회원 조회 권한이 있는 관리자에게만(직원은 회원 메뉴가 없다) */}
+          {(user.role === 'SUPER_ADMIN' || user.role === 'BRANCH_ADMIN') && can('member', 'READ') && (
+            <MemberQuickSearch showBranch={user.role === 'SUPER_ADMIN'} />
+          )}
           <div className="topbar-actions">
             {/* D61 — 처리할 일이 있으면 합계를 보이고, 누르면 대시보드 처리 대기 카드로 */}
             {inboxTotal > 0 && (

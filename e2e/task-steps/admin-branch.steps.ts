@@ -5,6 +5,13 @@ import { Steps } from './recorder';
 // 지점 관리자(서초 김민수)가 자주 하는 작업 — 로그인 직후 대시보드에서 시작해 메뉴로 옮겨 다닌다(goto 없음).
 const nav = (page: import('@playwright/test').Page, href: string) => page.locator(`nav a[href="${href}"]`).first();
 
+// D72 — 상단 바 회원 빠른 찾기(어느 화면에서든 검색어 → 결과 고르기 = 2단계). D72 전 기준선은 메뉴·검색어·검색·행 4단계(log/198).
+async function quickFind(s: Steps, page: import('@playwright/test').Page, q: string) {
+  await s.fill(page.getByRole('combobox', { name: '회원 빠른 찾기' }), q, '회원 찾기 검색어');
+  await s.click(page.getByRole('option', { name: /이수진/ }), '결과에서 회원');
+  await expect(page).toHaveURL(/\/members\/member-sujin/);
+}
+
 test('B01 회원 등록', async ({ page }, info) => {
   await adminLogin(page, ACCOUNTS.seochoAdmin);
   const s = new Steps(page, 'B01', '지점 관리자', '회원 등록');
@@ -22,10 +29,7 @@ test('B02 전화번호로 회원 찾아 상세 열기', async ({ page }, info) =
   await adminLogin(page, ACCOUNTS.seochoAdmin);
   const s = new Steps(page, 'B02', '지점 관리자', '전화번호로 회원 찾아 상세 열기');
   s.start();
-  await s.click(nav(page, '/members'), '회원 메뉴');
-  await s.fill(page.getByPlaceholder('이름 · 회원번호 · 전화번호'), '5678', '검색어');
-  await s.click(page.getByRole('button', { name: '검색' }), '검색');
-  await s.click(page.locator('main table tbody tr', { hasText: '이수진' }), '회원 행');
+  await quickFind(s, page, '5678');
   await expect(page.locator('main h2', { hasText: '이수진' })).toBeVisible();
   s.save(info);
 });
@@ -34,11 +38,11 @@ test('B03 PT 패키지 등록', async ({ page }, info) => {
   await adminLogin(page, ACCOUNTS.seochoAdmin);
   const s = new Steps(page, 'B03', '지점 관리자', 'PT 패키지 등록');
   s.start();
-  await s.click(nav(page, '/members'), '회원 메뉴');
-  await s.fill(page.getByPlaceholder('이름 · 회원번호 · 전화번호'), '이수진', '검색어');
-  await s.click(page.getByRole('button', { name: '검색' }), '검색');
-  await s.click(page.locator('main table tbody tr', { hasText: '이수진' }), '회원 행');
-  await s.click(page.getByRole('button', { name: 'PT 잔여세션' }), 'PT 잔여세션 탭');
+  await quickFind(s, page, '이수진');
+  // D72 — 남은 PT가 있는 회원이면 PT 탭이 이미 열려 있다. 없을 때만 탭을 누른다(시드 상태에 따라 단계가 다르다).
+  const ptTab = page.getByRole('button', { name: 'PT 잔여세션' });
+  await expect(page.locator('.wf-tab-row .filter-chip.active')).toHaveCount(1);
+  if (!(await ptTab.getAttribute('class'))?.includes('active')) await s.click(ptTab, 'PT 잔여세션 탭');
   await s.click(page.getByRole('button', { name: '+ PT 패키지 등록' }), '+ PT 패키지 등록');
   await s.select(field(page, '프로그램 *'), { label: '퍼스널 트레이닝' }, '프로그램');
   await s.fill(field(page, '세션 수 *'), '10', '세션 수');
@@ -55,11 +59,8 @@ test('B04 PT 세션 차감', async ({ page }, info) => {
   await adminLogin(page, ACCOUNTS.seochoAdmin);
   const s = new Steps(page, 'B04', '지점 관리자', 'PT 세션 차감(사용)');
   s.start();
-  await s.click(nav(page, '/members'), '회원 메뉴');
-  await s.fill(page.getByPlaceholder('이름 · 회원번호 · 전화번호'), '이수진', '검색어');
-  await s.click(page.getByRole('button', { name: '검색' }), '검색');
-  await s.click(page.locator('main table tbody tr', { hasText: '이수진' }), '회원 행');
-  await s.click(page.getByRole('button', { name: 'PT 잔여세션' }), 'PT 잔여세션 탭');
+  await quickFind(s, page, '이수진');
+  // D72 — 남은 PT가 있으면 PT 탭이 먼저 열린다(탭 누름 없음)
   await s.click(page.getByRole('button', { name: '세션 사용' }).first(), '세션 사용');
   await expect(page.getByText(/사용 이력/).first()).toBeVisible();
   s.save(info);
