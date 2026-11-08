@@ -191,3 +191,25 @@ const PNG_1PX = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
   'base64',
 );
+
+// D69 2차(log/206) — 문서함에 실제 파일을 올리고, 제목을 누르면 내려받는다(열람 기록은 api document-files가 본다).
+test('지점 관리자: 문서함에 PDF를 올리면 목록에 보이고, 제목을 누르면 파일을 받는다', async ({ page }) => {
+  const title = `화면테스트 문서 ${Date.now() % 100000}`;
+  await adminLogin(page, ACCOUNTS.seochoAdmin);
+  await openMenu(page, '/documents');
+  await page.getByRole('button', { name: '+ 문서 등록' }).click();
+  const dialog = page.getByRole('dialog', { name: '문서 등록' });
+  await dialog.locator('input[type=file]').setInputFiles({ name: 'manual.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 doc') });
+  await expect(field(page, '제목 *')).toHaveValue('manual'); // 비어 있으면 파일 이름으로 채운다
+  await field(page, '제목 *').fill(title);
+  await dialog.getByRole('button', { name: '등록', exact: true }).click();
+  await expect(page.getByText('문서를 등록했습니다.')).toBeVisible();
+
+  await page.getByRole('searchbox', { name: '문서 검색' }).fill(title);
+  const row = page.locator('main table tbody tr', { hasText: title });
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText('manual.pdf');
+  const download = page.waitForEvent('download');
+  await row.getByRole('button', { name: title }).click();
+  expect((await download).suggestedFilename()).toBe('manual.pdf');
+});

@@ -287,7 +287,10 @@ export interface MockDocument {
   branchId?: string; // 전사 문서면 undefined(=null)
   relatedStaffId?: string; // HR_RECORD 대상 직원
   title: string;
-  fileUrl: string;
+  // D69 2차(log/206) — 옛 문서는 주소(fileUrl)만, 새 문서는 저장소 파일(fileName·stored=true). 저장소 경로는 응답에 넣지 않는다.
+  fileUrl?: string;
+  fileName?: string;
+  stored?: boolean;
   fileType?: string;
   fileSize?: number;
   uploadedBy: string; // FK → MockAccount

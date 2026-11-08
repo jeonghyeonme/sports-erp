@@ -443,7 +443,10 @@ export interface DocumentRow {
   relatedStaffId?: string;
   relatedStaffName?: string;
   title: string;
-  fileUrl: string;
+  // D69 2차(log/206) — 옛 문서는 외부 주소(fileUrl), 새 문서는 올린 파일(stored·fileName). 열기는 GET /documents/:id/open.
+  fileUrl?: string;
+  fileName?: string;
+  stored?: boolean;
   fileType?: string;
   fileSize?: number;
   uploadedBy: string;

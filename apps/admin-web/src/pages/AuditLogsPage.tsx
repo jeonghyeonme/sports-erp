@@ -24,6 +24,7 @@ const ACTION_LABEL: Record<string, string> = {
   ASSET_STATUS_CHANGED: '자산 상태 변경',
   STAFF_PROFILE_CHANGED: '인사 정보 변경(신청 승인)',
   PERMISSION_CHANGED: '세부 권한 변경',
+  DOCUMENT_FILE_VIEWED: '문서 열람', // D69 2차(log/206)
   ...CONTRACT_ACTION_LABEL,
 };
 
@@ -56,7 +57,7 @@ function attendanceSide(v: Record<string, unknown>): string {
   return `${ATTENDANCE_LABEL[String(v.status)] ?? v.status}${times}`;
 }
 
-const ENTITY_LABEL: Record<string, string> = { Staff: '직원', Member: '회원', Asset: '자산', Role: '역할', Branch: '지점' };
+const ENTITY_LABEL: Record<string, string> = { Staff: '직원', Member: '회원', Asset: '자산', Role: '역할', Branch: '지점', Document: '문서' };
 
 const ROLE_LABEL: Record<string, string> = {
   SUPER_ADMIN: '본사 관리자',
@@ -141,6 +142,10 @@ export function AuditLogsPage() {
     if (r.action === 'PHONE_VIEWED') {
       // D47 — 상세 화면을 열어 원문 번호가 보인 기록. 번호 자체는 남기지 않는다.
       return `${branchName(after.branchId)} · ${ENTITY_LABEL[r.entity] ?? r.entity} 상세 화면`;
+    }
+    if (r.action === 'DOCUMENT_FILE_VIEWED') {
+      // D69 2차(log/206) — 문서를 연 기록. 올린 파일이면 파일 이름, 옛 링크 문서면 외부 링크.
+      return after.external ? '옛 링크 문서 열기(외부 주소)' : `파일 ${after.fileName ?? '-'} 열기`;
     }
     if (r.action === 'ATTENDANCE_CORRECTED') {
       // ADR-ATT-04 — 그날 근태의 이전 → 이후와 사유

@@ -1,25 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { ContractFileKind, Prisma } from '@prisma/client';
-import { randomUUID } from 'crypto';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { AppException } from '../../common/exceptions/app.exception';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { recordAudit } from '../../prisma/audit';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ATTACHMENT_MAX_BYTES } from '../posts/dto/attachment.dto';
-import { badType, checkType, extensionOf, tooLarge } from '../posts/attachment-rules';
+import { VerifiedStoredFile, requestStoredUpload, verifyStoredFile } from '../posts/attachment-rules';
 import { StorageService } from '../storage/storage.service';
 import { retentionState } from './contract-retention';
 
 type Tx = Prisma.TransactionClient;
 
 /** 저장소에서 다시 확인한 계약 파일 — 회차에 붙일 때 그대로 행이 된다. */
-export interface VerifiedContractFile {
-  path: string;
-  fileName: string;
-  fileType: string;
-  fileSize: number;
-}
+export type VerifiedContractFile = VerifiedStoredFile;
 
 export const CONTRACT_FILE_LABEL: Record<ContractFileKind, string> = {
   CONTRACT: '계약서',
@@ -40,23 +33,12 @@ export class ContractFileService {
   ) {}
 
   async requestUpload(input: { fileName: string; fileType: string; fileSize: number }) {
-    const ext = extensionOf(input.fileName);
-    checkType(ext, input.fileType);
-    if (input.fileSize > ATTACHMENT_MAX_BYTES) throw tooLarge();
-    const path = `contracts/${randomUUID()}.${ext}`;
-    return { path, uploadUrl: await this.storage.createUploadUrl(path), maxBytes: ATTACHMENT_MAX_BYTES };
+    return requestStoredUpload(this.storage, 'contracts', input);
   }
 
   /** 1단계에서 받은 경로에 파일이 실제로 올라왔는지, 크기·형식이 맞는지 저장소에서 다시 본다. 트랜잭션 밖에서 부른다. */
   async verify(input: { path: string; fileName: string }): Promise<VerifiedContractFile> {
-    const ext = extensionOf(input.path);
-    if (extensionOf(input.fileName) !== ext) throw badType();
-    const info = await this.storage.info(input.path);
-    if (!info) throw new AppException('ATTACHMENT_NOT_UPLOADED', '파일이 아직 올라가지 않았습니다. 다시 올려 주세요.', 409);
-    if (info.size > ATTACHMENT_MAX_BYTES) throw tooLarge();
-    const fileType = (info.contentType ?? '').split(';')[0].trim();
-    checkType(ext, fileType);
-    return { path: input.path, fileName: input.fileName.trim(), fileType: fileType || 'application/octet-stream', fileSize: info.size };
+    return verifyStoredFile(this.storage, 'contracts', input);
   }
 
   /**
