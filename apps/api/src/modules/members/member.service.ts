@@ -9,7 +9,7 @@ import {
 } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
-import { PageRequest } from '../../common/http/pagination';
+import { PageRequest, SortDir } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
 import { recordAudit, recordPhoneView } from '../../prisma/audit';
@@ -43,6 +43,18 @@ type ProfileInput = {
  * 회원·회원 계정·수강·PT — D32. 원천은 DB이고 mock 미러는 없다
  * (이 데이터를 동기적으로 읽는 mock 도메인이 남지 않았다 — D32 결정 1).
  */
+// D74 2차(log/205) — 회원 목록 머리글 정렬 열(화면 표와 같은 열). 상태는 enum 선언 순서(활성 → 휴면 → 탈퇴).
+export const MEMBER_SORT_KEYS = ['branch', 'memberNo', 'name', 'assignedStaff', 'status', 'joinedAt'] as const;
+export type MemberSortKey = (typeof MEMBER_SORT_KEYS)[number];
+const MEMBER_SORT: Record<MemberSortKey, (dir: SortDir) => Prisma.MemberOrderByWithRelationInput> = {
+  branch: (dir) => ({ branch: { name: dir } }),
+  memberNo: (dir) => ({ memberNo: dir }),
+  name: (dir) => ({ name: dir }),
+  assignedStaff: (dir) => ({ assignedStaff: { name: dir } }),
+  status: (dir) => ({ status: dir }),
+  joinedAt: (dir) => ({ joinedAt: dir }),
+};
+
 @Injectable()
 export class MemberService {
   constructor(private readonly prisma: PrismaService) {}
@@ -56,6 +68,7 @@ export class MemberService {
   async list(
     filter: { branchId?: string; status?: string; q?: string; assignedStaffId?: string },
     page: PageRequest,
+    sort?: { key: MemberSortKey; dir: SortDir },
   ): Promise<{ items: MemberView[]; total: number }> {
     // 예전 mock은 모르는 상태값으로 거르면 빈 목록이었다 — enum 밖 값을 DB로 보내 500이 나지 않게 유지.
     if (filter.status && !MEMBER_STATUSES.includes(filter.status as MemberStatus)) return { items: [], total: 0 };
@@ -77,7 +90,8 @@ export class MemberService {
       this.prisma.member.findMany({
         where,
         include: withNames,
-        orderBy: [{ memberNo: 'asc' }, { id: 'asc' }],
+        // D74 2차(log/205) — 고른 열 → 같은 값은 id로(쪽 경계가 흔들리지 않게). 기본은 회원번호순.
+        orderBy: sort ? [MEMBER_SORT[sort.key](sort.dir), { id: sort.dir }] : [{ memberNo: 'asc' }, { id: 'asc' }],
         skip: page.skip,
         take: page.pageSize,
       }),

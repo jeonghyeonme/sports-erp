@@ -16,6 +16,11 @@ import { ExportCsvButton } from '../components/ExportCsvButton';
 import { fetchAllPages, kstDateStamp } from '../lib/csv';
 import { ASSET_COLUMNS } from '../lib/export-columns';
 import { useDebouncedValue } from '../lib/use-debounced';
+import { SortTh } from '../components/SortTh';
+import { setSortParams, useSortState } from '../lib/table-sort';
+
+// 서버 정렬 열(apps/api asset.service ASSET_SORT_KEYS와 같다)
+type AssetSortKey = 'branch' | 'assetCode' | 'name' | 'category' | 'assetType' | 'acquisitionCost' | 'quantity' | 'location' | 'status';
 
 const PAGE_SIZE = 20;
 const FIXED_ASSET_THRESHOLD = 1_000_000;
@@ -333,8 +338,10 @@ export function AssetsPage() {
   const [searchInput, setSearchInput] = useState('');
   const q = useDebouncedValue(searchInput.trim());
   const [page, setPage] = useState(1);
+  // D74 2차(log/205) — 머리글 정렬은 서버가. 해제하면 자산코드순.
+  const { sort, toggle: toggleSort } = useSortState<AssetSortKey>();
 
-  const filterKey = `${branchId}|${statusFilter}|${q}`;
+  const filterKey = `${branchId}|${statusFilter}|${q}|${sort?.key}|${sort?.dir}`;
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
   if (filterKey !== prevFilterKey) {
     setPrevFilterKey(filterKey);
@@ -346,8 +353,9 @@ export function AssetsPage() {
   if (branchId) params.set('branchId', branchId);
   if (statusFilter) params.set('status', statusFilter);
   if (q) params.set('q', q);
+  setSortParams(params, sort);
   const { data, isLoading, isFetching, isError, error } = useApiPage<AssetRow>(
-    ['assets', branchId, statusFilter, q, page],
+    ['assets', branchId, statusFilter, q, sort, page],
     `/assets?${params}`,
   );
   const rows = data?.rows ?? [];
@@ -414,6 +422,7 @@ export function AssetsPage() {
             if (branchId) p.set('branchId', branchId);
             if (statusFilter) p.set('status', statusFilter);
             if (q) p.set('q', q);
+            setSortParams(p, sort);
             return fetchAllPages<AssetRow>('/assets', p);
           }}
         />
@@ -428,15 +437,15 @@ export function AssetsPage() {
         <table>
           <thead>
             <tr>
-              {isSuperAdmin && <th>지점</th>}
-              <th>자산코드</th>
-              <th>품명</th>
-              <th>분류</th>
-              <th>구분</th>
-              <th>취득가액</th>
-              <th>수량</th>
-              <th>위치</th>
-              <th>상태</th>
+              {isSuperAdmin && <SortTh label="지점" sortKey="branch" sort={sort} onToggle={toggleSort} />}
+              <SortTh label="자산코드" sortKey="assetCode" sort={sort} onToggle={toggleSort} />
+              <SortTh label="품명" sortKey="name" sort={sort} onToggle={toggleSort} />
+              <SortTh label="분류" sortKey="category" sort={sort} onToggle={toggleSort} />
+              <SortTh label="구분" sortKey="assetType" sort={sort} onToggle={toggleSort} />
+              <SortTh label="취득가액" sortKey="acquisitionCost" sort={sort} onToggle={toggleSort} />
+              <SortTh label="수량" sortKey="quantity" sort={sort} onToggle={toggleSort} />
+              <SortTh label="위치" sortKey="location" sort={sort} onToggle={toggleSort} />
+              <SortTh label="상태" sortKey="status" sort={sort} onToggle={toggleSort} />
               <th />
             </tr>
           </thead>

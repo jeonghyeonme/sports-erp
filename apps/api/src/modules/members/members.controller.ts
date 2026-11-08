@@ -5,10 +5,10 @@ import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { ScopedResource } from '../../common/decorators/scoped-resource.decorator';
-import { MemberService } from './member.service';
+import { MEMBER_SORT_KEYS, MemberService } from './member.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { ok } from '../../common/http/api-response';
-import { pageMeta, parsePage } from '../../common/http/pagination';
+import { pageMeta, parsePage, parseSort } from '../../common/http/pagination';
 import { maskPhones } from '../../common/privacy/mask-phone';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
@@ -79,10 +79,13 @@ export class MembersController {
     @Query('assignedStaffId') assignedStaffId?: string,
     @Query('page') pageQuery?: string,
     @Query('limit') limitQuery?: string,
+    @Query('sort') sortQuery?: string,
+    @Query('dir') dirQuery?: string,
   ) {
     // D43 — offset 페이지네이션(page·limit, 상한 100). 지점 범위는 BranchScopeGuard가 branchId로 강제한다.
     const page = parsePage(pageQuery, limitQuery);
-    const { items, total } = await this.memberService.list({ branchId, status, q, assignedStaffId }, page);
+    const sort = parseSort(sortQuery, dirQuery, MEMBER_SORT_KEYS);
+    const { items, total } = await this.memberService.list({ branchId, status, q, assignedStaffId }, page, sort);
     // ADR-MEM-04 — 목록은 역할과 무관하게 전화번호를 마스킹한다. 검색(q)은 서버에서 원문으로 맞춘다.
     return ok(maskPhones(items), pageMeta(page, total));
   }

@@ -84,6 +84,21 @@ test('지점 관리자: 예약 현황에서 회원 이름을 치면 그 회원 �
   await expect(page.getByText('조건에 맞는 예약이 없습니다.')).toBeVisible();
 });
 
+// D74 2차(log/205) — 서버가 쪽을 나누는 목록은 머리글을 누르면 서버가 정렬한다(sort·dir). 순서 자체는 api list-sort가 본다.
+test('지점 관리자: 회원 목록 이름 머리글을 누르면 서버에 이름순·역순을 묻는다', async ({ page }) => {
+  await adminLogin(page, ACCOUNTS.seochoAdmin);
+  await openMenu(page, '/members');
+  const header = page.getByRole('columnheader', { name: /이름/ });
+  let req = page.waitForRequest((r) => r.url().includes('/api/v1/members?') && r.url().includes('sort=name') && r.url().includes('dir=asc'));
+  await header.getByRole('button').click();
+  await req;
+  await expect(header).toHaveAttribute('aria-sort', 'ascending');
+  req = page.waitForRequest((r) => r.url().includes('/api/v1/members?') && r.url().includes('sort=name') && r.url().includes('dir=desc'));
+  await header.getByRole('button').click();
+  await req;
+  await expect(header).toHaveAttribute('aria-sort', 'descending');
+});
+
 test('지점 관리자: 내일 회차를 등록하면 주간 시간표에 보인다', async ({ page }) => {
   await adminLogin(page, ACCOUNTS.seochoAdmin);
   await openMenu(page, '/reservations');

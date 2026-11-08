@@ -37,3 +37,12 @@ export function useSortState<K extends string>(initial: SortState<K> | null = nu
     setSort((s) => (s?.key !== key ? { key, dir: 'asc' } : s.dir === 'asc' ? { key, dir: 'desc' } : null));
   return { sort, toggle };
 }
+
+/** D74 2차(log/205) — 서버 쪽 나누기 목록은 정렬을 서버에 맡긴다(sort=열, dir=asc|desc). 해제면 서버 기본 순서. */
+export function setSortParams<K extends string>(params: URLSearchParams, sort: SortState<K> | null): URLSearchParams {
+  if (sort) {
+    params.set('sort', sort.key);
+    params.set('dir', sort.dir);
+  }
+  return params;
+}

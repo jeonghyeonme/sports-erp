@@ -10,6 +10,11 @@ import { Modal } from '../components/Modal';
 import { Pager } from '../components/Pager';
 import { ApiEnvelope, SupportCategory, SupportRequestRow, SupportStatus } from '../lib/types';
 import { useDebouncedValue } from '../lib/use-debounced';
+import { SortTh } from '../components/SortTh';
+import { setSortParams, useSortState } from '../lib/table-sort';
+
+// 서버 정렬 열(apps/api support-request.service SUPPORT_SORT_KEYS와 같다)
+type SupportSortKey = 'createdAt' | 'branch' | 'category' | 'title' | 'requester' | 'status';
 
 // D56 — 업무지원 요청(RFP 개념도 현장→본사). 지점 관리자는 요청·자기 지점 요청 확인, 본사는 전 지점 요청 처리.
 
@@ -215,7 +220,9 @@ export function SupportRequestsPage() {
   const [searchInput, setSearchInput] = useState('');
   const q = useDebouncedValue(searchInput.trim());
   const [page, setPage] = useState(1);
-  const filterKey = `${status}|${q}`;
+  // D74 2차(log/205) — 머리글 정렬은 서버가. 해제하면 최근 요청부터.
+  const { sort, toggle: toggleSort } = useSortState<SupportSortKey>();
+  const filterKey = `${status}|${q}|${sort?.key}|${sort?.dir}`;
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
   if (filterKey !== prevFilterKey) {
     setPrevFilterKey(filterKey);
@@ -227,8 +234,9 @@ export function SupportRequestsPage() {
   const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
   if (status) params.set('status', status);
   if (q) params.set('q', q);
+  setSortParams(params, sort);
   const { data, isLoading, isFetching, isError, error } = useApiPage<SupportRequestRow>(
-    ['support-requests', status, q, page],
+    ['support-requests', status, q, sort, page],
     `/support-requests?${params}`,
     { enabled: isBranchAdmin || isSuperAdmin },
   );
@@ -288,12 +296,12 @@ export function SupportRequestsPage() {
         <table>
           <thead>
             <tr>
-              <th>요청일</th>
-              {isSuperAdmin && <th>지점</th>}
-              <th>분류</th>
-              <th>제목</th>
-              <th>요청자</th>
-              <th>상태</th>
+              <SortTh label="요청일" sortKey="createdAt" sort={sort} onToggle={toggleSort} />
+              {isSuperAdmin && <SortTh label="지점" sortKey="branch" sort={sort} onToggle={toggleSort} />}
+              <SortTh label="분류" sortKey="category" sort={sort} onToggle={toggleSort} />
+              <SortTh label="제목" sortKey="title" sort={sort} onToggle={toggleSort} />
+              <SortTh label="요청자" sortKey="requester" sort={sort} onToggle={toggleSort} />
+              <SortTh label="상태" sortKey="status" sort={sort} onToggle={toggleSort} />
             </tr>
           </thead>
           <tbody>
