@@ -14,6 +14,11 @@ import { ApiEnvelope, MemberRow } from '../lib/types';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
 import { useToast } from '../lib/use-toast';
+import { SortTh } from '../components/SortTh';
+import { setSortParams, useSortState } from '../lib/table-sort';
+
+// 서버 정렬 열(apps/api member.service MEMBER_SORT_KEYS와 같다)
+type MemberSortKey = 'branch' | 'memberNo' | 'name' | 'assignedStaff' | 'status' | 'joinedAt';
 
 const PAGE_SIZE = 20;
 
@@ -180,8 +185,11 @@ export function MembersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const navigate = useNavigate();
 
-  // 필터가 바뀌면 1쪽부터 — effect 대신 렌더 중 이전 값 비교(BoardPage와 같은 패턴).
-  const filterKey = `${branchId}|${status}|${q}`;
+  // D74 2차(log/205) — 머리글 정렬은 서버가(쪽을 넘겨도 같은 순서). 해제하면 회원번호순.
+  const { sort, toggle: toggleSort } = useSortState<MemberSortKey>();
+
+  // 필터·정렬이 바뀌면 1쪽부터 — effect 대신 렌더 중 이전 값 비교(BoardPage와 같은 패턴).
+  const filterKey = `${branchId}|${status}|${q}|${sort?.key}|${sort?.dir}`;
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
   if (filterKey !== prevFilterKey) {
     setPrevFilterKey(filterKey);
@@ -193,8 +201,9 @@ export function MembersPage() {
   if (branchId) params.set('branchId', branchId);
   if (status) params.set('status', status);
   if (q) params.set('q', q);
+  setSortParams(params, sort);
   const { data, isLoading, isFetching, isError, error } = useApiPage<MemberRow>(
-    ['members', branchId, status, q, page],
+    ['members', branchId, status, q, sort, page],
     `/members?${params}`,
   );
   const rows = data?.rows ?? [];
@@ -257,6 +266,7 @@ export function MembersPage() {
             if (branchId) p.set('branchId', branchId);
             if (status) p.set('status', status);
             if (q) p.set('q', q);
+            setSortParams(p, sort);
             p.set('export', 'true'); // D60 — 서버가 출력 권한을 본다
             return fetchAllPages<MemberRow>('/members', p);
           }}
@@ -273,13 +283,13 @@ export function MembersPage() {
         <table>
           <thead>
             <tr>
-              {isSuperAdmin && <th>지점</th>}
-              <th>회원번호</th>
-              <th>이름</th>
+              {isSuperAdmin && <SortTh label="지점" sortKey="branch" sort={sort} onToggle={toggleSort} />}
+              <SortTh label="회원번호" sortKey="memberNo" sort={sort} onToggle={toggleSort} />
+              <SortTh label="이름" sortKey="name" sort={sort} onToggle={toggleSort} />
               <th>연락처</th>
-              <th>담당 직원</th>
-              <th>상태</th>
-              <th>가입일</th>
+              <SortTh label="담당 직원" sortKey="assignedStaff" sort={sort} onToggle={toggleSort} />
+              <SortTh label="상태" sortKey="status" sort={sort} onToggle={toggleSort} />
+              <SortTh label="가입일" sortKey="joinedAt" sort={sort} onToggle={toggleSort} />
             </tr>
           </thead>
           <tbody>

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Asset, AssetCategory, AssetStatus, AssetType, Prisma } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
 import { toKstDateString } from '../../common/date/kst-date';
-import { PageRequest, searchTerm } from '../../common/http/pagination';
+import { PageRequest, SortDir, searchTerm } from '../../common/http/pagination';
 import { recordAudit } from '../../prisma/audit';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
@@ -43,6 +43,31 @@ export type UpdateAssetInput = Partial<{ name: string; location: string; quantit
  * 자산(자원문서관리 부록 A) — D35. 원천은 DB다. 규칙(자동 판정 RES-T01, 고정자산 수량 1 RES-T03,
  * 상태 전이 RES-T02, 계약 종료 차단 ADR-RES-01)은 mock 구현 그대로 옮겼다. 권한·지점 강제는 컨트롤러가 한다.
  */
+// D74 2차(log/205) — 자산 목록 머리글 정렬 열(화면 표와 같은 열). 분류·구분·상태는 enum 선언 순서.
+export const ASSET_SORT_KEYS = [
+  'branch',
+  'assetCode',
+  'name',
+  'category',
+  'assetType',
+  'acquisitionCost',
+  'quantity',
+  'location',
+  'status',
+] as const;
+export type AssetSortKey = (typeof ASSET_SORT_KEYS)[number];
+const ASSET_SORT: Record<AssetSortKey, (dir: SortDir) => Prisma.AssetOrderByWithRelationInput> = {
+  branch: (dir) => ({ branch: { name: dir } }),
+  assetCode: (dir) => ({ assetCode: dir }),
+  name: (dir) => ({ name: dir }),
+  category: (dir) => ({ category: dir }),
+  assetType: (dir) => ({ assetType: dir }),
+  acquisitionCost: (dir) => ({ acquisitionCost: dir }),
+  quantity: (dir) => ({ quantity: dir }),
+  location: (dir) => ({ location: { sort: dir, nulls: 'last' } }),
+  status: (dir) => ({ status: dir }),
+};
+
 @Injectable()
 export class AssetService {
   constructor(private readonly prisma: PrismaService) {}
@@ -55,6 +80,7 @@ export class AssetService {
   async list(
     filter: { branchId?: string; category?: string; status?: string; assetType?: string; q?: string },
     page: PageRequest,
+    sort?: { key: AssetSortKey; dir: SortDir },
   ): Promise<{ items: AssetView[]; total: number }> {
     const empty = { items: [], total: 0 };
     // 예전 mock은 모르는 값으로 거르면 빈 목록이었다 — enum 밖 값을 DB로 보내 500이 나지 않게 유지.
@@ -81,7 +107,8 @@ export class AssetService {
       this.prisma.asset.findMany({
         where,
         include: withBranch,
-        orderBy: [{ assetCode: 'asc' }, { id: 'asc' }],
+        // D74 2차(log/205) — 고른 열 → 같은 값은 id로. 기본은 자산코드순.
+        orderBy: sort ? [ASSET_SORT[sort.key](sort.dir), { id: sort.dir }] : [{ assetCode: 'asc' }, { id: 'asc' }],
         skip: page.skip,
         take: page.pageSize,
       }),

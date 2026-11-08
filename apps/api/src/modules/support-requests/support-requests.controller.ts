@@ -5,10 +5,10 @@ import { ScopedResource } from '../../common/decorators/scoped-resource.decorato
 import { AppException } from '../../common/exceptions/app.exception';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { ok } from '../../common/http/api-response';
-import { pageMeta, parsePage } from '../../common/http/pagination';
+import { pageMeta, parsePage, parseSort } from '../../common/http/pagination';
 import { CreateSupportRequestDto } from './dto/create-support-request.dto';
 import { UpdateSupportStatusDto } from './dto/update-support-status.dto';
-import { SupportRequestService } from './support-request.service';
+import { SUPPORT_SORT_KEYS, SupportRequestService } from './support-request.service';
 import { Permission } from '../../common/permissions/permission.decorator';
 
 // D56 — 업무지원 요청(현장→본사). 요청은 지점 관리자, 처리는 본사. 지점 범위는 전역 BranchScopeGuard(D46):
@@ -34,9 +34,12 @@ export class SupportRequestsController {
     @Query('page') pageQuery?: string,
     @Query('limit') limitQuery?: string,
     @Query('q') q?: string,
+    @Query('sort') sortQuery?: string,
+    @Query('dir') dirQuery?: string,
   ) {
     const page = parsePage(pageQuery, limitQuery);
-    const { items, total } = await this.requests.list({ branchId, status, q }, page);
+    const sort = parseSort(sortQuery, dirQuery, SUPPORT_SORT_KEYS);
+    const { items, total } = await this.requests.list({ branchId, status, q }, page, sort);
     return ok(items, pageMeta(page, total));
   }
 

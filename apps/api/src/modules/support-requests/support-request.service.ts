@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, SupportRequest, SupportRequestStatus } from '@prisma/client';
 import { AppException } from '../../common/exceptions/app.exception';
-import { PageRequest, searchTerm } from '../../common/http/pagination';
+import { PageRequest, SortDir, searchTerm } from '../../common/http/pagination';
 import { lockBranchForShare } from '../../prisma/integrity';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -44,6 +44,18 @@ type Row = Prisma.SupportRequestGetPayload<{ include: typeof withNames }>;
  * - 계약 종료 지점은 새 요청 409(CLAUDE.md 계약 종료 차단 — 신규 활동). 과거 요청 조회는 유지.
  * - 상태 변경은 "읽은 상태 그대로일 때만"(조건부 갱신) — 두 본사 관리자가 동시에 바꾸면 한쪽은 409.
  */
+// D74 2차(log/205) — 업무지원 목록 머리글 정렬 열. 상태는 처리 순서(enum 선언 순서).
+export const SUPPORT_SORT_KEYS = ['createdAt', 'branch', 'category', 'title', 'requester', 'status'] as const;
+export type SupportSortKey = (typeof SUPPORT_SORT_KEYS)[number];
+const SUPPORT_SORT: Record<SupportSortKey, (dir: SortDir) => Prisma.SupportRequestOrderByWithRelationInput> = {
+  createdAt: (dir) => ({ createdAt: dir }),
+  branch: (dir) => ({ branch: { name: dir } }),
+  category: (dir) => ({ category: dir }),
+  title: (dir) => ({ title: dir }),
+  requester: (dir) => ({ requester: { name: dir } }),
+  status: (dir) => ({ status: dir }),
+};
+
 @Injectable()
 export class SupportRequestService {
   constructor(private readonly prisma: PrismaService) {}
@@ -75,6 +87,7 @@ export class SupportRequestService {
   async list(
     filter: { branchId?: string; status?: string; q?: string },
     page: PageRequest,
+    sort?: { key: SupportSortKey; dir: SortDir },
   ): Promise<{ items: SupportRequestView[]; total: number }> {
     if (filter.status && !STATUSES.includes(filter.status as SupportRequestStatus)) return { items: [], total: 0 };
     // D74 2차(log/204) — 제목·요청자 이름으로 찾는다.
@@ -91,7 +104,8 @@ export class SupportRequestService {
       this.prisma.supportRequest.findMany({
         where,
         include: withNames,
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        // D74 2차(log/205) — 고른 열 → 같은 값은 id로. 기본은 최근 요청부터.
+        orderBy: sort ? [SUPPORT_SORT[sort.key](sort.dir), { id: sort.dir }] : [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: page.skip,
         take: page.pageSize,
       }),

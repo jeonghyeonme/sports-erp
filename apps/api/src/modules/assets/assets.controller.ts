@@ -5,11 +5,11 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { AppException } from '../../common/exceptions/app.exception';
 import { ScopedResource } from '../../common/decorators/scoped-resource.decorator';
 import { ok } from '../../common/http/api-response';
-import { pageMeta, parsePage } from '../../common/http/pagination';
+import { pageMeta, parsePage, parseSort } from '../../common/http/pagination';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { UpdateAssetStatusDto } from './dto/update-asset-status.dto';
-import { AssetService } from './asset.service';
+import { ASSET_SORT_KEYS, AssetService } from './asset.service';
 import { Permission } from '../../common/permissions/permission.decorator';
 
 // 자원문서관리 A-5·A-7 — SUPER_ADMIN은 전체, BRANCH_ADMIN은 본인 지점만. MEMBER·STAFF는 접근 불가.
@@ -31,12 +31,15 @@ export class AssetsController {
     @Query('page') pageQuery?: string,
     @Query('limit') limitQuery?: string,
     @Query('q') q?: string,
+    @Query('sort') sortQuery?: string,
+    @Query('dir') dirQuery?: string,
   ) {
     const page = parsePage(pageQuery, limitQuery);
+    const sort = parseSort(sortQuery, dirQuery, ASSET_SORT_KEYS);
     // BRANCH_ADMIN이면 가드가 branchId를 본인 지점으로 고정해 넘긴다(다른 지점 지정은 403).
     if (user.role === 'BRANCH_ADMIN' && !branchId) return ok([], pageMeta(page, 0));
     // D43 — offset 페이지네이션(page·limit, 상한 100).
-    const { items, total } = await this.assets.list({ branchId, category, status, assetType, q }, page);
+    const { items, total } = await this.assets.list({ branchId, category, status, assetType, q }, page, sort);
     return ok(items, pageMeta(page, total));
   }
 

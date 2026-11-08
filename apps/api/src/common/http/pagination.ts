@@ -30,3 +30,17 @@ export function searchTerm(q?: string): string | undefined {
   const term = q?.trim().slice(0, 50);
   return term ? term : undefined;
 }
+
+export type SortDir = 'asc' | 'desc';
+/**
+ * D74 2차(log/205) — 서버 쪽 나누기 목록의 정렬(sort=열 이름, dir=asc|desc). 허용 목록 밖 값은 무시하고(기본 순서)
+ * 400을 내지 않는다 — 모르는 필터 값을 빈 목록으로 다루는 다른 목록과 같이 "요청은 받되 영향 없음".
+ */
+export function parseSort<K extends string>(
+  sort: string | undefined,
+  dir: string | undefined,
+  keys: readonly K[],
+): { key: K; dir: SortDir } | undefined {
+  if (!sort || !(keys as readonly string[]).includes(sort)) return undefined;
+  return { key: sort as K, dir: dir === 'desc' ? 'desc' : 'asc' };
+}
