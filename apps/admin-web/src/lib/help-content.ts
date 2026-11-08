@@ -398,15 +398,24 @@ const HELP_ROUTES: HelpRoute[] = [
     path: '/documents',
     help: {
       title: '문서함',
-      summary: '인사 서류·매뉴얼 같은 문서를 분류별로 보관합니다(위탁운영 계약서는 지점 상세의 계약 회차에서 다룹니다). 지금은 파일 URL만 기록합니다.',
+      summary: '인사 서류·매뉴얼 같은 문서 파일을 분류별로 보관합니다(위탁운영 계약서는 지점 상세의 계약 회차에서 다룹니다).',
       common: [
-        '위쪽 분류 버튼으로 걸러 봅니다.',
-        '"+ 문서 등록"에서 제목·분류·파일 URL을 넣습니다. 인사 서류는 대상 직원이 필요하고 보존기한은 자동 계산됩니다.',
+        '검색 칸(제목·대상 직원)과 분류 버튼으로 걸러 보고, 머리글을 눌러 정렬합니다. 20건씩 나뉘어 보입니다.',
+        '"+ 문서 등록"에서 분류를 고르고 파일(PDF·이미지·오피스·한글, 10MB까지)을 고른 뒤 제목을 넣습니다. 인사 서류는 대상 직원이 필요하고 보존기한은 자동 계산됩니다.',
+        '제목을 누르면 파일을 엽니다. 열 때마다 열람 기록이 남습니다. "옛 링크 문서"는 파일 없이 주소만 있던 예전 문서입니다.',
       ],
       byRole: {
         SUPER_ADMIN: ['지점을 비우면 전사 문서가 됩니다.', '보존기한이 다가온 문서 알림을 확인하고, 필요 없으면 "삭제"합니다.'],
       },
-      errors: ['VALIDATION_ERROR', 'STAFF_BRANCH_MISMATCH', 'DOCUMENT_SCOPE_VIOLATION', 'BRANCH_TERMINATED'],
+      errors: [
+        'VALIDATION_ERROR',
+        'STAFF_BRANCH_MISMATCH',
+        'DOCUMENT_SCOPE_VIOLATION',
+        'BRANCH_TERMINATED',
+        'ATTACHMENT_TYPE_NOT_ALLOWED',
+        'ATTACHMENT_TOO_LARGE',
+        'DOCUMENT_FILE_UNAVAILABLE',
+      ],
     },
   },
   {

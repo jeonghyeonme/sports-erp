@@ -5,7 +5,10 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeExempt, ScopedResource } from '../../common/decorators/scoped-resource.decorator';
 import { ok } from '../../common/http/api-response';
 import { CreateDocumentDto } from './dto/create-document.dto';
-import { DocumentService } from './document.service';
+import { DOCUMENT_SORT_KEYS, DocumentService } from './document.service';
+import { pageMeta, parsePage, parseSort } from '../../common/http/pagination';
+import { AppException } from '../../common/exceptions/app.exception';
+import { RequestUploadDto } from '../posts/dto/attachment.dto';
 import { Permission } from '../../common/permissions/permission.decorator';
 
 // 자원문서관리 A-5·A-7 — SUPER_ADMIN 전체, BRANCH_ADMIN은 본인 지점+전사 문서. STAFF 본인 인사서류 조회는 범위 제외.
@@ -25,12 +28,34 @@ export class DocumentsController {
     @Query('branchId') branchId?: string,
     @Query('category') category?: string,
     @Query('relatedStaffId') relatedStaffId?: string,
+    @Query('q') q?: string,
+    @Query('page') pageQuery?: string,
+    @Query('limit') limitQuery?: string,
+    @Query('sort') sortQuery?: string,
+    @Query('dir') dirQuery?: string,
   ) {
-    if (user.role === 'BRANCH_ADMIN' && !user.branchId) return ok([]);
+    // D43 — 쌓이는 목록이라 서버 쪽 나누기(D74 2차·D69 2차, log/206). 검색·정렬도 서버가.
+    const page = parsePage(pageQuery, limitQuery);
+    if (user.role === 'BRANCH_ADMIN' && !user.branchId) return ok([], pageMeta(page, 0));
     // BRANCH_ADMIN은 본인 지점 + 전사 문서(scopeBranchId). 가드가 branchId 쿼리도 본인 지점으로 고정한다 —
     // 지점 필터를 걸면 전사 문서가 빠지므로 BRANCH_ADMIN에게는 branchId 필터를 넘기지 않는다(이관 전 동작 유지).
     const scopeBranchId = user.role === 'BRANCH_ADMIN' ? user.branchId : undefined;
-    return ok(await this.documents.list({ scopeBranchId, branchId: scopeBranchId ? undefined : branchId, category, relatedStaffId }));
+    const sort = parseSort(sortQuery, dirQuery, DOCUMENT_SORT_KEYS);
+    const { items, total } = await this.documents.list(
+      { scopeBranchId, branchId: scopeBranchId ? undefined : branchId, category, relatedStaffId, q },
+      page,
+      sort,
+    );
+    return ok(items, pageMeta(page, total));
+  }
+
+  // D69 2차(log/206) — 문서 파일 업로드 URL. 등록과 같은 권한(문서 입력). 경로는 지점과 무관(등록 때 지점을 본다).
+  @Post('upload-url')
+  @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
+  @BranchScopeExempt('업로드 URL은 지점 데이터가 아니다 — 지점·대상 직원은 등록(POST /documents)에서 본다')
+  @Permission('document', 'CREATE')
+  async requestUpload(@Body() dto: RequestUploadDto) {
+    return ok(await this.documents.requestUpload(dto));
   }
 
   // 정적 경로라 `:id`보다 먼저 선언해야 한다.
@@ -49,13 +74,29 @@ export class DocumentsController {
     return ok(await this.documents.findById(id));
   }
 
+  // D69 2차(log/206) — 문서 열기: 올린 파일은 60초 다운로드 URL, 옛 주소 문서는 그 주소. 열 때마다 열람 기록.
+  @Get(':id/open')
+  @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
+  @ScopedResource('document')
+  @Permission('document', 'READ')
+  async open(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return ok(await this.documents.open(id, user));
+  }
+
   @Post()
   @Roles('SUPER_ADMIN', 'BRANCH_ADMIN')
   @ScopedResource('staff', { body: 'relatedStaffId', code: 'DOCUMENT_SCOPE_VIOLATION' })
   @Permission('document', 'CREATE')
   async create(@Body() dto: CreateDocumentDto, @CurrentUser() user: RequestUser) {
     const branchId = user.role === 'BRANCH_ADMIN' ? user.branchId : dto.branchId;
-    return ok(await this.documents.create(user.accountId, { ...dto, branchId }));
+    // D69 2차 — 올린 파일 또는 옛 방식 주소 중 정확히 하나.
+    const { file: fileRef, ...rest } = dto;
+    if (!fileRef === !rest.fileUrl) {
+      throw new AppException('DOCUMENT_FILE_REQUIRED', '문서 파일을 하나 올려 주세요.', 400);
+    }
+    // 저장소 확인은 트랜잭션 밖에서(외부 호출을 쓰기 트랜잭션에 넣지 않는다 — D70).
+    const file = fileRef ? await this.documents.verifyFile(fileRef) : undefined;
+    return ok(await this.documents.create(user.accountId, { ...rest, branchId, file }));
   }
 
   @Delete(':id')

@@ -8,7 +8,8 @@ type Tx = Prisma.TransactionClient;
  * ATTENDANCE_CORRECTED·MEMBER_STATUS_CHANGED·ASSET_STATUS_CHANGED는 D52, STAFF_PROFILE_CHANGED는 인사정보관리 ADR-STF-09,
  * PERMISSION_CHANGED는 D60 — 역할 기본값은 entity 'Role'(entityId = 역할), 개인 예외는 'Staff',
  * BRANCH_CREATED·CONTRACT_*는 D68 — entity 'Branch'의 지점 등록과 위탁계약 갱신·정정·상태 변경,
- * CONTRACT_FILE_*는 D69 — 계약서·해지 합의서 올리기·교체와 열람).
+ * CONTRACT_FILE_UPLOADED·REPLACED·VIEWED는 D69 — 계약서·해지 합의서 올리기·교체와 열람, CONTRACT_FILE_ARCHIVED·PURGED는 D71 — 실물 이관·정리,
+ * DOCUMENT_FILE_VIEWED는 D69 2차(log/206) — 문서 열람(entity 'Document', entityId = 문서 id)).
  * 늘릴 때는 근거 ADR과 admin-web 변경 이력 화면의 문구를 함께 고친다.
  */
 export type AuditAction =
@@ -30,8 +31,9 @@ export type AuditAction =
   | 'CONTRACT_FILE_REPLACED'
   | 'CONTRACT_FILE_VIEWED'
   | 'CONTRACT_FILE_ARCHIVED'
-  | 'CONTRACT_FILE_PURGED';
-export type AuditEntity = 'Staff' | 'Member' | 'Asset' | 'Role' | 'Branch';
+  | 'CONTRACT_FILE_PURGED'
+  | 'DOCUMENT_FILE_VIEWED';
+export type AuditEntity = 'Staff' | 'Member' | 'Asset' | 'Role' | 'Branch' | 'Document';
 
 /**
  * 변경 이력 한 건 — D44. 변경과 **같은 대화형 트랜잭션 안에서** 부른다(data-integrity 체크리스트):

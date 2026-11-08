@@ -788,7 +788,11 @@ model Document {
   branchId       String? // 전사 문서면 null
   relatedStaffId String? // HR_RECORD 대상 직원
   title          String
-  fileUrl        String // 실제 파일 업로드 인프라는 아직 없음 — 문자열 필드일 뿐
+  // D69 2차(log/206) — 옛 문서는 주소(fileUrl, http만)만, 새 문서는 저장소 경로(storagePath)만.
+  // 둘 중 정확히 하나(CHECK Document_file_source_ck), 올린 파일은 이름·형식·크기 필수(Document_stored_file_meta_ck) — 마이그레이션 SQL.
+  fileUrl        String?
+  storagePath    String?          @unique // documents/<uuid>.<확장자>(D57 저장소)
+  fileName       String? // 올린 원래 파일 이름
   fileType       String?
   fileSize       Int?
   uploadedBy     String // FK → Account(log/093)

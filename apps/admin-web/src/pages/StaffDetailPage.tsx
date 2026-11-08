@@ -22,6 +22,7 @@ import {
 } from '../lib/types';
 import { kstToday } from '../lib/kst-date';
 import { StaffPermissionsTable } from '../components/PermissionTables';
+import { openDocument } from '../lib/document-files';
 
 interface ApiErrorBody {
   code?: string;
@@ -757,9 +758,22 @@ function LeaveHistory({ staffId }: { staffId: string }) {
 }
 
 function HrDocuments({ staffId }: { staffId: string }) {
-  // 자원문서관리 ADR-RES-04 — 대상 직원으로 거른 문서(대부분 인사서류). 파일 업로드 인프라가 없어 링크는 fileUrl 문자열이다.
-  const docsQuery = useApiList<DocumentRow>(['documents', 'staff', staffId], `/documents?relatedStaffId=${staffId}`);
+  // 자원문서관리 ADR-RES-04 — 대상 직원으로 거른 문서(대부분 인사서류). 한 직원 것이라 한 번에(목록은 서버 쪽 나누기라 limit 100).
+  // D69 2차(log/206) — 제목을 누르면 연다(열람 기록은 서버가).
+  const docsQuery = useApiList<DocumentRow>(['documents', 'staff', staffId], `/documents?relatedStaffId=${staffId}&limit=100`);
   const rows = docsQuery.data ?? [];
+  const toast = useToast();
+  const [opening, setOpening] = useState<string | null>(null);
+  async function open(doc: DocumentRow) {
+    setOpening(doc.id);
+    try {
+      await openDocument(doc);
+    } catch (e) {
+      toast.error(apiErrorMessage(e as AxiosError<ApiErrorBody>) ?? '문서를 열지 못했습니다.');
+    } finally {
+      setOpening(null);
+    }
+  }
 
   return (
     <div className="card" style={{ marginTop: 16 }}>
@@ -783,7 +797,11 @@ function HrDocuments({ staffId }: { staffId: string }) {
           <tbody>
             {rows.map((d) => (
               <tr key={d.id}>
-                <td>{d.title}</td>
+                <td>
+                  <button type="button" className="link-button" disabled={opening !== null} onClick={() => open(d)}>
+                    {d.title}
+                  </button>
+                </td>
                 <td>{d.createdAt.slice(0, 10)}</td>
                 <td>{d.retentionUntil ?? '영구'}</td>
               </tr>

@@ -33,11 +33,12 @@ export class AuditLogService {
     if (!q) return undefined;
     const has = { contains: q, mode: 'insensitive' as const };
     const take = SEARCH_ID_CAP;
-    const [staff, members, assets, branches] = await Promise.all([
+    const [staff, members, assets, branches, documents] = await Promise.all([
       this.prisma.staff.findMany({ where: { name: has }, select: { id: true }, take }),
       this.prisma.member.findMany({ where: { OR: [{ name: has }, { memberNo: has }] }, select: { id: true }, take }),
       this.prisma.asset.findMany({ where: { OR: [{ name: has }, { assetCode: has }] }, select: { id: true }, take }),
       this.prisma.branch.findMany({ where: { name: has }, select: { id: true }, take }),
+      this.prisma.document.findMany({ where: { title: has }, select: { id: true }, take }),
     ]);
     const target = (entity: string, rows: { id: string }[]) =>
       rows.length ? [{ entity, entityId: { in: rows.map((r) => r.id) } }] : [];
@@ -47,6 +48,7 @@ export class AuditLogService {
       ...target('Member', members),
       ...target('Asset', assets),
       ...target('Branch', branches),
+      ...target('Document', documents),
     ];
   }
 
@@ -75,13 +77,14 @@ export class AuditLogService {
         take: filter.pageSize,
       }),
     ]);
-    // 대상 이름은 쪽 단위로 한 번에 모은다(행마다 조회하지 않는다). entity는 Staff·Member(D47 열람 기록)·Asset(D52)·Branch(D68).
+    // 대상 이름은 쪽 단위로 한 번에 모은다(행마다 조회하지 않는다). entity는 Staff·Member(D47 열람 기록)·Asset(D52)·Branch(D68)·Document(D69 2차 열람 기록).
     const idsOf = (entity: string) => [...new Set(rows.filter((r) => r.entity === entity).map((r) => r.entityId))];
     const staffIds = idsOf('Staff');
     const memberIds = idsOf('Member');
     const assetIds = idsOf('Asset');
     const branchIds = idsOf('Branch');
-    const [staff, members, assets, branches] = await Promise.all([
+    const documentIds = idsOf('Document');
+    const [staff, members, assets, branches, documents] = await Promise.all([
       staffIds.length
         ? this.prisma.staff.findMany({ where: { id: { in: staffIds } }, select: { id: true, name: true } })
         : [],
@@ -94,12 +97,17 @@ export class AuditLogService {
       branchIds.length
         ? this.prisma.branch.findMany({ where: { id: { in: branchIds } }, select: { id: true, name: true } })
         : [],
+      // 지운(소프트 삭제) 문서도 열람 기록의 대상 이름은 보인다.
+      documentIds.length
+        ? this.prisma.document.findMany({ where: { id: { in: documentIds } }, select: { id: true, title: true } })
+        : [],
     ]);
     const names = new Map<string, string>([
       ...staff.map((x) => [`Staff:${x.id}`, x.name] as const),
       ...members.map((x) => [`Member:${x.id}`, x.name] as const),
       ...assets.map((x) => [`Asset:${x.id}`, `${x.name}(${x.assetCode})`] as const),
       ...branches.map((x) => [`Branch:${x.id}`, x.name] as const),
+      ...documents.map((x) => [`Document:${x.id}`, `문서 ${x.title}`] as const),
       // D60 — 역할 기본값 변경은 대상이 역할이다.
       ['Role:BRANCH_ADMIN', '지점 관리자(역할)'] as const,
       ['Role:STAFF', '직원(역할)'] as const,
