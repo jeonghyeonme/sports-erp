@@ -5,7 +5,8 @@
   "description": "관리자 웹·회원 웹 화면 자동 테스트(Playwright, D59)",
   "scripts": {
     "test": "playwright test",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "steps": "playwright test -c playwright.steps.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1"

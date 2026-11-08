@@ -12,4 +12,5 @@ const root = new URL('..', import.meta.url).pathname;
 const run = (cmd) => execSync(cmd, { cwd: root, env: { ...process.env, DIRECT_URL: url }, stdio: 'inherit' });
 // 시드 설정(prisma.seed)은 apps/api/package.json에 있어 reset이 자동으로 부르지 못한다 — 따로 부른다.
 run('npx prisma migrate reset --force --skip-generate --skip-seed --schema=apps/api/prisma/schema.prisma');
-run('npm run prisma:seed --workspace=apps/api');
+// E2E_DENSE=1 — 작업 단계 측정(log/198)을 시연 데이터 층(D58, 회원 211명 등) 위에서 돌릴 때만. 화면 자동 테스트는 기준 시드.
+run(process.env.E2E_DENSE === '1' ? 'npm run seed:demo --workspace=apps/api' : 'npm run prisma:seed --workspace=apps/api');
