@@ -161,9 +161,66 @@ export function AttendancePage() {
         <h2>근태관리</h2>
         <p className="page-desc">
           근태관리 문서 기준 — 체크인/아웃, 휴가 신청·승인, 업무일지를 본인 레코드 기준으로 셀프서비스합니다.
-          {isAdmin && ' 지점 관리자는 아래에서 지점 전체 근태 요약과 휴가 승인함도 함께 볼 수 있습니다.'}
+          {isAdmin && ' 지점 관리자는 대기 중인 휴가가 있으면 맨 위 휴가 승인함에서 처리하고, 지점 근태 요약·결근 확정은 맨 아래에 있습니다.'}
         </p>
       </div>
+
+      {/* D73 — 처리할 일이 먼저: 지점 관리자의 휴가 승인함. 대기가 없으면 자리를 차지하지 않는다(처리 대기함이 건수를 보인다). */}
+      {isAdmin && ((pendingLeaveQuery.data?.length ?? 0) > 0 || reviewLeaveMutation.isError) && (
+        <div className="detail-section">
+          <h3 className="section-title">휴가 승인함</h3>
+          {reviewLeaveMutation.isError && (
+            <div className="forbidden-note">{apiErrorMessage(reviewLeaveMutation.error)}</div>
+          )}
+          {(pendingLeaveQuery.data?.length ?? 0) === 0 ? (
+            <div className="empty-state">대기 중인 휴가 신청이 없습니다.</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>유형</th>
+                  <th>기간</th>
+                  <th>일수</th>
+                  <th>사유</th>
+                  <th>처리</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingLeaveQuery.data!.map((r) => (
+                  <tr key={r.id}>
+                    <td>{LEAVE_TYPE_LABEL[r.type]}</td>
+                    <td>
+                      {r.startDate} ~ {r.endDate}
+                    </td>
+                    <td>{r.days}일</td>
+                    <td>{r.reason ?? '-'}</td>
+                    <td>
+                      {can('leave', 'UPDATE') && (
+                        <div className="action-row">
+                          <button
+                            className="btn-secondary"
+                            disabled={reviewLeaveMutation.isPending}
+                            onClick={() => reviewLeaveMutation.mutate({ id: r.id, action: 'approve' })}
+                          >
+                            승인
+                          </button>
+                          <button
+                            className="btn-danger-outline"
+                            disabled={reviewLeaveMutation.isPending}
+                            onClick={() => reviewLeaveMutation.mutate({ id: r.id, action: 'reject' })}
+                          >
+                            반려
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
       <div className="card-grid">
         <div className="card">
@@ -235,96 +292,125 @@ export function AttendancePage() {
         </div>
       </div>
 
+      {/* D73 — 자주 쓰는 입력 폼을 쌓이는 기록보다 위에, 두 장 나란히 */}
+      <div className="card-grid">
+        <div className="card">
+          <h3>업무일지</h3>
+          <form onSubmit={submitWorkLog}>
+            <div className="form-row">
+              <div className="field" style={{ maxWidth: 160 }}>
+                <label>날짜</label>
+                <input
+                  type="date"
+                  value={workLogForm.date}
+                  onChange={(e) => setWorkLogForm((f) => ({ ...f, date: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="field">
+              <label>내용</label>
+              <textarea
+                rows={3}
+                value={workLogForm.content}
+                onChange={(e) => setWorkLogForm((f) => ({ ...f, content: e.target.value }))}
+                placeholder="오늘 진행한 업무를 기록하세요"
+              />
+            </div>
+            {workLogMutation.isError && <div className="forbidden-note">{apiErrorMessage(workLogMutation.error)}</div>}
+            <button className="btn-secondary" type="submit" disabled={workLogMutation.isPending}>
+              저장
+            </button>
+          </form>
+        </div>
+        <div className="card">
+          <h3>휴가 신청</h3>
+          <form onSubmit={submitLeaveRequest}>
+            <div className="form-row">
+              <div className="field">
+                <label>유형</label>
+                <select
+                  value={leaveForm.type}
+                  onChange={(e) => setLeaveForm((f) => ({ ...f, type: e.target.value as LeaveType }))}
+                >
+                  {(Object.keys(LEAVE_TYPE_LABEL) as LeaveType[]).map((t) => (
+                    <option key={t} value={t}>
+                      {LEAVE_TYPE_LABEL[t]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>시작일</label>
+                <input
+                  type="date"
+                  value={leaveForm.startDate}
+                  onChange={(e) => setLeaveForm((f) => ({ ...f, startDate: e.target.value }))}
+                />
+              </div>
+              <div className="field">
+                <label>종료일</label>
+                <input
+                  type="date"
+                  value={leaveForm.endDate}
+                  onChange={(e) => setLeaveForm((f) => ({ ...f, endDate: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="field">
+              <label>사유(선택)</label>
+              <input
+                value={leaveForm.reason}
+                onChange={(e) => setLeaveForm((f) => ({ ...f, reason: e.target.value }))}
+                placeholder="개인 사유 등"
+              />
+            </div>
+            {requestLeaveMutation.isError && (
+              <div className="forbidden-note">{apiErrorMessage(requestLeaveMutation.error)}</div>
+            )}
+            {requestLeaveMutation.data && requestLeaveMutation.isSuccess && (
+              <div className="stat-row" style={{ marginBottom: 10 }}>
+                신청 완료 — {requestLeaveMutation.data.days}일
+              </div>
+            )}
+            <button className="btn-secondary" type="submit" disabled={requestLeaveMutation.isPending}>
+              휴가 신청
+            </button>
+          </form>
+        </div>
+      </div>
+
       <div className="detail-section">
-        <h3 className="section-title">이번 달 근태 기록</h3>
-        {myAttendance.isError && <div className="forbidden-note">{apiErrorMessage(myAttendance.error)}</div>}
-        {!myAttendance.isError && (myAttendance.data?.length ?? 0) === 0 && (
-          <div className="empty-state">이번 달 기록이 없습니다.</div>
-        )}
-        {!myAttendance.isError && (myAttendance.data?.length ?? 0) > 0 && (
-          <table>
+        <h3 className="section-title">내 업무일지</h3>
+        {(myWorkLogs.data?.length ?? 0) === 0 && <div className="empty-state">작성한 업무일지가 없습니다.</div>}
+        {(myWorkLogs.data?.length ?? 0) > 0 && (
+          <table style={{ marginTop: 14 }}>
             <thead>
               <tr>
                 <th>날짜</th>
-                <th>체크인</th>
-                <th>체크아웃</th>
-                <th>상태</th>
+                <th>내용</th>
               </tr>
             </thead>
             <tbody>
-              {myAttendance.data!.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.date}</td>
-                  <td>{formatTime(r.checkInAt)}</td>
-                  <td>{formatTime(r.checkOutAt)}</td>
-                  <td>
-                    <span className={`badge ${r.status}`}>{STATUS_LABEL[r.status]}</span>
-                  </td>
+              {workLogs.slice(0, workLogLimit).map((l) => (
+                <tr key={l.id}>
+                  <td>{l.date}</td>
+                  <td>{l.content}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
+        {workLogs.length > workLogLimit && (
+          <div className="action-row" style={{ justifyContent: 'center', marginTop: 8 }}>
+            <button className="btn-secondary" onClick={() => setWorkLogLimit((n) => n + 20)}>
+              더 보기 ({workLogs.length - workLogLimit}건 남음)
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="detail-section">
-        <h3 className="section-title">휴가 신청</h3>
-        <form onSubmit={submitLeaveRequest}>
-          <div className="form-row">
-            <div className="field">
-              <label>유형</label>
-              <select
-                value={leaveForm.type}
-                onChange={(e) => setLeaveForm((f) => ({ ...f, type: e.target.value as LeaveType }))}
-              >
-                {(Object.keys(LEAVE_TYPE_LABEL) as LeaveType[]).map((t) => (
-                  <option key={t} value={t}>
-                    {LEAVE_TYPE_LABEL[t]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label>시작일</label>
-              <input
-                type="date"
-                value={leaveForm.startDate}
-                onChange={(e) => setLeaveForm((f) => ({ ...f, startDate: e.target.value }))}
-              />
-            </div>
-            <div className="field">
-              <label>종료일</label>
-              <input
-                type="date"
-                value={leaveForm.endDate}
-                onChange={(e) => setLeaveForm((f) => ({ ...f, endDate: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label>사유(선택)</label>
-            <input
-              value={leaveForm.reason}
-              onChange={(e) => setLeaveForm((f) => ({ ...f, reason: e.target.value }))}
-              placeholder="개인 사유 등"
-            />
-          </div>
-          {requestLeaveMutation.isError && (
-            <div className="forbidden-note">{apiErrorMessage(requestLeaveMutation.error)}</div>
-          )}
-          {requestLeaveMutation.data && requestLeaveMutation.isSuccess && (
-            <div className="stat-row" style={{ marginBottom: 10 }}>
-              신청 완료 — {requestLeaveMutation.data.days}일
-            </div>
-          )}
-          <button className="btn-secondary" type="submit" disabled={requestLeaveMutation.isPending}>
-            휴가 신청
-          </button>
-        </form>
-
-        <h3 className="section-title" style={{ marginTop: 20 }}>
-          내 휴가 신청 내역
-        </h3>
+        <h3 className="section-title">내 휴가 신청 내역</h3>
         {(myLeaveRequests.data?.length ?? 0) === 0 ? (
           <div className="empty-state">신청 내역이 없습니다.</div>
         ) : (
@@ -356,57 +442,34 @@ export function AttendancePage() {
       </div>
 
       <div className="detail-section">
-        <h3 className="section-title">업무일지</h3>
-        <form onSubmit={submitWorkLog}>
-          <div className="form-row">
-            <div className="field" style={{ maxWidth: 160 }}>
-              <label>날짜</label>
-              <input
-                type="date"
-                value={workLogForm.date}
-                onChange={(e) => setWorkLogForm((f) => ({ ...f, date: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="field">
-            <label>내용</label>
-            <textarea
-              rows={3}
-              value={workLogForm.content}
-              onChange={(e) => setWorkLogForm((f) => ({ ...f, content: e.target.value }))}
-              placeholder="오늘 진행한 업무를 기록하세요"
-            />
-          </div>
-          {workLogMutation.isError && <div className="forbidden-note">{apiErrorMessage(workLogMutation.error)}</div>}
-          <button className="btn-secondary" type="submit" disabled={workLogMutation.isPending}>
-            저장
-          </button>
-        </form>
-
-        {(myWorkLogs.data?.length ?? 0) > 0 && (
-          <table style={{ marginTop: 14 }}>
+        <h3 className="section-title">이번 달 근태 기록</h3>
+        {myAttendance.isError && <div className="forbidden-note">{apiErrorMessage(myAttendance.error)}</div>}
+        {!myAttendance.isError && (myAttendance.data?.length ?? 0) === 0 && (
+          <div className="empty-state">이번 달 기록이 없습니다.</div>
+        )}
+        {!myAttendance.isError && (myAttendance.data?.length ?? 0) > 0 && (
+          <table>
             <thead>
               <tr>
                 <th>날짜</th>
-                <th>내용</th>
+                <th>체크인</th>
+                <th>체크아웃</th>
+                <th>상태</th>
               </tr>
             </thead>
             <tbody>
-              {workLogs.slice(0, workLogLimit).map((l) => (
-                <tr key={l.id}>
-                  <td>{l.date}</td>
-                  <td>{l.content}</td>
+              {myAttendance.data!.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.date}</td>
+                  <td>{formatTime(r.checkInAt)}</td>
+                  <td>{formatTime(r.checkOutAt)}</td>
+                  <td>
+                    <span className={`badge ${r.status}`}>{STATUS_LABEL[r.status]}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        )}
-        {workLogs.length > workLogLimit && (
-          <div className="action-row" style={{ justifyContent: 'center', marginTop: 8 }}>
-            <button className="btn-secondary" onClick={() => setWorkLogLimit((n) => n + 20)}>
-              더 보기 ({workLogs.length - workLogLimit}건 남음)
-            </button>
-          </div>
         )}
       </div>
 
@@ -458,61 +521,7 @@ export function AttendancePage() {
             )}
           </div>
 
-          <div className="detail-section">
-            <h3 className="section-title">휴가 승인함</h3>
-            {reviewLeaveMutation.isError && (
-              <div className="forbidden-note">{apiErrorMessage(reviewLeaveMutation.error)}</div>
-            )}
-            {(pendingLeaveQuery.data?.length ?? 0) === 0 ? (
-              <div className="empty-state">대기 중인 휴가 신청이 없습니다.</div>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>유형</th>
-                    <th>기간</th>
-                    <th>일수</th>
-                    <th>사유</th>
-                    <th>처리</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingLeaveQuery.data!.map((r) => (
-                    <tr key={r.id}>
-                      <td>{LEAVE_TYPE_LABEL[r.type]}</td>
-                      <td>
-                        {r.startDate} ~ {r.endDate}
-                      </td>
-                      <td>{r.days}일</td>
-                      <td>{r.reason ?? '-'}</td>
-                      <td>
-                        {can('leave', 'UPDATE') && (
-                          <div className="action-row">
-                            <button
-                              className="btn-secondary"
-                              disabled={reviewLeaveMutation.isPending}
-                              onClick={() => reviewLeaveMutation.mutate({ id: r.id, action: 'approve' })}
-                            >
-                              승인
-                            </button>
-                            <button
-                              className="btn-danger-outline"
-                              disabled={reviewLeaveMutation.isPending}
-                              onClick={() => reviewLeaveMutation.mutate({ id: r.id, action: 'reject' })}
-                            >
-                              반려
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-
-          {/* 휴가 승인함 다음 — 대기 휴가를 먼저 처리해야 그 날이 결근 후보에서 빠진다. */}
+          {/* 결근 확정은 휴가 승인 뒤에 — 대기 휴가를 먼저 처리해야 그 날이 결근 후보에서 빠진다(승인함은 D73으로 맨 위). */}
           {can('attendance', 'UPDATE') && <AbsenceConfirmSection />}
         </>
       )}

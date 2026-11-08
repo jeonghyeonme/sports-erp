@@ -10,6 +10,7 @@ import { fetchAllPages, kstDateStamp } from '../lib/csv';
 import { PAYMENT_COLUMNS } from '../lib/export-columns';
 import { Pager } from '../components/Pager';
 import { WeeklyTimetable } from '../components/WeeklyTimetable';
+import { Modal } from '../components/Modal';
 import { ApiEnvelope, PaymentRow, ProgramRow, ReservationRow, ReservationStatus, ScheduleSlotRow } from '../lib/types';
 
 import { useToast } from '../lib/use-toast';
@@ -76,19 +77,13 @@ function CheckInButton({ reservationId }: { reservationId: string }) {
 }
 
 // 강사프로그램게시 A-5 POST /programs/:id/slots — BRANCH_ADMIN 본인 지점 PAID_SESSION 프로그램에 회차 개별 추가.
-function SlotManager({ programs }: { programs: ProgramRow[] }) {
+// D73 — 등록 폼은 쌓이는 예약 목록 아래가 아니라 머리글 "+ 회차 등록" 버튼의 모달로(스크롤 없이 닿게).
+function SlotCreateModal({ programs, onClose }: { programs: ProgramRow[]; onClose: () => void }) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const reservablePrograms = programs.filter((p) => p.pricingType === 'PAID_SESSION');
   const [programId, setProgramId] = useState(reservablePrograms[0]?.id ?? '');
   const [form, setForm] = useState({ date: kstToday(), startTime: '10:00', endTime: '11:00', capacity: '' });
-
-  const slotsQuery = useQuery<ScheduleSlotRow[], AxiosError<ApiErrorBody>>({
-    queryKey: ['slots', programId],
-    queryFn: async () => (await api.get<ApiEnvelope<ScheduleSlotRow[]>>(`/programs/${programId}/slots`)).data.data ?? [],
-    enabled: !!programId,
-  });
-
   const createMutation = useMutation<ScheduleSlotRow, AxiosError<ApiErrorBody>, typeof form>({
     mutationFn: async (dto) => {
       const payload = {
@@ -101,76 +96,110 @@ function SlotManager({ programs }: { programs: ProgramRow[] }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['slots', programId] });
+      queryClient.invalidateQueries({ queryKey: ['programs'] });
       toast.success('회차를 등록했습니다.');
+      onClose();
     },
   });
-
   function submit(e: FormEvent) {
     e.preventDefault();
     if (!programId || !form.date || !form.startTime || !form.endTime) return;
     createMutation.mutate(form);
   }
+  return (
+    <Modal title="회차 등록" onClose={onClose}>
+      {reservablePrograms.length === 0 ? (
+        <div className="empty-state">회차 예약형(PAID_SESSION) 프로그램이 없습니다. 프로그램을 먼저 등록하세요.</div>
+      ) : (
+        <form onSubmit={submit}>
+          <div className="form-row">
+            <div className="field">
+              <label>프로그램</label>
+              <select value={programId} onChange={(e) => setProgramId(e.target.value)}>
+                {reservablePrograms.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>날짜</label>
+              <input type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
+            </div>
+          </div>
+          <div className="form-row" style={{ marginTop: 12 }}>
+            <div className="field">
+              <label>시작</label>
+              <input
+                type="time"
+                value={form.startTime}
+                onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
+              />
+            </div>
+            <div className="field">
+              <label>종료</label>
+              <input
+                type="time"
+                value={form.endTime}
+                onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
+              />
+            </div>
+            <div className="field">
+              <label>정원(비우면 프로그램 기본 정원)</label>
+              <input
+                type="number"
+                min={1}
+                value={form.capacity} inputMode="numeric"
+                onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
+              />
+            </div>
+          </div>
+          {createMutation.isError && (
+            <div className="forbidden-note" style={{ marginTop: 8 }}>
+              {apiErrorMessage(createMutation.error)}
+            </div>
+          )}
+          <div className="action-row" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
+            <button type="button" className="btn-secondary" onClick={onClose}>
+              취소
+            </button>
+            <button className="btn-secondary primary" type="submit" disabled={createMutation.isPending}>
+              회차 추가
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
+  );
+}
 
+// 프로그램별 회차 목록(예약 인원/정원) — 조회만. 등록은 SlotCreateModal.
+function SlotList({ programs }: { programs: ProgramRow[] }) {
+  const reservablePrograms = programs.filter((p) => p.pricingType === 'PAID_SESSION');
+  const [programId, setProgramId] = useState(reservablePrograms[0]?.id ?? '');
+  const slotsQuery = useQuery<ScheduleSlotRow[], AxiosError<ApiErrorBody>>({
+    queryKey: ['slots', programId],
+    queryFn: async () => (await api.get<ApiEnvelope<ScheduleSlotRow[]>>(`/programs/${programId}/slots`)).data.data ?? [],
+    enabled: !!programId,
+  });
   if (reservablePrograms.length === 0) {
     return <div className="empty-state">회차 예약형(PAID_SESSION) 프로그램이 없습니다. 프로그램을 먼저 등록하세요.</div>;
   }
-
   return (
     <>
-      <form onSubmit={submit}>
-        <div className="form-row">
-          <div className="field">
-            <label>프로그램</label>
-            <select value={programId} onChange={(e) => setProgramId(e.target.value)}>
-              {reservablePrograms.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>날짜</label>
-            <input type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
-          </div>
-        </div>
-        <div className="form-row" style={{ marginTop: 12 }}>
-          <div className="field">
-            <label>시작</label>
-            <input
-              type="time"
-              value={form.startTime}
-              onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
-            />
-          </div>
-          <div className="field">
-            <label>종료</label>
-            <input
-              type="time"
-              value={form.endTime}
-              onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
-            />
-          </div>
-          <div className="field">
-            <label>정원(비우면 프로그램 기본 정원)</label>
-            <input
-              type="number"
-              min={1}
-              value={form.capacity} inputMode="numeric"
-              onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
-            />
-          </div>
-        </div>
-        {createMutation.isError && (
-          <div className="forbidden-note" style={{ marginTop: 8 }}>
-            {apiErrorMessage(createMutation.error)}
-          </div>
-        )}
-        <button className="btn-secondary" style={{ marginTop: 10 }} type="submit" disabled={createMutation.isPending}>
-          회차 추가
-        </button>
-      </form>
-
+      <div className="field" style={{ maxWidth: 260 }}>
+        <label>프로그램</label>
+        <select value={programId} aria-label="회차 목록 프로그램" onChange={(e) => setProgramId(e.target.value)}>
+          {reservablePrograms.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      {slotsQuery.isError && <div className="forbidden-note">{apiErrorMessage(slotsQuery.error)}</div>}
+      {slotsQuery.isSuccess && slotsQuery.data.length === 0 && <div className="empty-state">이 프로그램의 회차가 없습니다.</div>}
       {(slotsQuery.data?.length ?? 0) > 0 && (
         <table style={{ marginTop: 14 }}>
           <thead>
@@ -223,16 +252,28 @@ export function ReservationsPage() {
   });
   const branchRows = branchReservationsQuery.data?.rows ?? [];
   const paymentRows = paymentsQuery.data?.rows ?? [];
+  const [showSlotCreate, setShowSlotCreate] = useState(false);
 
   return (
     <>
-      <div className="page-header">
-        <h2>예약 관리</h2>
-        <p className="page-desc">
-          예약및결제 문서 기준입니다. 회차 예약형(PAID_SESSION) 프로그램만 대상이며, 결제는 모의결제(Mock Payment)로
-          처리됩니다.
-        </p>
+      <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h2>예약 관리</h2>
+          <p className="page-desc" style={{ marginBottom: 0 }}>
+            예약및결제 문서 기준입니다. 회차 예약형(PAID_SESSION) 프로그램만 대상이며, 결제는 모의결제(Mock Payment)로
+            처리됩니다.
+          </p>
+        </div>
+        {/* D73 — 회차 등록은 머리글 버튼 + 모달. 강사프로그램게시 A-5: 지점 관리자, program CREATE(D60) */}
+        {isAdmin && can('program', 'CREATE') && (
+          <button className="btn-secondary primary" style={{ flexShrink: 0 }} onClick={() => setShowSlotCreate(true)}>
+            + 회차 등록
+          </button>
+        )}
       </div>
+      {showSlotCreate && (
+        <SlotCreateModal programs={branchProgramsQuery.data ?? []} onClose={() => setShowSlotCreate(false)} />
+      )}
 
       {isAdmin && (
         <>
@@ -321,11 +362,11 @@ export function ReservationsPage() {
           </div>
 
           <div className="detail-section">
-            <h3 className="section-title">회차 관리</h3>
+            <h3 className="section-title">회차 목록</h3>
             {branchProgramsQuery.isError ? (
               <div className="forbidden-note">{apiErrorMessage(branchProgramsQuery.error)}</div>
             ) : (
-              <SlotManager programs={branchProgramsQuery.data ?? []} />
+              <SlotList programs={branchProgramsQuery.data ?? []} />
             )}
           </div>
 
