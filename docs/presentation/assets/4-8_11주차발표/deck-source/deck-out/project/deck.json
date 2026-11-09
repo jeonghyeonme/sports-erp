@@ -1,0 +1,75 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-09T05:21:33Z"
+  },
+  "lists": "css",
+  "title": "스포이즘 ERP 11주차 발표",
+  "order": [
+    "cover",
+    "agenda",
+    "p1",
+    "ux-find",
+    "ux-pt-compare",
+    "ux-ptreg",
+    "ux-miss",
+    "ux-order",
+    "p3",
+    "doc-flow",
+    "p4",
+    "chart-why",
+    "chart-shot",
+    "p5",
+    "member-app",
+    "p6",
+    "rfp",
+    "wrap",
+    "closing"
+  ],
+  "sections": {
+    "intro": {
+      "description": "표지, 오늘 순서 — 10주차의 다음 할 일에서 출발",
+      "start": "cover"
+    },
+    "ux": {
+      "description": "01 사용감 — 자주 쓰는 기능의 접근 경로 단순화(PT 세션 차감 6 → 3), 화면 안 순서 규칙",
+      "start": "p1"
+    },
+    "doc": {
+      "description": "02 문서 파일 — 올리기와 열기를 안전하게(서버 재확인 · 60초 주소 · 열람 기록)",
+      "start": "p3"
+    },
+    "chart": {
+      "description": "03 운영 실적 차트 — 13개월 추이와 지점 비교",
+      "start": "p4"
+    },
+    "app": {
+      "description": "04 회원 앱 형태 — 지금 모바일 웹 유지(D77)",
+      "start": "p5"
+    },
+    "rfp": {
+      "description": "05 RFP 충족률 — 해당 없음을 분모에서 빼고 다시 셈(D76)",
+      "start": "p6"
+    },
+    "wrap": {
+      "description": "다음 할 일",
+      "start": "wrap"
+    }
+  },
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
+}

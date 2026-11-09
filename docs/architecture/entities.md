@@ -6,7 +6,7 @@
 
 상세 컬럼은 각 도메인 문서 부록 A-3에서 정의합니다. 여기서는 **엔티티 간 관계**만 전체 조망합니다.
 
-> **정합성 참고(2026-10-14 갱신)**: 아래 블록은 `schema.prisma`의 모델 31개를 기준으로 다시 맞췄다. 2026-09-15판에 있던 `TrainingLog`·`AssetInventoryCheck(Item)`·`InstructorSettlement`는 스키마에 없다(교육 실시 기록·재물조사·강사 정산은 범위 제외 또는 미구현 — 각 도메인 부록 A-8). `Payment`는 지금 **예약 결제 전용**이다(`reservationId` 필수·unique, `ptSessionId` 없음).
+> **정합성 참고(2026-10-14 갱신)**: 아래 블록은 `schema.prisma`의 모델 31개를 기준으로 다시 맞췄다. 2026-09-15판에 있던 `TrainingLog`·`AssetInventoryCheck(Item)`·`InstructorSettlement`는 스키마에 없다(교육 실시 기록·재물조사·강사 정산은 범위 제외 또는 미구현 — 각 도메인 부록 A-8). `Payment`는 회차 예약 결제(`reservationId`) 또는 회원 앱 PT 패키지 구매 결제(`ptSessionId`) 중 정확히 하나에 붙는다(CHECK `Payment_target_ck`, 예약및결제 ADR-RSV-09 — 2026-11-09).
 
 ```
 Branch(지점) 1─N Facility(시설: 헬스장/수영장/골프장/독서실 등)
@@ -42,9 +42,9 @@ Program N─1 Instructor(강사, nullable)
 Program 1─N CourseEnrollment N─1 Member(수강내역, 회원관리 문서)
 
 Member 1─N Reservation(예약)
-Member 1─N PTSession(PT 잔여세션) 1─N PTSessionLog(세션 사용 로그)
+Member 1─N PTSession(PT 잔여세션) 1─N PTSessionLog(세션 사용 로그, 예약 체크인 차감이면 reservationId) — PTSession 1─0..1 Payment(앱 구매), 1─N Reservation(PT 회차 예약이 잡은 횟수, ADR-RSV-09)
 ScheduleSlot 1─N Reservation
-Reservation 1─0..1 Payment(결제 — "매출 인식의 원천", reservationId 필수·unique) N─1 Member
+Reservation 1─0..1 Payment(결제 — "매출 인식의 원천", reservationId 또는 ptSessionId 중 하나·각각 unique) N─1 Member · Program.ptPackageSessions(PT 패키지 1개 횟수, PT_PACKAGE만)
   — PT 패키지 구매 결제는 담지 않는다(예약및결제 A-8 범위 제외). `FREE_ACCESS`는 예약·결제 개념 자체가 없다
 
 AuditLog(변경 이력) N─1 Account(actorId, nullable) — 모든 엔티티가 아니라 정한 action만 기록한다(아래 §2-3)

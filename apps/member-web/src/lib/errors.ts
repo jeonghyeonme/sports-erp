@@ -15,6 +15,9 @@ const MESSAGES: Record<string, { message: string; hint?: string }> = {
     hint: '지난 예약은 내 예약에서 볼 수 있습니다.',
   },
   SLOT_FULL: { message: '정원이 다 찼습니다.', hint: '다른 회차를 골라 주세요.' },
+  // 예약및결제 ADR-RSV-09 — PT 회차 예약·패키지 구매
+  PT_SESSIONS_EXHAUSTED: { message: '예약에 쓸 수 있는 PT 횟수가 없습니다.', hint: '이 화면에서 PT 패키지를 구매하거나, 지점에서 구매해 주세요.' },
+  PT_PACKAGE_NOT_PURCHASABLE: { message: '앱에서 구매할 수 없는 PT 프로그램입니다.', hint: '지점 프런트에서 구매해 주세요.' },
   SLOT_ALREADY_STARTED: { message: '이미 시작했거나 지난 회차입니다.', hint: '다른 회차를 골라 주세요.' }, // ADR-RSV-05
   ALREADY_RESERVED: { message: '이미 예약한 회차입니다.', hint: '내 예약에서 확인하세요.' },
   PROGRAM_NOT_RUNNING: { message: '지금은 운영하지 않는 프로그램입니다.', hint: '예약하기에서 다른 프로그램을 골라 주세요.' },

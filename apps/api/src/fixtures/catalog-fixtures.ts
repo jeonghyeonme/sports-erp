@@ -84,7 +84,8 @@ const HERO_PROGRAMS: readonly MockProgram[] = [
     ageGroup: 'ADULT',
     description: '1:1 맞춤 트레이닝 프로그램(세션 차감형).',
     pricingType: 'PT_PACKAGE',
-    price: 60000,
+    price: 600000, // 패키지 1개 가격(10회) — 예약및결제 ADR-RSV-09
+    ptPackageSessions: 10,
     status: 'RUNNING',
     startDate: '2026-01-05',
   },

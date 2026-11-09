@@ -15,9 +15,11 @@ import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
 import { recordAudit, recordPhoneView } from '../../prisma/audit';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { MockCourseEnrollment, MockMember, MockPTSession, MockPTSessionLog } from '../../fixtures/mock-data.types';
+import { heldByPTSession, lockPTSessions } from './pt-holds';
 
 export type MemberView = MockMember & { branchName?: string; assignedStaffName?: string };
-type PTView = MockPTSession & { remainingSessions: number; programName?: string };
+// reservedSessions = PT 회차 예약으로 잡힌 횟수(예약및결제 ADR-RSV-09) — remainingSessions(총 − 사용)에 들어 있다.
+type PTView = MockPTSession & { remainingSessions: number; reservedSessions?: number; programName?: string };
 type Tx = Prisma.TransactionClient;
 
 const MEMBER_STATUSES: MemberStatus[] = ['ACTIVE', 'DORMANT', 'WITHDRAWN'];
@@ -146,7 +148,8 @@ export class MemberService {
       include: { program: { select: { name: true } }, logs: { orderBy: { usedAt: 'asc' } } },
       orderBy: [{ purchasedAt: 'asc' }, { id: 'asc' }],
     });
-    return rows.map((r) => ({ ...toPTView(r, r.program.name), logs: r.logs.map(toMockLog) }));
+    const held = await this.prisma.$transaction((tx) => heldByPTSession(tx, rows.map((r) => r.id)));
+    return rows.map((r) => ({ ...toPTView(r, r.program.name), reservedSessions: held.get(r.id) ?? 0, logs: r.logs.map(toMockLog) }));
   }
 
   async findPTSession(id: string): Promise<MockPTSession | null> {
@@ -302,7 +305,7 @@ export class MemberService {
     return { ...toMockEnrollment(row), programName: program.name };
   }
 
-  // PT_PACKAGE 결제 연동은 범위 제외라 관리자가 구매 사실을 직접 등록한다(예약및결제 A-3).
+  // 현장 판매 — 관리자가 구매 사실을 직접 등록한다(결제 행 없음). 회원 앱 구매는 PaymentService.purchasePTPackage(ADR-RSV-09).
   async createPTSession(
     memberId: string,
     input: { programId: string; totalSessions: number; purchasedAt: string },
@@ -326,10 +329,19 @@ export class MemberService {
 
   // 잔여세션 차감은 계약종료 차단 대상이 아니다(기존 계약의 이행). 동시에 두 번 눌러도 총 세션을 넘지 않게
   // "남아 있을 때만 +1"을 한 문장으로 하고, 사용 기록을 같은 트랜잭션에 남긴다.
+  // ADR-RSV-09 — PT 회차 예약으로 잡힌 횟수는 쓰지 않는다(그 예약은 체크인 때 차감된다). 패키지 행을 잠근 뒤 센다.
   async usePTSession(id: string, note?: string): Promise<PTView> {
     return this.prisma.$transaction(async (tx) => {
-      const session = await tx.pTSession.findUnique({ where: { id } });
+      const [session] = await lockPTSessions(tx, { id });
       if (!session) throw new AppException('PT_SESSION_NOT_FOUND', 'PT 세션을 찾을 수 없습니다.', 404);
+      const held = (await heldByPTSession(tx, [id])).get(id) ?? 0;
+      if (session.usedSessions < session.totalSessions && session.totalSessions - session.usedSessions - held <= 0) {
+        throw new AppException(
+          'PT_SESSION_RESERVED',
+          '남은 횟수가 모두 PT 회차 예약으로 잡혀 있습니다. 예약 체크인으로 차감하세요.',
+          409,
+        );
+      }
       const updated = await tx.$executeRaw`
         UPDATE "PTSession" SET "usedSessions" = "usedSessions" + 1
         WHERE "id" = ${id} AND "usedSessions" < "totalSessions"`;

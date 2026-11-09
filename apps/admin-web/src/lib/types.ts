@@ -166,6 +166,7 @@ export interface PTSessionRow {
   totalSessions: number;
   usedSessions: number;
   remainingSessions: number;
+  reservedSessions?: number; // remainingSessions 중 PT 회차 예약으로 잡힌 횟수(예약및결제 ADR-RSV-09)
   purchasedAt: string;
   logs: PTSessionLogRow[];
 }
@@ -221,6 +222,7 @@ export interface ProgramRow {
   pricingType: PricingType;
   price: number;
   capacity?: number;
+  ptPackageSessions?: number; // PT 패키지 1개의 횟수(예약및결제 ADR-RSV-09)
   status: ProgramStatus;
   startDate: string;
   endDate?: string;
@@ -256,7 +258,9 @@ export interface ScheduleSlotRow {
 
 export interface PaymentRow {
   id: string;
-  reservationId: string;
+  reservationId?: string; // 회차 예약 결제 — 회원 앱 PT 패키지 구매면 없고 ptSessionId(ADR-RSV-09)
+  ptSessionId?: string;
+  kind?: 'RESERVATION' | 'PT_PACKAGE';
   memberId: string;
   memberName?: string;
   programName?: string;

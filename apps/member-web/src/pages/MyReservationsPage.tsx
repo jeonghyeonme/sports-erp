@@ -154,6 +154,7 @@ function ReservationSummary({ reservation: r }: { reservation: Reservation }) {
         </span>
       )}
       {r.payment && <span className="muted">{won(r.payment.amount)}</span>}
+      {r.ptSessionId && <span className="muted">PT 1회 사용(체크인 때 차감)</span>}
     </div>
   );
 }
@@ -161,6 +162,7 @@ function ReservationSummary({ reservation: r }: { reservation: Reservation }) {
 // 예약및결제 A-6 — 결제 전(PENDING)은 결제 실패 처리만, 승인 건은 마감 전이면 전액 환불·마감 이내면 환불 없음.
 // api에는 "취소 마감" 오류가 없다(마감 이내 취소도 성공한다). 그래서 취소 전에 이 문구로 미리 알린다.
 function refundGuide(r: Reservation, now: number): string {
+  if (r.ptSessionId) return '취소하면 잡아 둔 PT 1회가 돌아옵니다.'; // ADR-RSV-09 — PT 회차 예약은 결제가 없다
   if (r.payment?.status === 'PENDING') return '결제 전이라 청구된 금액이 없습니다.';
   if (r.payment?.status !== 'APPROVED') return '무료 회차라 환불할 금액이 없습니다.';
   if (r.slot && isBeforeCancelDeadline(r.slot, now)) return `지금 취소하면 ${won(r.payment.amount)} 전액 환불됩니다.`;
@@ -174,6 +176,7 @@ function refundTone(r: Reservation, now: number): string {
 
 // 취소 결과 안내는 서버 응답의 결제 상태로 정한다(화면의 마감 계산과 서버 판정이 어긋나도 서버가 맞다).
 function cancelNotice(r: Reservation): string {
+  if (r.ptSessionId) return '예약을 취소했습니다. PT 1회가 돌아왔습니다.';
   if (r.payment?.status === 'REFUNDED') return `예약을 취소했습니다. ${won(r.payment.amount)}이 환불됩니다.`;
   if (r.payment?.status === 'APPROVED') return '예약을 취소했습니다. 취소 마감이 지나 환불되지 않습니다.';
   return '예약을 취소했습니다.';

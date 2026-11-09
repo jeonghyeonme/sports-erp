@@ -1,0 +1,128 @@
+{
+  "pt-after-1": {
+    "x": 572.6875,
+    "y": 9.5,
+    "width": 340,
+    "height": 32
+  },
+  "pt-after-2": {
+    "x": 573.6875,
+    "y": 50.5,
+    "width": 338,
+    "height": 47
+  },
+  "pt-after-3": {
+    "x": 440,
+    "y": 622,
+    "width": 81.34375,
+    "height": 31
+  },
+  "find-after-1": {
+    "x": 572.6875,
+    "y": 9.5,
+    "width": 340,
+    "height": 32
+  },
+  "find-after-2": {
+    "x": 573.6875,
+    "y": 50.5,
+    "width": 338,
+    "height": 47
+  },
+  "ptreg-after-1": {
+    "x": 572.6875,
+    "y": 9.5,
+    "width": 340,
+    "height": 32
+  },
+  "ptreg-after-2": {
+    "x": 573.6875,
+    "y": 50.5,
+    "width": 338,
+    "height": 47
+  },
+  "ptreg-after-3": {
+    "x": 253,
+    "y": 477,
+    "width": 122.140625,
+    "height": 31
+  },
+  "ptreg-after-4": {
+    "x": 272,
+    "y": 558,
+    "width": 365.65625,
+    "height": 39
+  },
+  "ptreg-after-5": {
+    "x": 649.65625,
+    "y": 558,
+    "width": 365.671875,
+    "height": 36
+  },
+  "ptreg-after-prefilled": {
+    "x": 1027.328125,
+    "y": 558,
+    "width": 365.671875,
+    "height": 38
+  },
+  "ptreg-after-6": {
+    "x": 272,
+    "y": 619,
+    "width": 54,
+    "height": 31
+  },
+  "miss-after-1": {
+    "x": 22,
+    "y": 299,
+    "width": 190,
+    "height": 34
+  },
+  "miss-after-2": {
+    "x": 270.5,
+    "y": 474.5,
+    "width": 1124,
+    "height": 35
+  },
+  "miss-after-3": {
+    "x": 1108.3125,
+    "y": 547,
+    "width": 103.6875,
+    "height": 31
+  },
+  "miss-after-4": {
+    "x": 500,
+    "y": 320.65625,
+    "width": 214,
+    "height": 38
+  },
+  "miss-after-prefilled": {
+    "x": 500,
+    "y": 406.65625,
+    "width": 214,
+    "height": 40.6875
+  },
+  "miss-after-5": {
+    "x": 726,
+    "y": 406.65625,
+    "width": 214,
+    "height": 40.6875
+  },
+  "miss-after-6": {
+    "x": 500,
+    "y": 494.34375,
+    "width": 440,
+    "height": 36
+  },
+  "miss-after-7": {
+    "x": 886,
+    "y": 632.34375,
+    "width": 54,
+    "height": 31
+  },
+  "slot-after-1": {
+    "x": 1320.3125,
+    "y": 105,
+    "width": 91.6875,
+    "height": 31
+  }
+}
