@@ -25,7 +25,7 @@
 
 > 다음 세션의 목표는 **최종 발표 자료**다. [4-0 공통지침](presentation/4-0_발표자료_공통지침.md)을 먼저 읽는다(덱 구성안·캡처 규칙·폴더). 덱·RFP 이행 증빙의 원천은 [요구사항추적표](reference/요구사항추적표.md) §3과 산출물이라, 추적표 재대조·분모 변경은 끝났다(log/210·211, D76 — 94%) — 덱 숫자는 지금 추적표로 쓴다. 발표에서는 "해당 없음 10개 제외"를 함께 밝힌다.
 
-1. **최종 발표 자료**(사용자 착수): 중간 이후 바뀐 것 — 계약 회차·계약서(D69)·동시성(D70)·계약 파일 보존(D71)·사용감(D72~D74, 작업 단계 측정 log/198 전후 수치)·문서 파일(ADR-RES-05)·운영 실적 차트(D75). 중간보고서 덱 생성기 `presentation/assets/4-7_중간발표/deck-source/viz/deck47.js`를 참고.
+1. **최종 발표 자료**(사용자 착수): 중간 이후 바뀐 것 — **RFP 충족률 산정 방식 변경(D76 — 해당 없음 10개를 분모에서 빼고 T3-2·N8-2를 해당 없음으로, 중간 81% → 94%, 옛 방식 값과 바꾼 이유를 함께 보인다, 사용자 요청 2026-11-09)**·계약 회차·계약서(D69)·동시성(D70)·계약 파일 보존(D71)·사용감(D72~D74, 작업 단계 측정 log/198 전후 수치)·문서 파일(ADR-RES-05)·운영 실적 차트(D75). 중간보고서 덱 생성기 `presentation/assets/4-7_중간발표/deck-source/viz/deck47.js`를 참고.
 2. **산출물 재생성 — 발표 자료 작업과 같은 시드·캡처 단계에서**(사용자 결정 2026-11-09, 최종 제출 전 필수. 덱에 산출물 화면·표를 넣으면 그 산출물은 덱보다 먼저)(`scripts/deliverables/`): 데이터 정의서(Document 칸 `storagePath`·`fileName`·CHECK — log/206), 요구사항 정의서(추적표에서), 사용자 매뉴얼(도움말 문구·화면이 log/199~208에서 바뀜 — `capture-manual.mjs` 재캡처), RFP 이행 증빙(캡처 `capture-rfp.mjs`), 진행 보고서(log/197~208 반영), 아키텍처 설계서(새 API: 빠른 찾기는 기존 API, `/documents/upload-url`·`/:id/open`·`/branches/performance`). 교육 자료 PDF는 화면이 바뀐 곳만 확인.
 3. **시연 데이터 — 결정됨**(사용자, 2026-11-09): 배포 DB는 재시드하지 않고 발표는 캡처로 한다. 캡처는 로컬 DB에 `npm run seed:demo`를 다시 얹은 뒤 찍는다(4-0 §5 — 실행일 기준 지난 90일).
 4. **정리**(사용자): 원격 작업 브랜치 `claude/*` 9개(jolly-brahmagupta-bmaxnp·list-consistency·csv-export·list-search·list-sort·document-files·document-files-ops·visualization·status-before-presentation) 삭제 — 모두 `dev`에 병합됨(세션은 브랜치 삭제 불가).
