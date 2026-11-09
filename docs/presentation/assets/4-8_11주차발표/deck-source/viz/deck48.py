@@ -122,25 +122,25 @@ S.append(('cover', f'<section id="cover" data-transition="fade" style="backgroun
 todo = ''.join(
     f'<div style="display:flex; align-items:center; gap:14px; padding:14px 22px; background:{CARDBG}; border:1px solid {LINE}; border-radius:12px">'
     f'<x-icon name="{ic}" style="color:{c}; width:30px; height:30px"></x-icon><p style="font-size:28px; color:{INK}">{t}</p>{pill(s, c, bg)}</div>'
-    for ic, c, bg, t, s in [('Check', GREEN, '#E3F1EA', '문서 관리 실제 파일 업로드', '03'),
-                            ('Check', GREEN, '#E3F1EA', '사용감 개선', '01 · 02 · 04'),
+    for ic, c, bg, t, s in [('Check', GREEN, '#E3F1EA', '문서 관리 실제 파일 업로드', '02'),
+                            ('Check', GREEN, '#E3F1EA', '사용감 개선', '01 · 03'),
                             ('Clock', AMBER, '#F6ECDD', '회원 앱 형태 재검토', '발표 뒤')])
 rows = ''.join(
     f'<div style="display:flex; align-items:center; gap:28px; padding:22px 28px; background:{CARDBG}; border:1px solid {LINE}; border-radius:12px">'
     f'<p style="font-family:{MONOF}; font-size:28px; font-weight:700; color:{NAVY}; width:60px">{n}</p>'
     f'<p style="font-family:{HEADF}; font-size:36px; font-weight:700; color:{INK}; width:420px">{t}</p><p style="font-size:30px; color:{SUB}">{d}</p></div>'
-    for n, t, d in [('01', '사용감', '단계 수를 재고 줄였다'), ('02', '목록 일관화', '정렬·검색·CSV·확인 창'),
-                    ('03', '문서 파일', '실제 파일 올리기·열람 기록'), ('04', '운영 실적 차트', '13개월 추이·지점 비교'),
+    for n, t, d in [('01', '사용감', '자주 쓰는 기능의 접근 경로를 단순하게'),
+                    ('02', '문서 파일', '실제 파일 올리기·열람 기록'), ('03', '운영 실적 차트', '13개월 추이·지점 비교'),
                     ('+', 'RFP 충족률', '산정 방식을 바꿨다')])
 S.append(('agenda', content('agenda', '오늘 순서', '지난주 “다음 할 일”에서 출발합니다',
           f'<div style="display:flex; gap:40px; align-items:flex-start"><div style="width:620px; display:flex; flex-direction:column; gap:14px">{mono("10주차의 다음 할 일", color=SUB)}{todo}</div>'
           f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{rows}</div></div>',
-          '10주차 마지막 장의 다음 할 일 세 개에서 출발한다. 문서 파일 업로드는 03, 사용감 개선은 01·02·04로 했다. 회원 앱 형태 재검토는 하지 않았다 — 발표 뒤 선택 과제로 남겼다(이렇게 말할 것: "하지 않았다", "진행 중"이라고 하지 말 것). 마지막에 RFP 충족률 산정 방식을 바꾼 것을 따로 설명한다.',
+          '10주차 마지막 장의 다음 할 일 세 개에서 출발한다. 문서 파일 업로드는 02, 사용감 개선은 01(접근 경로)·03(운영 실적 차트)으로 했다. 목록 정렬·검색·CSV를 맞춘 일(D74)은 원래 있었어야 할 기본기라 발표에서 따로 다루지 않는다 — 질문이 나오면 노트의 Q&A로. 회원 앱 형태 재검토는 하지 않았다 — 발표 뒤 선택 과제로 남겼다(이렇게 말할 것: "하지 않았다", "진행 중"이라고 하지 말 것). 마지막에 RFP 충족률 산정 방식을 바꾼 것을 따로 설명한다.',
           '10주차 발표(11/5) 이후 작업 · 결정 기록 D72~D76')))
 
 # PART 01 사용감
-S.append(('p1', divider('p1', 'PART 01', '사용감', '느낌이 아니라 단계 수를 재고 줄였습니다',
-          '사용감 개선은 "더 편하게"라는 말로는 무엇을 고칠지 고를 수 없다. 그래서 먼저 쟀다. 이 파트가 발표의 중심(약 5분).')))
+S.append(('p1', divider('p1', 'PART 01', '사용감', '자주 쓰는 기능의 접근 경로를 단순하게',
+          '불필요한 단계를 걷어 내고, 자주 쓰는 기능에 바로 닿게 했다. 예시 하나(PT 세션 차감)와 화면 구성 규칙 하나로 보인다. 약 3분.')))
 
 S.append(('ux-measure', content('ux-measure', '사용감 · 측정', '줄이려면 먼저 잽니다', cards_row([
     f'<p style="font-family:{HEADF}; font-size:96px; font-weight:900; line-height:1; color:{NAVY}">20</p>{h3("자주 하는 작업")}{p("지점 관리자 10 · 직원 3 · 본사 4 · 회원 3 — 매일·매주 반복하는 등록·조회·처리")}',
@@ -184,10 +184,10 @@ def step_row(tag, count, color, cards, tail=''):
 before = [step_card(STEP[f'b{i}'], i, c) for i, c in enumerate(['회원 메뉴', '이름 입력', '검색 버튼', '회원 줄 클릭', 'PT 탭', '세션 사용'], 1)]
 after = [step_card(STEP[f'a{i}'], i, c) for i, c in enumerate(['상단 바에 입력', '결과 고르기', '세션 사용'], 1)]
 after_tail = (f'<div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:10px; padding:0 0 0 24px; border-left:4px solid {NAVY}">'
-              f'{h3("절반으로", 40, NAVY)}{p("어느 화면에서든 바로 회원을 찾고, 남은 PT가 있으면 PT 탭이 먼저 열린다", 26)}</div>')
-S.append(('ux-pt-compare', content('ux-pt-compare', '사용감 · 변경 전후', 'PT 세션 차감: 6단계 → 3단계',
+              f'{h3("절반으로", 40, NAVY)}{p("어느 화면에서든 상단 바에서 회원을 바로 찾는다", 26)}</div>')
+S.append(('ux-pt-compare', content('ux-pt-compare', '사용감 · 접근 경로', 'PT 세션 차감: 6단계 → 3단계',
     step_row('변경 전', 6, SUB, before) + step_row('변경 후', 3, NAVY, after, after_tail),
-    '같은 지점 관리자(서초점 김민수)가 같은 회원(이수진)의 PT 세션 1회를 차감하는 과정을 단계마다 찍었다. 위 줄은 변경 전 앱(log/198 기준선 커밋), 아래 줄은 지금 앱 — 둘 다 시연 데이터를 새로 얹은 로컬 DB. 주황 테두리와 번호가 그 단계에서 누르거나 입력하는 곳. 카드 폭을 같게 둬서 줄 길이가 곧 단계 수다. 변경 전: 회원 메뉴 → 이름 입력 → 검색 버튼 → 회원 줄 → PT 탭 → 세션 사용. 변경 후: 상단 바 빠른 찾기에 두 글자 → 결과 고르기(남은 PT가 있어 PT 탭이 먼저 열림) → 세션 사용. PT 세션 차감은 PT 수업마다 반복되는 작업이라 골랐다. 회원 찾아 상세 열기(4 → 2)는 이 앞부분과 같다.',
+    '같은 지점 관리자(서초점 김민수)가 같은 회원(이수진)의 PT 세션 1회를 차감하는 과정을 단계마다 찍었다. 위 줄은 변경 전 앱(log/198 기준선 커밋), 아래 줄은 지금 앱 — 둘 다 시연 데이터를 새로 얹은 로컬 DB. 주황 테두리와 번호가 그 단계에서 누르거나 입력하는 곳. 카드 폭을 같게 둬서 줄 길이가 곧 단계 수다. 변경 전: 회원 메뉴 → 이름 입력 → 검색 버튼 → 회원 줄 → PT 탭 → 세션 사용. 변경 후: 상단 바 빠른 찾기에 두 글자 → 결과 고르기(남은 PT가 있어 PT 탭이 먼저 열림) → 세션 사용. PT 세션 차감은 PT 수업이 끝날 때마다 지점(프런트)이 회원의 남은 횟수를 차감하는 관리자 업무다 — 회원이 스스로 차감하는 기능이 아니다. 자주 반복돼서 예로 골랐다. 회원 찾아 상세 열기(4 → 2)는 이 앞부분과 같다. 이렇게 말할 것: "자주 쓰는 기능의 접근 경로를 단순하게 해서 6단계를 3단계로 줄였다".',
     '결정 기록 D72 · 측정 log/198·200 · 강조 테두리는 캡처 때 겹친 표시')))
 
 big = ''.join(
@@ -205,9 +205,8 @@ S.append(('ux-pt-after', content('ux-pt-after', '사용감 · 변경 후', '어�
 
 S.append(('ux-order', content('ux-order', '사용감 · 화면 안 순서', '화면 안 순서를 규칙으로 정했습니다',
     flow([('1', '처리할 일', '승인 대기 등'), ('2', '지금 상태', '오늘의 근태 등'), ('3', '입력 폼', '휴가 신청 등'), ('4', '쌓이는 기록', '이번 달 기록 등')], active={0, 2})
-    + f'<div style="display:flex; gap:20px"><div style="{CARD}; flex:1">{h3("쌓이는 목록 아래 폼은 버튼 + 모달로")}{p("회차 등록 폼은 주간 시간표 아래에 있었다 — 머리글 버튼으로 옮기고 모달로 연다")}</div>'
-    f'<div style="{CARD}; flex:1">{h3("대상 작업 4개 스크롤 → 0")}{p("휴가 승인 · 회차 등록 · 업무일지 · 휴가 신청. 회차 등록은 모달을 여는 누름 1번이 늘었다(6 → 7단계)")}</div></div>',
-    '규칙(D73): 처리할 일 → 지금 상태 → 입력 폼 → 쌓이는 기록. 쌓이는 목록 아래에 있던 폼은 머리글 버튼 + 모달. 대안(화면 안 탭, 링크 위치만 바꾸기)은 D73에. 근태관리 화면을 이 순서로 재배치했고 휴가 승인함은 대기가 있을 때만 맨 위에 그린다. 회차 등록은 스크롤 2~3번이 0이 된 대신 모달을 여는 누름이 하나 늘었다 — 숨기지 말고 말할 것. 덤으로: 회차 등록 폼이 권한이 꺼져도 보이던 것을 버튼 숨김으로 고쳤다(서버는 원래 거부).',
+    ,
+    '규칙(D73): 처리할 일 → 지금 상태 → 입력 폼 → 쌓이는 기록. 쌓이는 목록 아래에 있던 폼은 머리글 버튼 + 모달. 대안(화면 안 탭, 링크 위치만 바꾸기)은 D73에. 근태관리 화면을 이 순서로 재배치했고 휴가 승인함은 대기가 있을 때만 맨 위에 그린다. 쌓이는 목록(주간 시간표 등) 아래에 있던 회차 등록 폼은 머리글 버튼 + 모달로 옮겼다. 처리할 일이 맨 위라 화면을 열면 할 일부터 보인다.',
     '결정 기록 D73 · log/201')))
 
 S.append(('ux-slot-compare', content('ux-slot-compare', '사용감 · 변경 전후', '회차 등록: 스크롤 2~3번 → 0번',
@@ -257,7 +256,7 @@ S.append(('list-shot', shot('list-shot', '목록 일관화 · 화면', '자산 �
     '실제 관리자 웹 화면(2026-11-09 로컬, 시연 데이터, 서초점 김민수). 취득가액 머리글을 두 번 눌러 내림차순(머리글의 ▼가 정렬 상태 — 화면 읽기 프로그램에도 정렬 상태가 전달된다). 서버 정렬은 api 테스트(list-sort)가 확인한다: 이름순을 쪽 넘겨 이어 붙이면 DB 순서와 같다, 지점 정렬도 자기 지점만. 자산 화면의 검색·정렬 자체는 화면 자동 테스트가 없다 — 검증은 API 테스트와 타입 검사까지(이렇게 말할 것).')))
 
 # PART 03 문서 파일
-S.append(('p3', divider('p3', 'PART 03', '문서 파일', '문서함에 실제 파일을 올립니다',
+S.append(('p3', divider('p3', 'PART 02', '문서 파일', '문서함에 실제 파일을 올립니다',
           '10주차까지 문서함의 문서는 가짜 주소였다. 계약서 파일(D69)에서 만든 올리기 방식을 문서에도 썼다. 약 2분.')))
 
 S.append(('doc-flow', content('doc-flow', '문서 파일', '파일은 서버를 거치지 않고, 열 때마다 남깁니다',
@@ -274,7 +273,7 @@ S.append(('doc-shot', shot('doc-shot', '문서 파일 · 화면', '문서함', I
     '실제 관리자 웹 화면(2026-11-09 로컬, 시연 데이터, 서초점 김민수). 캡처 전에 화면에서 매뉴얼 분류로 PDF 한 건("시설 안전 점검 매뉴얼", 내용 없는 시연용 PDF)을 실제로 올렸다 — 맨 위 줄. 로컬은 메모리 저장소, 운영은 Supabase Storage. 문서함 PDF 올리기 → 검색 → 내려받기는 화면 자동 테스트 1건이 본다. 직원 상세의 인사서류 열기는 화면 자동 테스트가 없다.')))
 
 # PART 04 운영 실적 차트
-S.append(('p4', divider('p4', 'PART 04', '운영 실적 차트', '운영 데이터가 계약 판단으로 돌아가는 길',
+S.append(('p4', divider('p4', 'PART 03', '운영 실적 차트', '운영 데이터가 계약 판단으로 돌아가는 길',
           '사업 구조의 순환 — 운영 데이터가 다시 올라와 계약 갱신·영업 근거가 된다 — 를 화면에서 읽을 수 있게. 약 2분.')))
 
 cycle = flow([('위탁 계약', '지점', '계약 회차'), ('운영', '회원 · 예약 · 결제', ''), ('운영 실적', '월별 집계', ''), ('계약 판단', '갱신 · 영업 근거', '')], active={2})
@@ -316,6 +315,11 @@ S.append(('closing', f'<section id="closing" data-transition="fade" style="backg
           f'<div style="flex:1"></div><h1 style="font-family:{HEADF}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:{INK}">감사합니다</h1><div style="flex:1"></div>'
           f'{notes("맺음(말로): 사용감은 느낌이 아니라 단계 수를 재고 줄였고, 목록은 같은 동작을 같은 모양으로 맞추며 정렬·검색을 데이터가 있는 서버로 옮겼고, 문서 파일과 운영 실적 차트로 10주차의 다음 할 일을 마쳤습니다. RFP 충족률은 할 수 없는 조항을 분모에서 빼 94%로 다시 셌고, 옛 방식으로는 81%입니다.")}</section>'))
 
+# 2026-11-09 사용자 검토로 뺀 장(log/214) — 측정 수치·기준선·스크롤 비교·전후 표는 "접근 경로 단순화" 한 문장과 6 → 3 비교로 충분하고,
+# 목록 일관화(정렬·검색·CSV)는 원래 있었어야 할 기본기라 발표 거리로 삼지 않는다.
+DROP = {'ux-measure', 'ux-found', 'ux-pt-after', 'ux-slot-compare', 'ux-result', 'p2', 'list-rule', 'list-shot'}
+S = [(sid, html) for sid, html in S if sid not in DROP]
+
 os.makedirs(os.path.join(OUT, 'project', 'slides'), exist_ok=True)
 for sid, html in S:
     assert html.count('<section') == 1 and f'id="{sid}"' in html, sid
@@ -331,10 +335,9 @@ deck = {
     'order': order,
     'sections': {
         'intro': {'description': '표지, 오늘 순서 — 10주차의 다음 할 일에서 출발', 'start': 'cover'},
-        'ux': {'description': '01 사용감 — 작업 단계를 재고 줄였다(빠른 찾기, 화면 안 순서)', 'start': 'p1'},
-        'list': {'description': '02 목록 일관화 — 정렬·검색은 서버에서, 공통 부품', 'start': 'p2'},
-        'doc': {'description': '03 문서 파일 — 직접 올리기와 열람 기록', 'start': 'p3'},
-        'chart': {'description': '04 운영 실적 차트 — 13개월 추이와 지점 비교', 'start': 'p4'},
+        'ux': {'description': '01 사용감 — 자주 쓰는 기능의 접근 경로 단순화(PT 세션 차감 6 → 3), 화면 안 순서 규칙', 'start': 'p1'},
+        'doc': {'description': '02 문서 파일 — 직접 올리기와 열람 기록', 'start': 'p3'},
+        'chart': {'description': '03 운영 실적 차트 — 13개월 추이와 지점 비교', 'start': 'p4'},
         'wrap': {'description': 'RFP 충족률 산정 변경과 정리', 'start': 'rfp'},
     },
     'faces': {

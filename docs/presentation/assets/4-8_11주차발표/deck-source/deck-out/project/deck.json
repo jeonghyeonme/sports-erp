@@ -10,16 +10,8 @@
     "cover",
     "agenda",
     "p1",
-    "ux-measure",
-    "ux-found",
     "ux-pt-compare",
-    "ux-pt-after",
     "ux-order",
-    "ux-slot-compare",
-    "ux-result",
-    "p2",
-    "list-rule",
-    "list-shot",
     "p3",
     "doc-flow",
     "doc-shot",
@@ -36,19 +28,15 @@
       "start": "cover"
     },
     "ux": {
-      "description": "01 사용감 — 작업 단계를 재고 줄였다(빠른 찾기, 화면 안 순서)",
+      "description": "01 사용감 — 자주 쓰는 기능의 접근 경로 단순화(PT 세션 차감 6 → 3), 화면 안 순서 규칙",
       "start": "p1"
     },
-    "list": {
-      "description": "02 목록 일관화 — 정렬·검색은 서버에서, 공통 부품",
-      "start": "p2"
-    },
     "doc": {
-      "description": "03 문서 파일 — 직접 올리기와 열람 기록",
+      "description": "02 문서 파일 — 직접 올리기와 열람 기록",
       "start": "p3"
     },
     "chart": {
-      "description": "04 운영 실적 차트 — 13개월 추이와 지점 비교",
+      "description": "03 운영 실적 차트 — 13개월 추이와 지점 비교",
       "start": "p4"
     },
     "wrap": {
