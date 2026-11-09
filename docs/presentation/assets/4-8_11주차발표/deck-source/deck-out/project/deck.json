@@ -22,6 +22,7 @@
     "chart-shot",
     "p5",
     "member-app",
+    "p6",
     "rfp",
     "wrap",
     "closing"
@@ -47,9 +48,13 @@
       "description": "04 회원 앱 형태 — 지금 모바일 웹 유지(D77)",
       "start": "p5"
     },
+    "rfp": {
+      "description": "05 RFP 충족률 — 해당 없음을 분모에서 빼고 다시 셈(D76)",
+      "start": "p6"
+    },
     "wrap": {
-      "description": "RFP 충족률 산정 변경과 다음 할 일",
-      "start": "rfp"
+      "description": "다음 할 일",
+      "start": "wrap"
     }
   },
   "faces": {

@@ -134,7 +134,7 @@ rows = ''.join(
     for n, t, d in [('01', '사용감', '자주 쓰는 기능에 더 적은 단계로'),
                     ('02', '문서 파일', '안전하게 올리고 여는 설계'), ('03', '운영 실적 차트', '지점 실적을 13개월 추이로'),
                     ('04', '회원 앱 형태', '지금 모바일 웹을 유지'),
-                    ('+', 'RFP 충족률', '산정 방식을 바꿔 다시 셈')])
+                    ('05', 'RFP 충족률', '산정 방식을 바꿔 다시 셈')])
 S.append(('agenda', content('agenda', '오늘 순서', '11주차에 한 일',
           f'<div style="display:flex; gap:40px; align-items:flex-start"><div style="width:620px; display:flex; flex-direction:column; gap:14px">{mono("10주차 발표에서 남긴 다음 할 일", color=SUB)}{todo}</div>'
           f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{mono("이번 발표 순서", color=SUB)}{rows}</div></div>',
@@ -382,6 +382,9 @@ S.append(('member-app', content('member-app', '회원 앱 형태', '회원 앱�
     '결정 기록 D77(D40 · D41 · D45 유지) · 다시 볼 때: 푸시 알림 · QR 체크인처럼 휴대폰 기능이 필요해질 때',
     lead='10주차에 남긴 검토 — 회원 기능을 앱으로 다시 만들지. 결론은 지금의 모바일 웹(홈 화면에 설치되는 웹)을 그대로 쓴다.')))
 
+S.append(('p6', divider('p6', 'PART 05', 'RFP 충족률', '충족률 산정 방식을 바꿔 다시 셌습니다',
+          'RFP 조항 72개의 충족률을 할 수 없는 조항(해당 없음)을 빼고 다시 셌다(D76). 약 2분.')))
+
 S.append(('rfp', content('rfp', 'RFP 충족률', '충족률 산정 방식을 바꿨습니다',
     f'<div style="display:flex; gap:40px; align-items:stretch"><div style="{CARD}; width:560px; justify-content:center">'
     f'<p style="font-family:{HEADF}; font-size:160px; font-weight:900; line-height:1; color:{NAVY}">94%</p>{h3("58 / 62 조항")}'
@@ -432,7 +435,8 @@ deck = {
         'doc': {'description': '02 문서 파일 — 올리기와 열기를 안전하게(서버 재확인 · 60초 주소 · 열람 기록)', 'start': 'p3'},
         'chart': {'description': '03 운영 실적 차트 — 13개월 추이와 지점 비교', 'start': 'p4'},
         'app': {'description': '04 회원 앱 형태 — 지금 모바일 웹 유지(D77)', 'start': 'p5'},
-        'wrap': {'description': 'RFP 충족률 산정 변경과 다음 할 일', 'start': 'rfp'},
+        'rfp': {'description': '05 RFP 충족률 — 해당 없음을 분모에서 빼고 다시 셈(D76)', 'start': 'p6'},
+        'wrap': {'description': '다음 할 일', 'start': 'wrap'},
     },
     'faces': {
         'gothic-a1': {'family': 'Gothic A1', 'href': 'https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap'},
