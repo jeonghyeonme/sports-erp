@@ -24,6 +24,7 @@ python3 viz/deck48.py deck-out          # deck-out/dots.svg(10주차 표지의 �
 | 덱에 넣은 파일 | 슬라이드 | 화면 · 계정 |
 |---|---|---|
 | `compare/step-pt-before-1~6.png` · `step-pt-after-1~3.png` | `ux-pt-compare`·`ux-pt-after` | PT 세션 차감 변경 전 6단계·변경 후 3단계, 누르는 곳에 주황 테두리·번호 · 김민수(서초점 지점 관리자), 회원 이수진 |
+| `compare/step-find-*`·`step-ptreg-*`·`step-miss-*` | `ux-find`·`ux-ptreg`·`ux-miss` | 회원 찾아 상세 열기(4 → 2), PT 패키지 등록(10 → 6), 근태 누락일 등록(8 → 7, 직원 박서연) — 기본값으로 채워진 칸은 초록 점선 · 김민수 |
 | `compare/step-slot-before.png` · `step-slot-after-1~2.png` | `ux-slot-compare` | 예약 관리 — 변경 전 화면 전체(첫 화면 경계 점선·회차 등록 폼 실선), 변경 후 머리글 버튼·모달 · 김민수 |
 | (`deck-ux-quick.png`) | (뺐음) | 대시보드 위 상단 바 회원 빠른 찾기 — 비교 슬라이드로 대체 |
 | `deck-list-assets.png` | `list-shot` | 자산 목록, 취득가액 내림차순 · 김민수 |
@@ -48,7 +49,7 @@ python3 viz/deck48.py deck-out          # deck-out/dots.svg(10주차 표지의 �
 4. `node docs/presentation/assets/4-8_11주차발표/deck-source/capture/compare.cjs before docs/presentation/assets/4-8_11주차발표/deck-source/screenshots/compare`.
 5. 옛 서버를 끄고 지금 앱을 띄워 같은 명령을 `after`로. 그다음 이 폴더에서 `python3 capture/crop-compare.py screenshots/compare`.
 
-PT 세션 차감은 "세션 사용"을 누르기 직전까지만 찍어 데이터를 바꾸지 않는다. 회차 등록은 모달을 여는 데까지만.
+PT 세션 차감·PT 패키지 등록·누락일 등록은 마지막 버튼(세션 사용·등록·저장)을 누르기 직전까지만 찍어 데이터를 바꾸지 않는다. 회차 등록은 모달을 여는 데까지만. 변경 전 앱의 모달은 Esc로 닫히지 않아 "취소" 버튼으로 닫는다.
 
 ## 알려진 한계
 

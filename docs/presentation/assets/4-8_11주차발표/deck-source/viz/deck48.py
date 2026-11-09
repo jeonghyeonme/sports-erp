@@ -188,11 +188,67 @@ before = [step_card(STEP[f'b{i}'], i, c) for i, c in enumerate(['회원 메뉴',
 after = [step_card(STEP[f'a{i}'], i, c) for i, c in enumerate(['상단 바에 입력', '결과 고르기', '세션 사용'], 1)]
 after_tail = (f'<div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:10px; padding:0 0 0 24px; border-left:4px solid {NAVY}">'
               f'{h3("절반으로", 40, NAVY)}{p("어느 화면에서든 상단 바에서 회원을 바로 찾는다", 26)}</div>')
+# 변경 전·후 비교 장 — 카드 폭은 변경 전 단계 수로 정해 두 줄이 같은 폭(줄 길이 = 단계 수, log/216)
+B = lambda i: f'/_blob/{i}'
+STEPS2 = {
+    'find': (['eb5ecdf3abab929917a20b2e81c57ec7', '66fc09257232b9637f6207aad4996732', '728b9b4995b572699227c198e32c3de4', 'fd29861f05e42c2f4f4f33bc88d7dd76'],
+             ['34b4c7f62b1eaf60b2dab747fcecca04', 'a30c5d125e40b50b21dcfbf766746580']),
+    'ptreg': (['db65429cc5ee204fa93bf734a9b695c5', '27b422970d66eb7ca19570bcfea3f043', 'f898dd90d2583a0b263ba285dde5c5b3', '8d91856a26aac3ee7dd8af0e4cb57f58', '3b05a593f4af5e0d16603cd9e199adc5',
+               '44c847690fa8451109d2826e38589b69', '0ca0719e80b55594e272ed58c75bab5d', '7563119b8d42c5adda76172406fdbcd0', 'c39d307b4168da11af51fba342d833da', '5cb221b104960d034dbad8b17e8c03ad'],
+              ['66c473e8be5b153e6be34e5de9962db4', '942dd787ce511cea4732e5589ffa428b', '711f8e07f5cc7bd84a53429b3ac269f0', '2ae6c78dced9a1a37a71e20af59674d5', '025ee2de2d7170e66a698ecfa407a741', '5a080e0b57252f643d8f1a0600ee5df4']),
+    'miss': (['ffbca64c2102b4421e8be894828df140', 'f9a0c165d8ad65c60aaa03209d0d7ddc', '43f429e45fe1c5073a612710709a76f0', 'ba9334e0bbe2b22f3b40d0fc29792f20', '120b2098efdf9e2fad074b7ad0f23396',
+              'e525495d1c41297a65a303fa620dbfb0', 'b4867e6314fd1abc9e0c0f5db5d91755', '8e76153f06b30f94fb104f4c85511027'],
+             ['71ef08ae5946a9aa069cedff4cc00438', 'a7b4c253fa93f4a0a3113320260473c0', 'ed9ee00d56aae4a1906834b51bf464e5', 'e4f18312b7030a015b5cc95008ec6ec1', '82284829e596c6515accac14dd4a64b7',
+              '2f13b3138cd6938c3890dffccea16106', '59ac59c640daa8783fe0a4dab2323d80']),
+}
+
+
+def compare_body(task, cap_before, cap_after, tail_title, tail_text):
+    imgs_b, imgs_a = STEPS2[task]
+    gap = 12
+    w = int((1728 - 196 - gap * (len(imgs_b) - 1)) / len(imgs_b))
+    h = int(w * 0.625)
+    row = lambda tag, count, color, cards, tail='': (
+        f'<div style="display:flex; gap:{gap}px; align-items:stretch">'
+        f'<div style="width:180px; display:flex; flex-direction:column; justify-content:center; gap:6px; padding:0 4px 0 0">{mono(tag, color=color)}'
+        f'<p style="font-family:{HEADF}; font-size:56px; font-weight:900; line-height:1; color:{color}">{count}</p><p style="font-size:24px; color:{SUB}">단계</p></div>'
+        + ''.join(cards) + tail + '</div>')
+    cb = [step_card(B(i), n, c, w, h) for n, (i, c) in enumerate(zip(imgs_b, cap_before), 1)]
+    ca = [step_card(B(i), n, c, w, h) for n, (i, c) in enumerate(zip(imgs_a, cap_after), 1)]
+    tail = ''
+    if 1728 - 196 - len(ca) * (w + gap) >= 300:
+        tail = (f'<div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:10px; padding:0 0 0 24px; border-left:4px solid {NAVY}">'
+                f'{h3(tail_title, 40, NAVY)}{p(tail_text, 26)}</div>')
+    return row('변경 전', len(imgs_b), SUB, cb) + row('변경 후', len(imgs_a), NAVY, ca, tail)
+
+
+GREEN_NOTE = f'<p style="font-size:26px; color:{SUB}"><span style="color:{GREEN}">초록 점선</span> = 미리 채워져 있어 입력하지 않아도 되는 칸</p>'
+
+S.append(('ux-find', content('ux-find', '사용감 · 접근 경로', '회원 찾아 상세 열기: 4단계 → 2단계',
+    compare_body('find', ['회원 메뉴', '번호 입력', '검색 버튼', '회원 줄'], ['상단 바에 입력', '결과 고르기'], '절반으로', '어느 화면에서든 맨 위에서 바로 찾는다'),
+    '같은 지점 관리자(서초점 김민수)가 전화번호 뒷자리(5678)로 회원(이수진)을 찾아 상세를 여는 과정. 위 줄 변경 전 앱(log/198 기준선 커밋), 아래 줄 지금 앱. 변경 전: 회원 메뉴 → 검색어 → 검색 버튼 → 회원 줄. 변경 후: 맨 위 빠른 찾기에 입력 → 결과 고르기. 새 API 없이 기존 회원 목록 API를 써서 지점 격리·전화번호 가림·권한이 그대로다(D72). 다른 지점 회원은 결과에 나오지 않는다(화면 자동 테스트).',
+    '결정 기록 D72 · 주황 테두리·번호는 캡처 때 겹친 표시',
+    lead='회원을 찾으려면 회원 목록 화면으로 가서 검색해야 했다. 이제 어느 화면에서든 맨 위 회원 빠른 찾기(이름 · 회원번호 · 전화번호)로 바로 연다.')))
+
 S.append(('ux-pt-compare', content('ux-pt-compare', '사용감 · 접근 경로', 'PT 세션 차감: 6단계 → 3단계',
     step_row('변경 전', 6, SUB, before) + step_row('변경 후', 3, NAVY, after, after_tail),
     '같은 지점 관리자(서초점 김민수)가 같은 회원(이수진)의 PT 세션 1회를 차감하는 과정을 단계마다 찍었다. 위 줄은 변경 전 앱(log/198 기준선 커밋), 아래 줄은 지금 앱 — 둘 다 시연 데이터를 새로 얹은 로컬 DB. 주황 테두리와 번호가 그 단계에서 누르거나 입력하는 곳. 카드 폭을 같게 둬서 줄 길이가 곧 단계 수다. 변경 전: 회원 메뉴 → 이름 입력 → 검색 버튼 → 회원 줄 → PT 탭 → 세션 사용. 변경 후: 상단 바 빠른 찾기에 두 글자 → 결과 고르기(남은 PT가 있어 PT 탭이 먼저 열림) → 세션 사용. PT 세션 차감은 PT 수업이 끝날 때마다 지점(프런트)이 회원의 남은 횟수를 차감하는 관리자 업무다 — 회원이 스스로 차감하는 기능이 아니다. 자주 반복돼서 예로 골랐다. 회원 찾아 상세 열기(4 → 2)는 이 앞부분과 같다. 이렇게 말할 것: "자주 쓰는 기능의 접근 경로를 단순하게 해서 6단계를 3단계로 줄였다".',
     '결정 기록 D72 · 측정 log/198·200 · 강조 테두리는 캡처 때 겹친 표시',
     lead='PT 세션 차감 — PT 수업이 끝날 때마다 지점 관리자가 회원의 남은 PT 횟수를 1회 깎는 일. 화면 맨 위에 회원 빠른 찾기를 두고, 남은 PT가 있는 회원은 상세 화면이 PT 탭부터 열리게 했다.')))
+
+S.append(('ux-ptreg', content('ux-ptreg', '사용감 · 접근 경로', 'PT 패키지 등록: 10단계 → 6단계',
+    compare_body('ptreg', ['회원 메뉴', '이름 입력', '검색', '회원 줄', 'PT 탭', '패키지 등록', '프로그램', '세션 수', '구매일', '등록'],
+                 ['상단 바 입력', '결과 고르기', '패키지 등록', '프로그램', '세션 수', '등록'], '', '') + GREEN_NOTE,
+    '회원이 PT 패키지(예: 10회)를 새로 사면 지점 관리자가 회원 상세에서 등록한다. 변경 전 10단계: 회원 메뉴 → 이름 → 검색 → 회원 줄 → PT 탭 → 패키지 등록 → 프로그램 → 세션 수 → 구매일 → 등록. 변경 후 6단계: 빠른 찾기 2단계 → (남은 PT가 있어 PT 탭이 먼저 열림) → 패키지 등록 → 프로그램 → 세션 수 → 등록. 구매일은 거의 항상 오늘이라 오늘로 채워 둔다(log/199) — 5번 카드의 초록 점선. 측정 회원은 남은 PT가 있다 — PT가 없는 회원이면 PT 탭을 한 번 눌러 7단계.',
+    '빠른 찾기 D72 · 구매일 기본값 log/199',
+    lead='회원이 PT를 새로 사면 지점 관리자가 등록하는 일. 회원 찾기를 빠른 찾기로 줄이고, 거의 항상 오늘인 구매일을 미리 채웠다.')))
+
+S.append(('ux-miss', content('ux-miss', '사용감 · 기본값', '직원 근태 누락일 등록: 8단계 → 7단계',
+    compare_body('miss', ['직원 메뉴', '직원 줄', '누락일 등록', '날짜', '출근 시각', '퇴근 시각', '사유', '저장'],
+                 ['직원 메뉴', '직원 줄', '누락일 등록', '날짜', '퇴근 시각', '사유', '저장'], '', '') + GREEN_NOTE,
+    '직원이 출근 체크를 빠뜨린 날을 지점 관리자가 직원 상세에서 대신 등록한다. 변경 전에는 출근 시각을 매번 입력했다. 이제 그 직원이 파견된 지점의 기준 출근 시각(지각 판정에 이미 쓰던 값 — 서초 09:00, 강남 09:30)으로 채워 둔다(log/199) — 4번 카드의 초록 점선. 실제와 다르면 고치면 되고, 정정 사유가 필수이며 변경 이력에 남는다. 퇴근 시각은 기준이 없어 빈칸 그대로.',
+    '출근 시각 기본값 log/199(근태관리 A-6 지점 기준 출근 시각)',
+    lead='직원이 출근 체크를 빠뜨린 날을 지점 관리자가 대신 등록하는 일. 출근 시각을 그 지점의 기준 출근 시각으로 미리 채웠다(지점마다 다르다).')))
 
 big = ''.join(
     f'<div style="flex:1; display:flex; flex-direction:column; background:{CARDBG}; border:1px solid {LINE2}; border-radius:14px; overflow:hidden; {SHADOW}">'
