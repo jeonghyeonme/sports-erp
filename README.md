@@ -90,7 +90,7 @@ docs/
 | 4-5 | [종합 발표 슬라이드 구성](docs/presentation/4-5_종합발표_슬라이드구성.md) | Proposal·요구사항·데이터·설계·기술스택(AI) + 4주차 이후 진행 내역(39장) — [배포된 발표자료 보기](https://claude.ai/artifact/M6jdRHTH54pfGy884PiyxG) |
 | 4-6 | [6주차 발표 슬라이드 구성](docs/presentation/4-6_6주차발표_슬라이드구성.md) | 9/28~10/11 진행(회원 앱·RFP 요구·핵심 규칙·성능) + 계약 상태별 5곳 고밀도화 계획(23장) — [배포된 발표자료 보기](https://claude.ai/artifact/Tk7TD8yx1bWthxvGsVHxpQ) |
 | 4-7 | [중간발표 슬라이드 구성](docs/presentation/4-7_중간발표_슬라이드구성.md) | 파트 A 6주차 이후 개발 완료분 6장 + 파트 B 본론 15장(개요·설계·RFP 추적 현황·검증과 운영) + 마무리, 22장·약 20분·교수·평가자. 구성안만, 덱 미제작 |
-| 4-8 | [최종 발표 슬라이드 구성](docs/presentation/4-8_최종발표_슬라이드구성.md) | 10주차 발표 이후 — 사용감(작업 단계 측정·빠른 찾기·화면 안 순서)·목록 일관화·문서 파일·운영 실적 차트·RFP 충족률 산정 변경(81% → 94%), 21장·15분 — [발표자료 보기](https://claude.ai/artifact/XVecKCuRR2Js23EYSAgDVk) |
+| 4-8 | [11주차 발표 슬라이드 구성](docs/presentation/4-8_11주차발표_슬라이드구성.md) | 10주차 발표 이후 — 사용감(작업 단계 측정·빠른 찾기·화면 안 순서)·목록 일관화·문서 파일·운영 실적 차트·RFP 충족률 산정 변경(81% → 94%), 21장·15분 — [발표자료 보기](https://claude.ai/artifact/XVecKCuRR2Js23EYSAgDVk) |
 
 ### 원본 RFP 산출물 제출본 (deliverables/)
 

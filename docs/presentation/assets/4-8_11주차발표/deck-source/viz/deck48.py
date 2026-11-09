@@ -1,4 +1,4 @@
-# 4-8 최종 발표 덱 생성기 — 10주차 덱(https://claude.ai/artifact/YS4CX2S87R882cwTdjPxzZ)과 같은 색·글꼴·머리말·카드·브라우저 프레임(4-0 §4).
+# 4-8 11주차 발표 덱 생성기 — 10주차 덱(https://claude.ai/artifact/YS4CX2S87R882cwTdjPxzZ)과 같은 색·글꼴·머리말·카드·브라우저 프레임(4-0 §4).
 # 사용: python3 viz/deck48.py deck-out [점격자.svg]   → deck-out/project/{deck.json, slides/*.html}
 # 점 격자 SVG는 10주차 표지에서 가져온 장식이다(인자로 주지 않으면 deck-out/dots.svg를 쓴다).
 import json, os, sys, datetime
@@ -112,11 +112,11 @@ S = []
 
 # 1 표지
 S.append(('cover', f'<section id="cover" data-transition="fade" style="background:{BG}; color:{INK}; font-family:{BODYF}; padding:128px 176px; display:flex; flex-direction:column; gap:20px">{DOTS}'
-          f'<div style="flex:1"></div><div style="display:flex"><p style="font-family:{MONOF}; font-size:24px; letter-spacing:2px; color:{NAVY}; background:#E7ECF1; border:1px solid {LINE}; border-radius:999px; padding:8px 24px">SPOISM ERP · FINAL</p></div>'
+          f'<div style="flex:1"></div><div style="display:flex"><p style="font-family:{MONOF}; font-size:24px; letter-spacing:2px; color:{NAVY}; background:#E7ECF1; border:1px solid {LINE}; border-radius:999px; padding:8px 24px">SPOISM ERP · WEEK 11</p></div>'
           f'<h1 style="font-family:{HEADF}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:{INK}">스포이즘 ERP</h1>'
-          f'<p style="font-size:52px; font-weight:500; color:{SUB}">최종 발표</p><div style="height:36px"></div>'
+          f'<p style="font-size:52px; font-weight:500; color:{SUB}">11주차 진행 발표</p><div style="height:36px"></div>'
           f'<p style="font-family:{MONOF}; font-size:28px; color:{SUB}"><b>발표자</b>&#160; 박정현 &#160;&#160;·&#160;&#160; <b>범위</b>&#160; 10주차 발표(11/5) 이후 ~ 2026-11-09</p>'
-          f'<div style="flex:1"></div>{notes("최종 발표. 범위는 10주차 발표(11/5, 계약 관리·동시성) 이후 작업. 라이브 데모 없이 로컬 실행 화면 캡처로 보인다. 15분 — 사용감 5분, 목록·문서·차트 각 2분, RFP와 정리 3분.")}</section>'))
+          f'<div style="flex:1"></div>{notes("11주차 발표. 범위는 10주차 발표(11/5, 계약 관리·동시성) 이후 작업. 라이브 데모 없이 로컬 실행 화면 캡처로 보인다. 15분 — 사용감 5분, 목록·문서·차트 각 2분, RFP와 정리 3분.")}</section>'))
 
 # 2 순서
 todo = ''.join(
@@ -282,7 +282,7 @@ deck = {
     'v': 4,
     'createdOnFiles': {'v': 1, 'at': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')},
     'lists': 'css',
-    'title': '스포이즘 ERP 최종 발표',
+    'title': '스포이즘 ERP 11주차 발표',
     'order': order,
     'sections': {
         'intro': {'description': '표지, 오늘 순서 — 10주차의 다음 할 일에서 출발', 'start': 'cover'},

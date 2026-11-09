@@ -1,12 +1,12 @@
-# 최종 발표 덱 — 생성 소스
+# 11주차 발표 덱 — 생성 소스
 
-구성안은 상위 문서 `4-8_최종발표_슬라이드구성.md`.
+구성안은 상위 문서 `4-8_11주차발표_슬라이드구성.md`.
 
 - **게시된 덱:** https://claude.ai/artifact/XVecKCuRR2Js23EYSAgDVk (비공개 — 공유는 소유자가 Share 메뉴에서)
 - 2026-11-09 21장 게시. 디자인은 10주차 덱(https://claude.ai/artifact/YS4CX2S87R882cwTdjPxzZ, 생성기 없이 직접 쓴 슬라이드)을 따랐다. 게시 후 렌더 결과는 눈으로 확인하지 않았다.
 
 ```bash
-cd docs/presentation/assets/4-8_최종발표/deck-source
+cd docs/presentation/assets/4-8_11주차발표/deck-source
 python3 viz/deck48.py deck-out          # deck-out/dots.svg(10주차 표지의 점 격자)를 장식으로 쓴다
 ```
 
@@ -34,7 +34,7 @@ python3 viz/deck48.py deck-out          # deck-out/dots.svg(10주차 표지의 �
 
 1. 로컬 DB를 비우고 시연 데이터를 얹는다(`seed:demo`는 이미 얹힌 DB를 거부한다): `apps/api`에서 `.env`를 셸에 읽어 들인 뒤 `npx prisma migrate reset --force --skip-seed` → `npm run seed:demo`. 문서 올리기가 실제로 한 건을 만들므로 다시 찍을 때마다 이 단계부터.
 2. api(`npm run build --workspace=apps/api` 후 `node dist/main.js`, 포트 3000)와 관리자 웹(`apps/admin-web`에서 `npx vite --port 5173`)을 띄운다.
-3. 저장소 루트에서 `node docs/presentation/assets/4-8_최종발표/deck-source/capture/capture.cjs docs/presentation/assets/4-8_최종발표/deck-source/screenshots`(브라우저 경로는 `PW_CHROMIUM_PATH`), 그다음 이 폴더에서 `python3 capture/crop.py screenshots`.
+3. 저장소 루트에서 `node docs/presentation/assets/4-8_11주차발표/deck-source/capture/capture.cjs docs/presentation/assets/4-8_11주차발표/deck-source/screenshots`(브라우저 경로는 `PW_CHROMIUM_PATH`), 그다음 이 폴더에서 `python3 capture/crop.py screenshots`.
 
 ## 알려진 한계
 
