@@ -25,6 +25,7 @@ python3 viz/deck48.py deck-out          # deck-out/dots.svg(10주차 표지의 �
 |---|---|---|
 | `compare/step-pt-before-1~6.png` · `step-pt-after-1~3.png` | `ux-pt-compare`·`ux-pt-after` | PT 세션 차감 변경 전 6단계·변경 후 3단계, 누르는 곳에 주황 테두리·번호 · 김민수(서초점 지점 관리자), 회원 이수진 |
 | `compare/step-find-*`·`step-ptreg-*`·`step-miss-*` | `ux-find`·`ux-ptreg`·`ux-miss` | 회원 찾아 상세 열기(4 → 2), PT 패키지 등록(10 → 6), 근태 누락일 등록(8 → 7, 직원 박서연) — 기본값으로 채워진 칸은 초록 점선 · 김민수 |
+| `compare/step-attendance-before.png`·`-after.png` | `ux-order-shot` | 지점 관리자 근태관리 전체 화면(변경 전·후), 구역마다 순서도 번호·첫 화면 점선 — `capture/attendance.cjs`(구역 제목 위치 기록) → `capture/annotate-attendance.py` · 김민수 |
 | `compare/step-slot-before.png` · `step-slot-after-1~2.png` | `ux-slot-compare` | 예약 관리 — 변경 전 화면 전체(첫 화면 경계 점선·회차 등록 폼 실선), 변경 후 머리글 버튼·모달 · 김민수 |
 | (`deck-ux-quick.png`) | (뺐음) | 대시보드 위 상단 바 회원 빠른 찾기 — 비교 슬라이드로 대체 |
 | `deck-list-assets.png` | `list-shot` | 자산 목록, 취득가액 내림차순 · 김민수 |

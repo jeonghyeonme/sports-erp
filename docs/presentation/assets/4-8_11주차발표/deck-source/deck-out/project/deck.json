@@ -15,6 +15,7 @@
     "ux-ptreg",
     "ux-miss",
     "ux-order",
+    "ux-order-shot",
     "p3",
     "doc-flow",
     "p4",
