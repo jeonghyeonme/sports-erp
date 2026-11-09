@@ -58,9 +58,11 @@ def notes(t):
     return f'<aside>{esc(t)}</aside>'
 
 
-def content(sid, lab, title, body, note, footer=''):
+def content(sid, lab, title, body, note, footer='', lead=''):
+    # lead = 발표자 없이 읽어도 무엇을 왜 했는지 알 수 있게 하는 맥락 한두 줄(사용자 요청 2026-11-09, log/215)
+    lead_html = f'<p style="font-size:30px; line-height:1.45; color:{SUB}; width:1728px">{lead}</p>' if lead else ''
     return (f'<section id="{sid}" data-transition="fade" style="background:{BG}; color:{INK}; font-family:{BODYF}; padding:72px 96px 120px; display:flex; flex-direction:column; gap:16px">'
-            f'{label(lab)}{h2(title)}<div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:32px">{body}</div>'
+            f'{label(lab)}{h2(title)}{lead_html}<div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:32px">{body}</div>'
             f'{foot(footer) if footer else ""}{notes(note)}</section>')
 
 
@@ -114,7 +116,7 @@ S = []
 S.append(('cover', f'<section id="cover" data-transition="fade" style="background:{BG}; color:{INK}; font-family:{BODYF}; padding:128px 176px; display:flex; flex-direction:column; gap:20px">{DOTS}'
           f'<div style="flex:1"></div><div style="display:flex"><p style="font-family:{MONOF}; font-size:24px; letter-spacing:2px; color:{NAVY}; background:#E7ECF1; border:1px solid {LINE}; border-radius:999px; padding:8px 24px">SPOISM ERP · WEEK 11</p></div>'
           f'<h1 style="font-family:{HEADF}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:{INK}">스포이즘 ERP</h1>'
-          f'<p style="font-size:52px; font-weight:500; color:{SUB}">11주차 진행 발표</p><div style="height:36px"></div>'
+          f'<p style="font-size:52px; font-weight:500; color:{SUB}">11주차 진행 발표</p><p style="font-size:32px; color:{SUB}">아파트 · 오피스텔 커뮤니티 시설 위탁운영사의 본사 · 지점 · 회원 관리 시스템</p><div style="height:36px"></div>'
           f'<p style="font-family:{MONOF}; font-size:28px; color:{SUB}"><b>발표자</b>&#160; 박정현 &#160;&#160;·&#160;&#160; <b>범위</b>&#160; 10주차 발표(11/5) 이후 ~ 2026-11-09</p>'
           f'<div style="flex:1"></div>{notes("11주차 발표. 범위는 10주차 발표(11/5, 계약 관리·동시성) 이후 작업. 라이브 데모 없이 로컬 실행 화면 캡처로 보인다. 15분 — 사용감 5분, 목록·문서·차트 각 2분, RFP와 정리 3분.")}</section>'))
 
@@ -124,19 +126,20 @@ todo = ''.join(
     f'<x-icon name="{ic}" style="color:{c}; width:30px; height:30px"></x-icon><p style="font-size:28px; color:{INK}">{t}</p>{pill(s, c, bg)}</div>'
     for ic, c, bg, t, s in [('Check', GREEN, '#E3F1EA', '문서 관리 실제 파일 업로드', '02'),
                             ('Check', GREEN, '#E3F1EA', '사용감 개선', '01 · 03'),
-                            ('Clock', AMBER, '#F6ECDD', '회원 앱 형태 재검토', '발표 뒤')])
+                            ('Clock', AMBER, '#F6ECDD', '회원 앱 형태 재검토', '다음으로')])
 rows = ''.join(
     f'<div style="display:flex; align-items:center; gap:28px; padding:22px 28px; background:{CARDBG}; border:1px solid {LINE}; border-radius:12px">'
     f'<p style="font-family:{MONOF}; font-size:28px; font-weight:700; color:{NAVY}; width:60px">{n}</p>'
     f'<p style="font-family:{HEADF}; font-size:36px; font-weight:700; color:{INK}; width:420px">{t}</p><p style="font-size:30px; color:{SUB}">{d}</p></div>'
-    for n, t, d in [('01', '사용감', '자주 쓰는 기능의 접근 경로를 단순하게'),
-                    ('02', '문서 파일', '실제 파일 올리기·열람 기록'), ('03', '운영 실적 차트', '13개월 추이·지점 비교'),
-                    ('+', 'RFP 충족률', '산정 방식을 바꿨다')])
-S.append(('agenda', content('agenda', '오늘 순서', '지난주 “다음 할 일”에서 출발합니다',
-          f'<div style="display:flex; gap:40px; align-items:flex-start"><div style="width:620px; display:flex; flex-direction:column; gap:14px">{mono("10주차의 다음 할 일", color=SUB)}{todo}</div>'
-          f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{rows}</div></div>',
+    for n, t, d in [('01', '사용감', '자주 쓰는 기능에 더 적은 단계로'),
+                    ('02', '문서 파일', '문서함에 실제 파일, 열람 기록'), ('03', '운영 실적 차트', '지점 실적을 13개월 추이로'),
+                    ('+', 'RFP 충족률', '산정 방식을 바꿔 다시 셈')])
+S.append(('agenda', content('agenda', '오늘 순서', '11주차에 한 일',
+          f'<div style="display:flex; gap:40px; align-items:flex-start"><div style="width:620px; display:flex; flex-direction:column; gap:14px">{mono("10주차 발표에서 남긴 다음 할 일", color=SUB)}{todo}</div>'
+          f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{mono("이번 발표 순서", color=SUB)}{rows}</div></div>',
           '10주차 마지막 장의 다음 할 일 세 개에서 출발한다. 문서 파일 업로드는 02, 사용감 개선은 01(접근 경로)·03(운영 실적 차트)으로 했다. 목록 정렬·검색·CSV를 맞춘 일(D74)은 원래 있었어야 할 기본기라 발표에서 따로 다루지 않는다 — 질문이 나오면 노트의 Q&A로. 회원 앱 형태 재검토는 하지 않았다 — 발표 뒤 선택 과제로 남겼다(이렇게 말할 것: "하지 않았다", "진행 중"이라고 하지 말 것). 마지막에 RFP 충족률 산정 방식을 바꾼 것을 따로 설명한다.',
-          '10주차 발표(11/5) 이후 작업 · 결정 기록 D72~D76')))
+          '10주차 발표(11/5) 이후 작업 · 결정 기록 D72~D76',
+          lead='10주차(11/5)에는 위탁 계약 관리를 발표했고, 그때 다음 할 일로 세 가지를 남겼다. 이번에는 그중 두 가지를 끝낸 결과다.')))
 
 # PART 01 사용감
 S.append(('p1', divider('p1', 'PART 01', '사용감', '자주 쓰는 기능의 접근 경로를 단순하게',
@@ -188,7 +191,8 @@ after_tail = (f'<div style="flex:1; display:flex; flex-direction:column; justify
 S.append(('ux-pt-compare', content('ux-pt-compare', '사용감 · 접근 경로', 'PT 세션 차감: 6단계 → 3단계',
     step_row('변경 전', 6, SUB, before) + step_row('변경 후', 3, NAVY, after, after_tail),
     '같은 지점 관리자(서초점 김민수)가 같은 회원(이수진)의 PT 세션 1회를 차감하는 과정을 단계마다 찍었다. 위 줄은 변경 전 앱(log/198 기준선 커밋), 아래 줄은 지금 앱 — 둘 다 시연 데이터를 새로 얹은 로컬 DB. 주황 테두리와 번호가 그 단계에서 누르거나 입력하는 곳. 카드 폭을 같게 둬서 줄 길이가 곧 단계 수다. 변경 전: 회원 메뉴 → 이름 입력 → 검색 버튼 → 회원 줄 → PT 탭 → 세션 사용. 변경 후: 상단 바 빠른 찾기에 두 글자 → 결과 고르기(남은 PT가 있어 PT 탭이 먼저 열림) → 세션 사용. PT 세션 차감은 PT 수업이 끝날 때마다 지점(프런트)이 회원의 남은 횟수를 차감하는 관리자 업무다 — 회원이 스스로 차감하는 기능이 아니다. 자주 반복돼서 예로 골랐다. 회원 찾아 상세 열기(4 → 2)는 이 앞부분과 같다. 이렇게 말할 것: "자주 쓰는 기능의 접근 경로를 단순하게 해서 6단계를 3단계로 줄였다".',
-    '결정 기록 D72 · 측정 log/198·200 · 강조 테두리는 캡처 때 겹친 표시')))
+    '결정 기록 D72 · 측정 log/198·200 · 강조 테두리는 캡처 때 겹친 표시',
+    lead='PT 세션 차감 — PT 수업이 끝날 때마다 지점 관리자가 회원의 남은 PT 횟수를 1회 깎는 일. 화면 맨 위에 회원 빠른 찾기를 두고, 남은 PT가 있는 회원은 상세 화면이 PT 탭부터 열리게 했다.')))
 
 big = ''.join(
     f'<div style="flex:1; display:flex; flex-direction:column; background:{CARDBG}; border:1px solid {LINE2}; border-radius:14px; overflow:hidden; {SHADOW}">'
@@ -205,9 +209,10 @@ S.append(('ux-pt-after', content('ux-pt-after', '사용감 · 변경 후', '어�
 
 S.append(('ux-order', content('ux-order', '사용감 · 화면 안 순서', '화면 안 순서를 규칙으로 정했습니다',
     flow([('1', '처리할 일', '승인 대기 등'), ('2', '지금 상태', '오늘의 근태 등'), ('3', '입력 폼', '휴가 신청 등'), ('4', '쌓이는 기록', '이번 달 기록 등')], active={0, 2})
-    ,
+    + p('예) 예약 관리의 회차 등록 입력란은 주간 시간표 아래에 있었다 → 화면 맨 위 버튼을 누르면 뜨는 창으로 옮겼다', 28, INK),
     '규칙(D73): 처리할 일 → 지금 상태 → 입력 폼 → 쌓이는 기록. 쌓이는 목록 아래에 있던 폼은 머리글 버튼 + 모달. 대안(화면 안 탭, 링크 위치만 바꾸기)은 D73에. 근태관리 화면을 이 순서로 재배치했고 휴가 승인함은 대기가 있을 때만 맨 위에 그린다. 쌓이는 목록(주간 시간표 등) 아래에 있던 회차 등록 폼은 머리글 버튼 + 모달로 옮겼다. 처리할 일이 맨 위라 화면을 열면 할 일부터 보인다.',
-    '결정 기록 D73 · log/201')))
+    '결정 기록 D73 · log/201',
+    lead='화면마다 위아래 배치가 달라, 처리할 일이 아래에 묻히거나 입력란이 길게 쌓이는 목록 밑에 있었다. 근태관리 · 예약 관리 화면을 아래 순서로 다시 배치했다.')))
 
 S.append(('ux-slot-compare', content('ux-slot-compare', '사용감 · 변경 전후', '회차 등록: 스크롤 2~3번 → 0번',
     f'<div style="display:flex; gap:40px; align-items:stretch">'
@@ -262,10 +267,10 @@ S.append(('p3', divider('p3', 'PART 02', '문서 파일', '문서함에 실제 �
 S.append(('doc-flow', content('doc-flow', '문서 파일', '파일은 서버를 거치지 않고, 열 때마다 남깁니다',
     f'{mono("올리기", color=SUB)}' + flow([('1 · 서버', '올릴 주소 받기', '문서 입력 권한 확인'), ('2 · 브라우저', '저장소에 직접 올림', '서버를 거치지 않음'),
                                           ('3 · 서버', '저장소에서 다시 확인', '크기 · 형식 · 경로'), ('4 · 서버', '문서 등록', '파일 1개 = 문서 1건')], active={2})
-    + f'{mono("열기", color=SUB)}' + flow([('서버', '60초짜리 주소', '지점 격리 검사 뒤 발급'), ('변경 이력', '문서 열람 기록', '누가 언제 열었나')], active={1})
-    + p('옛 링크 문서는 그대로 두고 표시만 · 계약 파일과 같은 확인 로직을 함께 씀 · 배포 DB 마이그레이션까지 운영 반영', 26),
+    + f'{mono("열기", color=SUB)}' + flow([('서버', '60초짜리 주소', '지점 격리 검사 뒤 발급'), ('변경 이력', '문서 열람 기록', '누가 언제 열었나')], active={1}),
     '흐름(ADR-RES-05): 서버가 올릴 주소를 주고, 브라우저가 저장소(Supabase Storage)에 직접 올리고, 서버가 저장소에서 크기·형식·경로를 다시 확인한 뒤 등록한다 — 큰 파일이 Lambda를 거치지 않고, 화면이 보낸 정보를 믿지 않는다. 열 때는 60초짜리 서명 주소 + 변경 이력에 "문서 열람"(변경 이력 20종째). 기존 가짜 주소 문서 15건은 지우지 않고 "옛 링크 문서"로 표시, 시연용 가짜 주소는 열기 409. 계약 파일(D69)과 문서 파일이 같은 확인 로직을 쓰도록 모았다 — 그 덕에 계약 파일도 경로 접두사를 서버가 다시 본다. 스키마 변경(칸 추가 + CHECK)은 승인 후 배포 DB에 먼저 적용하고 병합했다. 운영 저장소로 올리기·열기는 사용자가 운영에서 확인(11/9).',
-    '자원문서관리 ADR-RES-05 · log/206 · 운영 반영 log/207')))
+    '자원문서관리 ADR-RES-05 · log/206 · 운영 반영 log/207',
+    lead='전에는 문서함(인사서류 · 매뉴얼 등)에 파일 없이 링크 주소만 적었다. 이제 실제 파일을 올리고, 누가 언제 열었는지 남긴다. 기존 링크 문서는 그대로 둔다.')))
 
 S.append(('doc-shot', shot('doc-shot', '문서 파일 · 화면', '문서함', IMG['docs'], '문서함 — 올린 파일 문서와 옛 링크 문서',
     'admin · 지점 관리자 김민수 · 문서함',
@@ -281,7 +286,8 @@ S.append(('chart-why', content('chart-why', '운영 실적 차트', '운영 실�
     cycle + f'<div style="display:flex; gap:20px"><div style="{CARD}; flex:1">{h3("누가 무엇을 보나")}{p("본사 — 전사 13개월 추이와 지난달 지점별 비교<br>지점 관리자 — 자기 지점 13개월")}</div>'
     f'<div style="{CARD}; flex:1">{h3("어떻게 그렸나")}{p("라이브러리 없이 직접 그린 차트, 지표마다 한 장. 진행 중인 달은 옅게 + “진행 중” 글자, 표로 보기")}</div></div>',
     '10주차까지 대시보드 숫자는 현재값뿐이었고(가짜 추세선은 예전에 뺐다, log/129), 지점 운영 실적은 3개월 표뿐이었다. D75: 기존 월별 실적 집계를 최대 13개월로 늘리고 전사 합계 API(본사 전용)를 더했다 — 같은 쿼리 4개를 지점 조건만 바꿔 쓴다. 도구는 직접 그린 SVG(Recharts는 번들·의존성·라이선스 목록 부담). 색은 검사 스크립트로 골랐다: 브랜드 색(teal-700)은 채도가 낮아 회색으로 읽혀 차트는 teal-600. 진행 중인 달의 옅은 색은 대비가 낮아서 "진행 중" 글자와 표로 보기를 함께 둔다 — 색만으로 말하지 않는다.',
-    '결정 기록 D75 · log/208')))
+    '결정 기록 D75 · log/208',
+    lead='전에는 대시보드에 지금 숫자만 있었고, 지점 운영 실적은 최근 3개월 표뿐이었다. 위탁 계약을 갱신할지 판단하려면 매출 · 예약 · 회원의 기간 추이가 필요하다.')))
 
 S.append(('chart-shot', shot('chart-shot', '운영 실적 차트 · 화면', '본사 대시보드 — 전사 운영 실적', IMG['chart'], '전사 운영 실적 월별 차트 4장과 지점별 순매출',
     'admin · 본사 정하늘 · 대시보드',
@@ -299,21 +305,22 @@ S.append(('rfp', content('rfp', 'RFP 충족률', '충족률 산정 방식을 바
     f'<div style="display:flex; align-items:center; gap:16px; padding:20px 28px; background:#F6ECDD; border-radius:12px"><x-icon name="Warning" style="color:{AMBER}; width:30px; height:30px"></x-icon>'
     f'{p("남은 미충족 4개 — 결제 테스트 키 실제 호출 1(부분) · 의도적 제외 3(유사기업 분석 2 · 기대효과 분석)", 28, INK)}</div>',
     '중요 — 숫자가 오른 이유는 기능이 늘어서가 아니라 산정 방식을 바꿔서다. 이렇게 말할 것. 전에는 분모가 72조항 전부였고(해당 없음도 미충족처럼 계산) 81%. 이제 해당 없음 10개를 분모에서 빼서 58/62 = 94%(D76). 해당 없음은 발주기관 승인·납품 계약·하자보수·대면 교육처럼 이 프로젝트가 할 수 없는 조항. 이번에 검수·도입(T3-2)과 업무위탁 계약서(N8-2)도 해당 없음으로 옮겼다 — 기대효과 분석은 따로 세는 조항(P2-2)이 있어 가려지지 않는다. 하지 않기로 한 3개(의도적 제외)는 분모에 남겼다 — 할 수 없는 것과 안 한 것을 구분. 영역별: 기능·성능 28/28 = 100%, 시스템~제약 17/18 = 94%, 과업·산출물 13/16 = 81%. 질문 대비: 결제 테스트 키 호출은 계약 없이 할 수 있어서 부분으로 남겼다.',
-    '결정 기록 D76 · 판정 원천 요구사항추적표 §3')))
+    '결정 기록 D76 · 판정 원천 요구사항추적표 §3',
+    lead='RFP(발주처 제안요청서)의 요구를 72개 조항으로 나눠, 조항마다 구현 · 조정 · 부분 · 미구현 · 해당 없음으로 판정해 왔다.')))
 
 # 정리
 S.append(('wrap', content('wrap', '정리', '검증 · 운영 반영 · 남은 일', cards_row([
     f'<p style="font-family:{HEADF}; font-size:96px; font-weight:900; line-height:1; color:{NAVY}">631</p>{h3("API 자동 테스트(건)")}{p("59개 파일, 실DB · 화면 자동 테스트 24건 — 나머지 화면은 lint · 빌드까지")}',
     f'{mono("운영 반영")}' + ''.join(f'<div style="display:flex; align-items:flex-start; gap:14px"><x-icon name="Check" style="color:{GREEN}; width:30px; height:30px"></x-icon>{p(t, 28, INK)}</div>'
                                      for t in ['배포 DB 마이그레이션(승인)', '서버 · 웹 재배포', '운영에서 직접 확인']),
-    f'{mono("발표 뒤(선택)")}' + ''.join(f'<div style="display:flex; align-items:flex-start; gap:14px"><x-icon name="Play" style="color:{NAVY}; width:30px; height:30px"></x-icon>{p(t, 28, INK)}</div>'
-                                         for t in ['영업 리포트(차트 부품 재사용)', '회원 앱 형태 재검토', '남은 스크롤 2곳']),
+    f'{mono("다음 할 일(선택)")}' + ''.join(f'<div style="display:flex; align-items:flex-start; gap:14px"><x-icon name="Play" style="color:{NAVY}; width:30px; height:30px"></x-icon>{p(t, 28, INK)}</div>'
+                                         for t in ['계약 갱신용 영업 리포트', '회원 앱 형태 재검토', '시설 화면 버튼 깨짐 수정']),
 ]),
     '검증: api 자동 테스트 631건(59개 파일, 실DB — 2026-11-09 전체 실행 통과), 화면 자동 테스트 24건(역할별 핵심 경로, CI). 이번 작업에서 화면 자동 테스트가 없는 곳: 직원·강사·문서 표 정렬, 자산·업무지원 검색·정렬 화면, 직원 상세 인사서류 열기, 900px 이하 폭 — 이 범위를 넘어 "다 검증했다"고 말하지 말 것. 운영 반영: 문서 파일 스키마는 승인 후 배포 DB에 적용, 서버(Lambda)와 웹(Worker) 재배포, 운영에서 차트·문서 올리기·빠른 찾기를 직접 확인(11/9). 실운영은 하지 않는다 — 시연용 배포 환경. 발표 뒤 과제는 선택.')))
 
 S.append(('closing', f'<section id="closing" data-transition="fade" style="background:{BG}; color:{INK}; font-family:{BODYF}; padding:128px 176px; display:flex; flex-direction:column; gap:24px">{DOTS}'
           f'<div style="flex:1"></div><h1 style="font-family:{HEADF}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:{INK}">감사합니다</h1><div style="flex:1"></div>'
-          f'{notes("맺음(말로): 사용감은 느낌이 아니라 단계 수를 재고 줄였고, 목록은 같은 동작을 같은 모양으로 맞추며 정렬·검색을 데이터가 있는 서버로 옮겼고, 문서 파일과 운영 실적 차트로 10주차의 다음 할 일을 마쳤습니다. RFP 충족률은 할 수 없는 조항을 분모에서 빼 94%로 다시 셌고, 옛 방식으로는 81%입니다.")}</section>'))
+          f'{notes("맺음(말로): 자주 쓰는 기능의 접근 경로를 단순하게 했고(PT 세션 차감 6단계 → 3단계), 문서함에 실제 파일을 올리게 했고, 운영 실적을 기간으로 보게 해 10주차의 다음 할 일 두 가지를 마쳤습니다. RFP 충족률은 할 수 없는 조항을 분모에서 빼 94%로 다시 셌고, 옛 방식으로는 81%입니다.")}</section>'))
 
 # 2026-11-09 사용자 검토로 뺀 장(log/214) — 측정 수치·기준선·스크롤 비교·전후 표는 "접근 경로 단순화" 한 문장과 6 → 3 비교로 충분하고,
 # 목록 일관화(정렬·검색·CSV)는 원래 있었어야 할 기본기라 발표 거리로 삼지 않는다.
