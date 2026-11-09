@@ -1,0 +1,73 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-09T05:21:33Z"
+  },
+  "lists": "css",
+  "title": "스포이즘 ERP 최종 발표",
+  "order": [
+    "cover",
+    "agenda",
+    "p1",
+    "ux-measure",
+    "ux-found",
+    "ux-quick",
+    "ux-quick-shot",
+    "ux-order",
+    "ux-result",
+    "p2",
+    "list-rule",
+    "list-shot",
+    "p3",
+    "doc-flow",
+    "doc-shot",
+    "p4",
+    "chart-why",
+    "chart-shot",
+    "rfp",
+    "wrap",
+    "closing"
+  ],
+  "sections": {
+    "intro": {
+      "description": "표지, 오늘 순서 — 10주차의 다음 할 일에서 출발",
+      "start": "cover"
+    },
+    "ux": {
+      "description": "01 사용감 — 작업 단계를 재고 줄였다(빠른 찾기, 화면 안 순서)",
+      "start": "p1"
+    },
+    "list": {
+      "description": "02 목록 일관화 — 정렬·검색은 서버에서, 공통 부품",
+      "start": "p2"
+    },
+    "doc": {
+      "description": "03 문서 파일 — 직접 올리기와 열람 기록",
+      "start": "p3"
+    },
+    "chart": {
+      "description": "04 운영 실적 차트 — 13개월 추이와 지점 비교",
+      "start": "p4"
+    },
+    "wrap": {
+      "description": "RFP 충족률 산정 변경과 정리",
+      "start": "rfp"
+    }
+  },
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
+}
