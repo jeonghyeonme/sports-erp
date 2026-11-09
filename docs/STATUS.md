@@ -12,7 +12,7 @@
 | 도메인 9개 | 문서화·핵심 ADR 구현 완료. 도메인별 검증 범위는 각 도메인 문서 §11 | `domains/` |
 | 데이터 | 전 도메인 Prisma(Supabase Postgres, 36개 테이블, 배포 DB도 같음 — 문서 파일 칸 2026-11-08 적용, log/207) — `MockDataService` 삭제 | [D36](decisions/D36.md) |
 | api 호스팅 | **AWS Lambda(서울) 운영 중**, Worker origin = Function URL(별칭 `live`). 배포는 `dev` push 또는 Actions 수동 실행(OIDC, 헬스체크 실패 시 이전 버전). 운영 실측 W 약 40ms, 과부하 실제 처리 약 80~90 rps(D50). 동시 실행 상한 10·1,024MB(D42), DB는 Session pooler 5432(D49). NestJS 11(D65) | [D37](decisions/D37.md), [D50](decisions/D50.md) |
-| 웹·엣지 | Cloudflare Worker(정적 자산 + 프록시 + 로그인 rate limit). 관리자 웹은 직원 계정만(D66), 회원 기능은 `apps/member-web`(`/m/`, PWA — D41·D45). 마지막 Worker 재배포 2026-11-09(사용자 — `dev` 16b01cf까지: 회원 빠른 찾기 D72·화면 안 순서 D73·목록 일관화 D74·CSV 확대·문서 파일·운영 실적 차트 D75, log/209) | [D25](decisions/D25.md), [D66](decisions/D66.md) |
+| 웹·엣지 | Cloudflare Worker(정적 자산 + 프록시 + 로그인 rate limit). 관리자 웹은 직원 계정만(D66), 회원 기능은 `apps/member-web`(`/m/`, PWA — D41·D45). 마지막 Worker 재배포 2026-11-09(사용자 — 운영 확인 2026-11-09: 차트·문서 파일 올리기·열기·회원 빠른 찾기 정상, 사용자. `dev` 16b01cf까지: 회원 빠른 찾기 D72·화면 안 순서 D73·목록 일관화 D74·CSV 확대·문서 파일·운영 실적 차트 D75, log/209) | [D25](decisions/D25.md), [D66](decisions/D66.md) |
 | 규칙의 자리 | 지점 격리 = 전역 `BranchScopeGuard`(D46), 세부 권한 = 전역 `PermissionGuard`(D60), 계약 종료 = 쓰기 트랜잭션 안 지점 행 공유 락(D70), 종료 전이 시 파견 종료(ADR-STF-07·08), 종료 확정은 해지 합의서 필요(D69). 계약 정보 = 계약 회차(`ContractRound`, D69). 변경 이력 20종(D44·D47·D52·ADR-STF-09·D60 권한·D68 지점 등록·계약 3종·D69 계약 파일 3종·D71 실물 이관·정리·ADR-RES-05 문서 열람), 혼잡도 = 진행 중 강습 예약 + 현장 입력(ADR-FAC-05) | [D46](decisions/D46.md), [D60](decisions/D60.md) |
 | 검증 | API jest 59개 파일 631건(실DB, 2026-11-09 로컬 전체 실행 — 기준·고밀도 템플릿 둘 — D58), 화면 자동 테스트 24건(D59, CI만), 그 밖 화면은 lint·빌드와 시연 데이터 점검(log/125~130). 작업 단계 측정 20건(`npm run steps --workspace=e2e`, CI 아님 — log/198) | [D59](decisions/D59.md) |
 | 시연 데이터 | 계약 상태별 5곳(서초·강남 정상, 마포 갱신 임박, 송파 만료, 노원 종료). `npm run seed:demo`가 실행일 기준 지난 90일·앞으로 3주를 얹는다(회원 211명 등). 배포 DB도 같은 데이터(2026-10-20 재시드, log/143) | [D58](decisions/D58.md) |
@@ -25,11 +25,10 @@
 
 > 다음 세션의 목표는 **최종 발표 자료**다. [4-0 공통지침](presentation/4-0_발표자료_공통지침.md)을 먼저 읽는다(덱 구성안·캡처 규칙·폴더). 덱·RFP 이행 증빙의 원천은 [요구사항추적표](reference/요구사항추적표.md) §3과 산출물이라, 추적표 재대조는 끝났다(log/210 — 81% 그대로) — 덱 숫자는 지금 추적표로 쓴다.
 
-1. **운영 확인**(사용자, log/209): 대시보드 차트는 사용자 확인(2026-11-09). 남은 것 — 운영에서 문서함 PDF 올리기·열기(운영 저장소 첫 사용)와 회원 빠른 찾기를 한 번 써 본다. 문제가 있으면 발표 전에 고친다.
-2. **최종 발표 자료**(사용자 착수): 중간 이후 바뀐 것 — 계약 회차·계약서(D69)·동시성(D70)·계약 파일 보존(D71)·사용감(D72~D74, 작업 단계 측정 log/198 전후 수치)·문서 파일(ADR-RES-05)·운영 실적 차트(D75). 중간보고서 덱 생성기 `presentation/assets/4-7_중간발표/deck-source/viz/deck47.js`를 참고.
-3. **산출물 재생성 — 발표 자료 작업과 같은 시드·캡처 단계에서**(사용자 결정 2026-11-09, 최종 제출 전 필수. 덱에 산출물 화면·표를 넣으면 그 산출물은 덱보다 먼저)(`scripts/deliverables/`): 데이터 정의서(Document 칸 `storagePath`·`fileName`·CHECK — log/206), 요구사항 정의서(추적표에서), 사용자 매뉴얼(도움말 문구·화면이 log/199~208에서 바뀜 — `capture-manual.mjs` 재캡처), RFP 이행 증빙(캡처 `capture-rfp.mjs`), 진행 보고서(log/197~208 반영), 아키텍처 설계서(새 API: 빠른 찾기는 기존 API, `/documents/upload-url`·`/:id/open`·`/branches/performance`). 교육 자료 PDF는 화면이 바뀐 곳만 확인.
-4. **시연 데이터 — 결정됨**(사용자, 2026-11-09): 배포 DB는 재시드하지 않고 발표는 캡처로 한다. 캡처는 로컬 DB에 `npm run seed:demo`를 다시 얹은 뒤 찍는다(4-0 §5 — 실행일 기준 지난 90일).
-5. **정리**(사용자): 원격 작업 브랜치 `claude/*` 9개(jolly-brahmagupta-bmaxnp·list-consistency·csv-export·list-search·list-sort·document-files·document-files-ops·visualization·status-before-presentation) 삭제 — 모두 `dev`에 병합됨(세션은 브랜치 삭제 불가).
+1. **최종 발표 자료**(사용자 착수): 중간 이후 바뀐 것 — 계약 회차·계약서(D69)·동시성(D70)·계약 파일 보존(D71)·사용감(D72~D74, 작업 단계 측정 log/198 전후 수치)·문서 파일(ADR-RES-05)·운영 실적 차트(D75). 중간보고서 덱 생성기 `presentation/assets/4-7_중간발표/deck-source/viz/deck47.js`를 참고.
+2. **산출물 재생성 — 발표 자료 작업과 같은 시드·캡처 단계에서**(사용자 결정 2026-11-09, 최종 제출 전 필수. 덱에 산출물 화면·표를 넣으면 그 산출물은 덱보다 먼저)(`scripts/deliverables/`): 데이터 정의서(Document 칸 `storagePath`·`fileName`·CHECK — log/206), 요구사항 정의서(추적표에서), 사용자 매뉴얼(도움말 문구·화면이 log/199~208에서 바뀜 — `capture-manual.mjs` 재캡처), RFP 이행 증빙(캡처 `capture-rfp.mjs`), 진행 보고서(log/197~208 반영), 아키텍처 설계서(새 API: 빠른 찾기는 기존 API, `/documents/upload-url`·`/:id/open`·`/branches/performance`). 교육 자료 PDF는 화면이 바뀐 곳만 확인.
+3. **시연 데이터 — 결정됨**(사용자, 2026-11-09): 배포 DB는 재시드하지 않고 발표는 캡처로 한다. 캡처는 로컬 DB에 `npm run seed:demo`를 다시 얹은 뒤 찍는다(4-0 §5 — 실행일 기준 지난 90일).
+4. **정리**(사용자): 원격 작업 브랜치 `claude/*` 9개(jolly-brahmagupta-bmaxnp·list-consistency·csv-export·list-search·list-sort·document-files·document-files-ops·visualization·status-before-presentation) 삭제 — 모두 `dev`에 병합됨(세션은 브랜치 삭제 불가).
 
 **발표 뒤(선택, 착수 여부는 사용자)**: 영업 리포트(차별화전략 §2 — D75 차트 부품 재사용), 회원 앱 형태 재검토(D67 ③·D40), 남은 스크롤 2곳(공지 등록 버튼 B09·회원 웹 예약 취소 M02, log/198), 처리 대기함 "처리할 업무지원 요청"(요청+처리중) 수와 업무지원 목록 본사 기본 필터("요청"만)가 달라 보임(배포 DB 요청 4·처리중 2 — 데이터 문제 아님, 2026-11-09 확인, 사용자 보류), "검증되지 않음" 테스트 보강(log/197 D-5 — 자산·업무지원 검색·정렬, 직원 상세 인사서류 열기, 900px 이하 폭).
 
