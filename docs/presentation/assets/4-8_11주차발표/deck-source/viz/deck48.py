@@ -124,7 +124,7 @@ S.append(('cover', f'<section id="cover" data-transition="fade" style="backgroun
 todo = ''.join(
     f'<div style="display:flex; align-items:center; gap:14px; padding:14px 22px; background:{CARDBG}; border:1px solid {LINE}; border-radius:12px">'
     f'<x-icon name="{ic}" style="color:{c}; width:30px; height:30px"></x-icon><p style="font-size:28px; color:{INK}">{t}</p>{pill(s, c, bg)}</div>'
-    for ic, c, bg, t, s in [('Check', GREEN, '#E3F1EA', '문서 관리 실제 파일 업로드', '02'),
+    for ic, c, bg, t, s in [('Check', GREEN, '#E3F1EA', '문서 파일 관리', '02'),
                             ('Check', GREEN, '#E3F1EA', '사용감 개선', '01 · 03'),
                             ('Clock', AMBER, '#F6ECDD', '회원 앱 형태 재검토', '다음으로')])
 rows = ''.join(
@@ -132,12 +132,12 @@ rows = ''.join(
     f'<p style="font-family:{MONOF}; font-size:28px; font-weight:700; color:{NAVY}; width:60px">{n}</p>'
     f'<p style="font-family:{HEADF}; font-size:36px; font-weight:700; color:{INK}; width:420px">{t}</p><p style="font-size:30px; color:{SUB}">{d}</p></div>'
     for n, t, d in [('01', '사용감', '자주 쓰는 기능에 더 적은 단계로'),
-                    ('02', '문서 파일', '문서함에 실제 파일, 열람 기록'), ('03', '운영 실적 차트', '지점 실적을 13개월 추이로'),
+                    ('02', '문서 파일', '안전하게 올리고 여는 설계'), ('03', '운영 실적 차트', '지점 실적을 13개월 추이로'),
                     ('+', 'RFP 충족률', '산정 방식을 바꿔 다시 셈')])
 S.append(('agenda', content('agenda', '오늘 순서', '11주차에 한 일',
           f'<div style="display:flex; gap:40px; align-items:flex-start"><div style="width:620px; display:flex; flex-direction:column; gap:14px">{mono("10주차 발표에서 남긴 다음 할 일", color=SUB)}{todo}</div>'
           f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{mono("이번 발표 순서", color=SUB)}{rows}</div></div>',
-          '10주차 마지막 장의 다음 할 일 세 개에서 출발한다. 문서 파일 업로드는 02, 사용감 개선은 01(접근 경로)·03(운영 실적 차트)으로 했다. 목록 정렬·검색·CSV를 맞춘 일(D74)은 원래 있었어야 할 기본기라 발표에서 따로 다루지 않는다 — 질문이 나오면 노트의 Q&A로. 회원 앱 형태 재검토는 하지 않았다 — 발표 뒤 선택 과제로 남겼다(이렇게 말할 것: "하지 않았다", "진행 중"이라고 하지 말 것). 마지막에 RFP 충족률 산정 방식을 바꾼 것을 따로 설명한다.',
+          '10주차 마지막 장의 다음 할 일 세 개에서 출발한다. 문서 파일은 02(보안 설계), 사용감 개선은 01(접근 경로)·03(운영 실적 차트)으로 했다. 목록 정렬·검색·CSV를 맞춘 일(D74)은 원래 있었어야 할 기본기라 발표에서 따로 다루지 않는다 — 질문이 나오면 노트의 Q&A로. 회원 앱 형태 재검토는 하지 않았다 — 발표 뒤 선택 과제로 남겼다(이렇게 말할 것: "하지 않았다", "진행 중"이라고 하지 말 것). 마지막에 RFP 충족률 산정 방식을 바꾼 것을 따로 설명한다.',
           '10주차 발표(11/5) 이후 작업 · 결정 기록 D72~D76',
           lead='10주차(11/5)에는 위탁 계약 관리를 발표했고, 그때 다음 할 일로 세 가지를 남겼다. 이번에는 그중 두 가지를 끝낸 결과다.')))
 
@@ -317,16 +317,21 @@ S.append(('list-shot', shot('list-shot', '목록 일관화 · 화면', '자산 �
     '실제 관리자 웹 화면(2026-11-09 로컬, 시연 데이터, 서초점 김민수). 취득가액 머리글을 두 번 눌러 내림차순(머리글의 ▼가 정렬 상태 — 화면 읽기 프로그램에도 정렬 상태가 전달된다). 서버 정렬은 api 테스트(list-sort)가 확인한다: 이름순을 쪽 넘겨 이어 붙이면 DB 순서와 같다, 지점 정렬도 자기 지점만. 자산 화면의 검색·정렬 자체는 화면 자동 테스트가 없다 — 검증은 API 테스트와 타입 검사까지(이렇게 말할 것).')))
 
 # PART 03 문서 파일
-S.append(('p3', divider('p3', 'PART 02', '문서 파일', '문서함에 실제 파일을 올립니다',
-          '10주차까지 문서함의 문서는 가짜 주소였다. 계약서 파일(D69)에서 만든 올리기 방식을 문서에도 썼다. 약 2분.')))
+S.append(('p3', divider('p3', 'PART 02', '문서 파일', '파일을 안전하게 올리고 여는 설계',
+          '문서함에는 인사서류(근로계약서 등)처럼 개인정보가 담긴 파일이 들어간다. 파일을 올리고 여는 길을 어떻게 설계해 보안을 챙겼는지 보인다. 약 2분.')))
 
-S.append(('doc-flow', content('doc-flow', '문서 파일', '파일은 서버를 거치지 않고, 열 때마다 남깁니다',
-    f'{mono("올리기", color=SUB)}' + flow([('1 · 서버', '올릴 주소 받기', '문서 입력 권한 확인'), ('2 · 브라우저', '저장소에 직접 올림', '서버를 거치지 않음'),
-                                          ('3 · 서버', '저장소에서 다시 확인', '크기 · 형식 · 경로'), ('4 · 서버', '문서 등록', '파일 1개 = 문서 1건')], active={2})
-    + f'{mono("열기", color=SUB)}' + flow([('서버', '60초짜리 주소', '지점 격리 검사 뒤 발급'), ('변경 이력', '문서 열람 기록', '누가 언제 열었나')], active={1}),
-    '흐름(ADR-RES-05): 서버가 올릴 주소를 주고, 브라우저가 저장소(Supabase Storage)에 직접 올리고, 서버가 저장소에서 크기·형식·경로를 다시 확인한 뒤 등록한다 — 큰 파일이 Lambda를 거치지 않고, 화면이 보낸 정보를 믿지 않는다. 열 때는 60초짜리 서명 주소 + 변경 이력에 "문서 열람"(변경 이력 20종째). 계약 파일(D69)과 문서 파일이 같은 확인 로직을 쓰도록 모았다 — 그 덕에 계약 파일도 경로 접두사를 서버가 다시 본다. 스키마 변경(칸 추가 + CHECK)은 승인 후 배포 DB에 먼저 적용하고 병합했다. 운영 저장소로 올리기·열기는 사용자가 운영에서 확인(11/9).',
-    '자원문서관리 ADR-RES-05 · log/206 · 운영 반영 log/207',
-    lead='전에는 문서함(인사서류 · 매뉴얼 등)에 파일 없이 링크 주소만 적었다. 이제 실제 파일을 올리고, 누가 언제 열었는지 남긴다.')))
+sec = cards_row([
+    f'<x-icon name="Verified" style="color:{NAVY}; width:44px; height:44px"></x-icon>{h3("화면이 보낸 정보를 믿지 않는다", 30)}{p("올린 뒤 서버가 저장소에서 크기 · 형식 · 저장 위치를 직접 다시 확인한다", 26)}',
+    f'<x-icon name="Lock" style="color:{NAVY}; width:44px; height:44px"></x-icon>{h3("주소가 새어도 60초 뒤 무효", 30)}{p("열 때마다 권한 · 지점을 검사하고 60초짜리 주소를 새로 만든다", 26)}',
+    f'<x-icon name="Book" style="color:{NAVY}; width:44px; height:44px"></x-icon>{h3("누가 언제 열었는지 남는다", 30)}{p("파일을 열 때마다 변경 이력에 “문서 열람”으로 기록한다", 26)}',
+])
+S.append(('doc-flow', content('doc-flow', '문서 파일 · 설계', '올리기와 열기를 이렇게 설계했습니다',
+    f'{mono("올리기", color=SUB)}' + flow([('1 · 서버', '올릴 주소 받기', '문서 입력 권한 확인'), ('2 · 브라우저', '저장소에 직접 올림', '파일이 서버를 거치지 않음'),
+                                          ('3 · 서버', '저장소에서 다시 확인', '크기 · 형식 · 위치'), ('4 · 서버', '문서 등록', '확인을 통과한 파일만')], active={2})
+    + sec,
+    '설계 포인트(자원문서관리 ADR-RES-05). ① 파일은 브라우저가 저장소(Supabase Storage)에 직접 올린다 — 큰 파일이 서버(Lambda)를 거치지 않아 서버 부하·비용이 없다. 그 대신 화면이 보낸 크기·형식을 믿지 않고, 서버가 저장소에서 파일을 다시 확인한 뒤에만 문서로 등록한다(저장 위치가 그 문서 종류의 폴더인지도 본다). ② 저장소의 파일 주소는 화면에 주지 않는다. 열 때마다 권한과 지점 격리를 검사하고 60초짜리 서명 주소를 새로 만든다 — 주소가 밖으로 새어도 곧 쓸 수 없다. ③ 열 때마다 변경 이력에 "문서 열람"이 남는다(누가·언제·어느 문서). 계약서 파일(D69)과 같은 확인 로직을 함께 쓴다. 형식은 PDF·이미지·오피스·한글, 한 파일 10MB까지. 운영 반영: 스키마 변경을 승인 후 배포 DB에 먼저 적용, 운영 저장소로 올리기·열기를 사용자가 확인(11/9).',
+    '자원문서관리 ADR-RES-05 · 계약서 파일과 같은 확인 로직(D69)',
+    lead='문서함에는 근로계약서 같은 인사서류가 들어간다. 파일을 올리고 여는 길을 위조된 파일 · 주소 유출 · 무단 열람에 대비해 설계했다.')))
 
 S.append(('doc-shot', shot('doc-shot', '문서 파일 · 화면', '문서함', IMG['docs'], '문서함 — 맨 위 줄이 올린 파일 문서',
     'admin · 지점 관리자 김민수 · 문서함',
@@ -380,7 +385,7 @@ S.append(('closing', f'<section id="closing" data-transition="fade" style="backg
 
 # 2026-11-09 사용자 검토로 뺀 장(log/214) — 측정 수치·기준선·스크롤 비교·전후 표는 "접근 경로 단순화" 한 문장과 6 → 3 비교로 충분하고,
 # 목록 일관화(정렬·검색·CSV)는 원래 있었어야 할 기본기라 발표 거리로 삼지 않는다.
-DROP = {'ux-measure', 'ux-found', 'ux-pt-after', 'ux-slot-compare', 'ux-result', 'p2', 'list-rule', 'list-shot'}
+DROP = {'doc-shot', 'ux-measure', 'ux-found', 'ux-pt-after', 'ux-slot-compare', 'ux-result', 'p2', 'list-rule', 'list-shot'}
 S = [(sid, html) for sid, html in S if sid not in DROP]
 
 os.makedirs(os.path.join(OUT, 'project', 'slides'), exist_ok=True)
@@ -399,7 +404,7 @@ deck = {
     'sections': {
         'intro': {'description': '표지, 오늘 순서 — 10주차의 다음 할 일에서 출발', 'start': 'cover'},
         'ux': {'description': '01 사용감 — 자주 쓰는 기능의 접근 경로 단순화(PT 세션 차감 6 → 3), 화면 안 순서 규칙', 'start': 'p1'},
-        'doc': {'description': '02 문서 파일 — 직접 올리기와 열람 기록', 'start': 'p3'},
+        'doc': {'description': '02 문서 파일 — 올리기와 열기를 안전하게(서버 재확인 · 60초 주소 · 열람 기록)', 'start': 'p3'},
         'chart': {'description': '03 운영 실적 차트 — 13개월 추이와 지점 비교', 'start': 'p4'},
         'wrap': {'description': 'RFP 충족률 산정 변경과 정리', 'start': 'rfp'},
     },
