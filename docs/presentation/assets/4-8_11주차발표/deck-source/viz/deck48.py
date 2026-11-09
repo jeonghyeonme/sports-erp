@@ -158,19 +158,50 @@ S.append(('ux-found', content('ux-found', '사용감 · 기준선', '기준선�
     f'{p("이미 짧은 것은 손대지 않았습니다 — 처리 대기함에서 휴가 승인 2단계, 오늘 예약 체크인 2단계, 지점 실적 1단계", 28, INK)}</div>',
     '기준선 20건 중 줄일 후보 세 가지. ①이 가장 컸다: 회원 관련 작업(B02 찾기, B03 PT 등록, B04 PT 차감)이 모두 같은 앞머리를 지난다. ②는 기본값만 채우면 되는 칸. ③은 쌓이는 목록 아래에 폼이 있어서 데이터가 많아질수록 스크롤이 늘었다. 이미 짧은 작업은 건드리지 않았다 — 고칠 대상을 숫자로 골랐다는 점을 강조.')))
 
-S.append(('ux-quick', content('ux-quick', '사용감 · 회원 찾기', '회원은 어느 화면에서든 바로 찾습니다',
-    f'<div style="display:flex; gap:56px; align-items:center"><div style="width:760px; display:flex; flex-direction:column; gap:28px">'
-    f'<div style="display:flex; flex-direction:column; gap:8px">{h3("상단 바 빠른 찾기")}{p("두 글자를 치면 0.3초 뒤 최대 5명 — 고르면 회원 상세로")}</div>'
-    f'<div style="display:flex; flex-direction:column; gap:8px">{h3("남은 PT가 있으면 PT 탭부터")}{p("회원 상세의 탭을 주소에 두고, 진행 중인 PT가 있으면 PT 탭을 먼저 연다")}</div>'
-    f'<div style="display:flex; flex-direction:column; gap:8px">{h3("새 API는 만들지 않았다")}{p("기존 회원 목록 API 그대로 — 지점 격리 · 전화번호 가림 · 권한이 함께 따라온다")}</div></div>'
-    f'<div style="flex:1; {CARD}; gap:28px">{bar_row("회원 찾아 상세 열기", 4, 2)}{bar_row("PT 세션 차감", 6, 3)}{bar_row("PT 패키지 등록", 10, 6, unit=56)}</div></div>',
-    '대안 네 개(입력 즉시 검색 / 상단 바 빠른 찾기 / 상세 탭 주소화·PT 먼저 / 빠른 찾기 결과에서 바로 세션 사용)를 비교해 둘째·셋째를 골랐다(D72). 넷째가 효과는 가장 크지만 목록 API 변경과 실수로 누르기 위험이 있어 보류. 수치는 측정 도구로 전후를 잰 값: 회원 찾기 4→2, PT 세션 차감 6→3. PT 패키지 등록 10→6은 기본값 채우기(구매일 = 오늘, 10→9)와 빠른 찾기를 합친 값이고, 측정 회원은 PT가 있어 PT 탭이 먼저 열린다(PT가 없는 회원이면 7). 글자마다 호출이 늘지 않게 2자·0.3초 조건(무료 한도, D40).',
-    '결정 기록 D72 · 측정 log/200')))
+STEP = {
+    'b1': '/_blob/de41b368d35b09d41e6861839185943e', 'b2': '/_blob/1c1d724b447f9bce93853cd7f70ad696', 'b3': '/_blob/8d89bbcc7318065c6ea3dc52533f781c',
+    'b4': '/_blob/b42175fb51d7e8a3acdac2e8dae96c2f', 'b5': '/_blob/04b786837fff23a85aa7b648829ae117', 'b6': '/_blob/67746c608ec627bf491916d027b3e66c',
+    'a1': '/_blob/030eefcd39c2a6fe0271869b7acb0209', 'a2': '/_blob/96bc0315e093229b27dbbfa537968073', 'a3': '/_blob/66a8f8d26eeff40f1d29e39df1d088bc',
+    'slot_b': '/_blob/d1bba64adbd95d48bde074bb6878f3fb', 'slot_a1': '/_blob/0514e85d0ac695268def9f37aaee58e8', 'slot_a2': '/_blob/b3fe3f8147643ec5bdd66c98a1c4a51d',
+}
+ACCENT = '#C2410C'  # 캡처의 강조 테두리(#E0592A)와 같은 계열, 글자 대비용으로 조금 어둡게
 
-S.append(('ux-quick-shot', shot('ux-quick-shot', '사용감 · 화면', '상단 바 회원 빠른 찾기', IMG['quick'], '상단 바 회원 빠른 찾기 결과 목록',
-    'admin · 지점 관리자 김민수 · 대시보드',
-    ['이름 · 회원번호 · 전화번호 어느 것으로도 찾는다', '전화번호는 회원 목록처럼 가린 값으로', '다른 지점 회원은 결과에 나오지 않는다'],
-    '실제 관리자 웹 화면(2026-11-09 로컬 실행, 시연 데이터를 새로 얹은 DB, 서초점 지점 관리자 김민수). 대시보드 위에서 "이수"를 친 상태. 3번(다른 지점 회원이 안 나옴)은 화면 자동 테스트가 확인한다 — 강남점 회원 이름으로 찾으면 결과 없음. 키보드 위·아래·Enter·Esc로 고를 수 있다. 회원 조회 권한이 없는 사람(직원)에게는 이 칸이 없다.')))
+
+def step_card(img, n, cap, w=237, h=148):
+    return (f'<div style="width:{w}px; display:flex; flex-direction:column; background:{CARDBG}; border:1px solid {LINE2}; border-radius:10px; overflow:hidden">'
+            f'<img src="{img}" alt="{n}단계 — {cap}" style="width:{w}px; height:{h}px; object-fit:cover; background:{CARDBG}">'
+            f'<div style="display:flex; gap:8px; align-items:flex-start; padding:10px 12px; border-top:1px solid {LINE}">'
+            f'<p style="font-family:{MONOF}; font-size:24px; font-weight:700; color:{ACCENT}">{n}</p><p style="font-size:24px; line-height:1.3; color:{INK}">{cap}</p></div></div>')
+
+
+def step_row(tag, count, color, cards, tail=''):
+    return (f'<div style="display:flex; gap:16px; align-items:stretch">'
+            f'<div style="width:180px; display:flex; flex-direction:column; justify-content:center; gap:6px">{mono(tag, color=color)}'
+            f'<p style="font-family:{HEADF}; font-size:56px; font-weight:900; line-height:1; color:{color}">{count}</p><p style="font-size:24px; color:{SUB}">단계</p></div>'
+            + ''.join(cards) + tail + '</div>')
+
+
+before = [step_card(STEP[f'b{i}'], i, c) for i, c in enumerate(['회원 메뉴', '이름 입력', '검색 버튼', '회원 줄 클릭', 'PT 탭', '세션 사용'], 1)]
+after = [step_card(STEP[f'a{i}'], i, c) for i, c in enumerate(['상단 바에 입력', '결과 고르기', '세션 사용'], 1)]
+after_tail = (f'<div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:10px; padding:0 0 0 24px; border-left:4px solid {NAVY}">'
+              f'{h3("절반으로", 40, NAVY)}{p("어느 화면에서든 바로 회원을 찾고, 남은 PT가 있으면 PT 탭이 먼저 열린다", 26)}</div>')
+S.append(('ux-pt-compare', content('ux-pt-compare', '사용감 · 변경 전후', 'PT 세션 차감: 6단계 → 3단계',
+    step_row('변경 전', 6, SUB, before) + step_row('변경 후', 3, NAVY, after, after_tail),
+    '같은 지점 관리자(서초점 김민수)가 같은 회원(이수진)의 PT 세션 1회를 차감하는 과정을 단계마다 찍었다. 위 줄은 변경 전 앱(log/198 기준선 커밋), 아래 줄은 지금 앱 — 둘 다 시연 데이터를 새로 얹은 로컬 DB. 주황 테두리와 번호가 그 단계에서 누르거나 입력하는 곳. 카드 폭을 같게 둬서 줄 길이가 곧 단계 수다. 변경 전: 회원 메뉴 → 이름 입력 → 검색 버튼 → 회원 줄 → PT 탭 → 세션 사용. 변경 후: 상단 바 빠른 찾기에 두 글자 → 결과 고르기(남은 PT가 있어 PT 탭이 먼저 열림) → 세션 사용. PT 세션 차감은 PT 수업마다 반복되는 작업이라 골랐다. 회원 찾아 상세 열기(4 → 2)는 이 앞부분과 같다.',
+    '결정 기록 D72 · 측정 log/198·200 · 강조 테두리는 캡처 때 겹친 표시')))
+
+big = ''.join(
+    f'<div style="flex:1; display:flex; flex-direction:column; background:{CARDBG}; border:1px solid {LINE2}; border-radius:14px; overflow:hidden; {SHADOW}">'
+    f'<img src="{STEP[k]}" alt="{t}" style="width:549px; height:343px; object-fit:cover; background:{CARDBG}">'
+    f'<div style="display:flex; flex-direction:column; gap:6px; padding:20px 24px; border-top:1px solid {LINE}">'
+    f'<div style="display:flex; gap:12px; align-items:center"><p style="font-family:{MONOF}; font-size:28px; font-weight:700; color:{ACCENT}">{n}</p>{h3(t, 30)}</div>{p(d, 24)}</div></div>'
+    for k, n, t, d in [('a1', 1, '상단 바에 두 글자', '0.3초 뒤 최대 5명. 전화번호는 가린 값'), ('a2', 2, '결과를 고르면 회원 상세', '다른 지점 회원은 결과에 없다'),
+                       ('a3', 3, 'PT 탭이 먼저 열려 있다', '남은 PT가 있으면 PT 탭부터 — 바로 세션 사용')])
+S.append(('ux-pt-after', content('ux-pt-after', '사용감 · 변경 후', '어느 화면에서든 회원을 바로 찾습니다',
+    f'<div style="display:flex; gap:24px">{big}</div>'
+    + p('새 API는 만들지 않았습니다 — 기존 회원 목록 API를 그대로 써서 지점 격리 · 전화번호 가림 · 권한이 함께 따라옵니다', 26, SUB, 'text-align:center'),
+    '변경 후 3단계를 크게. 대안 네 개(입력 즉시 검색 / 상단 바 빠른 찾기 / 상세 탭 주소화·PT 먼저 / 결과에서 바로 세션 사용) 중 둘째·셋째를 골랐다(D72). 넷째가 효과는 가장 크지만 목록 API 변경과 실수로 누르기 위험이 있어 보류. 글자마다 호출이 늘지 않게 2자·0.3초 조건(무료 한도, D40). 다른 지점 회원이 안 나오는 것은 화면 자동 테스트가 확인한다(강남점 회원 이름으로 찾으면 결과 없음). 회원 조회 권한이 없는 직원에게는 이 칸이 없다.',
+    '결정 기록 D72')))
 
 S.append(('ux-order', content('ux-order', '사용감 · 화면 안 순서', '화면 안 순서를 규칙으로 정했습니다',
     flow([('1', '처리할 일', '승인 대기 등'), ('2', '지금 상태', '오늘의 근태 등'), ('3', '입력 폼', '휴가 신청 등'), ('4', '쌓이는 기록', '이번 달 기록 등')], active={0, 2})
@@ -178,6 +209,20 @@ S.append(('ux-order', content('ux-order', '사용감 · 화면 안 순서', '화
     f'<div style="{CARD}; flex:1">{h3("대상 작업 4개 스크롤 → 0")}{p("휴가 승인 · 회차 등록 · 업무일지 · 휴가 신청. 회차 등록은 모달을 여는 누름 1번이 늘었다(6 → 7단계)")}</div></div>',
     '규칙(D73): 처리할 일 → 지금 상태 → 입력 폼 → 쌓이는 기록. 쌓이는 목록 아래에 있던 폼은 머리글 버튼 + 모달. 대안(화면 안 탭, 링크 위치만 바꾸기)은 D73에. 근태관리 화면을 이 순서로 재배치했고 휴가 승인함은 대기가 있을 때만 맨 위에 그린다. 회차 등록은 스크롤 2~3번이 0이 된 대신 모달을 여는 누름이 하나 늘었다 — 숨기지 말고 말할 것. 덤으로: 회차 등록 폼이 권한이 꺼져도 보이던 것을 버튼 숨김으로 고쳤다(서버는 원래 거부).',
     '결정 기록 D73 · log/201')))
+
+S.append(('ux-slot-compare', content('ux-slot-compare', '사용감 · 변경 전후', '회차 등록: 스크롤 2~3번 → 0번',
+    f'<div style="display:flex; gap:40px; align-items:stretch">'
+    f'<div style="width:700px; display:flex; flex-direction:column; gap:10px">'
+    f'<div style="display:flex; align-items:baseline; gap:16px">{mono("변경 전", color=SUB)}{p("폼이 첫 화면(점선) 아래 — 시간표를 지나 스크롤", 24)}</div>'
+    f'<img src="{STEP["slot_b"]}" alt="변경 전 예약 관리 화면 전체 — 첫 화면 경계 점선 아래에 회차 등록 폼" style="width:700px; height:633px; object-fit:contain; background:{CARDBG}; border:1px solid {LINE2}; border-radius:10px"></div>'
+    f'<div style="flex:1; display:flex; flex-direction:column; gap:10px">'
+    f'<div style="display:flex; align-items:baseline; gap:16px">{mono("변경 후")}{p("첫 화면의 버튼 → 모달", 24)}</div>'
+    f'<div style="display:flex; gap:20px">'
+    f'<div style="flex:1; display:flex; flex-direction:column; gap:8px"><img src="{STEP["slot_a1"]}" alt="변경 후 예약 관리 첫 화면, 회차 등록 버튼 강조" style="width:478px; height:356px; object-fit:contain; background:{CARDBG}; border:1px solid {LINE2}; border-radius:10px">{p("① 머리글의 “+ 회차 등록”", 24, INK)}</div>'
+    f'<div style="flex:1; display:flex; flex-direction:column; gap:8px"><img src="{STEP["slot_a2"]}" alt="변경 후 회차 등록 모달" style="width:478px; height:356px; object-fit:contain; background:{CARDBG}; border:1px solid {LINE2}; border-radius:10px">{p("② 모달에서 같은 칸 입력", 24, INK)}</div></div>'
+    f'<div style="{CARD}; gap:10px">{h3("스크롤 0번, 대신 누름 1번 추가", 30)}{p("단계는 6 → 7. 쌓이는 시간표·결제 내역이 길어질수록 커지던 스크롤이 없어졌다", 24)}</div></div></div>',
+    '같은 지점 관리자로 예약 관리 화면을 연 직후. 왼쪽은 변경 전 앱의 화면 전체를 세로로 찍은 것 — 주황 점선이 1440×900 화면에서 처음 보이는 범위, 실선 상자가 회차 등록 폼(위에서 약 1,040px). 예약 현황·주간 시간표를 지나야 나온다(측정: 기준 시드 2번, 시연 데이터 3번 스크롤). 오른쪽은 지금 앱: 머리글 버튼 → 모달. 화면 안 순서 규칙(D73) — 쌓이는 목록 아래의 폼은 머리글 버튼 + 모달. 단계가 1 늘었다는 점(모달 여는 누름)을 숨기지 말고 말할 것. 덤: 권한이 꺼진 사람에게도 보이던 폼을 이제 버튼째 숨긴다(서버는 원래 거부).',
+    '결정 기록 D73 · log/201 · 왼쪽 점선 = 첫 화면 경계(캡처 때 겹친 표시)')))
 
 res_rows = [('전화번호로 회원 찾아 상세 열기', '4', '2', '빠른 찾기'), ('PT 세션 차감', '6', '3', '빠른 찾기 · PT 탭 먼저'),
             ('PT 패키지 등록', '10', '6', '구매일 기본값 · 빠른 찾기'), ('직원 근태 누락일 등록', '8', '7', '출근 시각 = 지점 기준'),
