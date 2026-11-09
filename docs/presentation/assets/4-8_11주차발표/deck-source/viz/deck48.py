@@ -358,6 +358,9 @@ S.append(('chart-shot', shot('chart-shot', '운영 실적 차트 · 화면', '�
 
 # RFP
 # 회원 앱 형태 — 10주차 다음 할 일 세 번째의 결론(D77)
+S.append(('p5', divider('p5', 'PART 04', '회원 앱 형태', '앱으로 다시 만들지, 지금 모바일 웹을 쓸지',
+          '10주차 다음 할 일의 세 번째. 결론은 지금 모바일 웹 유지(D77). 약 1분.')))
+
 app_rows = [('', '지금 모바일 웹(유지)', '하이브리드(웹을 앱으로 감싸기)', '네이티브 앱'),
             ('화면', '지금 그대로', '지금 화면 재사용', '처음부터 다시'),
             ('코드 · 배포', '하나 — 관리자 웹과 함께 배포', '앱 빌드 · 배포가 따로 생김', '앱 코드가 따로 생김'),
@@ -395,11 +398,11 @@ S.append(('rfp', content('rfp', 'RFP 충족률', '충족률 산정 방식을 바
 # 정리
 nexts = [('Chart', '계약 갱신용 영업 리포트', '지점 운영 실적을 계약 갱신 협상 · 신규 입찰 자료로 뽑는다 — 이번 차트 부품 재사용'),
          ('Book', '산출물 다시 만들기', '요구사항 · 데이터 정의서, 사용자 매뉴얼, 설계서를 지금 화면 · 스키마로'),
-         ('Wrench', '시설 화면 버튼 깨짐 수정', '넓지 않은 화면에서 시설 카드 버튼 글자가 세로로 쌓인다')]
+         ('Search', '사용감 더 점검하기', '자주 쓰는 다른 작업에서도 불필요한 단계 · 화면 구성을 찾아 줄인다')]
 S.append(('wrap', content('wrap', '정리', '다음 할 일', cards_row([
     f'<x-icon name="{ic}" style="color:{NAVY}; width:48px; height:48px"></x-icon>{h3(t)}{p(d)}' for ic, t, d in nexts]),
-    '다음 할 일. 영업 리포트는 사업 구조의 "운영 데이터 → 계약 갱신 · 영업 근거" 순환의 마지막 고리 — 이번 운영 실적 차트를 본사가 갱신 협상이나 신규 수주 입찰(PT)에 쓰는 자료로 뽑는다(차별화전략 §2). 산출물은 최종 제출 전에 지금 화면·스키마·도움말로 다시 만든다. 시설 화면 버튼 깨짐은 이번 캡처 중 발견. 검증 범위(질문 대비): api 자동 테스트 631건(실DB), 화면 자동 테스트 24건(역할별 핵심 경로) — 그 밖의 화면은 lint · 빌드까지.',
-    lead='10주차의 다음 할 일 세 가지를 마쳤다. 남은 것은 운영 데이터를 계약 판단 자료로 잇는 일과 제출 준비다.')))
+    '다음 할 일. 영업 리포트는 사업 구조의 "운영 데이터 → 계약 갱신 · 영업 근거" 순환의 마지막 고리 — 이번 운영 실적 차트를 본사가 갱신 협상이나 신규 수주 입찰(PT)에 쓰는 자료로 뽑는다(차별화전략 §2). 사용감은 아직 개선 여지가 있어 다른 작업도 계속 점검한다. 산출물은 최종 제출 전에 지금 화면·스키마·도움말로 다시 만든다. 검증 범위(질문 대비): api 자동 테스트 631건(실DB), 화면 자동 테스트 24건(역할별 핵심 경로) — 그 밖의 화면은 lint · 빌드까지.',
+    lead='10주차의 다음 할 일 세 가지를 마쳤다. 남은 것은 운영 데이터를 계약 판단 자료로 잇는 일, 사용감 추가 점검, 제출 준비다.')))
 
 S.append(('closing', f'<section id="closing" data-transition="fade" style="background:{BG}; color:{INK}; font-family:{BODYF}; padding:128px 176px; display:flex; flex-direction:column; gap:24px">{DOTS}'
           f'<div style="flex:1"></div><h1 style="font-family:{HEADF}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:{INK}">감사합니다</h1><div style="flex:1"></div>'
@@ -428,7 +431,8 @@ deck = {
         'ux': {'description': '01 사용감 — 자주 쓰는 기능의 접근 경로 단순화(PT 세션 차감 6 → 3), 화면 안 순서 규칙', 'start': 'p1'},
         'doc': {'description': '02 문서 파일 — 올리기와 열기를 안전하게(서버 재확인 · 60초 주소 · 열람 기록)', 'start': 'p3'},
         'chart': {'description': '03 운영 실적 차트 — 13개월 추이와 지점 비교', 'start': 'p4'},
-        'wrap': {'description': 'RFP 충족률 산정 변경과 정리', 'start': 'rfp'},
+        'app': {'description': '04 회원 앱 형태 — 지금 모바일 웹 유지(D77)', 'start': 'p5'},
+        'wrap': {'description': 'RFP 충족률 산정 변경과 다음 할 일', 'start': 'rfp'},
     },
     'faces': {
         'gothic-a1': {'family': 'Gothic A1', 'href': 'https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap'},

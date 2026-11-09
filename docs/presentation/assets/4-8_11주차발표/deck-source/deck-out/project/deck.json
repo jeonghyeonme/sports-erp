@@ -20,6 +20,7 @@
     "p4",
     "chart-why",
     "chart-shot",
+    "p5",
     "member-app",
     "rfp",
     "wrap",
@@ -42,8 +43,12 @@
       "description": "03 운영 실적 차트 — 13개월 추이와 지점 비교",
       "start": "p4"
     },
+    "app": {
+      "description": "04 회원 앱 형태 — 지금 모바일 웹 유지(D77)",
+      "start": "p5"
+    },
     "wrap": {
-      "description": "RFP 충족률 산정 변경과 정리",
+      "description": "RFP 충족률 산정 변경과 다음 할 일",
       "start": "rfp"
     }
   },
