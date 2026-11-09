@@ -97,12 +97,13 @@ const titles = decisionTitles([...new Set(all.flatMap((c) => decisionIds(c.basis
 const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
 const count = (list, s) => list.filter((c) => c.status === s).length;
 const met = count(all, '완료') + count(all, '조정');
-const pct = (n, d) => `${Math.round((n / d) * 100)}%`; // 완료+조정 비율 — 분모는 그 행의 조항 수 전부(해당 없음·제외도 빼지 않는다)
+const base = (list) => list.length - count(list, '해당 없음'); // D76 — 분모는 조항 수에서 해당 없음을 뺀 값(제외는 남긴다)
+const pct = (n, d) => `${Math.round((n / d) * 100)}%`;
 
 const areaRows = AREAS.map(({ area }) => {
   const list = all.filter((c) => c.area === area);
   const ok = count(list, '완료') + count(list, '조정');
-  return `<tr><th scope="row">${esc(area)}</th><td>${list.length}</td>${['완료', '조정', '부분', '제외', '해당 없음'].map((s) => `<td>${count(list, s)}</td>`).join('')}<td class="rate">${pct(ok, list.length)}</td></tr>`;
+  return `<tr><th scope="row">${esc(area)}</th><td>${list.length}</td>${['완료', '조정', '부분', '제외', '해당 없음'].map((s) => `<td>${count(list, s)}</td>`).join('')}<td class="rate">${pct(ok, base(list))}</td></tr>`;
 }).join('');
 
 const glance = AREAS.map(({ area, page }) => {
@@ -282,16 +283,16 @@ footer.end { margin-top: 48px; font-size: 13px; color: var(--muted); border-top:
   <h2 class="sec" style="break-before:auto">요약</h2>
   <div class="summary">
     <div>
-      <div class="big"><strong>${pct(met, all.length)}</strong><span>전체 ${all.length}개 조항 중 완료·조정 ${met}개</span></div>
-      <p class="lead">RFP 원문의 글머리(•) 하나를 한 조항으로 나눴다. 시스템 기능·성능 요구는 원문이 "추후 논의"로 남긴 1개(F6-2)를 빼면 모두 완료 또는 근거 있는 조정이다. 남은 부분 조항은 실제 운영(실결제 호출·위탁계약 서명·검수)이 있어야 끝나는데, 이 프로젝트는 실운영을 하지 않는다.</p>
+      <div class="big"><strong>${pct(met, base(all))}</strong><span>전체 ${all.length}개 조항 중 해당 없음 ${count(all, '해당 없음')}개를 뺀 ${base(all)}개 중 완료·조정 ${met}개</span></div>
+      <p class="lead">RFP 원문의 글머리(•) 하나를 한 조항으로 나눴다. 시스템 기능·성능 요구는 원문이 "추후 논의"로 남긴 1개(F6-2)를 빼면 모두 완료 또는 근거 있는 조정이다. 발주기관·계약·대면 행위처럼 이 프로젝트에 대상이 없는 조항(해당 없음)은 비율의 분모에서 뺐다. 남은 부분 조항은 결제 테스트 키 실제 호출 1개다.</p>
       <ul class="legend">${Object.entries(STATUS_NOTE)
         .map(([k, v]) => `<li>${pill(k)}<span>${esc(v)}</span></li>`)
         .join('')}</ul>
     </div>
     <div class="table-wrap"><table class="count">
-      <thead><tr><th>영역</th><th>조항</th><th>완료</th><th>조정</th><th>부분</th><th>제외</th><th>해당 없음</th><th>완료+조정 비율</th></tr></thead>
+      <thead><tr><th>영역</th><th>조항</th><th>완료</th><th>조정</th><th>부분</th><th>제외</th><th>해당 없음</th><th>완료+조정 비율(해당 없음 제외)</th></tr></thead>
       <tbody>${areaRows}</tbody>
-      <tfoot><tr><th scope="row">합계</th><td>${all.length}</td>${['완료', '조정', '부분', '제외', '해당 없음'].map((s) => `<td>${count(all, s)}</td>`).join('')}<td class="rate">${pct(met, all.length)}</td></tr></tfoot>
+      <tfoot><tr><th scope="row">합계</th><td>${all.length}</td>${['완료', '조정', '부분', '제외', '해당 없음'].map((s) => `<td>${count(all, s)}</td>`).join('')}<td class="rate">${pct(met, base(all))}</td></tr></tfoot>
     </table></div>
   </div>
   <div class="note">
