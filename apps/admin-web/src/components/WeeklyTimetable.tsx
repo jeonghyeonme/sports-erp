@@ -24,7 +24,7 @@ function mondayOf(date: string): string {
 type SlotWithProgram = ScheduleSlotRow & { programName: string };
 
 export function WeeklyTimetable({ programs }: { programs: ProgramRow[] }) {
-  const reservable = programs.filter((p) => p.pricingType === 'PAID_SESSION' && p.status !== 'ENDED');
+  const reservable = programs.filter((p) => p.pricingType !== 'FREE_ACCESS' && p.status !== 'ENDED'); // PT 회차 포함(ADR-RSV-09)
   const [weekStart, setWeekStart] = useState(() => mondayOf(kstToday()));
   const days = WEEKDAYS.map((_, i) => addDays(weekStart, i));
   const today = kstToday();

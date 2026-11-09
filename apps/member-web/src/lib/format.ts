@@ -1,4 +1,4 @@
-import { ScheduleSlot } from './types';
+import { Program, ScheduleSlot } from './types';
 
 export function won(amount: number): string {
   return `${amount.toLocaleString('ko-KR')}원`;
@@ -58,4 +58,10 @@ export function isMinor(birthDate: string, today = todayKst()): boolean {
 
 export function todayKst(): string {
   return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/** 목록·회차 화면 공통 가격 표기. PT는 패키지(횟수·가격)로 판다(ADR-RSV-09). */
+export function priceLabel(p: Program): string {
+  if (p.pricingType === 'PT_PACKAGE') return p.ptPackageSessions ? `PT ${p.ptPackageSessions}회 ${won(p.price)}` : 'PT · 지점에서 구매';
+  return p.price > 0 ? `회당 ${won(p.price)}` : '무료';
 }

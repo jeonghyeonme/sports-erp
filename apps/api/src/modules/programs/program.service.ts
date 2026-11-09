@@ -23,6 +23,7 @@ type ProgramInput = {
   pricingType: MockProgram['pricingType'];
   price: number;
   capacity?: number;
+  ptPackageSessions?: number;
   facilityId?: string;
   instructorId?: string;
   startDate: string;
@@ -162,6 +163,7 @@ export class ProgramService {
         pricingType: input.pricingType,
         price,
         capacity: capacity ?? null,
+        ptPackageSessions: input.pricingType === 'PT_PACKAGE' ? (input.ptPackageSessions ?? null) : null,
         status: 'PREPARING',
         startDate: dateOf(input.startDate),
         endDate: input.endDate ? dateOf(input.endDate) : null,
@@ -191,6 +193,9 @@ export class ProgramService {
       pricingType,
       price: normalized.price,
       capacity: normalized.capacity ?? null,
+      // ADR-RSV-09 — 패키지 횟수는 PT_PACKAGE에만(CHECK Program_pt_package_ck). 다른 형으로 바꾸면 비운다.
+      ptPackageSessions:
+        pricingType !== 'PT_PACKAGE' ? null : input.ptPackageSessions !== undefined ? input.ptPackageSessions || null : undefined,
     };
     // 빈 문자열은 "연결 해제"(예전 mock의 `|| undefined`와 같다).
     if (input.instructorId !== undefined) data.instructorId = input.instructorId || null;
@@ -219,20 +224,17 @@ export class ProgramService {
     return this.afterWrite(id);
   }
 
-  // 강사프로그램게시 A-5 POST /programs/:id/slots — PAID_SESSION만. 정원을 비우면 프로그램 정원을 쓴다.
+  // 강사프로그램게시 A-5 POST /programs/:id/slots — PAID_SESSION과 PT_PACKAGE(1:1 PT 회차, 예약및결제 ADR-RSV-09).
+  // 정원을 비우면 프로그램 정원을, PT는 1명을 쓴다.
   async createSlot(
     programId: string,
     input: { date: string; startTime: string; endTime: string; capacity?: number },
   ): Promise<MockScheduleSlot & { bookedCount: number }> {
     const program = await this.requireProgram(programId);
-    if (program.pricingType !== 'PAID_SESSION') {
-      throw new AppException(
-        'SLOT_NOT_APPLICABLE',
-        '회차 예약형(PAID_SESSION) 프로그램에만 회차를 추가할 수 있습니다.',
-        400,
-      );
+    if (program.pricingType === 'FREE_ACCESS') {
+      throw new AppException('SLOT_NOT_APPLICABLE', '자유 이용 프로그램에는 회차를 추가할 수 없습니다.', 400);
     }
-    const capacity = input.capacity ?? program.capacity;
+    const capacity = input.capacity ?? program.capacity ?? (program.pricingType === 'PT_PACKAGE' ? 1 : undefined);
     if (!capacity || capacity < 1) {
       throw new AppException('INVALID_CAPACITY', '정원은 1명 이상이어야 합니다.', 400);
     }
@@ -308,6 +310,7 @@ export function toMockProgram(row: Program): MockProgram {
     pricingType: row.pricingType,
     price: row.price,
     capacity: row.capacity ?? undefined,
+    ptPackageSessions: row.ptPackageSessions ?? undefined,
     status: row.status,
     startDate: toKstDateString(row.startDate),
     endDate: row.endDate ? toKstDateString(row.endDate) : undefined,

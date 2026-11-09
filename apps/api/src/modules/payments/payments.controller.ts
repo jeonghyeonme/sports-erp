@@ -1,4 +1,8 @@
-import { Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { AppException } from '../../common/exceptions/app.exception';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequestUser } from '../../common/interfaces/request-user.interface';
+import { PurchasePTPackageDto } from './dto/purchase-pt-package.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { PaymentService } from './payment.service';
 import { ScopedResource } from '../../common/decorators/scoped-resource.decorator';
@@ -18,6 +22,16 @@ export class PaymentsController {
   @PermissionExempt(EXEMPT.self)
   async mockPay(@Param('reservationId') reservationId: string) {
     return ok(await this.paymentService.mockPay(reservationId));
+  }
+
+  // 예약및결제 ADR-RSV-09 — 회원 앱 PT 패키지 구매(모의 결제). 회원은 토큰의 본인으로 고정되고, 프로그램이
+  // 본인 지점 것인지는 서비스가 같은 트랜잭션에서 본다(예약 생성 POST /reservations와 같은 방식).
+  @Post('pt-packages')
+  @Roles('MEMBER')
+  @PermissionExempt(EXEMPT.self)
+  async purchasePTPackage(@Body() dto: PurchasePTPackageDto, @CurrentUser() user: RequestUser) {
+    if (!user.memberId) throw new AppException('MEMBER_REQUIRED', '회원 계정이 아닙니다.', 403);
+    return ok(await this.paymentService.purchasePTPackage(user.memberId, dto.programId));
   }
 
   @Get()

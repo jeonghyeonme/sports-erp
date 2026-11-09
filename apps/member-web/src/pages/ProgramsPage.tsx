@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLoad } from '../lib/use-load';
 import { describeError } from '../lib/errors';
-import { won } from '../lib/format';
+import { priceLabel } from '../lib/format';
 import { AgeGroup, Program } from '../lib/types';
 import { SkeletonList } from '../components/Skeleton';
 
@@ -12,7 +12,7 @@ const TIME_BAND_LABEL = { MORNING: '오전', AFTERNOON: '오후', EVENING: '저�
 type TimeBand = keyof typeof TIME_BAND_LABEL;
 
 // 예약하기 1단계 — 운영 중 프로그램 목록. 호출 1회(GET /programs?status=RUNNING). 지점은 서버가 본인 지점으로 강제한다
-// (BranchScopeGuard). 회차 예약을 받는 것은 PAID_SESSION뿐이다(api reservation.service NOT_RESERVABLE).
+// (BranchScopeGuard). 회차 예약을 받는 것은 회차 강습(PAID_SESSION)과 PT(PT_PACKAGE — 산 횟수로 예약, ADR-RSV-09)다.
 // 필터(ADR-PRG-04): 종목·연령대는 받은 목록을 화면에서 거른다(호출 0회, design-constants ⑩). 시간대는 회차를 봐야 해서
 // 고를 때만 서버에 timeBand를 실어 한 번 더 부른다.
 export function ProgramsPage() {
@@ -45,8 +45,8 @@ export function ProgramsPage() {
     (p) => (!category || p.category === category) && (!ageGroup || p.ageGroup === ageGroup || p.ageGroup === 'ALL'),
   );
   const filtered = category !== '' || ageGroup !== '' || timeBand !== '';
-  const reservable = programs.filter((p) => p.pricingType === 'PAID_SESSION');
-  const others = programs.filter((p) => p.pricingType !== 'PAID_SESSION');
+  const reservable = programs.filter((p) => p.pricingType !== 'FREE_ACCESS');
+  const others = programs.filter((p) => p.pricingType === 'FREE_ACCESS');
 
   return (
     <div className="stack">
@@ -104,7 +104,7 @@ export function ProgramsPage() {
                 {p.ageGroup !== 'ALL' && ` · ${AGE_GROUP_LABEL[p.ageGroup]}`}
                 {p.instructorName && ` · ${p.instructorName}`}
               </span>
-              <span className="program-price">{p.price > 0 ? `회당 ${won(p.price)}` : '무료'}</span>
+              <span className="program-price">{priceLabel(p)}</span>
             </Link>
           </li>
         ))}
@@ -118,7 +118,7 @@ export function ProgramsPage() {
               <li key={p.id} className="panel program-card is-static">
                 <span className="program-name">{p.name}</span>
                 <span className="muted">
-                  {p.pricingType === 'FREE_ACCESS' ? '운영 시간에 바로 이용하세요.' : '담당 트레이너와 일정을 잡습니다.'}
+                  운영 시간에 바로 이용하세요.
                 </span>
               </li>
             ))}
@@ -128,3 +128,4 @@ export function ProgramsPage() {
     </div>
   );
 }
+

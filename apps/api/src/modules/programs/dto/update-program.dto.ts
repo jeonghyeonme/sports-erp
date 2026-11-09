@@ -41,6 +41,14 @@ export class UpdateProgramDto {
   @Max(INPUT_LIMITS.HEADCOUNT)
   capacity?: number;
 
+  // 예약및결제 ADR-RSV-09 — PT_PACKAGE 패키지 1개의 횟수(있으면 회원 앱에서 살 수 있다). 다른 형이면 서버가 비운다.
+  // 수정에서 0은 "비움"(앱 판매 중단).
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(INPUT_LIMITS.PT_SESSIONS)
+  ptPackageSessions?: number;
+
   @IsOptional()
   @IsString()
   facilityId?: string;

@@ -76,6 +76,7 @@ interface ProgramForm {
   pricingType: PricingType;
   price: string;
   capacity: string;
+  ptPackageSessions: string;
   facilityId: string;
   instructorId: string;
   startDate: string;
@@ -91,6 +92,7 @@ function toForm(p?: ProgramRow): ProgramForm {
     pricingType: p?.pricingType ?? 'PAID_SESSION',
     price: p ? String(p.price) : '',
     capacity: p?.capacity != null ? String(p.capacity) : '',
+    ptPackageSessions: p?.ptPackageSessions != null ? String(p.ptPackageSessions) : '',
     facilityId: p?.facilityId ?? '',
     instructorId: p?.instructorId ?? '',
     startDate: p?.startDate ?? '',
@@ -127,6 +129,8 @@ function ProgramFormModal({
         pricingType: dto.pricingType,
         price: dto.pricingType === 'FREE_ACCESS' ? 0 : Number(dto.price || 0),
         capacity: dto.pricingType === 'FREE_ACCESS' ? undefined : dto.capacity ? Number(dto.capacity) : undefined,
+        // 예약및결제 ADR-RSV-09 — PT 패키지 1개의 횟수(있으면 회원 앱에서 판다). 수정에서 비우면 0 = 앱 판매 중단.
+        ptPackageSessions: dto.pricingType !== 'PT_PACKAGE' ? undefined : dto.ptPackageSessions ? Number(dto.ptPackageSessions) : isEdit ? 0 : undefined,
         facilityId: dto.facilityId || undefined,
         instructorId: dto.instructorId || undefined,
         startDate: dto.startDate,
@@ -204,7 +208,10 @@ function ProgramFormModal({
         </div>
         <div className="form-row" style={{ marginTop: 12 }}>
           <div className="field">
-            <label>가격{isFree && ' (자유이용은 항상 무료)'}</label>
+            <label>
+              가격{isFree && ' (자유이용은 항상 무료)'}
+              {form.pricingType === 'PT_PACKAGE' && ' (패키지 1개)'}
+            </label>
             <input
               type="number"
               min={0}
@@ -229,6 +236,19 @@ function ProgramFormModal({
               onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
             />
           </div>
+          {form.pricingType === 'PT_PACKAGE' && (
+            <div className="field">
+              <label>패키지 횟수(비우면 회원 앱 판매 안 함)</label>
+              <input
+                type="number"
+                min={1}
+                max={500}
+                inputMode="numeric"
+                value={form.ptPackageSessions}
+                onChange={(e) => setForm((f) => ({ ...f, ptPackageSessions: e.target.value }))}
+              />
+            </div>
+          )}
         </div>
         <div className="form-row" style={{ marginTop: 12 }}>
           <div className="field">

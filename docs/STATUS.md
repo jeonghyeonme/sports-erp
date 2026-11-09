@@ -1,7 +1,7 @@
 # STATUS — 지금 상태와 다음 할 일
 
 > **세션 시작점.** 이 파일은 "지금"만 담고 세션을 마칠 때마다 **덮어쓴다**(80줄 상한, `scripts/doc-check.mjs`). 끝난 일은 지우고 경위는 [log/](log/README.md)로 보낸다.
-> 마지막 갱신: 2026-11-09 · [log/218](log/218.md)(회원 앱 형태 = 모바일 웹 유지, D77), [log/217](log/217.md)(11주차 덱 — 문서 파일을 보안 설계로), [log/216](log/216.md)(단계 줄인 작업 네 개 모두 비교), [log/215](log/215.md)(장마다 맥락 한 줄), [log/214](log/214.md)(11주차 덱 14장으로 정리), [log/213](log/213.md)(사용감 변경 전·후 캡처 비교), [log/212](log/212.md)(11주차 발표 덱 게시), [log/211](log/211.md)(충족률 분모에서 해당 없음 제외 — 94%, D76), [log/210](log/210.md)(추적표 D72~D75 재대조), [log/209](log/209.md)(Worker 재배포 확인, 발표 전 할 일 정리). 2026-11-08 세션(사용감·목록 일관화·문서 파일·시각화)은 [log/197](log/197.md)~[log/208](log/208.md) — 결정 D72~D75·권한관리 ADR-AUTH-09·자원문서관리 ADR-RES-05. 그 이전 경위는 [log/README](log/README.md) 인덱스에서 찾는다.
+> 마지막 갱신: 2026-11-09 · [log/219](log/219.md)(회원 앱 PT 구매·PT 회차 예약, ADR-RSV-09 — 배포 DB 마이그레이션 승인 대기), [log/218](log/218.md)(회원 앱 형태 = 모바일 웹 유지, D77), [log/217](log/217.md)(11주차 덱 — 문서 파일을 보안 설계로), [log/216](log/216.md)(단계 줄인 작업 네 개 모두 비교), [log/215](log/215.md)(장마다 맥락 한 줄), [log/214](log/214.md)(11주차 덱 14장으로 정리), [log/213](log/213.md)(사용감 변경 전·후 캡처 비교), [log/212](log/212.md)(11주차 발표 덱 게시), [log/211](log/211.md)(충족률 분모에서 해당 없음 제외 — 94%, D76), [log/210](log/210.md)(추적표 D72~D75 재대조), [log/209](log/209.md)(Worker 재배포 확인, 발표 전 할 일 정리). 2026-11-08 세션(사용감·목록 일관화·문서 파일·시각화)은 [log/197](log/197.md)~[log/208](log/208.md) — 결정 D72~D75·권한관리 ADR-AUTH-09·자원문서관리 ADR-RES-05. 그 이전 경위는 [log/README](log/README.md) 인덱스에서 찾는다.
 
 ## 현재 상태
 
@@ -14,7 +14,7 @@
 | api 호스팅 | **AWS Lambda(서울) 운영 중**, Worker origin = Function URL(별칭 `live`). 배포는 `dev` push 또는 Actions 수동 실행(OIDC, 헬스체크 실패 시 이전 버전). 운영 실측 W 약 40ms, 과부하 실제 처리 약 80~90 rps(D50). 동시 실행 상한 10·1,024MB(D42), DB는 Session pooler 5432(D49). NestJS 11(D65) | [D37](decisions/D37.md), [D50](decisions/D50.md) |
 | 웹·엣지 | Cloudflare Worker(정적 자산 + 프록시 + 로그인 rate limit). 관리자 웹은 직원 계정만(D66), 회원 기능은 `apps/member-web`(`/m/`, PWA — D41·D45). 마지막 Worker 재배포 2026-11-09(사용자 — 운영 확인 2026-11-09: 차트·문서 파일 올리기·열기·회원 빠른 찾기 정상, 사용자. `dev` 16b01cf까지: 회원 빠른 찾기 D72·화면 안 순서 D73·목록 일관화 D74·CSV 확대·문서 파일·운영 실적 차트 D75, log/209) | [D25](decisions/D25.md), [D66](decisions/D66.md) |
 | 규칙의 자리 | 지점 격리 = 전역 `BranchScopeGuard`(D46), 세부 권한 = 전역 `PermissionGuard`(D60), 계약 종료 = 쓰기 트랜잭션 안 지점 행 공유 락(D70), 종료 전이 시 파견 종료(ADR-STF-07·08), 종료 확정은 해지 합의서 필요(D69). 계약 정보 = 계약 회차(`ContractRound`, D69). 변경 이력 20종(D44·D47·D52·ADR-STF-09·D60 권한·D68 지점 등록·계약 3종·D69 계약 파일 3종·D71 실물 이관·정리·ADR-RES-05 문서 열람), 혼잡도 = 진행 중 강습 예약 + 현장 입력(ADR-FAC-05) | [D46](decisions/D46.md), [D60](decisions/D60.md) |
-| 검증 | API jest 59개 파일 631건(실DB, 2026-11-09 로컬 전체 실행 — 기준·고밀도 템플릿 둘 — D58), 화면 자동 테스트 24건(D59, CI만), 그 밖 화면은 lint·빌드와 시연 데이터 점검(log/125~130). 작업 단계 측정 20건(`npm run steps --workspace=e2e`, CI 아님 — log/198) | [D59](decisions/D59.md) |
+| 검증 | API jest 60개 파일 639건(실DB, 2026-11-09 로컬 전체 실행, ADR-RSV-09 포함 — 기준·고밀도 템플릿 둘 — D58), 화면 자동 테스트 24건(D59, CI만), 그 밖 화면은 lint·빌드와 시연 데이터 점검(log/125~130). 작업 단계 측정 20건(`npm run steps --workspace=e2e`, CI 아님 — log/198) | [D59](decisions/D59.md) |
 | 시연 데이터 | 계약 상태별 5곳(서초·강남 정상, 마포 갱신 임박, 송파 만료, 노원 종료). `npm run seed:demo`가 실행일 기준 지난 90일·앞으로 3주를 얹는다(회원 211명 등). 배포 DB도 같은 데이터(2026-10-20 재시드, log/143) | [D58](decisions/D58.md) |
 | 산출물 | 요구사항·데이터 정의서(Excel), 기업 분석·제안서·아키텍처 설계서·사용자 매뉴얼·진행 보고서 5부(Word), 교육 자료(PDF), RFP 이행 증빙(PDF) — **2026-10-23 기준이라 D68~D75 이후 화면·스키마·도움말이 반영되지 않았다**(발표 전 할 일 2), `scripts/deliverables/`로 재생성 | [log/176](log/176.md), [log/177](log/177.md) |
 | 중간 제출 | 중간보고서 덱 55장(https://claude.ai/artifact/M2NBGeZcaBdTgkT1msjwQb, 생성기 `presentation/assets/4-7_중간발표/deck-source/viz/deck47.js`), RFP 이행 증빙(https://claude.ai/artifact/K1RjzzmZN4Er8tiKitEZ4e), 제출 폴더 조립 `node scripts/deliverables/pack-midterm.mjs` → `중간제출/`(저장소 밖) | [D67](decisions/D67.md), [log/178](log/178.md), [log/179](log/179.md) |
@@ -34,7 +34,7 @@
 
 ## 사용자 승인 대기 (승인 전 착수 금지)
 
-- 지금은 없다.
+- **배포 DB 마이그레이션 `20261109120000_rsv09_pt_app_purchase_reservation`**(예약및결제 ADR-RSV-09 — 회원 앱 PT 구매·PT 회차 예약, log/219): `Payment.reservationId` 선택·`ptSessionId`, `Program.ptPackageSessions`, `Reservation.ptSessionId`, `PTSessionLog.reservationId`, CHECK 2개. 새 테이블 없음(RLS 작업 없음). **`dev` 병합 전에 Supabase에 적용**해야 한다(D39) — 적용하면 시드의 PT 프로그램에 패키지 횟수·가격도 맞춘다(배포 DB 쓰기).
 
 ## 열린 위험 (실운영을 하지 않아 대응은 보류 — 실운영을 다시 검토하면 여기서 시작)
 

@@ -413,7 +413,8 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
         ageGroup: 'ADULT',
         description: '1:1 맞춤 트레이닝(세션 차감형).',
         pricingType: 'PT_PACKAGE',
-        price: 60000,
+        price: 600000, // 패키지 1개(10회) — ADR-RSV-09
+        ptPackageSessions: 10,
         status: win.terminated ? 'ENDED' : 'RUNNING',
         startDate: asDate(programStart),
         endDate: contractEnd ? asDate(contractEnd) : null,

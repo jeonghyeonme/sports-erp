@@ -44,8 +44,9 @@ export interface Program {
   ageGroup: AgeGroup;
   description?: string;
   pricingType: PricingType;
-  price: number;
+  price: number; // PT_PACKAGE는 패키지 1개 가격
   capacity?: number;
+  ptPackageSessions?: number; // PT 패키지 1개의 횟수 — 있으면 앱에서 살 수 있다(예약및결제 ADR-RSV-09)
   status: string;
   instructorName?: string;
   instructorSpecialty?: string;
@@ -89,6 +90,7 @@ export interface Reservation {
   programName?: string;
   branchName?: string;
   payment?: Payment;
+  ptSessionId?: string; // PT 회차 예약 — 결제 대신 PT 패키지 1회를 잡았다(ADR-RSV-09)
 }
 
 // ── 공지·혼잡도·내 정보(B1-3) ──
@@ -147,9 +149,11 @@ export interface Enrollment {
 
 export interface PTPackage {
   id: string;
+  programId: string;
   programName?: string;
   totalSessions: number;
   usedSessions: number;
   remainingSessions: number;
+  reservedSessions?: number; // remainingSessions 중 PT 회차 예약으로 잡힌 횟수(ADR-RSV-09)
   purchasedAt: string;
 }

@@ -77,12 +77,13 @@ function CheckInButton({ reservationId }: { reservationId: string }) {
   );
 }
 
-// 강사프로그램게시 A-5 POST /programs/:id/slots — BRANCH_ADMIN 본인 지점 PAID_SESSION 프로그램에 회차 개별 추가.
+// 강사프로그램게시 A-5 POST /programs/:id/slots — BRANCH_ADMIN 본인 지점 회차 강습·PT 프로그램에 회차 개별 추가.
+// PT 회차는 정원을 비우면 1명(1:1), 회원은 산 PT 횟수로 예약한다(예약및결제 ADR-RSV-09).
 // D73 — 등록 폼은 쌓이는 예약 목록 아래가 아니라 머리글 "+ 회차 등록" 버튼의 모달로(스크롤 없이 닿게).
 function SlotCreateModal({ programs, onClose }: { programs: ProgramRow[]; onClose: () => void }) {
   const queryClient = useQueryClient();
   const toast = useToast();
-  const reservablePrograms = programs.filter((p) => p.pricingType === 'PAID_SESSION');
+  const reservablePrograms = programs.filter((p) => p.pricingType !== 'FREE_ACCESS'); // PT 포함(ADR-RSV-09)
   const [programId, setProgramId] = useState(reservablePrograms[0]?.id ?? '');
   const [form, setForm] = useState({ date: kstToday(), startTime: '10:00', endTime: '11:00', capacity: '' });
   const createMutation = useMutation<ScheduleSlotRow, AxiosError<ApiErrorBody>, typeof form>({
@@ -177,7 +178,7 @@ function SlotCreateModal({ programs, onClose }: { programs: ProgramRow[]; onClos
 
 // 프로그램별 회차 목록(예약 인원/정원) — 조회만. 등록은 SlotCreateModal.
 function SlotList({ programs }: { programs: ProgramRow[] }) {
-  const reservablePrograms = programs.filter((p) => p.pricingType === 'PAID_SESSION');
+  const reservablePrograms = programs.filter((p) => p.pricingType !== 'FREE_ACCESS'); // PT 포함(ADR-RSV-09)
   const [programId, setProgramId] = useState(reservablePrograms[0]?.id ?? '');
   const slotsQuery = useQuery<ScheduleSlotRow[], AxiosError<ApiErrorBody>>({
     queryKey: ['slots', programId],
@@ -421,7 +422,10 @@ export function ReservationsPage() {
                   {paymentRows.map((p) => (
                     <tr key={p.id}>
                       <td>{p.memberName ?? '-'}</td>
-                      <td>{p.programName ?? '-'}</td>
+                      <td>
+                        {p.programName ?? '-'}
+                        {p.kind === 'PT_PACKAGE' && <span className="muted"> · PT 패키지 구매</span>}
+                      </td>
                       <td>{p.supplyAmount.toLocaleString()}원</td>
                       <td>{p.vat.toLocaleString()}원</td>
                       <td>{p.amount.toLocaleString()}원</td>

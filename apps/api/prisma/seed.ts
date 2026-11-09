@@ -173,6 +173,7 @@ async function main() {
       pricingType: p.pricingType as PricingType,
       price: p.price,
       capacity: p.capacity ?? null,
+      ptPackageSessions: p.ptPackageSessions ?? null,
       status: p.status as ProgramStatus,
       startDate: dateOf(p.startDate),
       endDate: p.endDate ? dateOf(p.endDate) : null,

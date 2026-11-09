@@ -39,6 +39,7 @@ const kst = (iso?: string) =>
 export const PAYMENT_COLUMNS: CsvColumn<PaymentRow>[] = [
   { label: '회원', value: (p) => p.memberName },
   { label: '프로그램', value: (p) => p.programName },
+  { label: '구분', value: (p) => (p.kind === 'PT_PACKAGE' ? 'PT 패키지 구매' : '회차 예약') },
   { label: '공급가액', value: (p) => p.supplyAmount },
   { label: '부가세', value: (p) => p.vat },
   { label: '합계', value: (p) => p.amount },

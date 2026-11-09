@@ -492,20 +492,24 @@ model PTSession {
   usedSessions  Int      @default(0)
   purchasedAt   DateTime @db.Date
 
-  member  Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  program Program        @relation(fields: [programId], references: [id])
-  logs    PTSessionLog[]
+  member       Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  program      Program        @relation(fields: [programId], references: [id])
+  logs         PTSessionLog[]
+  payment      Payment? // 회원 앱 구매일 때만(예약및결제 ADR-RSV-09) — 현장 판매는 관리자 등록이라 결제 행이 없다
+  reservations Reservation[] // 이 패키지 횟수로 잡은 PT 회차 예약(ADR-RSV-09)
 
   @@index([memberId])
 }
 
 model PTSessionLog {
-  id          String   @id @default(uuid())
-  ptSessionId String
-  usedAt      DateTime @default(now())
-  note        String?
+  id            String   @id @default(uuid())
+  ptSessionId   String
+  usedAt        DateTime @default(now())
+  note          String?
+  reservationId String?  @unique // 예약 체크인으로 차감했으면 그 예약(ADR-RSV-09), 관리자 "세션 사용"이면 null
 
-  ptSession PTSession @relation(fields: [ptSessionId], references: [id], onDelete: Cascade)
+  ptSession   PTSession    @relation(fields: [ptSessionId], references: [id], onDelete: Cascade)
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
 
   @@index([ptSessionId])
 }
@@ -552,22 +556,23 @@ enum ProgramStatus {
 }
 
 model Program {
-  id           String        @id @default(uuid())
-  branchId     String
-  facilityId   String?
-  instructorId String?
-  name         String
-  category     String // 종목: 헬스/수영/골프/요가/독서실이용 등
-  ageGroup     AgeGroup      @default(ALL)
-  description  String?
-  price        Int           @default(0)
-  pricingType  PricingType
-  capacity     Int?
-  status       ProgramStatus @default(PREPARING) // 지점별 "진행중" 파악의 핵심 필드 — 강사프로그램게시 A-3 §3-2 참고
-  startDate    DateTime      @db.Date // 모집/개강일
-  endDate      DateTime?     @db.Date // 종료 예정일(상시 운영이면 null)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                String        @id @default(uuid())
+  branchId          String
+  facilityId        String?
+  instructorId      String?
+  name              String
+  category          String // 종목: 헬스/수영/골프/요가/독서실이용 등
+  ageGroup          AgeGroup      @default(ALL)
+  description       String?
+  price             Int           @default(0) // PT_PACKAGE는 패키지 1개 가격
+  pricingType       PricingType
+  ptPackageSessions Int? // PT_PACKAGE 패키지 1개의 횟수 — 있으면 회원 앱에서 살 수 있다(ADR-RSV-09)
+  capacity          Int?
+  status            ProgramStatus @default(PREPARING) // 지점별 "진행중" 파악의 핵심 필드 — 강사프로그램게시 A-3 §3-2 참고
+  startDate         DateTime      @db.Date // 모집/개강일
+  endDate           DateTime?     @db.Date // 종료 예정일(상시 운영이면 null)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   branch     Branch      @relation(fields: [branchId], references: [id])
   facility   Facility?   @relation(fields: [facilityId], references: [id])
@@ -626,16 +631,20 @@ model Reservation {
   createdAt      DateTime          @default(now())
   cancelledAt    DateTime?
   cancelReason   String?
+  ptSessionId    String? // PT 회차 예약이 횟수를 잡은 패키지(ADR-RSV-09) — 회차 강습 예약은 null
 
-  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  scheduleSlot ScheduleSlot @relation(fields: [scheduleSlotId], references: [id])
+  member       Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  scheduleSlot ScheduleSlot  @relation(fields: [scheduleSlotId], references: [id])
   payment      Payment?
+  ptSession    PTSession?    @relation(fields: [ptSessionId], references: [id])
+  ptLog        PTSessionLog?
 
   // (memberId, scheduleSlotId) 유일성은 활성 예약에만 — 부분 unique(파일 상단 주석 3). 전역 @@unique는
   // 취소 후 재예약을 막아 ADR-RSV-02와 모순이었다.
   @@index([memberId, scheduleSlotId])
   @@index([scheduleSlotId, status])
   @@index([memberId, status])
+  @@index([ptSessionId])
 }
 
 enum PaymentMethod {
@@ -652,7 +661,8 @@ enum PaymentStatus {
 
 model Payment {
   id             String        @id @default(uuid())
-  reservationId  String        @unique
+  reservationId  String?       @unique // 회차 예약 결제 — PT 패키지 구매(ptSessionId)와 둘 중 하나만(CHECK Payment_target_ck, ADR-RSV-09)
+  ptSessionId    String?       @unique // 회원 앱 PT 패키지 구매 결제
   memberId       String
   amount         Int
   supplyAmount   Int // 공급가액 = round(amount / 1.1)
@@ -664,8 +674,9 @@ model Payment {
   refundedAt     DateTime?
   createdAt      DateTime      @default(now())
 
-  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  member      Member      @relation(fields: [memberId], references: [id])
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  ptSession   PTSession?   @relation(fields: [ptSessionId], references: [id], onDelete: Cascade)
+  member      Member       @relation(fields: [memberId], references: [id])
 
   @@index([memberId])
 }

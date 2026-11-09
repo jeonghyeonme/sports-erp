@@ -166,7 +166,8 @@ export function MyInfoPage() {
               <li key={t.id} className="info-row">
                 <span>{t.programName}</span>
                 <span className="muted">
-                  {t.remainingSessions} / {t.totalSessions}회 남음 · {t.purchasedAt} 구매
+                  {t.remainingSessions} / {t.totalSessions}회 남음
+                  {(t.reservedSessions ?? 0) > 0 && ` (예약 ${t.reservedSessions}회 포함)`} · {t.purchasedAt} 구매
                 </span>
               </li>
             ))}

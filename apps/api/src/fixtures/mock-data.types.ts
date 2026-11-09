@@ -220,6 +220,7 @@ export interface MockProgram {
   pricingType: PricingType;
   price: number;
   capacity?: number;
+  ptPackageSessions?: number; // PT_PACKAGE 패키지 1개의 횟수 — 있으면 회원 앱에서 살 수 있다(예약및결제 ADR-RSV-09)
   status: ProgramStatus;
   startDate: string;
   endDate?: string; // 종료 예정일 — 상시 운영이면 undefined(=null). 강사프로그램게시 A-3
@@ -245,13 +246,14 @@ export interface MockReservation {
   createdAt: string;
   cancelledAt?: string;
   cancelReason?: string;
+  ptSessionId?: string; // PT 회차 예약이 횟수를 잡은 패키지(ADR-RSV-09)
 }
 
-// 예약및결제 A-3 Payment — PT_PACKAGE 구매 결제(ptSessionId)는 PTSession 엔티티 자체가 아직 없어
-// 이번 범위에서 제외한다(회원관리 PT세션 백엔드와 함께 보류, 요구사항추적표 참고). reservationId만 사용.
+// 예약및결제 A-3 Payment — 회차 예약 결제(reservationId) 또는 회원 앱 PT 패키지 구매 결제(ptSessionId, ADR-RSV-09) 중 하나.
 export interface MockPayment {
   id: string;
-  reservationId: string;
+  reservationId?: string;
+  ptSessionId?: string;
   memberId: string;
   amount: number; // 실 결제금액(공급가액+부가세)
   supplyAmount: number; // round(amount / 1.1)

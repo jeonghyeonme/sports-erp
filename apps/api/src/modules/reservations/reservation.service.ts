@@ -6,6 +6,7 @@ import { PageRequest, searchTerm } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACTIVE_RESERVATION_STATUSES, lockBranchForShare, lockReservation, lockScheduleSlot } from '../../prisma/integrity';
 import { MockPayment, MockReservation, MockScheduleSlot } from '../../fixtures/mock-data.types';
+import { heldByPTSession, lockPTSessions } from '../members/pt-holds';
 
 export type ReservationView = MockReservation & {
   slot?: MockScheduleSlot;
@@ -92,7 +93,8 @@ export class ReservationService {
 
   /**
    * 예약및결제 A-5 POST /reservations. 검사 순서는 예전 mock 그대로(에러 코드 우선순위가 테스트로 고정돼 있음):
-   * 회차 → 프로그램 → 예약형 여부 → 진행중 → 회원 지점(DI-02) → 계약 종료 → 지난 회차(ADR-RSV-05) → 중복(ADR-RSV-02) → 정원(ADR-RSV-01).
+   * 회차 → 프로그램 → 예약형 여부 → 진행중 → 회원 지점(DI-02) → 계약 종료 → 지난 회차(ADR-RSV-05) → 중복(ADR-RSV-02) → 정원(ADR-RSV-01)
+   * → (PT 회차면) 남은 횟수(ADR-RSV-09).
    * 정원·중복은 회차 행을 잠근 트랜잭션 안에서 센다 — 동시 요청이 같은 마지막 좌석을 둘 다 잡지 못한다.
    */
   async create(memberId: string, scheduleSlotId: string): Promise<{ reservation: ReservationView; payment?: MockPayment }> {
@@ -102,7 +104,8 @@ export class ReservationService {
         if (!locked) throw new AppException('SLOT_NOT_FOUND', '회차를 찾을 수 없습니다.', 404);
         const slot = await tx.scheduleSlot.findUniqueOrThrow({ where: { id: scheduleSlotId }, include: { program: true } });
         const program = slot.program;
-        if (program.pricingType !== 'PAID_SESSION') {
+        // ADR-RSV-09 — PT_PACKAGE도 회차(1:1)를 예약한다. 결제 대신 구매한 패키지의 횟수를 잡는다.
+        if (program.pricingType !== 'PAID_SESSION' && program.pricingType !== 'PT_PACKAGE') {
           throw new AppException('NOT_RESERVABLE', '예약 가능한 프로그램이 아닙니다.', 400);
         }
         if (program.status !== 'RUNNING') {
@@ -129,6 +132,21 @@ export class ReservationService {
         const booked = await tx.reservation.count({ where: { scheduleSlotId, status: { in: ACTIVE } } });
         if (booked >= locked.capacity) {
           throw new AppException('SLOT_FULL', '정원이 가득 찼습니다.', 409);
+        }
+
+        if (program.pricingType === 'PT_PACKAGE') {
+          // ADR-RSV-09 — 오래된 패키지부터, 쓸 수 있는 횟수(총 − 사용 − 잡힌 것)가 남은 첫 패키지에서 1회를 잡는다.
+          // 패키지 행을 잠근 뒤 세므로 같은 패키지로 동시에 예약해도 남은 횟수를 넘지 않는다. 결제는 없다(이미 산 횟수).
+          const packages = await lockPTSessions(tx, { memberId, programId: program.id });
+          const held = await heldByPTSession(tx, packages.map((p) => p.id));
+          const pick = packages.find((p) => p.totalSessions - p.usedSessions - (held.get(p.id) ?? 0) > 0);
+          if (!pick) {
+            throw new AppException('PT_SESSIONS_EXHAUSTED', '남은 PT 횟수가 없습니다. 패키지를 먼저 구매하세요.', 409);
+          }
+          const reservation = await tx.reservation.create({
+            data: { memberId, scheduleSlotId, status: 'CONFIRMED', ptSessionId: pick.id },
+          });
+          return reservation.id;
         }
 
         const paid = program.price > 0;
@@ -201,19 +219,29 @@ export class ReservationService {
   }
 
   // 예약및결제 A-5 PATCH /reservations/:id/check-in — 확정된 예약만, 회차 당일(KST)만(ADR-RSV-08).
+  // PT 회차 예약이면 같은 트랜잭션에서 잡아 둔 횟수를 실제로 차감하고 사용 기록에 이 예약을 남긴다(ADR-RSV-09).
   async checkIn(id: string): Promise<ReservationView> {
     const target = await this.prisma.reservation.findUnique({ where: { id }, select: { scheduleSlot: { select: { date: true } } } });
     if (!target) throw new AppException('RESERVATION_NOT_FOUND', '예약을 찾을 수 없습니다.', 404);
     if (toKstDateString(target.scheduleSlot.date) !== todayKst()) {
       throw new AppException('CHECK_IN_NOT_TODAY', '체크인은 회차 당일에만 할 수 있습니다.', 409);
     }
-    const { count } = await this.prisma.reservation.updateMany({
-      where: { id, status: 'CONFIRMED' },
-      data: { status: 'COMPLETED' },
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.reservation.updateMany({
+        where: { id, status: 'CONFIRMED' },
+        data: { status: 'COMPLETED' },
+      });
+      if (count === 0) {
+        throw new AppException('RESERVATION_NOT_CONFIRMED', '확정된 예약만 체크인할 수 있습니다.', 409);
+      }
+      const { ptSessionId } = await tx.reservation.findUniqueOrThrow({ where: { id }, select: { ptSessionId: true } });
+      if (!ptSessionId) return;
+      const used = await tx.$executeRaw`
+        UPDATE "PTSession" SET "usedSessions" = "usedSessions" + 1
+        WHERE "id" = ${ptSessionId} AND "usedSessions" < "totalSessions"`;
+      if (used === 0) throw new AppException('PT_SESSION_EXHAUSTED', '남은 세션이 없습니다.', 409);
+      await tx.pTSessionLog.create({ data: { ptSessionId, reservationId: id, note: '예약 체크인' } });
     });
-    if (count === 0) {
-      throw new AppException('RESERVATION_NOT_CONFIRMED', '확정된 예약만 체크인할 수 있습니다.', 409);
-    }
     return (await this.findById(id))!;
   }
 
@@ -257,7 +285,8 @@ export function toMockSlot(row: ScheduleSlot): MockScheduleSlot {
 export function toMockPayment(row: Payment): MockPayment {
   return {
     id: row.id,
-    reservationId: row.reservationId,
+    reservationId: row.reservationId ?? undefined,
+    ptSessionId: row.ptSessionId ?? undefined,
     memberId: row.memberId,
     amount: row.amount,
     supplyAmount: row.supplyAmount,
@@ -279,6 +308,7 @@ export function toMockReservation(row: Reservation): MockReservation {
     createdAt: row.createdAt.toISOString(),
     cancelledAt: row.cancelledAt?.toISOString(),
     cancelReason: row.cancelReason ?? undefined,
+    ptSessionId: row.ptSessionId ?? undefined,
   };
 }
 

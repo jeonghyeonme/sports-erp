@@ -114,7 +114,8 @@ export const ERROR_HINTS: Record<string, string> = {
   // 프로그램·예약·결제
   PROGRAM_NOT_RUNNING: '운영 중인 프로그램이 아닙니다. 프로그램 상태를 "운영 중"으로 바꾼 뒤 다시 하세요.',
   PROGRAM_CAPACITY_REQUIRED: '프로그램에 정원이 없습니다. 회차 정원을 직접 넣거나 프로그램 정원을 먼저 정하세요.',
-  SLOT_NOT_APPLICABLE: '회차 예약형(PAID_SESSION) 프로그램만 회차를 둘 수 있습니다.',
+  SLOT_NOT_APPLICABLE: '자유 이용 프로그램에는 회차를 둘 수 없습니다. 회차 강습·PT 프로그램을 고르세요.',
+  PT_SESSION_RESERVED: '남은 횟수가 모두 PT 회차 예약으로 잡혀 있습니다. 예약 관리에서 그 예약을 체크인하면 차감됩니다.',
   NOT_RESERVABLE: '예약할 수 없는 프로그램입니다. 회차 예약형 프로그램을 고르세요.',
   SLOT_ALREADY_STARTED: '이미 시작한 회차는 예약할 수 없습니다. 다음 회차를 고르세요.',
   SLOT_FULL: '정원이 찼습니다. 다른 회차를 고르세요.',

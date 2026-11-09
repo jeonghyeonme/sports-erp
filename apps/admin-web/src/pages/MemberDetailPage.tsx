@@ -330,6 +330,7 @@ function PTSessionsTab({ member, canManage, canUse }: { member: MemberRow; canMa
               {s.programName ?? '-'}{' '}
               <span className="badge PREPARING">
                 {s.remainingSessions} / {s.totalSessions}회 남음
+                {(s.reservedSessions ?? 0) > 0 && ` · 예약 ${s.reservedSessions}회`}
               </span>
             </h3>
             <div className="stat-row">
