@@ -126,20 +126,21 @@ todo = ''.join(
     f'<x-icon name="{ic}" style="color:{c}; width:30px; height:30px"></x-icon><p style="font-size:28px; color:{INK}">{t}</p>{pill(s, c, bg)}</div>'
     for ic, c, bg, t, s in [('Check', GREEN, '#E3F1EA', '문서 파일 관리', '02'),
                             ('Check', GREEN, '#E3F1EA', '사용감 개선', '01 · 03'),
-                            ('Clock', AMBER, '#F6ECDD', '회원 앱 형태 재검토', '다음으로')])
+                            ('Check', GREEN, '#E3F1EA', '회원 앱 형태 재검토', '04')])
 rows = ''.join(
     f'<div style="display:flex; align-items:center; gap:28px; padding:22px 28px; background:{CARDBG}; border:1px solid {LINE}; border-radius:12px">'
     f'<p style="font-family:{MONOF}; font-size:28px; font-weight:700; color:{NAVY}; width:60px">{n}</p>'
     f'<p style="font-family:{HEADF}; font-size:36px; font-weight:700; color:{INK}; width:420px">{t}</p><p style="font-size:30px; color:{SUB}">{d}</p></div>'
     for n, t, d in [('01', '사용감', '자주 쓰는 기능에 더 적은 단계로'),
                     ('02', '문서 파일', '안전하게 올리고 여는 설계'), ('03', '운영 실적 차트', '지점 실적을 13개월 추이로'),
+                    ('04', '회원 앱 형태', '지금 모바일 웹을 유지'),
                     ('+', 'RFP 충족률', '산정 방식을 바꿔 다시 셈')])
 S.append(('agenda', content('agenda', '오늘 순서', '11주차에 한 일',
           f'<div style="display:flex; gap:40px; align-items:flex-start"><div style="width:620px; display:flex; flex-direction:column; gap:14px">{mono("10주차 발표에서 남긴 다음 할 일", color=SUB)}{todo}</div>'
           f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{mono("이번 발표 순서", color=SUB)}{rows}</div></div>',
-          '10주차 마지막 장의 다음 할 일 세 개에서 출발한다. 문서 파일은 02(보안 설계), 사용감 개선은 01(접근 경로)·03(운영 실적 차트)으로 했다. 목록 정렬·검색·CSV를 맞춘 일(D74)은 원래 있었어야 할 기본기라 발표에서 따로 다루지 않는다 — 질문이 나오면 노트의 Q&A로. 회원 앱 형태 재검토는 하지 않았다 — 발표 뒤 선택 과제로 남겼다(이렇게 말할 것: "하지 않았다", "진행 중"이라고 하지 말 것). 마지막에 RFP 충족률 산정 방식을 바꾼 것을 따로 설명한다.',
+          '10주차 마지막 장의 다음 할 일 세 개에서 출발한다. 문서 파일은 02(보안 설계), 사용감 개선은 01(접근 경로)·03(운영 실적 차트)으로 했다. 목록 정렬·검색·CSV를 맞춘 일(D74)은 원래 있었어야 할 기본기라 발표에서 따로 다루지 않는다 — 질문이 나오면 노트의 Q&A로. 회원 앱 형태 재검토는 04 — 지금 모바일 웹 유지로 결정(D77). 마지막에 RFP 충족률 산정 방식을 바꾼 것을 따로 설명한다.',
           '10주차 발표(11/5) 이후 작업 · 결정 기록 D72~D76',
-          lead='10주차(11/5)에는 위탁 계약 관리를 발표했고, 그때 다음 할 일로 세 가지를 남겼다. 이번에는 그중 두 가지를 끝낸 결과다.')))
+          lead='10주차(11/5)에는 위탁 계약 관리를 발표했고, 그때 다음 할 일로 세 가지를 남겼다. 이번에는 세 가지를 모두 마친 결과다.')))
 
 # PART 01 사용감
 S.append(('p1', divider('p1', 'PART 01', '사용감', '자주 쓰는 기능의 접근 경로를 단순하게',
@@ -356,6 +357,28 @@ S.append(('chart-shot', shot('chart-shot', '운영 실적 차트 · 화면', '�
     '실제 관리자 웹 화면(2026-11-09 로컬, 본사 정하늘). 주의 — 시연 데이터는 실행일 기준 지난 90일만 만든다(D58). 그래서 8월 이전 달의 예약·매출 막대가 거의 비어 있다. 실제 운영이면 모든 달이 찬다(이렇게 설명할 것: "시연 데이터가 90일치라서"). 신규 회원은 기준 시드의 가입일이 1년에 퍼져 있어 모든 달에 있다. 노원점은 계약 종료 지점이라 지난달 매출 0. 숫자 카드(지난달 값·전달 대비·12개월 추세선)는 대시보드 위쪽에 있다. 차트는 화면 자동 테스트 1건이 본다(숫자 카드 4개·차트 13칸·키보드 초점 툴팁·지점 상세 표로 보기 13행).')))
 
 # RFP
+# 회원 앱 형태 — 10주차 다음 할 일 세 번째의 결론(D77)
+app_rows = [('', '지금 모바일 웹(유지)', '하이브리드(웹을 앱으로 감싸기)', '네이티브 앱'),
+            ('화면', '지금 그대로', '지금 화면 재사용', '처음부터 다시'),
+            ('코드 · 배포', '하나 — 관리자 웹과 함께 배포', '앱 빌드 · 배포가 따로 생김', '앱 코드가 따로 생김'),
+            ('스토어', '없음(홈 화면에 설치)', '계정 · 심사 · 버전 관리', '계정 · 심사 · 버전 관리'),
+            ('얻는 것', '—', '스토어 노출', '푸시 · 카메라 등 휴대폰 기능')]
+app_tbl = (f'<table style="width:1728px; font-size:28px; color:{INK}">'
+           + ''.join(
+               (f'<tr style="background:{SOFT}">' if i == 0 else '<tr>')
+               + ''.join((f'<th style="width:{w}%; text-align:left">{c}</th>' if i == 0 else
+                          f'<td style="color:{NAVY if j == 1 else (SUB if j == 0 else INK)}">{c}</td>')
+                         for j, (c, w) in enumerate(zip(r, (16, 28, 28, 28))))
+               + '</tr>' for i, r in enumerate(app_rows))
+           + '</table>')
+S.append(('member-app', content('member-app', '회원 앱 형태', '회원 앱은 지금처럼 모바일 웹으로 갑니다',
+    app_tbl
+    + f'<div style="display:flex; align-items:center; gap:16px; padding:20px 28px; background:{SOFT}; border-radius:12px"><x-icon name="Check" style="color:{GREEN}; width:30px; height:30px"></x-icon>'
+    f'{p("지금 회원 기능(예약 · 결제 · 공지 · 혼잡도)에 휴대폰 고유 기능이 필요한 것은 없다 — 앱으로 다시 만들면 유지보수만 늘고 같은 화면을 담는 수준이다", 28, INK)}</div>',
+    '10주차 다음 할 일의 세 번째, 회원 앱 형태 재검토의 결론(D77). 지금 회원 기능은 회원 모바일 웹(/m/)이 홈 화면 설치(PWA)까지 제공한다. 비교한 대안: 하이브리드(지금 웹을 앱으로 감싸기 — 화면은 재사용하지만 스토어 배포·빌드 경로가 따로), 네이티브(React Native — 화면을 다시 만들고 코드가 둘). 결정 이유: 유지보수 부담이 크고, 지금 기능 중 푸시·카메라·생체 인증 같은 휴대폰 기능이 필요한 게 없어 네이티브로 만들어도 구색 갖추기에 그친다. 감수하는 것: 앱스토어에 노출되지 않는다, 푸시 알림·QR 체크인은 만들 수 없다(둘 다 이미 범위 제외). 다시 볼 때: 이런 휴대폰 기능을 범위에 넣을 때, 또는 실운영에서 설치 불편이 이용률 문제로 측정될 때.',
+    '결정 기록 D77(D40 · D41 · D45 유지) · 다시 볼 때: 푸시 알림 · QR 체크인처럼 휴대폰 기능이 필요해질 때',
+    lead='10주차에 남긴 검토 — 회원 기능을 앱으로 다시 만들지. 결론은 지금의 모바일 웹(홈 화면에 설치되는 웹)을 그대로 쓴다.')))
+
 S.append(('rfp', content('rfp', 'RFP 충족률', '충족률 산정 방식을 바꿨습니다',
     f'<div style="display:flex; gap:40px; align-items:stretch"><div style="{CARD}; width:560px; justify-content:center">'
     f'<p style="font-family:{HEADF}; font-size:160px; font-weight:900; line-height:1; color:{NAVY}">94%</p>{h3("58 / 62 조항")}'
@@ -370,18 +393,17 @@ S.append(('rfp', content('rfp', 'RFP 충족률', '충족률 산정 방식을 바
     lead='RFP(발주처 제안요청서)의 요구를 72개 조항으로 나눠, 조항마다 구현 · 조정 · 부분 · 미구현 · 해당 없음으로 판정해 왔다.')))
 
 # 정리
-S.append(('wrap', content('wrap', '정리', '검증 · 운영 반영 · 남은 일', cards_row([
-    f'<p style="font-family:{HEADF}; font-size:96px; font-weight:900; line-height:1; color:{NAVY}">631</p>{h3("API 자동 테스트(건)")}{p("59개 파일, 실DB · 화면 자동 테스트 24건 — 나머지 화면은 lint · 빌드까지")}',
-    f'{mono("운영 반영")}' + ''.join(f'<div style="display:flex; align-items:flex-start; gap:14px"><x-icon name="Check" style="color:{GREEN}; width:30px; height:30px"></x-icon>{p(t, 28, INK)}</div>'
-                                     for t in ['배포 DB 마이그레이션(승인)', '서버 · 웹 재배포', '운영에서 직접 확인']),
-    f'{mono("다음 할 일(선택)")}' + ''.join(f'<div style="display:flex; align-items:flex-start; gap:14px"><x-icon name="Play" style="color:{NAVY}; width:30px; height:30px"></x-icon>{p(t, 28, INK)}</div>'
-                                         for t in ['계약 갱신용 영업 리포트', '회원 앱 형태 재검토', '시설 화면 버튼 깨짐 수정']),
-]),
-    '검증: api 자동 테스트 631건(59개 파일, 실DB — 2026-11-09 전체 실행 통과), 화면 자동 테스트 24건(역할별 핵심 경로, CI). 이번 작업에서 화면 자동 테스트가 없는 곳: 직원·강사·문서 표 정렬, 자산·업무지원 검색·정렬 화면, 직원 상세 인사서류 열기, 900px 이하 폭 — 이 범위를 넘어 "다 검증했다"고 말하지 말 것. 운영 반영: 문서 파일 스키마는 승인 후 배포 DB에 적용, 서버(Lambda)와 웹(Worker) 재배포, 운영에서 차트·문서 올리기·빠른 찾기를 직접 확인(11/9). 실운영은 하지 않는다 — 시연용 배포 환경. 발표 뒤 과제는 선택.')))
+nexts = [('Chart', '계약 갱신용 영업 리포트', '지점 운영 실적을 계약 갱신 협상 · 신규 입찰 자료로 뽑는다 — 이번 차트 부품 재사용'),
+         ('Book', '산출물 다시 만들기', '요구사항 · 데이터 정의서, 사용자 매뉴얼, 설계서를 지금 화면 · 스키마로'),
+         ('Wrench', '시설 화면 버튼 깨짐 수정', '넓지 않은 화면에서 시설 카드 버튼 글자가 세로로 쌓인다')]
+S.append(('wrap', content('wrap', '정리', '다음 할 일', cards_row([
+    f'<x-icon name="{ic}" style="color:{NAVY}; width:48px; height:48px"></x-icon>{h3(t)}{p(d)}' for ic, t, d in nexts]),
+    '다음 할 일. 영업 리포트는 사업 구조의 "운영 데이터 → 계약 갱신 · 영업 근거" 순환의 마지막 고리 — 이번 운영 실적 차트를 본사가 갱신 협상이나 신규 수주 입찰(PT)에 쓰는 자료로 뽑는다(차별화전략 §2). 산출물은 최종 제출 전에 지금 화면·스키마·도움말로 다시 만든다. 시설 화면 버튼 깨짐은 이번 캡처 중 발견. 검증 범위(질문 대비): api 자동 테스트 631건(실DB), 화면 자동 테스트 24건(역할별 핵심 경로) — 그 밖의 화면은 lint · 빌드까지.',
+    lead='10주차의 다음 할 일 세 가지를 마쳤다. 남은 것은 운영 데이터를 계약 판단 자료로 잇는 일과 제출 준비다.')))
 
 S.append(('closing', f'<section id="closing" data-transition="fade" style="background:{BG}; color:{INK}; font-family:{BODYF}; padding:128px 176px; display:flex; flex-direction:column; gap:24px">{DOTS}'
           f'<div style="flex:1"></div><h1 style="font-family:{HEADF}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:{INK}">감사합니다</h1><div style="flex:1"></div>'
-          f'{notes("맺음(말로): 자주 쓰는 기능의 접근 경로를 단순하게 했고(PT 세션 차감 6단계 → 3단계), 문서함에 실제 파일을 올리게 했고, 운영 실적을 기간으로 보게 해 10주차의 다음 할 일 두 가지를 마쳤습니다. RFP 충족률은 할 수 없는 조항을 분모에서 빼 94%로 다시 셌고, 옛 방식으로는 81%입니다.")}</section>'))
+          f'{notes("맺음(말로): 자주 쓰는 기능의 접근 경로를 단순하게 했고(PT 세션 차감 6단계 → 3단계), 문서함에 실제 파일을 올리게 했고, 운영 실적을 기간으로 보게 했고, 회원 앱은 지금 모바일 웹을 유지하기로 해 10주차의 다음 할 일 세 가지를 마쳤습니다. RFP 충족률은 할 수 없는 조항을 분모에서 빼 94%로 다시 셌고, 옛 방식으로는 81%입니다.")}</section>'))
 
 # 2026-11-09 사용자 검토로 뺀 장(log/214) — 측정 수치·기준선·스크롤 비교·전후 표는 "접근 경로 단순화" 한 문장과 6 → 3 비교로 충분하고,
 # 목록 일관화(정렬·검색·CSV)는 원래 있었어야 할 기본기라 발표 거리로 삼지 않는다.
