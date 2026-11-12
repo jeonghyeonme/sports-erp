@@ -1,10 +1,9 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, ApiError } from '../lib/use-api-list';
 import { useToast } from '../lib/use-toast';
 import { AbsenceConfirmSection } from '../components/AbsenceConfirmSection';
 import { ExportCsvButton } from '../components/ExportCsvButton';
@@ -20,10 +19,6 @@ import {
 } from '../lib/types';
 import { kstToday } from '../lib/kst-date';
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 const LEAVE_TYPE_LABEL: Record<LeaveType, string> = {
   ANNUAL: '연차',
@@ -68,7 +63,7 @@ export function AttendancePage() {
   const myAttendance = useApiList<AttendanceRecordRow>(['attendance', 'mine', month], `/attendance?month=${month}`);
   const todayRecord = myAttendance.data?.find((r) => r.date === kstToday());
 
-  const balanceQuery = useQuery<LeaveBalanceRow | undefined, AxiosError<ApiErrorBody>>({
+  const balanceQuery = useQuery<LeaveBalanceRow | undefined, ApiError>({
     queryKey: ['leave-balance', staffId],
     queryFn: async () => (await api.get<ApiEnvelope<LeaveBalanceRow>>(`/leave-balance/${staffId}`)).data.data,
     enabled: !!staffId,
@@ -97,7 +92,7 @@ export function AttendancePage() {
     queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
   };
 
-  const checkInMutation = useMutation<AttendanceRecordRow, AxiosError<ApiErrorBody>>({
+  const checkInMutation = useMutation<AttendanceRecordRow, ApiError>({
     mutationFn: async () => (await api.post<ApiEnvelope<AttendanceRecordRow>>('/attendance/check-in')).data.data!,
     onSuccess: () => {
       invalidateAttendance();
@@ -105,7 +100,7 @@ export function AttendancePage() {
     },
   });
 
-  const checkOutMutation = useMutation<AttendanceRecordRow, AxiosError<ApiErrorBody>>({
+  const checkOutMutation = useMutation<AttendanceRecordRow, ApiError>({
     mutationFn: async () => (await api.post<ApiEnvelope<AttendanceRecordRow>>('/attendance/check-out')).data.data!,
     onSuccess: () => {
       invalidateAttendance();
@@ -113,7 +108,7 @@ export function AttendancePage() {
     },
   });
 
-  const requestLeaveMutation = useMutation<LeaveRequestRow, AxiosError<ApiErrorBody>, typeof leaveForm>({
+  const requestLeaveMutation = useMutation<LeaveRequestRow, ApiError, typeof leaveForm>({
     mutationFn: async (dto) => (await api.post<ApiEnvelope<LeaveRequestRow>>('/leave-requests', dto)).data.data!,
     onSuccess: () => {
       invalidateLeave();
@@ -124,7 +119,7 @@ export function AttendancePage() {
 
   const reviewLeaveMutation = useMutation<
     LeaveRequestRow,
-    AxiosError<ApiErrorBody>,
+    ApiError,
     { id: string; action: 'approve' | 'reject' }
   >({
     mutationFn: async ({ id, action }) =>
@@ -135,7 +130,7 @@ export function AttendancePage() {
     },
   });
 
-  const workLogMutation = useMutation<WorkLogRow, AxiosError<ApiErrorBody>, typeof workLogForm>({
+  const workLogMutation = useMutation<WorkLogRow, ApiError, typeof workLogForm>({
     mutationFn: async (dto) => (await api.post<ApiEnvelope<WorkLogRow>>('/work-logs', dto)).data.data!,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['work-logs'] });

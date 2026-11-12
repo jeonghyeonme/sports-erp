@@ -3,17 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useToast } from '../lib/use-toast';
-import { apiErrorMessage } from '../lib/use-api-list';
+import { apiErrorMessage, ApiError } from '../lib/use-api-list';
 import { CONTRACT_FILE_ACCEPT, CONTRACT_FILE_MAX_BYTES, openContractFile, uploadContractFile } from '../lib/contract-files';
 import { CONTRACT_FILE_KIND_LABEL } from '../lib/contract-status';
 import { ApiEnvelope, BranchSummary, ContractFileKind, ContractFileRow, ContractRoundRow } from '../lib/types';
 import { Modal } from './Modal';
 import { ConfirmModal } from './ConfirmModal';
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 // D69 결정 2·4·6 — 계약 회차 목록(최근 회차부터). 계약서는 이 화면에서만 연다(열 때마다 열람 기록, 결정 8).
 // 지난 회차와 교체된 파일은 읽기 전용이다. 올리기·교체는 본사만, 진행 중 회차에만.
@@ -24,14 +20,14 @@ export function ContractRounds({ branch, canEdit }: { branch: BranchSummary; can
   const [opening, setOpening] = useState<string | null>(null);
   // D74 — 실물 이관 확인(브라우저 confirm 대신)
   const [confirmArchive, setConfirmArchive] = useState<ContractFileRow | null>(null);
-  const query = useQuery<ContractRoundRow[], AxiosError<ApiErrorBody>>({
+  const query = useQuery<ContractRoundRow[], ApiError>({
     queryKey: ['contract-rounds', branch.id],
     queryFn: async () => (await api.get<ApiEnvelope<ContractRoundRow[]>>(`/branches/${branch.id}/contract/rounds`)).data.data ?? [],
   });
   const terminated = branch.contractStatus === 'TERMINATED';
 
   // D71 — 실물 이관 완료 표시(본사, 파일 하나씩, 보존 끝 전에도). 계약 종료 지점에도 된다.
-  const archive = useMutation<unknown, AxiosError<ApiErrorBody>, ContractFileRow>({
+  const archive = useMutation<unknown, ApiError, ContractFileRow>({
     mutationFn: async (f) => api.post(`/branches/${branch.id}/contract/files/${f.id}/archive`),
     onSuccess: (_, f) => {
       queryClient.invalidateQueries({ queryKey: ['contract-rounds', branch.id] });
@@ -165,7 +161,7 @@ function ContractFileModal({ branch, kind, onClose }: { branch: BranchSummary; k
   const [file, setFile] = useState<File | null>(null);
   const label = CONTRACT_FILE_KIND_LABEL[kind];
 
-  const mutation = useMutation<BranchSummary, AxiosError<ApiErrorBody> | Error>({
+  const mutation = useMutation<BranchSummary, ApiError | Error>({
     mutationFn: async () => {
       if (!file) throw new Error('파일을 고르세요.');
       if (file.size > CONTRACT_FILE_MAX_BYTES) throw new Error('파일 하나는 10MB까지 올릴 수 있습니다.');

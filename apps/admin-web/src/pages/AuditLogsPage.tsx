@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
-import { ApiEnvelope, AuditLogRow, BranchSummary, PermissionCatalog } from '../lib/types';
+import { apiErrorMessage, useApiList, ApiError } from '../lib/use-api-list';
+import { ApiEnvelope, AuditLogRow, Role, BranchSummary, PermissionCatalog } from '../lib/types';
 import { useAuth } from '../lib/use-auth';
 import { CONTRACT_ACTION_LABEL, describeContractChange } from '../lib/contract-status';
 import { useDebouncedValue } from '../lib/use-debounced';
+import { ROLE_LABEL } from '../lib/status-labels';
 
 const PAGE_SIZE = 20;
 
@@ -59,16 +59,6 @@ function attendanceSide(v: Record<string, unknown>): string {
 
 const ENTITY_LABEL: Record<string, string> = { Staff: '직원', Member: '회원', Asset: '자산', Role: '역할', Branch: '지점', Document: '문서' };
 
-const ROLE_LABEL: Record<string, string> = {
-  SUPER_ADMIN: '본사 관리자',
-  BRANCH_ADMIN: '지점 관리자',
-  STAFF: '지점 직원',
-};
-
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 function formatTime(iso: string): string {
   // 표시만 KST로 — 기록 시각 자체는 UTC로 저장된다.
@@ -95,7 +85,7 @@ export function AuditLogsPage() {
     setPage(1);
   }
 
-  const { data, isLoading, isError, error } = useQuery<{ rows: AuditLogRow[]; total: number }, AxiosError<ApiErrorBody>>({
+  const { data, isLoading, isError, error } = useQuery<{ rows: AuditLogRow[]; total: number }, ApiError>({
     queryKey: ['audit-logs', action, q, page],
     enabled: isSuperAdmin,
     queryFn: async () => {
@@ -125,7 +115,7 @@ export function AuditLogsPage() {
     const before = r.before ?? {};
     const after = r.after ?? {};
     if (r.action === 'ROLE_CHANGED') {
-      return `${ROLE_LABEL[String(before.role)] ?? before.role} → ${ROLE_LABEL[String(after.role)] ?? after.role}`;
+      return `${ROLE_LABEL[before.role as Role] ?? before.role} → ${ROLE_LABEL[after.role as Role] ?? after.role}`;
     }
     if (r.action === 'RESIGNED') {
       return `${branchName(before.branchId)} · 퇴사일 ${after.resignDate ?? '-'}`;

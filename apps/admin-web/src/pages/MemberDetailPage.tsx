@@ -1,11 +1,10 @@
 import { FormEvent, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
-import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, useApiPage, ApiError } from '../lib/use-api-list';
 import { Pager } from '../components/Pager';
 import { useToast } from '../lib/use-toast';
 import { kstToday } from '../lib/kst-date';
@@ -20,10 +19,6 @@ import {
   StaffRow,
 } from '../lib/types';
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 const RESERVATION_PAGE_SIZE = 20;
 
@@ -81,7 +76,7 @@ function EnrollmentsTab({ member, canManage }: { member: MemberRow; canManage: b
   );
   const programsQuery = useApiList<ProgramRow>(['programs', member.branchId], `/programs?branchId=${member.branchId}`);
 
-  const createMutation = useMutation<CourseEnrollmentRow, AxiosError<ApiErrorBody>, typeof form>({
+  const createMutation = useMutation<CourseEnrollmentRow, ApiError, typeof form>({
     mutationFn: async (dto) =>
       (
         await api.post<ApiEnvelope<CourseEnrollmentRow>>(`/members/${member.id}/enrollments`, {
@@ -219,7 +214,7 @@ function PTSessionsTab({ member, canManage, canUse }: { member: MemberRow; canMa
     queryClient.invalidateQueries({ queryKey: ['members', member.id] });
   }
 
-  const createMutation = useMutation<PTSessionRow, AxiosError<ApiErrorBody>, typeof form>({
+  const createMutation = useMutation<PTSessionRow, ApiError, typeof form>({
     mutationFn: async (dto) =>
       (
         await api.post<ApiEnvelope<PTSessionRow>>(`/members/${member.id}/pt-sessions`, {
@@ -236,7 +231,7 @@ function PTSessionsTab({ member, canManage, canUse }: { member: MemberRow; canMa
     },
   });
 
-  const useMutationHook = useMutation<PTSessionRow, AxiosError<ApiErrorBody>, { sessionId: string; note: string }>({
+  const useMutationHook = useMutation<PTSessionRow, ApiError, { sessionId: string; note: string }>({
     mutationFn: async ({ sessionId, note }) =>
       (
         await api.post<ApiEnvelope<PTSessionRow>>(`/members/${member.id}/pt-sessions/${sessionId}/use`, {
@@ -445,13 +440,13 @@ export function MemberDetailPage() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm | null>(null);
 
-  const memberQuery = useQuery<MemberRow, AxiosError<ApiErrorBody>>({
+  const memberQuery = useQuery<MemberRow, ApiError>({
     queryKey: ['members', id],
     queryFn: async () => (await api.get<ApiEnvelope<MemberRow>>(`/members/${id}`)).data.data!,
   });
   const staffQuery = useApiList<StaffRow>(['staff'], '/staff');
 
-  const updateMutation = useMutation<MemberRow, AxiosError<ApiErrorBody>, EditForm>({
+  const updateMutation = useMutation<MemberRow, ApiError, EditForm>({
     mutationFn: async (dto) => {
       const payload = {
         name: dto.name,
@@ -471,7 +466,7 @@ export function MemberDetailPage() {
     },
   });
 
-  const statusMutation = useMutation<MemberRow, AxiosError<ApiErrorBody>, MemberRow['status']>({
+  const statusMutation = useMutation<MemberRow, ApiError, MemberRow['status']>({
     mutationFn: async (status) =>
       (await api.patch<ApiEnvelope<MemberRow>>(`/members/${id}/status`, { status })).data.data!,
     onSuccess: (updated) => {

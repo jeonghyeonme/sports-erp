@@ -1,9 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiPage } from '../lib/use-api-list';
+import { apiErrorMessage, useApiPage, ApiError } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
 import { Pager } from '../components/Pager';
 import { BranchFilter } from '../components/BranchFilter';
@@ -28,10 +27,6 @@ const STATUS_LABEL: Record<MemberRow['status'], string> = {
   WITHDRAWN: '탈퇴',
 };
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 interface CreateMemberForm {
   name: string;
@@ -70,7 +65,7 @@ const toast = useToast();
   const [form, setForm] = useState<CreateMemberForm>(EMPTY_FORM);
   const minor = isMinor(form.birthDate);
 
-  const createMutation = useMutation<MemberRow, AxiosError<ApiErrorBody>, CreateMemberForm>({
+  const createMutation = useMutation<MemberRow, ApiError, CreateMemberForm>({
     mutationFn: async (dto) => {
       const payload = {
         name: dto.name,

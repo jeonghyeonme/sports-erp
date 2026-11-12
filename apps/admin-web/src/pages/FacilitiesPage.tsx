@@ -1,8 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, ApiError } from '../lib/use-api-list';
 import { groupByBranch } from '../lib/group-by-branch';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { Modal } from '../components/Modal';
@@ -39,10 +38,6 @@ function isStale(lastUpdatedAt: string): boolean {
   return Date.now() - new Date(lastUpdatedAt).getTime() > STALE_MINUTES * 60000;
 }
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 interface FacilityForm {
   name: string;
@@ -94,7 +89,7 @@ function CreateFacilityModal({ onClose }: { onClose: () => void }) {
   const toast = useToast();
   const [form, setForm] = useState<FacilityForm>(EMPTY_FORM);
 
-  const createMutation = useMutation<FacilityRow, AxiosError<ApiErrorBody>, FacilityForm>({
+  const createMutation = useMutation<FacilityRow, ApiError, FacilityForm>({
     mutationFn: async (dto) => {
       const payload = { name: dto.name, type: dto.type, capacity: Number(dto.capacity) };
       return (await api.post<ApiEnvelope<FacilityRow>>('/facilities', payload)).data.data!;
@@ -141,7 +136,7 @@ function EditFacilityModal({ facility, onClose }: { facility: FacilityRow; onClo
   const toast = useToast();
   const [form, setForm] = useState<FacilityForm>(toEditForm(facility));
 
-  const updateMutation = useMutation<FacilityRow, AxiosError<ApiErrorBody>, FacilityForm>({
+  const updateMutation = useMutation<FacilityRow, ApiError, FacilityForm>({
     mutationFn: async (dto) => {
       const payload = { name: dto.name, type: dto.type, capacity: Number(dto.capacity) };
       return (await api.patch<ApiEnvelope<FacilityRow>>(`/facilities/${facility.id}`, payload)).data.data!;
@@ -190,7 +185,7 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
   const [manualCount, setManualCount] = useState('');
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
 
-  const correctMutation = useMutation<FacilityRow, AxiosError<ApiErrorBody>, number>({
+  const correctMutation = useMutation<FacilityRow, ApiError, number>({
     mutationFn: async (currentCount) =>
       (await api.post<ApiEnvelope<FacilityRow>>(`/facilities/${facility.id}/congestion/manual`, { currentCount }))
         .data.data!,
@@ -202,7 +197,7 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
   });
 
   // ADR-FAC-02 — 물리 삭제 대신 isActive 토글로 운영 중단/재개(소프트 삭제 원칙). PATCH 하나로 양방향 처리.
-  const toggleActiveMutation = useMutation<FacilityRow, AxiosError<ApiErrorBody>, boolean>({
+  const toggleActiveMutation = useMutation<FacilityRow, ApiError, boolean>({
     mutationFn: async (isActive) =>
       (await api.patch<ApiEnvelope<FacilityRow>>(`/facilities/${facility.id}`, { isActive })).data.data!,
     onSuccess: (updated) => {

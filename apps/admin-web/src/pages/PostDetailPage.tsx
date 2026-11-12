@@ -1,19 +1,14 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PostAttachments } from '../components/PostAttachments';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage } from '../lib/use-api-list';
+import { apiErrorMessage, ApiError } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
 import { ApiEnvelope, PostCategory, PostRow } from '../lib/types';
 import { RichContent } from '../components/RichContent';
 
 import { useToast } from '../lib/use-toast';
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 const SCOPE_LABEL: Record<PostRow['scope'], string> = {
   HQ_TO_BRANCH: '본사 공지',
@@ -35,12 +30,12 @@ export function PostDetailPage() {
   const queryClient = useQueryClient();
 const toast = useToast();
 
-  const postQuery = useQuery<PostRow, AxiosError<ApiErrorBody>>({
+  const postQuery = useQuery<PostRow, ApiError>({
     queryKey: ['posts', id],
     queryFn: async () => (await api.get<ApiEnvelope<PostRow>>(`/posts/${id}`)).data.data!,
   });
 
-  const deleteMutation = useMutation<void, AxiosError<ApiErrorBody>, void>({
+  const deleteMutation = useMutation<void, ApiError, void>({
     mutationFn: async () => {
       await api.delete(`/posts/${id}`);
     },

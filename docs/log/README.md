@@ -231,3 +231,4 @@
 | [221](221.md) | 2026-11-12 | branch-isolation 테스트 114건이 날짜가 지나며 실패(휴가 픽스처 고정 날짜 12/01~02가 시연 데이터의 3주 앞 휴가와 겹침) — 오늘 기준 날짜로, 다른 고밀도 테스트 고정 날짜 점검 |
 | [222](222.md) | 2026-11-12 | 리팩토링 ① — 응답 타입 `Mock*`→`*Response`, `fixtures/mock-data.types.ts`→`common/api-response.types.ts`, 죽은 코드 2개 삭제(D36에서 미룬 정리) |
 | [223](223.md) | 2026-11-12 | 리팩토링 ② — 두 웹앱의 같은 파일(비밀번호 규칙·느린 요청 알림·본문 필터·값 타입)을 `packages/web-shared` 한 벌로, 안 쓰던 `packages/types` 대체(D78) |
+| [224](224.md) | 2026-11-12 | 리팩토링 ③ — admin-web 26개 파일에 복사된 `ApiErrorBody`(실제 오류 모양과도 달랐음)를 `ApiError` 하나로, `ROLE_LABEL`·`kstMonth` 공용화 |

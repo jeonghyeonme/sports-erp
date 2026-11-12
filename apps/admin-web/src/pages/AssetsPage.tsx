@@ -1,10 +1,9 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
-import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, useApiPage, ApiError } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
 import { Pager } from '../components/Pager';
 import { BranchFilter } from '../components/BranchFilter';
@@ -25,10 +24,6 @@ type AssetSortKey = 'branch' | 'assetCode' | 'name' | 'category' | 'assetType' |
 const PAGE_SIZE = 20;
 const FIXED_ASSET_THRESHOLD = 1_000_000;
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 // 자원문서관리 A-6 전이표 — 허용되지 않은 전이는 드롭다운에서부터 막는다.
 const STATUS_TRANSITIONS: Record<AssetStatus, AssetStatus[]> = {
@@ -83,7 +78,7 @@ function CreateAssetModal({ onClose }: { onClose: () => void }) {
   const autoType: AssetType = cost > FIXED_ASSET_THRESHOLD ? 'FIXED_ASSET' : 'CONSUMABLE';
   const effectiveType = form.assetType || autoType;
 
-  const createMutation = useMutation<AssetRow, AxiosError<ApiErrorBody>, AssetForm>({
+  const createMutation = useMutation<AssetRow, ApiError, AssetForm>({
     mutationFn: async (dto) => {
       const payload = {
         branchId: isSuperAdmin ? dto.branchId : undefined,
@@ -240,7 +235,7 @@ function EditAssetModal({ asset, onClose }: { asset: AssetRow; onClose: () => vo
     quantity: String(asset.quantity),
   });
 
-  const updateMutation = useMutation<AssetRow, AxiosError<ApiErrorBody>, typeof form>({
+  const updateMutation = useMutation<AssetRow, ApiError, typeof form>({
     mutationFn: async (f) => {
       const payload = {
         name: f.name.trim(),
@@ -365,7 +360,7 @@ export function AssetsPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const statusMutation = useMutation<AssetRow, AxiosError<ApiErrorBody>, { id: string; status: AssetStatus }>({
+  const statusMutation = useMutation<AssetRow, ApiError, { id: string; status: AssetStatus }>({
     mutationFn: async ({ id, status }) =>
       (await api.patch<ApiEnvelope<AssetRow>>(`/assets/${id}/status`, { status })).data.data!,
     onSuccess: (updated) => {

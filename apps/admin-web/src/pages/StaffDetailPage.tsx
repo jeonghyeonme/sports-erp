@@ -1,12 +1,11 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
 import { useToast } from '../lib/use-toast';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, ApiError } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
 import {
   ApiEnvelope,
@@ -20,14 +19,10 @@ import {
   StaffRow,
   WorkLogRow,
 } from '../lib/types';
-import { kstToday } from '../lib/kst-date';
+import { kstMonth, kstToday } from '../lib/kst-date';
 import { StaffPermissionsTable } from '../components/PermissionTables';
 import { openDocument } from '../lib/document-files';
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 const STATUS_LABEL: Record<NonNullable<StaffRow['status']>, string> = {
   ACTIVE: '재직',
@@ -73,7 +68,7 @@ function EditStaffForm({ staff, onDone }: { staff: StaffRow; onDone: () => void 
   const [form, setForm] = useState<EditForm>(() => toEditForm(staff));
   const partTime = form.employmentType === '파트타임';
 
-  const updateMutation = useMutation<StaffRow, AxiosError<ApiErrorBody>, EditForm>({
+  const updateMutation = useMutation<StaffRow, ApiError, EditForm>({
     mutationFn: async (dto) =>
       (
         await api.patch<ApiEnvelope<StaffRow>>(`/staff/${staff.id}`, {
@@ -189,7 +184,7 @@ function releasedMembersNotice(released: ReleasedResult['unassignedMembers'], wh
 function ResignModal({ staff, onClose }: { staff: StaffRow; onClose: () => void }) {
   const queryClient = useQueryClient();
   const toast = useToast();
-  const resignMutation = useMutation<ReleasedResult, AxiosError<ApiErrorBody>>({
+  const resignMutation = useMutation<ReleasedResult, ApiError>({
     mutationFn: async () => (await api.patch<ApiEnvelope<ReleasedResult>>(`/staff/${staff.id}/resign`)).data.data!,
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
@@ -244,7 +239,7 @@ function AssignModal({ staff, onClose }: { staff: StaffRow; onClose: () => void 
     (b) => b.id !== staff.branchId && b.contractStatus !== 'TERMINATED',
   );
 
-  const assignMutation = useMutation<ReleasedResult, AxiosError<ApiErrorBody>>({
+  const assignMutation = useMutation<ReleasedResult, ApiError>({
     mutationFn: async () =>
       (
         await api.post<ApiEnvelope<ReleasedResult>>(`/staff/${staff.id}/assignments`, {
@@ -426,10 +421,6 @@ const LEAVE_STATUS_LABEL: Record<LeaveRequestRow['status'], string> = {
 };
 
 // 근태 월은 KST 기준(date-time-handling — toISOString은 UTC라 월초 아침에 전달로 잡힌다).
-function kstMonth(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date()).slice(0, 7);
-}
-
 function formatTime(iso?: string): string {
   if (!iso) return '-';
   return new Date(iso).toLocaleTimeString('ko-KR', {
@@ -484,7 +475,7 @@ function CorrectAttendanceModal({
   }));
   const worked = WORKED_STATUSES.includes(form.status);
 
-  const mutation = useMutation<AttendanceRecordRow, AxiosError<ApiErrorBody>, CorrectionForm>({
+  const mutation = useMutation<AttendanceRecordRow, ApiError, CorrectionForm>({
     mutationFn: async (f) =>
       (
         await api.put<ApiEnvelope<AttendanceRecordRow>>(`/attendance/${staffId}/${f.date}`, {
@@ -686,7 +677,7 @@ function AttendanceHistory({
 }
 
 function LeaveHistory({ staffId }: { staffId: string }) {
-  const balanceQuery = useQuery<LeaveBalanceRow | undefined, AxiosError<ApiErrorBody>>({
+  const balanceQuery = useQuery<LeaveBalanceRow | undefined, ApiError>({
     queryKey: ['leave-balance', staffId],
     queryFn: async () => (await api.get<ApiEnvelope<LeaveBalanceRow>>(`/leave-balance/${staffId}`)).data.data,
   });
@@ -769,7 +760,7 @@ function HrDocuments({ staffId }: { staffId: string }) {
     try {
       await openDocument(doc);
     } catch (e) {
-      toast.error(apiErrorMessage(e as AxiosError<ApiErrorBody>) ?? '문서를 열지 못했습니다.');
+      toast.error(apiErrorMessage(e as ApiError) ?? '문서를 열지 못했습니다.');
     } finally {
       setOpening(null);
     }
@@ -820,7 +811,7 @@ export function StaffDetailPage() {
   const [editing, setEditing] = useState(false);
   const [modal, setModal] = useState<'resign' | 'assign' | null>(null);
 
-  const staffQuery = useQuery<StaffRow, AxiosError<ApiErrorBody>>({
+  const staffQuery = useQuery<StaffRow, ApiError>({
     queryKey: ['staff', 'detail', id],
     queryFn: async () => (await api.get<ApiEnvelope<StaffRow>>(`/staff/${id}`)).data.data!,
   });

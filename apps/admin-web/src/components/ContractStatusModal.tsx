@@ -1,18 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useToast } from '../lib/use-toast';
-import { apiErrorMessage } from '../lib/use-api-list';
+import { apiErrorMessage, ApiError } from '../lib/use-api-list';
 import { CONTRACT_STATUS_LABEL } from '../lib/contract-status';
 import { ApiEnvelope, BranchContractStatus, BranchSummary, ContractStatusChangeResult } from '../lib/types';
 import { Modal } from './Modal';
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 const STATUSES: BranchContractStatus[] = ['ACTIVE', 'RENEWAL_DUE', 'EXPIRED', 'TERMINATED'];
 
@@ -30,7 +25,7 @@ export function ContractStatusModal({ branch, onClose }: { branch: BranchSummary
   const missingAgreement = terminating && !branch.hasTerminationAgreement;
   const unchanged = status === branch.contractStatus;
 
-  const mutation = useMutation<ContractStatusChangeResult, AxiosError<ApiErrorBody>>({
+  const mutation = useMutation<ContractStatusChangeResult, ApiError>({
     mutationFn: async () =>
       (
         await api.patch<ApiEnvelope<ContractStatusChangeResult>>(`/branches/${branch.id}/contract-status`, { status })

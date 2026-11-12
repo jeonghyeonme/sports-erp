@@ -4,15 +4,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useToast } from '../lib/use-toast';
-import { apiErrorMessage } from '../lib/use-api-list';
+import { apiErrorMessage, ApiError } from '../lib/use-api-list';
 import { CONTRACT_FILE_ACCEPT, CONTRACT_FILE_MAX_BYTES, uploadContractFile } from '../lib/contract-files';
 import { ApiEnvelope, BranchSummary } from '../lib/types';
 import { Modal } from './Modal';
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 const EMPTY = {
   name: '',
@@ -36,7 +32,7 @@ export function BranchCreateModal({ regions, onClose }: { regions: string[]; onC
   const [file, setFile] = useState<File | null>(null);
   const set = (key: keyof typeof EMPTY) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const mutation = useMutation<BranchSummary, AxiosError<ApiErrorBody> | Error>({
+  const mutation = useMutation<BranchSummary, ApiError | Error>({
     mutationFn: async () => {
       if (!file) throw new Error('계약서를 올려야 지점을 등록할 수 있습니다.');
       if (file.size > CONTRACT_FILE_MAX_BYTES) throw new Error('파일 하나는 10MB까지 올릴 수 있습니다.');
