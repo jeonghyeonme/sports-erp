@@ -271,6 +271,24 @@ S.append(('ux-order', content('ux-order', '사용감 · 화면 안 순서', '화
     '결정 기록 D73 · log/201',
     lead='화면마다 위아래 배치가 달라, 처리할 일이 아래에 묻히거나 입력란이 길게 쌓이는 목록 밑에 있었다. 근태관리 · 예약 관리 화면을 아래 순서로 다시 배치했다.')))
 
+# 화면 안 순서(D73) 예시 — 근태관리 변경 전·후 전체 화면, 구역마다 앞 장 순서도의 번호(capture/annotate-attendance.py)
+ORDER_COLORS = {1: '#C2410C', 2: NAVY, 3: GREEN, 4: '#6B7280'}
+att_img = lambda src, w, alt: f'<img src="{src}" alt="{alt}" style="width:{w}px; height:640px; object-fit:contain; background:{CARDBG}; border:1px solid {LINE2}; border-radius:10px">'
+legend = ''.join(
+    f'<div style="display:flex; align-items:center; gap:16px"><div style="width:52px; height:52px; border-radius:26px; background:{ORDER_COLORS[n]}; display:flex; align-items:center; justify-content:center">'
+    f'<p style="font-family:{HEADF}; font-size:30px; font-weight:900; color:#FFFFFF">{n}</p></div>{p(t, 28, INK)}</div>'
+    for n, t in [(1, '처리할 일 — 휴가 승인'), (2, '지금 상태 — 오늘의 근태 · 휴가 일수'), (3, '입력 폼 — 업무일지 · 휴가 신청'), (4, '쌓이는 기록 — 근태 · 신청 내역 · 요약')])
+S.append(('ux-order-shot', content('ux-order-shot', '사용감 · 화면 안 순서', '근태관리 화면에 적용한 예',
+    f'<div style="display:flex; gap:32px; align-items:flex-start">'
+    f'<div style="display:flex; flex-direction:column; gap:10px">{mono("변경 전", color=SUB)}{att_img("/_blob/27f18b494378da580962a5ac68374da6", 318, "변경 전 근태관리 화면 전체 — 구역 순서 2·4·3·4·3·4·1")}</div>'
+    f'<div style="display:flex; flex-direction:column; gap:10px">{mono("변경 후")}{att_img("/_blob/e53fba9230484d8c74c9b3972a531d69", 336, "변경 후 근태관리 화면 전체 — 구역 순서 1·2·3·4")}</div>'
+    f'<div style="flex:1; display:flex; flex-direction:column; gap:22px; padding:44px 0 0 0">{legend}'
+    f'<div style="{CARD}; gap:10px">{p("휴가 승인(처리할 일)이 화면 맨 아래 → 맨 위", 28, INK)}{p("입력 폼이 기록 사이에 흩어져 있던 것 → 상태 다음에 나란히", 28, INK)}'
+    f'<p style="font-size:24px; color:{SUB}"><span style="color:#C2410C">주황 점선</span> = 처음 열었을 때 보이는 범위</p></div></div></div>',
+    '같은 지점 관리자(서초점 김민수)의 근태관리 화면을 위에서 아래까지 찍었다(시연 데이터, 1440×900 화면). 왼쪽은 변경 전 앱(log/198 기준선 커밋), 오른쪽은 지금 앱. 구역마다 앞 장 순서도의 번호를 겹쳤다 — 1 처리할 일, 2 지금 상태, 3 입력 폼, 4 쌓이는 기록. 변경 전은 2·4·3·4·3·4·1 순서라 처리해야 할 휴가 승인함이 맨 아래(위에서 약 2,200px)에 있었고, 업무일지·휴가 신청 입력란이 기록 사이에 흩어져 있었다. 변경 후는 1·2·3·4 순서 — 화면을 열면 승인할 휴가부터 보이고, 입력란 두 개는 상태 다음에 나란히 있다. 맨 아래 결근 확정은 번호를 붙이지 않았다(휴가 승인 뒤에 하는 처리라 마지막에 둔다, D73). 주황 점선이 처음 열었을 때 보이는 범위.',
+    '결정 기록 D73 · 번호와 점선은 캡처 때 겹친 표시',
+    lead='같은 화면(지점 관리자 근태관리)을 위에서 아래까지 찍었다. 번호는 앞 장 순서도의 번호다.')))
+
 S.append(('ux-slot-compare', content('ux-slot-compare', '사용감 · 변경 전후', '회차 등록: 스크롤 2~3번 → 0번',
     f'<div style="display:flex; gap:40px; align-items:stretch">'
     f'<div style="width:700px; display:flex; flex-direction:column; gap:10px">'
