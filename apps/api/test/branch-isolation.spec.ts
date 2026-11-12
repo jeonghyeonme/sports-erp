@@ -92,10 +92,13 @@ describe('지점 데이터 격리', () => {
     // 예약·휴가·근태·업무일지는 시드에 없어 실제 API로 만든다(서초점 소속 계정으로).
     const resv = await call(tok.seochoMember, 'post', '/reservations', { scheduleSlotId: slot.id });
     if (resv.status !== 201) throw new Error(`픽스처 실패(예약 생성): ${resv.status} ${JSON.stringify(resv.body)}`);
+    // 휴가 날짜는 오늘 기준으로 잡는다 — 시연 데이터 층(D58)이 "오늘부터 3주"까지 휴가를 만들어, 고정 날짜(예전 2026-12-01)는
+    // 날이 지나면 그 휴가와 겹쳐 409가 났다(2026-11-12 CI). 약 4달 뒤 월·화(주말이 끼지 않게).
+    const leaveFrom = nextMondayAfter(120);
     const leave = await call(tok.seochoStaff, 'post', '/leave-requests', {
       type: 'ANNUAL',
-      startDate: '2026-12-01',
-      endDate: '2026-12-02',
+      startDate: leaveFrom,
+      endDate: addDaysKst(leaveFrom, 1),
     });
     if (leave.status !== 201) throw new Error(`픽스처 실패(휴가 신청): ${leave.status} ${JSON.stringify(leave.body)}`);
     const changeReq = await call(tok.seochoStaff, 'post', '/staff-change-requests', { field: 'phone', newValue: '010-9999-0000' });
@@ -444,3 +447,17 @@ describe('지점 데이터 격리', () => {
     });
   });
 });
+
+/** 오늘(KST)에서 days일 뒤 이후의 첫 월요일(YYYY-MM-DD). */
+function nextMondayAfter(days: number): string {
+  const d = new Date(`${todayKst()}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  while (d.getUTCDay() !== 1) d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function addDaysKst(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
