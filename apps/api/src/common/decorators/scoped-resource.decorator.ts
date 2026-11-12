@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import { Role } from '../../fixtures/mock-data.types';
+import { Role } from '../api-response.types';
 import { ScopedKind } from '../guards/scope-owners';
 
 export const SCOPED_RESOURCE_KEY = 'scopedResource';

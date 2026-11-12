@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, createApp, db, login } from './helpers/app';
 import { resetWorkerDb } from './helpers/worker-db';
-import { MOCK_DEMO_PASSWORD } from '../src/fixtures/demo-password';
+import { DEMO_PASSWORD } from '../src/fixtures/demo-password';
 
 /**
  * D60 2단계(권한관리 ADR-AUTH-07) — 본사가 역할 기본값·개인 예외를 바꾸는 API.
@@ -111,7 +111,7 @@ describe('세부 권한 관리 API (D60 2단계)', () => {
     await api(hq).put('/permissions/staff/staff-minsu/overrides', { feature: 'member', action: 'EXPORT', mode: 'DENY' });
     const res = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ email: ACCOUNTS.seochoAdmin, password: MOCK_DEMO_PASSWORD });
+      .send({ email: ACCOUNTS.seochoAdmin, password: DEMO_PASSWORD });
     const eff = res.body.data.user.effectivePermissions as Record<string, boolean>;
     expect(eff['member:CREATE']).toBe(false); // 역할 기본값
     expect(eff['member:EXPORT']).toBe(false); // 개인 예외

@@ -1,5 +1,5 @@
 import { sideBranchDataset } from './side-branch-fixtures';
-import { MockCourseEnrollment, MockMember, MockPTSession, MockPTSessionLog } from './mock-data.types';
+import { CourseEnrollmentResponse, MemberResponse, PTSessionResponse, PTSessionLogResponse } from '../common/api-response.types';
 
 /**
  * 회원·회원 계정·수강·PT의 시드 원천 — D32. 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
@@ -15,7 +15,7 @@ export interface MemberAccountRecord {
   memberId: string;
 }
 
-const HERO_MEMBERS: readonly MockMember[] = [
+const HERO_MEMBERS: readonly MemberResponse[] = [
   {
     id: 'member-sujin',
     accountId: 'account-sujin',
@@ -55,7 +55,7 @@ const MEMBER_ACCOUNTS: readonly MemberAccountRecord[] = [
 ];
 
 // ADR-MEM-03 — 서초점 회원 이수진의 데모 수강내역·PT 세션.
-const ENROLLMENTS: readonly MockCourseEnrollment[] = [
+const ENROLLMENTS: readonly CourseEnrollmentResponse[] = [
   {
     id: 'enrollment-sujin-yoga',
     memberId: 'member-sujin',
@@ -65,7 +65,7 @@ const ENROLLMENTS: readonly MockCourseEnrollment[] = [
   },
 ];
 
-const PT_SESSIONS: readonly MockPTSession[] = [
+const PT_SESSIONS: readonly PTSessionResponse[] = [
   {
     id: 'pt-session-sujin',
     memberId: 'member-sujin',
@@ -76,18 +76,18 @@ const PT_SESSIONS: readonly MockPTSession[] = [
   },
 ];
 
-const PT_SESSION_LOGS: readonly MockPTSessionLog[] = [
+const PT_SESSION_LOGS: readonly PTSessionLogResponse[] = [
   { id: 'pt-log-1', ptSessionId: 'pt-session-sujin', usedAt: '2026-08-05T10:00:00.000Z' },
   { id: 'pt-log-2', ptSessionId: 'pt-session-sujin', usedAt: '2026-08-12T10:00:00.000Z' },
   { id: 'pt-log-3', ptSessionId: 'pt-session-sujin', usedAt: '2026-08-19T10:00:00.000Z' },
 ];
 
 export interface MemberSeed {
-  members: MockMember[];
+  members: MemberResponse[];
   accounts: MemberAccountRecord[];
-  enrollments: MockCourseEnrollment[];
-  ptSessions: MockPTSession[];
-  ptSessionLogs: MockPTSessionLog[];
+  enrollments: CourseEnrollmentResponse[];
+  ptSessions: PTSessionResponse[];
+  ptSessionLogs: PTSessionLogResponse[];
 }
 
 /** 시드가 DB에 넣는 회원 전체(히어로 3 + 대조군 지점분, D58)와 회원 계정·수강·PT. */

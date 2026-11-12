@@ -11,7 +11,7 @@ import { resetWorkerDb } from './helpers/worker-db';
  * 위탁계약 종료(TERMINATED) 지점의 신규 활동 차단 — entities.md §2-1 "TERMINATED 전이가 하위 도메인에 미치는 영향".
  * - 차단 대상은 TERMINATED뿐이다. EXPIRED(만료)·RENEWAL_DUE(갱신임박)는 차단하지 않는다.
  * - 과거 데이터(회원·게시글·예약 이력) 조회는 유지한다(소프트 삭제 원칙).
- * MockDataService가 인메모리 상태를 가지므로 테스트마다 새 앱을 띄운다.
+ * 테스트마다 워커 DB를 새로 만들고 앱을 새로 띄운다(test/helpers/app.ts).
  */
 describe('위탁계약 종료 지점의 신규 활동 차단', () => {
   let app: INestApplication;

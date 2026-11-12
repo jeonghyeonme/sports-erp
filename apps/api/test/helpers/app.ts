@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/app.setup';
-import { MOCK_DEMO_PASSWORD } from '../../src/fixtures/demo-password';
+import { DEMO_PASSWORD } from '../../src/fixtures/demo-password';
 import { PrismaService } from '../../src/prisma/prisma.service';
 
 /**
@@ -26,7 +26,7 @@ export function db(app: INestApplication): PrismaService {
   return app.get(PrismaService);
 }
 
-// 시드된 데모 계정 (mock-data.service.ts). 서초점 소속 3명, 강남점 관리자, 본사 관리자.
+// 시드된 데모 계정(fixtures/*-fixtures.ts). 서초점 소속 3명, 강남점 관리자, 본사 관리자.
 export const ACCOUNTS = {
   superAdmin: 'jeong.haneul@spoism.example',
   seochoAdmin: 'kim.minsu@spoism.example',
@@ -41,7 +41,7 @@ export const BRANCH = { seocho: 'branch-seocho', gangnam: 'branch-gangnam' } as 
 export async function login(app: INestApplication, email: string): Promise<string> {
   const res = await request(app.getHttpServer())
     .post('/api/v1/auth/login')
-    .send({ email, password: MOCK_DEMO_PASSWORD });
+    .send({ email, password: DEMO_PASSWORD });
   if (res.status !== 200) {
     throw new Error(`로그인 실패(${email}): ${res.status} ${JSON.stringify(res.body)}`);
   }

@@ -6,7 +6,7 @@ async function bootstrap() {
   const app = configureApp(await NestFactory.create(AppModule));
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  // eslint-disable-next-line no-console
+   
   console.log(`sports-erp api listening on :${port}`);
 }
 bootstrap();

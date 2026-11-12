@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ACCOUNTS, createApp, db } from './helpers/app';
-import { MOCK_DEMO_PASSWORD } from '../src/fixtures/demo-password';
+import { DEMO_PASSWORD } from '../src/fixtures/demo-password';
 import { resetWorkerDb } from './helpers/worker-db';
 import { holdRowLock, waitForLockWaiters } from './helpers/row-lock';
 
@@ -23,7 +23,7 @@ describe('Refresh Token 회전과 정리', () => {
   const loginRaw = async (email: string) => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ email, password: MOCK_DEMO_PASSWORD });
+      .send({ email, password: DEMO_PASSWORD });
     expect(res.status).toBe(200);
     return res.body.data as { accessToken: string; refreshToken: string; user: { accountId: string } };
   };

@@ -6,7 +6,7 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { BranchScopeExempt, ScopedResource } from '../../common/decorators/scoped-resource.decorator';
 import { ok } from '../../common/http/api-response';
 import { PrismaService } from '../../prisma/prisma.service';
-import { toMockProgram } from '../programs/program.service';
+import { toProgramResponse } from '../programs/program.service';
 import { BranchService } from './branch.service';
 import { ChangeContractStatusDto } from './dto/change-contract-status.dto';
 import { RenewContractDto } from './dto/renew-contract.dto';
@@ -193,7 +193,7 @@ export class BranchesController {
   @BranchScopeExempt('경로 파라미터가 branchId라 전역 BranchScopeGuard의 branchId 검사가 본다')
   @Permission('branch', 'READ')
   async programsSummary(@Param('branchId') branchId: string) {
-    const programs = (await this.prisma.program.findMany({ where: { branchId }, orderBy: { id: 'asc' } })).map(toMockProgram);
+    const programs = (await this.prisma.program.findMany({ where: { branchId }, orderBy: { id: 'asc' } })).map(toProgramResponse);
     const byStatus = {
       PREPARING: programs.filter((p) => p.status === 'PREPARING').length,
       RUNNING: programs.filter((p) => p.status === 'RUNNING').length,

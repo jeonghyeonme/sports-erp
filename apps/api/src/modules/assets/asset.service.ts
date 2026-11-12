@@ -6,10 +6,10 @@ import { PageRequest, SortDir, searchTerm } from '../../common/http/pagination';
 import { recordAudit } from '../../prisma/audit';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
-import { MockAsset } from '../../fixtures/mock-data.types';
+import { AssetResponse } from '../../common/api-response.types';
 
 type AssetRow = Asset & { branch: { name: string } };
-export type AssetView = MockAsset & { branchName: string };
+export type AssetView = AssetResponse & { branchName: string };
 
 const CATEGORIES: AssetCategory[] = ['EXERCISE_EQUIPMENT', 'SAFETY_EQUIPMENT', 'OFFICE_FURNITURE', 'OTHER'];
 const STATUSES: AssetStatus[] = ['NORMAL', 'REPAIRING', 'DISPOSAL_PENDING', 'DISPOSED'];

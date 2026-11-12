@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { MOCK_DEMO_PASSWORD } from '../src/fixtures/demo-password';
+import { DEMO_PASSWORD } from '../src/fixtures/demo-password';
 import { ACCOUNTS, BRANCH, createApp, login } from './helpers/app';
 import { resetWorkerDb } from './helpers/worker-db';
 
@@ -83,9 +83,9 @@ describe('비밀번호 변경 PATCH /auth/password', () => {
     ['지점 관리자', ACCOUNTS.seochoAdmin],
     ['회원', ACCOUNTS.seochoMember],
   ])('데모 계정(%s)은 403 DEMO_ACCOUNT_LOCKED이고 데모 비밀번호가 그대로다', async (_label, email) => {
-    const res = await change(await login(app, email), MOCK_DEMO_PASSWORD, NEW_PASSWORD);
+    const res = await change(await login(app, email), DEMO_PASSWORD, NEW_PASSWORD);
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('DEMO_ACCOUNT_LOCKED');
-    expect((await rawLogin(email, MOCK_DEMO_PASSWORD)).status).toBe(200);
+    expect((await rawLogin(email, DEMO_PASSWORD)).status).toBe(200);
   });
 });

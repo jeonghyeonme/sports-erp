@@ -1,5 +1,5 @@
 import { sideBranchDataset } from './side-branch-fixtures';
-import { MockFacility, MockInstructor, MockProgram, MockScheduleSlot } from './mock-data.types';
+import { FacilityResponse, InstructorResponse, ProgramResponse, ScheduleSlotResponse } from '../common/api-response.types';
 
 /**
  * 시설·강사·프로그램·회차의 시드 원천 — D31. 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
@@ -10,7 +10,7 @@ import { MockFacility, MockInstructor, MockProgram, MockScheduleSlot } from './m
  * 그대로 가리킨다(CLAUDE.md "데모 계정은 mock과 id를 맞출 것").
  */
 
-const HERO_FACILITIES: readonly MockFacility[] = [
+const HERO_FACILITIES: readonly FacilityResponse[] = [
   {
     id: 'facility-seocho-gym',
     branchId: 'branch-seocho',
@@ -46,7 +46,7 @@ const HERO_FACILITIES: readonly MockFacility[] = [
   },
 ];
 
-const HERO_INSTRUCTORS: readonly MockInstructor[] = [
+const HERO_INSTRUCTORS: readonly InstructorResponse[] = [
   {
     id: 'instructor-seoyeon',
     branchId: 'branch-seocho',
@@ -58,7 +58,7 @@ const HERO_INSTRUCTORS: readonly MockInstructor[] = [
   },
 ];
 
-const HERO_PROGRAMS: readonly MockProgram[] = [
+const HERO_PROGRAMS: readonly ProgramResponse[] = [
   {
     id: 'program-seocho-yoga',
     branchId: 'branch-seocho',
@@ -135,7 +135,7 @@ const HERO_PROGRAMS: readonly MockProgram[] = [
 
 // 예약및결제 A-3 — '아침 요가'(PAID_SESSION, capacity 15)에 데모용 회차 2건.
 // 두 번째 회차는 정원을 일부러 작게 잡아 SLOT_FULL(정원 초과) 케이스를 바로 테스트할 수 있게 한다.
-const HERO_SLOTS: readonly MockScheduleSlot[] = [
+const HERO_SLOTS: readonly ScheduleSlotResponse[] = [
   {
     id: 'slot-seocho-yoga-1',
     programId: 'program-seocho-yoga',
@@ -155,10 +155,10 @@ const HERO_SLOTS: readonly MockScheduleSlot[] = [
 ];
 
 export interface CatalogSeed {
-  facilities: MockFacility[];
-  instructors: MockInstructor[];
-  programs: MockProgram[];
-  slots: MockScheduleSlot[];
+  facilities: FacilityResponse[];
+  instructors: InstructorResponse[];
+  programs: ProgramResponse[];
+  slots: ScheduleSlotResponse[];
 }
 
 /** 시드가 DB에 넣는 시설·강사·프로그램·회차 전체(히어로 + 대조군 지점 3곳분, D58). */

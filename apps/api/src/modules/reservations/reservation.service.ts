@@ -5,17 +5,17 @@ import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PageRequest, searchTerm } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACTIVE_RESERVATION_STATUSES, lockBranchForShare, lockReservation, lockScheduleSlot } from '../../prisma/integrity';
-import { MockPayment, MockReservation, MockScheduleSlot } from '../../fixtures/mock-data.types';
+import { PaymentResponse, ReservationResponse, ScheduleSlotResponse } from '../../common/api-response.types';
 import { heldByPTSession, lockPTSessions } from '../members/pt-holds';
 
-export type ReservationView = MockReservation & {
-  slot?: MockScheduleSlot;
+export type ReservationView = ReservationResponse & {
+  slot?: ScheduleSlotResponse;
   programId?: string;
   programName?: string;
   branchId?: string;
   branchName?: string;
   memberName?: string;
-  payment?: MockPayment;
+  payment?: PaymentResponse;
 };
 
 const RESERVATION_STATUSES: ReservationStatus[] = ['REQUESTED', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW'];
@@ -97,7 +97,7 @@ export class ReservationService {
    * → (PT 회차면) 남은 횟수(ADR-RSV-09).
    * 정원·중복은 회차 행을 잠근 트랜잭션 안에서 센다 — 동시 요청이 같은 마지막 좌석을 둘 다 잡지 못한다.
    */
-  async create(memberId: string, scheduleSlotId: string): Promise<{ reservation: ReservationView; payment?: MockPayment }> {
+  async create(memberId: string, scheduleSlotId: string): Promise<{ reservation: ReservationView; payment?: PaymentResponse }> {
     const reservationId = await this.withDuplicateGuard(() =>
       this.prisma.$transaction(async (tx) => {
         const locked = await lockScheduleSlot(tx, scheduleSlotId);
@@ -271,7 +271,7 @@ function alreadyReserved(): AppException {
   return new AppException('ALREADY_RESERVED', '이미 이 회차를 예약했습니다.', 409);
 }
 
-export function toMockSlot(row: ScheduleSlot): MockScheduleSlot {
+export function toSlotResponse(row: ScheduleSlot): ScheduleSlotResponse {
   return {
     id: row.id,
     programId: row.programId,
@@ -282,7 +282,7 @@ export function toMockSlot(row: ScheduleSlot): MockScheduleSlot {
   };
 }
 
-export function toMockPayment(row: Payment): MockPayment {
+export function toPaymentResponse(row: Payment): PaymentResponse {
   return {
     id: row.id,
     reservationId: row.reservationId ?? undefined,
@@ -291,7 +291,7 @@ export function toMockPayment(row: Payment): MockPayment {
     amount: row.amount,
     supplyAmount: row.supplyAmount,
     vat: row.vat,
-    method: row.method as MockPayment['method'], // FREE는 스키마에만 있고 앱이 만들지 않는다(무료 회차는 결제 행 없이 CONFIRMED)
+    method: row.method as PaymentResponse['method'], // FREE는 스키마에만 있고 앱이 만들지 않는다(무료 회차는 결제 행 없이 CONFIRMED)
     status: row.status,
     mockApprovalNo: row.mockApprovalNo ?? undefined,
     approvedAt: row.approvedAt?.toISOString(),
@@ -299,7 +299,7 @@ export function toMockPayment(row: Payment): MockPayment {
   };
 }
 
-export function toMockReservation(row: Reservation): MockReservation {
+export function toReservationResponse(row: Reservation): ReservationResponse {
   return {
     id: row.id,
     memberId: row.memberId,
@@ -315,13 +315,13 @@ export function toMockReservation(row: Reservation): MockReservation {
 function toView(row: ReservationRow): ReservationView {
   const program = row.scheduleSlot.program;
   return {
-    ...toMockReservation(row),
-    slot: toMockSlot(row.scheduleSlot),
+    ...toReservationResponse(row),
+    slot: toSlotResponse(row.scheduleSlot),
     programId: program.id,
     programName: program.name,
     branchId: program.branchId,
     branchName: program.branch.name,
     memberName: row.member.name,
-    payment: row.payment ? toMockPayment(row.payment) : undefined,
+    payment: row.payment ? toPaymentResponse(row.payment) : undefined,
   };
 }

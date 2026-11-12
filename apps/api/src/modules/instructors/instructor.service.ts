@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Instructor } from '@prisma/client';
-import { MockInstructor } from '../../fixtures/mock-data.types';
+import { InstructorResponse } from '../../common/api-response.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { PrismaService } from '../../prisma/prisma.service';
 
-export type InstructorView = MockInstructor & { branchName?: string };
+export type InstructorView = InstructorResponse & { branchName?: string };
 
 /**
  * 강사 — D31. 원천은 DB다.
@@ -21,12 +21,12 @@ export class InstructorService {
       include: { branch: { select: { name: true } } },
       orderBy: { id: 'asc' },
     });
-    return rows.map((r) => ({ ...toMockInstructor(r), branchName: r.branch.name }));
+    return rows.map((r) => ({ ...toInstructorResponse(r), branchName: r.branch.name }));
   }
 
-  async findById(id: string): Promise<MockInstructor | null> {
+  async findById(id: string): Promise<InstructorResponse | null> {
     const row = await this.prisma.instructor.findUnique({ where: { id } });
-    return row ? toMockInstructor(row) : null;
+    return row ? toInstructorResponse(row) : null;
   }
 
   // 강사프로그램게시 A-5 POST /instructors — BRANCH_ADMIN 전용(컨트롤러에서 강제).
@@ -43,7 +43,7 @@ export class InstructorService {
   // 강사프로그램게시 A-5 PATCH /instructors/:id. 강사프로그램게시 A-6 — 비활성화는 isActive=false(소프트 삭제), 연결된 프로그램은 유지.
   async update(
     id: string,
-    input: Partial<Pick<MockInstructor, 'name' | 'specialty' | 'bio' | 'phone' | 'isActive'>>,
+    input: Partial<Pick<InstructorResponse, 'name' | 'specialty' | 'bio' | 'phone' | 'isActive'>>,
   ): Promise<InstructorView> {
     if (!(await this.prisma.instructor.findUnique({ where: { id }, select: { id: true } }))) {
       throw new AppException('INSTRUCTOR_NOT_FOUND', '강사를 찾을 수 없습니다.', 404);
@@ -66,11 +66,11 @@ export class InstructorService {
       where: { id },
       include: { branch: { select: { name: true } } },
     });
-    return { ...toMockInstructor(row), branchName: row.branch.name };
+    return { ...toInstructorResponse(row), branchName: row.branch.name };
   }
 }
 
-function toMockInstructor(row: Instructor): MockInstructor {
+function toInstructorResponse(row: Instructor): InstructorResponse {
   return {
     id: row.id,
     branchId: row.branchId,

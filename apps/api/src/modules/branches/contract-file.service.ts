@@ -14,11 +14,6 @@ type Tx = Prisma.TransactionClient;
 /** 저장소에서 다시 확인한 계약 파일 — 회차에 붙일 때 그대로 행이 된다. */
 export type VerifiedContractFile = VerifiedStoredFile;
 
-export const CONTRACT_FILE_LABEL: Record<ContractFileKind, string> = {
-  CONTRACT: '계약서',
-  TERMINATION_AGREEMENT: '해지 합의서',
-};
-
 /**
  * 위탁계약 회차의 계약 파일 — D69. 저장은 게시판 첨부와 같은 저장소·한도(D57): 브라우저가 서명 URL로 직접 올리고,
  * api는 업로드 URL 발급과 올라온 파일의 크기·형식 재확인만 한다. 경로는 계약 전용(`contracts/`)이다.

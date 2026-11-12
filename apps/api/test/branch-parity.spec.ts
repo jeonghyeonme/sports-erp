@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { allBranchRecords, toMockBranch } from '../src/fixtures/branch-fixtures';
+import { allBranchRecords, toBranchResponse } from '../src/fixtures/branch-fixtures';
 import { ACCOUNTS, BRANCH, createApp, login } from './helpers/app';
 import { setBranchStatus } from './helpers/branch-status';
 
@@ -23,7 +23,7 @@ describe('지점 원천(DB)과 시드 원천', () => {
   it('시드 원천의 모든 이름표 필드가 DB 지점과 같다(5개, D58)', async () => {
     const rows = await app.get(PrismaService).branch.findMany();
     const db = new Map(rows.map((r) => [r.id, r]));
-    const mock = allBranchRecords().map(toMockBranch);
+    const mock = allBranchRecords().map(toBranchResponse);
 
     expect(mock).toHaveLength(5);
     expect(rows).toHaveLength(mock.length);

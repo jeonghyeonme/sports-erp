@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Role, Staff, StaffAssignment } from '@prisma/client';
-import { MockStaff, MockStaffAssignment } from '../../fixtures/mock-data.types';
+import { StaffResponse, StaffAssignmentResponse } from '../../common/api-response.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { recordAudit, recordPhoneView } from '../../prisma/audit';
@@ -12,7 +12,7 @@ import * as bcrypt from 'bcrypt';
 import { generateTemporaryPassword } from '../../common/validation/temporary-password';
 
 type StaffRow = Staff & { branch: { name: string } };
-export type StaffView = MockStaff & { branchName: string };
+export type StaffView = StaffResponse & { branchName: string };
 
 const dateOf = (d: string) => new Date(`${d}T00:00:00Z`);
 
@@ -59,13 +59,13 @@ export class StaffService {
 
   /** 인사정보관리 A-5 GET /staff/:id/assignments — 최신 파견이 먼저. */
   // 지점명을 붙여 준다 — 지점 관리자는 GET /branches로 자기 지점만 보므로 화면이 예전 파견 지점 이름을 알 길이 없다(log/090).
-  async history(staffId: string): Promise<Array<MockStaffAssignment & { branchName: string }>> {
+  async history(staffId: string): Promise<Array<StaffAssignmentResponse & { branchName: string }>> {
     const rows = await this.prisma.staffAssignment.findMany({
       where: { staffId },
       include: { branch: { select: { name: true } } },
       orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
     });
-    return rows.map((a) => ({ ...toMockAssignment(a), branchName: a.branch.name }));
+    return rows.map((a) => ({ ...toAssignmentResponse(a), branchName: a.branch.name }));
   }
 
   // ── 쓰기 ──────────────────────────────────────────────
@@ -144,7 +144,7 @@ export class StaffService {
   /** 인사정보관리 A-5 PATCH /staff/:id — 지점은 파견 발령으로만 바꾼다. 파트타임은 휴무 요일을 쓰지 않는다(ATT-T05). */
   async update(
     id: string,
-    input: Partial<Pick<MockStaff, 'name' | 'phone' | 'position' | 'employmentType' | 'offDays'>>,
+    input: Partial<Pick<StaffResponse, 'name' | 'phone' | 'position' | 'employmentType' | 'offDays'>>,
   ): Promise<StaffView> {
     const current = await this.prisma.staff.findUnique({ where: { id } });
     if (!current) throw staffNotFound();
@@ -340,7 +340,7 @@ function terminatedBranch() {
 }
 
 // DB 행 → mock 형태. null은 필드 생략(undefined)으로, 빈 휴무 요일도 생략으로 바꿔 이관 전 응답 형식을 유지한다.
-function toMockStaff(s: Staff): MockStaff {
+function toStaffResponse(s: Staff): StaffResponse {
   return {
     id: s.id,
     accountId: s.accountId,
@@ -357,7 +357,7 @@ function toMockStaff(s: Staff): MockStaff {
   };
 }
 
-function toMockAssignment(a: StaffAssignment): MockStaffAssignment {
+function toAssignmentResponse(a: StaffAssignment): StaffAssignmentResponse {
   return {
     id: a.id,
     staffId: a.staffId,
@@ -370,5 +370,5 @@ function toMockAssignment(a: StaffAssignment): MockStaffAssignment {
 }
 
 function toView(row: StaffRow): StaffView {
-  return { ...toMockStaff(row), branchName: row.branch.name };
+  return { ...toStaffResponse(row), branchName: row.branch.name };
 }

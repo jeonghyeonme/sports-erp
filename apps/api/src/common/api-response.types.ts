@@ -1,7 +1,6 @@
-// API 응답 형식(날짜는 KST YYYY-MM-DD 문자열, 없는 값은 필드 생략) 타입 정의.
-// Phase 1의 인메모리 mock 저장소가 쓰던 타입이지만, D26~D36의 실DB 전환 동안 각 서비스가 DB 행을 이 형식으로
-// 바꿔 돌려주는 "응답 계약"으로 남겼다 — admin-web이 이 형식에 맞춰져 있다. MockDataService는 D36으로 삭제됐다.
-// 시드 원천(*-fixtures.ts)도 이 타입으로 적는다.
+// API 응답 형식(날짜는 KST YYYY-MM-DD 문자열, 없는 값은 필드 생략) 타입 정의 — 각 서비스가 DB 행을 이 형식으로
+// 바꿔 돌려주는 "응답 계약"이고 admin-web이 이 형식에 맞춰져 있다. 시드 원천(fixtures/*-fixtures.ts)도 이 타입으로 적는다.
+// 원래 Phase 1 인메모리 mock 저장소의 타입(Mock* 이름, fixtures/mock-data.types.ts)이었다 — D36 뒤 이름·위치만 정리(log/222).
 
 export type Role = 'SUPER_ADMIN' | 'BRANCH_ADMIN' | 'STAFF' | 'MEMBER';
 export type ProgramStatus = 'PREPARING' | 'RUNNING' | 'PAUSED' | 'ENDED';
@@ -41,21 +40,12 @@ export interface BranchRecord {
   contractStatus: BranchContractStatus;
 }
 
-// D29 — 아직 mock인 도메인이 동기적으로 쓰는 지점 "이름표". 계약 필드는 일부러 뺐다: 계약 상태의 원천은 DB 하나뿐이고,
-// mock에서 계약 상태를 읽는 코드가 남아 있으면 컴파일이 실패하게 하려는 것(계약 종료 판정은 쓰기 트랜잭션 안 지점 행 공유 락으로 한다, D70).
+// D29 — 지점 "이름표". 계약 필드는 일부러 뺐다: 계약 상태의 원천은 DB 하나뿐이고,
+// 이름표에서 계약 상태를 읽는 코드가 남아 있으면 컴파일이 실패하게 하려는 것(계약 종료 판정은 쓰기 트랜잭션 안 지점 행 공유 락으로 한다, D70).
 // 남은 필드가 DB와 같은지는 test/branch-parity.spec.ts가 검증한다.
-export type MockBranch = Omit<BranchRecord, 'contractPartner' | 'contractStartAt' | 'contractEndAt' | 'contractStatus'>;
+export type BranchResponse = Omit<BranchRecord, 'contractPartner' | 'contractStartAt' | 'contractEndAt' | 'contractStatus'>;
 
-// 권한관리 A-3 RefreshToken — 원문 대신 해시로 저장, 로그아웃/rotate 시 revokedAt만 채운다(물리삭제 안 함).
-export interface MockRefreshToken {
-  id: string; // JWT의 jti(리프레시 토큰 고유 id)와 동일
-  accountId: string;
-  tokenHash: string;
-  expiresAt: string;
-  revokedAt?: string;
-}
-
-export interface MockAccount {
+export interface AccountResponse {
   id: string;
   email: string;
   passwordHash: string;
@@ -69,10 +59,10 @@ export interface MockAccount {
   memberId?: string;
 }
 
-export interface MockStaff {
+export interface StaffResponse {
   id: string;
   accountId: string;
-  branchId: string; // **현재 파견 지점**(비정규화 캐시) — 원천은 MockStaffAssignment. 인사정보관리 A-3
+  branchId: string; // **현재 파견 지점**(비정규화 캐시) — 원천은 StaffAssignmentResponse. 인사정보관리 A-3
   staffCode: string;
   name: string;
   phone?: string;
@@ -86,18 +76,18 @@ export interface MockStaff {
 
 // 파견 이력 — architecture/entities.md §2-2, 인사정보관리 A-3. endDate=undefined인 레코드가 직원당 항상 최대 1건이어야
 // 한다는 불변식은 StaffService.assign/resign(한 트랜잭션)과 DB 부분 unique(ADR-STF-03)가 보장한다.
-export interface MockStaffAssignment {
+export interface StaffAssignmentResponse {
   id: string;
   staffId: string;
   branchId: string;
   startDate: string;
   endDate?: string; // undefined = 현재 진행 중인 파견
-  assignedBy: string; // FK → MockAccount.id, 항상 SUPER_ADMIN
+  assignedBy: string; // FK → AccountResponse.id, 항상 SUPER_ADMIN
   note?: string;
 }
 
 // 근태관리 A-3 AttendanceRecord — staffId+date가 하루 1레코드(unique).
-export interface MockAttendanceRecord {
+export interface AttendanceRecordResponse {
   id: string;
   staffId: string;
   branchId: string; // ADR-ATT-03(domains/근태관리.md) — 기록 시점(체크인 당시/결근 확정 대상일)의 소속 지점
@@ -110,7 +100,7 @@ export interface MockAttendanceRecord {
 }
 
 // 근태관리 A-3 LeaveRequest.
-export interface MockLeaveRequest {
+export interface LeaveRequestResponse {
   id: string;
   staffId: string;
   type: LeaveType;
@@ -124,7 +114,7 @@ export interface MockLeaveRequest {
 }
 
 // 근태관리 A-3 LeaveBalance — type=ANNUAL(연차)만 이 잔여일수에 반영된다. staffId+year가 1건.
-export interface MockLeaveBalance {
+export interface LeaveBalanceResponse {
   staffId: string;
   year: number;
   totalDays: number;
@@ -133,12 +123,12 @@ export interface MockLeaveBalance {
 
 // GET /leave-balance/:staffId 응답 — 연차 잔여 + 올해 승인된 휴가의 유형별 사용 일수(근태관리 F3-2, log/133).
 // 한도는 연차에만 있다. 병가·경조사는 회사 규정마다 달라 사용 일수만 기록해 보여 준다.
-export interface MockLeaveBalanceWithUsage extends MockLeaveBalance {
+export interface LeaveBalanceWithUsageResponse extends LeaveBalanceResponse {
   usedByType: Record<LeaveType, number>;
 }
 
 // 근태관리 A-3 WorkLog — staffId+date가 하루 1건 권장(수정은 허용).
-export interface MockWorkLog {
+export interface WorkLogResponse {
   id: string;
   staffId: string;
   date: string;
@@ -146,7 +136,7 @@ export interface MockWorkLog {
   createdAt: string;
 }
 
-export interface MockMember {
+export interface MemberResponse {
   id: string;
   accountId?: string;
   branchId: string;
@@ -165,7 +155,7 @@ export interface MockMember {
 // ADR-MEM-03 — 수강내역. 예약(Reservation)과 별개로 "이 회원이 이 프로그램을 듣고 있다"는 사실 자체를
 // 관리자가 직접 기록한다(예약은 회차 단위, 수강은 프로그램 단위의 등록 상태).
 export type CourseEnrollmentStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
-export interface MockCourseEnrollment {
+export interface CourseEnrollmentResponse {
   id: string;
   memberId: string;
   programId: string;
@@ -174,10 +164,10 @@ export interface MockCourseEnrollment {
   status: CourseEnrollmentStatus;
 }
 
-// ADR-MEM-03 — PT 패키지 구매 단위. PT_PACKAGE 결제 연동은 범위 제외(예약및결제 A-3 MockPayment 주석)라
+// ADR-MEM-03 — PT 패키지 구매 단위. PT_PACKAGE 결제 연동은 범위 제외(예약및결제 A-3 PaymentResponse 주석)라
 // 관리자가 구매 사실을 직접 등록하고, 세션 사용은 별도 액션(usePTSession)으로 차감한다.
 // remainingSessions는 저장하지 않고 조회 시 totalSessions - usedSessions로 계산한다.
-export interface MockPTSession {
+export interface PTSessionResponse {
   id: string;
   memberId: string;
   programId: string;
@@ -186,7 +176,7 @@ export interface MockPTSession {
   purchasedAt: string;
 }
 
-export interface MockPTSessionLog {
+export interface PTSessionLogResponse {
   id: string;
   ptSessionId: string;
   usedAt: string;
@@ -196,7 +186,7 @@ export interface MockPTSessionLog {
 // 강사프로그램게시 A-3 Instructor — 2026-09-18까지는 Program.instructorName 문자열 비정규화로 대체돼 있었으나
 // (당시엔 "존재하지 않는 엔티티를 가리키는 매달린 FK를 만들지 않기 위한 의도적 단순화"), 이제 엔티티가
 // 생겼으므로 Program은 이 엔티티를 instructorId(FK)로 가리킨다.
-export interface MockInstructor {
+export interface InstructorResponse {
   id: string;
   branchId: string;
   staffId?: string; // 겸임 직원(DB Instructor.staffId). D31부터 미러에 실린다 — 파견 시 ADR-STF-04가 연결을 푼다.
@@ -208,11 +198,11 @@ export interface MockInstructor {
   isActive: boolean;
 }
 
-export interface MockProgram {
+export interface ProgramResponse {
   id: string;
   branchId: string;
-  facilityId?: string; // FK → MockFacility. 혼잡도관리 문서 참고
-  instructorId?: string; // FK → MockInstructor, nullable
+  facilityId?: string; // FK → FacilityResponse. 혼잡도관리 문서 참고
+  instructorId?: string; // FK → InstructorResponse, nullable
   name: string;
   category: string;
   ageGroup: AgeGroup; // 권한관리 문서가 인용하는 원본 RFP "연령대별 리스트" 요건. 강사프로그램게시 A-3
@@ -227,7 +217,7 @@ export interface MockProgram {
 }
 
 // 예약및결제 A-3 ScheduleSlot(프로그램 회차) — PAID_SESSION 프로그램만 대상(FREE_ACCESS는 회차 개념이 없음).
-export interface MockScheduleSlot {
+export interface ScheduleSlotResponse {
   id: string;
   programId: string;
   date: string; // YYYY-MM-DD
@@ -238,7 +228,7 @@ export interface MockScheduleSlot {
 
 // 예약및결제 A-3 Reservation. bookedCount는 캐시 필드를 두지 않고 매번
 // Reservation(scheduleSlotId, status IN REQUESTED/CONFIRMED) 카운트로 계산한다(예약및결제 A-6).
-export interface MockReservation {
+export interface ReservationResponse {
   id: string;
   memberId: string;
   scheduleSlotId: string;
@@ -250,7 +240,7 @@ export interface MockReservation {
 }
 
 // 예약및결제 A-3 Payment — 회차 예약 결제(reservationId) 또는 회원 앱 PT 패키지 구매 결제(ptSessionId, ADR-RSV-09) 중 하나.
-export interface MockPayment {
+export interface PaymentResponse {
   id: string;
   reservationId?: string;
   ptSessionId?: string;
@@ -266,7 +256,7 @@ export interface MockPayment {
 }
 
 // 자원문서관리 A-3 Asset — bookValue(감가상각 장부가액)는 연 1회 배치(Phase 2)라 이번 범위에서 제외.
-export interface MockAsset {
+export interface AssetResponse {
   id: string;
   assetCode: string; // {지점코드}-A{순번}
   branchId: string;
@@ -283,7 +273,7 @@ export interface MockAsset {
 }
 
 // 자원문서관리 A-3 Document — fileUrl은 문자열 필드일 뿐 실제 파일 업로드 인프라는 아직 없다.
-export interface MockDocument {
+export interface DocumentResponse {
   id: string;
   category: DocumentCategory;
   branchId?: string; // 전사 문서면 undefined(=null)
@@ -295,17 +285,17 @@ export interface MockDocument {
   stored?: boolean;
   fileType?: string;
   fileSize?: number;
-  uploadedBy: string; // FK → MockAccount
+  uploadedBy: string; // FK → AccountResponse
   retentionUntil?: string; // undefined = 영구 보관
   createdAt: string;
   deletedAt?: string; // 소프트 삭제(D9)
 }
 
-export interface MockPost {
+export interface PostResponse {
   id: string;
   scope: PostScope;
   branchId?: string; // scope=HQ_TO_BRANCH이고 전체공지면 undefined(=null)
-  authorId: string; // FK → MockAccount — "작성자 본인만 수정" 권한 판단에 사용(게시판 A-5)
+  authorId: string; // FK → AccountResponse — "작성자 본인만 수정" 권한 판단에 사용(게시판 A-5)
   category: PostCategory;
   title: string;
   content: string;
@@ -318,7 +308,7 @@ export interface MockPost {
   facilityId?: string; // 게시판 ADR-BRD-05 — 지점 공지의 대상 시설. 없으면 지점 전체
 }
 
-export interface MockFacility {
+export interface FacilityResponse {
   id: string;
   branchId: string;
   name: string;
