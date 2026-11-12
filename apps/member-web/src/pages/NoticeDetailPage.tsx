@@ -5,7 +5,7 @@ import { shortDate } from '../lib/format';
 import { Post } from '../lib/types';
 import { SkeletonList } from '../components/Skeleton';
 import { NoticeAttachments } from '../components/NoticeAttachments';
-import { isHtmlContent, sanitizeRich } from '../lib/rich-content';
+import { isHtmlContent, sanitizeRich } from '@sports-erp/web-shared';
 
 // 공지 상세 — GET /posts/:id 1회. 상세 조회가 조회수를 올리므로(게시판 D36 결정 2) 목록 데이터를 넘겨 쓰지 않고 부른다.
 // 회원에게 보이지 않는 글은 서버가 404로 숨긴다(게시판 A-7).

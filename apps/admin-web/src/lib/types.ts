@@ -1,10 +1,8 @@
-// TODO: packages/types(@sports-erp/types)로 옮겨 admin-web/member-app/api가 공유하도록 통합 예정.
-// 지금은 Vite 워크스페이스 심볼릭 링크 해석 이슈를 피하기 위해 admin-web 안에 로컬로 둡니다.
+// 각 앱의 응답 타입. 두 앱이 똑같이 쓰는 값 타입은 @sports-erp/web-shared에 한 벌만 둔다(D78).
+import type { Role, PricingType, AgeGroup, PaymentStatus, ReservationStatus } from '@sports-erp/web-shared';
+export type { Role, PricingType, AgeGroup, PaymentStatus, ReservationStatus };
 
-export type Role = 'SUPER_ADMIN' | 'BRANCH_ADMIN' | 'STAFF' | 'MEMBER';
 export type ProgramStatus = 'PREPARING' | 'RUNNING' | 'PAUSED' | 'ENDED';
-export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
-export type AgeGroup = 'ALL' | 'CHILD' | 'TEEN' | 'ADULT' | 'SENIOR';
 export type BranchContractStatus = 'ACTIVE' | 'RENEWAL_DUE' | 'EXPIRED' | 'TERMINATED';
 
 export interface AuthUser {
@@ -242,9 +240,7 @@ export interface AffectedReservations {
   }>;
 }
 
-export type ReservationStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
 export type PaymentMethod = 'MOCK_CARD';
-export type PaymentStatus = 'PENDING' | 'APPROVED' | 'FAILED' | 'REFUNDED';
 
 export interface ScheduleSlotRow {
   id: string;

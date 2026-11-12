@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ApiEnvelope, SessionTokens } from './types';
-import { trackRequest } from './slow-requests';
+import { trackRequest } from '@sports-erp/web-shared';
 
 // D41 — 같은 Worker의 /m/에서 서빙되므로 api는 같은 오리진의 상대경로다(D25). 개발 서버는 vite 프록시가 넘긴다.
 export const api = axios.create({ baseURL: '/api/v1' });

@@ -8,7 +8,7 @@ import { useAuth } from '../lib/use-auth';
 import { useToast } from '../lib/use-toast';
 import { useCan } from '../lib/use-can';
 import { ApiEnvelope, BranchSummary, FacilityRow, PostCategory, PostRow } from '../lib/types';
-import { isHtmlContent } from '../lib/rich-content';
+import { isHtmlContent } from '@sports-erp/web-shared';
 import { ATTACHMENT_ACCEPT, ATTACHMENT_MAX_BYTES, ATTACHMENT_MAX_FILES, uploadAttachment } from '../lib/post-attachments';
 import { RichEditor } from '../components/RichEditor';
 import { PostAttachments } from '../components/PostAttachments';

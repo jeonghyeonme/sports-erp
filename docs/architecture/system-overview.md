@@ -133,7 +133,7 @@ sports-erp/
 │   ├── admin-web/
 │   ├── member-web/   (회원 모바일 웹 /m/, D41)
 │   └── member-app/   (README만 — 네이티브 앱은 만들지 않음, D40)
-├── packages/types/   (공유 DTO 타입)
+├── packages/web-shared/   (admin-web·member-web 공유 코드, D78)
 └── docs/             (본 문서들 + ERD 이미지 + 발표자료)
 ```
 

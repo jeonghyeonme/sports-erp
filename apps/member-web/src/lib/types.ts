@@ -1,7 +1,7 @@
-// admin-web과 같은 이유로 packages/types 대신 로컬에 둔다(admin-web/src/lib/types.ts 상단 주석 — Vite 워크스페이스
-// 심볼릭 링크 해석 이슈). 형태는 api의 RequestUser·공통 응답 envelope(system-overview §4)과 맞춘다.
-
-export type Role = 'SUPER_ADMIN' | 'BRANCH_ADMIN' | 'STAFF' | 'MEMBER';
+// 각 앱의 응답 타입. 두 앱이 똑같이 쓰는 값 타입은 @sports-erp/web-shared에 한 벌만 둔다(D78).
+// 형태는 api의 RequestUser·공통 응답 envelope(system-overview §4)과 맞춘다.
+import type { Role, PricingType, AgeGroup, PaymentStatus, ReservationStatus } from '@sports-erp/web-shared';
+export type { Role, PricingType, AgeGroup, PaymentStatus, ReservationStatus };
 
 export interface AuthUser {
   accountId: string;
@@ -32,9 +32,7 @@ export interface LoginResult extends SessionTokens {
 
 // ── 조회·예약·결제(B1-2) — api 응답 형식(fixtures/mock-data.types.ts의 Mock*)에서 화면이 쓰는 필드만 ──
 
-export type PricingType = 'FREE_ACCESS' | 'PAID_SESSION' | 'PT_PACKAGE';
 
-export type AgeGroup = 'ALL' | 'CHILD' | 'TEEN' | 'ADULT' | 'SENIOR';
 
 export interface Program {
   id: string;
@@ -66,8 +64,6 @@ export interface SlotWithCount extends ScheduleSlot {
   bookedCount: number;
 }
 
-export type ReservationStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
-export type PaymentStatus = 'PENDING' | 'APPROVED' | 'FAILED' | 'REFUNDED';
 
 export interface Payment {
   id: string;

@@ -5,7 +5,7 @@ import { useAuth } from '../lib/use-auth';
 import { describeError } from '../lib/errors';
 import { PHONE_RE } from '../lib/format';
 import { ApiEnvelope, LoginResult } from '../lib/types';
-import { PASSWORD_RULE_LABEL, passwordProblem } from '../lib/password-rule';
+import { PASSWORD_RULE_LABEL, passwordProblem } from '@sports-erp/web-shared';
 
 
 // 지점 등록 회원의 앱 연동(POST /members/link, ADR-MEM-01) — 회원번호+전화번호가 둘 다 맞아야 하고,
