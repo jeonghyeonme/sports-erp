@@ -14,12 +14,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { allocateBranchCode, lockBranchForShare } from '../../prisma/integrity';
 import { recordAudit, recordPhoneView } from '../../prisma/audit';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-import { MockCourseEnrollment, MockMember, MockPTSession, MockPTSessionLog } from '../../fixtures/mock-data.types';
+import { CourseEnrollmentResponse, MemberResponse, PTSessionResponse, PTSessionLogResponse } from '../../common/api-response.types';
 import { heldByPTSession, lockPTSessions } from './pt-holds';
 
-export type MemberView = MockMember & { branchName?: string; assignedStaffName?: string };
+export type MemberView = MemberResponse & { branchName?: string; assignedStaffName?: string };
 // reservedSessions = PT 회차 예약으로 잡힌 횟수(예약및결제 ADR-RSV-09) — remainingSessions(총 − 사용)에 들어 있다.
-type PTView = MockPTSession & { remainingSessions: number; reservedSessions?: number; programName?: string };
+type PTView = PTSessionResponse & { remainingSessions: number; reservedSessions?: number; programName?: string };
 type Tx = Prisma.TransactionClient;
 
 const MEMBER_STATUSES: MemberStatus[] = ['ACTIVE', 'DORMANT', 'WITHDRAWN'];
@@ -101,9 +101,9 @@ export class MemberService {
     return { items: rows.map(toView), total };
   }
 
-  async findById(id: string): Promise<MockMember | null> {
+  async findById(id: string): Promise<MemberResponse | null> {
     const row = await this.prisma.member.findUnique({ where: { id } });
-    return row ? toMockMember(row) : null;
+    return row ? toMemberResponse(row) : null;
   }
 
   async view(id: string): Promise<MemberView> {
@@ -133,28 +133,28 @@ export class MemberService {
     };
   }
 
-  async listEnrollments(memberId: string): Promise<Array<MockCourseEnrollment & { programName?: string }>> {
+  async listEnrollments(memberId: string): Promise<Array<CourseEnrollmentResponse & { programName?: string }>> {
     const rows = await this.prisma.courseEnrollment.findMany({
       where: { memberId },
       include: { program: { select: { name: true } } },
       orderBy: [{ enrolledAt: 'asc' }, { id: 'asc' }],
     });
-    return rows.map((r) => ({ ...toMockEnrollment(r), programName: r.program.name }));
+    return rows.map((r) => ({ ...toEnrollmentResponse(r), programName: r.program.name }));
   }
 
-  async listPTSessions(memberId: string): Promise<Array<PTView & { logs: MockPTSessionLog[] }>> {
+  async listPTSessions(memberId: string): Promise<Array<PTView & { logs: PTSessionLogResponse[] }>> {
     const rows = await this.prisma.pTSession.findMany({
       where: { memberId },
       include: { program: { select: { name: true } }, logs: { orderBy: { usedAt: 'asc' } } },
       orderBy: [{ purchasedAt: 'asc' }, { id: 'asc' }],
     });
     const held = await this.prisma.$transaction((tx) => heldByPTSession(tx, rows.map((r) => r.id)));
-    return rows.map((r) => ({ ...toPTView(r, r.program.name), reservedSessions: held.get(r.id) ?? 0, logs: r.logs.map(toMockLog) }));
+    return rows.map((r) => ({ ...toPTView(r, r.program.name), reservedSessions: held.get(r.id) ?? 0, logs: r.logs.map(toLogResponse) }));
   }
 
-  async findPTSession(id: string): Promise<MockPTSession | null> {
+  async findPTSession(id: string): Promise<PTSessionResponse | null> {
     const row = await this.prisma.pTSession.findUnique({ where: { id } });
-    return row ? toMockPT(row) : null;
+    return row ? toPTResponse(row) : null;
   }
 
   // ── 쓰기: 회원 ─────────────────────────────────────────
@@ -240,7 +240,7 @@ export class MemberService {
   // 회원관리 A-5 PATCH /members/:id — 지점/본인 범위 검증은 컨트롤러가 먼저 마친다.
   async update(
     id: string,
-    input: Partial<Pick<MockMember, 'name' | 'phone' | 'birthDate' | 'gender' | 'memo' | 'assignedStaffId'>>,
+    input: Partial<Pick<MemberResponse, 'name' | 'phone' | 'birthDate' | 'gender' | 'memo' | 'assignedStaffId'>>,
   ): Promise<MemberView> {
     const member = await this.requireMember(id);
     const data: Prisma.MemberUncheckedUpdateInput = {
@@ -287,7 +287,7 @@ export class MemberService {
   async createEnrollment(
     memberId: string,
     input: { programId: string; enrolledAt: string; expiresAt?: string },
-  ): Promise<MockCourseEnrollment & { programName?: string }> {
+  ): Promise<CourseEnrollmentResponse & { programName?: string }> {
     const { row, program } = await this.prisma.$transaction(async (tx) => {
       const member = await this.assertBranchNotTerminatedForMember(tx, memberId);
       const program = await this.assertProgramInBranch(tx, input.programId, member.branchId);
@@ -302,7 +302,7 @@ export class MemberService {
       });
       return { row, program };
     });
-    return { ...toMockEnrollment(row), programName: program.name };
+    return { ...toEnrollmentResponse(row), programName: program.name };
   }
 
   // 현장 판매 — 관리자가 구매 사실을 직접 등록한다(결제 행 없음). 회원 앱 구매는 PaymentService.purchasePTPackage(ADR-RSV-09).
@@ -462,7 +462,7 @@ function isMinor(birthDate: string): boolean {
   return age < 19;
 }
 
-export function toMockMember(row: Member): MockMember {
+export function toMemberResponse(row: Member): MemberResponse {
   return {
     id: row.id,
     accountId: row.accountId ?? undefined,
@@ -481,10 +481,10 @@ export function toMockMember(row: Member): MockMember {
 }
 
 function toView(row: MemberRow): MemberView {
-  return { ...toMockMember(row), branchName: row.branch.name, assignedStaffName: row.assignedStaff?.name };
+  return { ...toMemberResponse(row), branchName: row.branch.name, assignedStaffName: row.assignedStaff?.name };
 }
 
-function toMockEnrollment(row: CourseEnrollment): MockCourseEnrollment {
+function toEnrollmentResponse(row: CourseEnrollment): CourseEnrollmentResponse {
   return {
     id: row.id,
     memberId: row.memberId,
@@ -495,7 +495,7 @@ function toMockEnrollment(row: CourseEnrollment): MockCourseEnrollment {
   };
 }
 
-function toMockPT(row: PTSession): MockPTSession {
+function toPTResponse(row: PTSession): PTSessionResponse {
   return {
     id: row.id,
     memberId: row.memberId,
@@ -507,10 +507,10 @@ function toMockPT(row: PTSession): MockPTSession {
 }
 
 function toPTView(row: PTSession, programName?: string): PTView {
-  return { ...toMockPT(row), remainingSessions: row.totalSessions - row.usedSessions, programName };
+  return { ...toPTResponse(row), remainingSessions: row.totalSessions - row.usedSessions, programName };
 }
 
-function toMockLog(row: PTSessionLog): MockPTSessionLog {
+function toLogResponse(row: PTSessionLog): PTSessionLogResponse {
   return { id: row.id, ptSessionId: row.ptSessionId, usedAt: row.usedAt.toISOString(), note: row.note ?? undefined };
 }
 

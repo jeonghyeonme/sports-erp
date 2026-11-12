@@ -3,7 +3,7 @@ import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './lib/auth-context';
 import { ToastProvider } from './components/ToastProvider';
-import { SlowRequestNotice } from './components/SlowRequestNotice';
+import { SlowRequestNotice } from '@sports-erp/web-shared';
 import { useAuth } from './lib/use-auth';
 import { AppLayout } from './layout/AppLayout';
 import { LoginPage } from './pages/LoginPage';

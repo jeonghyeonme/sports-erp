@@ -6,7 +6,7 @@ import { useAuth } from '../lib/use-auth';
 import { apiErrorMessage } from '../lib/use-api-list';
 import { isDemoAccount } from '../lib/demo-account';
 import { Modal } from './Modal';
-import { PASSWORD_RULE_LABEL, passwordProblem } from '../lib/password-rule';
+import { PASSWORD_RULE_LABEL, passwordProblem } from '@sports-erp/web-shared';
 
 // 비밀번호 변경(PATCH /auth/password, 권한관리 A-5). 사용자 결정(log/091):
 // 데모 계정은 서버가 403으로 막으므로 폼 대신 안내를 보이고, 바꾸면 서버가 모든 세션을 끊으므로 바로 로그아웃해 다시 로그인하게 한다.

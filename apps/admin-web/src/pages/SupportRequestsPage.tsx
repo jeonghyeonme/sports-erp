@@ -1,11 +1,10 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
 import { useToast } from '../lib/use-toast';
-import { apiErrorMessage, useApiPage } from '../lib/use-api-list';
+import { apiErrorMessage, useApiPage, ApiError } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
 import { Pager } from '../components/Pager';
 import { ApiEnvelope, SupportCategory, SupportRequestRow, SupportStatus } from '../lib/types';
@@ -18,10 +17,6 @@ type SupportSortKey = 'createdAt' | 'branch' | 'category' | 'title' | 'requester
 
 // D56 — 업무지원 요청(RFP 개념도 현장→본사). 지점 관리자는 요청·자기 지점 요청 확인, 본사는 전 지점 요청 처리.
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 const PAGE_SIZE = 20;
 const CATEGORY_LABEL: Record<SupportCategory, string> = {
@@ -59,7 +54,7 @@ function NewRequestModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [form, setForm] = useState({ category: 'FACILITY' as SupportCategory, title: '', content: '' });
-  const mutation = useMutation<SupportRequestRow, AxiosError<ApiErrorBody>>({
+  const mutation = useMutation<SupportRequestRow, ApiError>({
     mutationFn: async () =>
       (
         await api.post<ApiEnvelope<SupportRequestRow>>('/support-requests', {
@@ -137,7 +132,7 @@ function DetailModal({ row, canHandle, onClose }: { row: SupportRequestRow; canH
   const queryClient = useQueryClient();
   const toast = useToast();
   const [response, setResponse] = useState(row.response ?? '');
-  const mutation = useMutation<SupportRequestRow, AxiosError<ApiErrorBody>, SupportStatus>({
+  const mutation = useMutation<SupportRequestRow, ApiError, SupportStatus>({
     mutationFn: async (status) =>
       (
         await api.patch<ApiEnvelope<SupportRequestRow>>(`/support-requests/${row.id}/status`, {

@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { INPUT_LIMITS } from '../../../common/validation/input-limits';
-import { DocumentCategory } from '../../../fixtures/mock-data.types';
+import { DocumentCategory } from '../../../common/api-response.types';
 
 // D69 — 계약서는 문서가 아니라 계약 회차에서 다룬다(분류 없음).
 const CATEGORIES: DocumentCategory[] = ['HR_RECORD', 'MANUAL', 'OTHER'];

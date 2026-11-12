@@ -2,13 +2,7 @@ import { useEffect } from 'react';
 import { Role } from '../lib/types';
 import { ScreenHelp } from '../lib/help-content';
 import { errorHint } from '../lib/error-hints';
-
-const ROLE_LABEL: Record<Role, string> = {
-  SUPER_ADMIN: '본사 관리자',
-  BRANCH_ADMIN: '지점 관리자',
-  STAFF: '지점 직원',
-  MEMBER: '회원',
-};
+import { ROLE_LABEL } from '../lib/status-labels';
 
 // 화면별 도움말(log/089) — 오른쪽에서 열리는 패널. 화면을 가리지 않게 배경 막(overlay)을 두지 않고, 열린 채로 화면을 계속 쓸 수 있다.
 // ① 이 화면에서 하는 일(내 역할 기준 단계) ② 자주 나는 오류와 해결(error-hints.ts와 같은 문구).

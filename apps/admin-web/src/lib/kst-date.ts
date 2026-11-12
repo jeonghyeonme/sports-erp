@@ -5,3 +5,8 @@
 export function kstToday(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
 }
+
+/** 이번 달(KST, YYYY-MM). */
+export function kstMonth(): string {
+  return kstToday().slice(0, 7);
+}

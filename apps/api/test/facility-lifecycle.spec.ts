@@ -4,7 +4,7 @@ import { ACCOUNTS, createApp, login } from './helpers/app';
 
 /**
  * 혼잡도관리 도메인 — ADR-FAC-01(lastUpdatedAt)·ADR-FAC-02(isActive).
- * MockDataService가 인메모리 상태를 가지므로 테스트마다 새 앱을 띄운다.
+ * 테스트마다 워커 DB를 새로 만들고 앱을 새로 띄운다(test/helpers/app.ts).
  */
 describe('시설 생애주기 — 신선도 추적·운영중단 표시', () => {
   let app: INestApplication;

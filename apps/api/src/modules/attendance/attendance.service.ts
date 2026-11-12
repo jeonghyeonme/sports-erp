@@ -15,12 +15,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { recordAudit } from '../../prisma/audit';
 import { lockStaff } from '../../prisma/integrity';
 import {
-  MockAttendanceRecord,
-  MockLeaveBalance,
-  MockLeaveBalanceWithUsage,
-  MockLeaveRequest,
-  MockWorkLog,
-} from '../../fixtures/mock-data.types';
+  AttendanceRecordResponse,
+  LeaveBalanceResponse,
+  LeaveBalanceWithUsageResponse,
+  LeaveRequestResponse,
+  WorkLogResponse,
+} from '../../common/api-response.types';
 
 type Tx = Prisma.TransactionClient;
 type AssignmentSpan = { branchId: string; startDate: Date; endDate: Date | null };
@@ -43,7 +43,7 @@ export class AttendanceService {
 
   // 근태관리 A-6 "자동 지각 판정" — Branch.standardCheckInTime 대비 10분 초과 시 LATE.
   // 체크인 중복 방지(불변규칙 1): 앱 검사 + (staffId, date) unique. 동시 체크인 경합은 P2002 → 409.
-  async checkIn(staffId: string): Promise<MockAttendanceRecord> {
+  async checkIn(staffId: string): Promise<AttendanceRecordResponse> {
     const staff = await this.prisma.staff.findUnique({
       where: { id: staffId },
       include: { branch: { select: { standardCheckInTime: true } } },
@@ -66,10 +66,10 @@ export class AttendanceService {
         data: { checkInAt: now, status, branchId },
       });
       if (count === 0) throw alreadyCheckedIn();
-      return toMockAttendance(await this.prisma.attendanceRecord.findUniqueOrThrow({ where: { id: existing.id } }));
+      return toAttendanceResponse(await this.prisma.attendanceRecord.findUniqueOrThrow({ where: { id: existing.id } }));
     }
     try {
-      return toMockAttendance(
+      return toAttendanceResponse(
         await this.prisma.attendanceRecord.create({
           data: { staffId, branchId, date: dateOf(date), checkInAt: now, status },
         }),
@@ -80,7 +80,7 @@ export class AttendanceService {
     }
   }
 
-  async checkOut(staffId: string): Promise<MockAttendanceRecord> {
+  async checkOut(staffId: string): Promise<AttendanceRecordResponse> {
     const date = dateOf(todayKst());
     const { count } = await this.prisma.attendanceRecord.updateMany({
       where: { staffId, date, checkInAt: { not: null }, checkOutAt: null },
@@ -93,17 +93,17 @@ export class AttendanceService {
     if (count === 0) {
       throw new AppException('ALREADY_CHECKED_OUT', '오늘 이미 체크아웃했습니다.', 409);
     }
-    return toMockAttendance(record);
+    return toAttendanceResponse(record);
   }
 
   // ── 조회 ──────────────────────────────────────────────
 
-  async listAttendance(staffId: string, month?: string): Promise<MockAttendanceRecord[]> {
+  async listAttendance(staffId: string, month?: string): Promise<AttendanceRecordResponse[]> {
     const rows = await this.prisma.attendanceRecord.findMany({
       where: { staffId, date: monthRange(month) },
       orderBy: { date: 'asc' },
     });
-    return rows.map(toMockAttendance).filter((r) => !month || r.date.startsWith(month));
+    return rows.map(toAttendanceResponse).filter((r) => !month || r.date.startsWith(month));
   }
 
   // 근태관리 A-5 GET /attendance/summary — ADR-ATT-03: 집계 기준은 "기록 자체의 branchId"다.
@@ -112,7 +112,7 @@ export class AttendanceService {
     const records = (
       await this.prisma.attendanceRecord.findMany({ where: { branchId, date: monthRange(month) } })
     )
-      .map(toMockAttendance)
+      .map(toAttendanceResponse)
       .filter((r) => r.date.startsWith(month));
     const current = await this.prisma.staff.findMany({
       where: { branchId },
@@ -190,7 +190,7 @@ export class AttendanceService {
 
   // 확정은 미리보기를 지금 다시 계산해 그 후보만 ABSENT로 저장한다. (staffId, date) unique + skipDuplicates라
   // 두 관리자가 동시에 확정해도 한 날짜에 한 행만 남고, 각 호출은 자기가 실제로 만든 행만 돌려받는다(D33 결정 1).
-  async confirmAbsences(branchId: string, month: string, note?: string): Promise<MockAttendanceRecord[]> {
+  async confirmAbsences(branchId: string, month: string, note?: string): Promise<AttendanceRecordResponse[]> {
     const candidates = await this.previewAbsences(branchId, month);
     if (candidates.length === 0) return [];
     const created = await this.prisma.attendanceRecord.createManyAndReturn({
@@ -203,7 +203,7 @@ export class AttendanceService {
       })),
       skipDuplicates: true,
     });
-    return created.map(toMockAttendance).sort((a, b) => a.staffId.localeCompare(b.staffId) || a.date.localeCompare(b.date));
+    return created.map(toAttendanceResponse).sort((a, b) => a.staffId.localeCompare(b.staffId) || a.date.localeCompare(b.date));
   }
 
   // ── 관리자 정정(ADR-ATT-04) ─────────────────────────────
@@ -220,7 +220,7 @@ export class AttendanceService {
     staffId: string,
     date: string,
     input: { status: AttendanceStatus; checkInTime?: string; checkOutTime?: string; reason: string },
-  ): Promise<MockAttendanceRecord> {
+  ): Promise<AttendanceRecordResponse> {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || day(dateOf(date)) !== date) {
       throw new AppException('VALIDATION_ERROR', '날짜는 YYYY-MM-DD 형식이어야 합니다.', 400);
     }
@@ -270,7 +270,7 @@ export class AttendanceService {
         });
         return saved;
       });
-      return toMockAttendance(row);
+      return toAttendanceResponse(row);
     } catch (e) {
       if (isUniqueViolation(e)) {
         throw new AppException('ATTENDANCE_CONFLICT', '같은 날 근태가 방금 다른 요청으로 만들어졌습니다. 다시 불러와 확인하세요.', 409);
@@ -282,23 +282,23 @@ export class AttendanceService {
   // ── 휴가·연차 잔여 ──────────────────────────────────────
 
   // year를 안 주면 올해(KST, D33 결정 4). 행이 없으면 입사 연차로 계산해 만든다(지연 생성, 동시 생성은 skipDuplicates).
-  async leaveBalance(staffId: string, year?: number, tx: Tx = this.prisma): Promise<MockLeaveBalance> {
+  async leaveBalance(staffId: string, year?: number, tx: Tx = this.prisma): Promise<LeaveBalanceResponse> {
     const targetYear = year ?? Number(todayKst().slice(0, 4));
     const key = { staffId_year: { staffId, year: targetYear } };
     const found = await tx.leaveBalance.findUnique({ where: key });
-    if (found) return toMockBalance(found);
+    if (found) return toBalanceResponse(found);
     const staff = await tx.staff.findUnique({ where: { id: staffId }, select: { hireDate: true } });
     if (!staff) throw staffNotFound();
     await tx.leaveBalance.createMany({
       data: [{ staffId, year: targetYear, totalDays: annualLeaveTotalDays(staff.hireDate, targetYear), usedDays: 0 }],
       skipDuplicates: true,
     });
-    return toMockBalance(await tx.leaveBalance.findUniqueOrThrow({ where: key }));
+    return toBalanceResponse(await tx.leaveBalance.findUniqueOrThrow({ where: key }));
   }
 
   // 근태관리 F3-2(log/133) — 잔여 연차 + 올해 승인된 휴가의 유형별 사용 일수. 해를 걸친 휴가는 시작일의 해로 센다.
   // 잔여 계산(leaveBalance)은 신청·승인 트랜잭션도 쓰므로 집계는 조회 라우트에서만 붙인다.
-  async leaveBalanceWithUsage(staffId: string): Promise<MockLeaveBalanceWithUsage> {
+  async leaveBalanceWithUsage(staffId: string): Promise<LeaveBalanceWithUsageResponse> {
     const balance = await this.leaveBalance(staffId);
     const sums = await this.prisma.leaveRequest.groupBy({
       by: ['type'],
@@ -318,7 +318,7 @@ export class AttendanceService {
   async requestLeave(
     staffId: string,
     input: { type: LeaveType; startDate: string; endDate: string; reason?: string },
-  ): Promise<{ request: MockLeaveRequest; warning?: string }> {
+  ): Promise<{ request: LeaveRequestResponse; warning?: string }> {
     const days = leaveDays(input.startDate, input.endDate);
     if (days <= 0) {
       throw new AppException('INVALID_DATE_RANGE', '종료일은 시작일 이후여야 합니다.', 400);
@@ -341,10 +341,10 @@ export class AttendanceService {
         data: { staffId, type: input.type, startDate, endDate, days, reason: input.reason },
       });
     });
-    return { request: toMockLeave(request), warning };
+    return { request: toLeaveResponse(request), warning };
   }
 
-  async listLeaveRequests(filter: { staffId?: string; branchId?: string; status?: string }): Promise<MockLeaveRequest[]> {
+  async listLeaveRequests(filter: { staffId?: string; branchId?: string; status?: string }): Promise<LeaveRequestResponse[]> {
     // 예전 mock은 모르는 상태값으로 거르면 빈 목록이었다 — enum 밖 값을 DB로 보내 500이 나지 않게 유지.
     if (filter.status && !LEAVE_STATUSES.includes(filter.status as LeaveStatus)) return [];
     const rows = await this.prisma.leaveRequest.findMany({
@@ -355,12 +355,12 @@ export class AttendanceService {
       },
       orderBy: { createdAt: 'asc' },
     });
-    return rows.map(toMockLeave);
+    return rows.map(toLeaveResponse);
   }
 
   // ADR-ATT-01 — 승인 시점에만 차감, ANNUAL만 잔여에 반영. "PENDING일 때만" 바꾸는 조건부 갱신과
   // 잔여 증가를 한 트랜잭션으로 묶어, 동시 승인이 와도 한 번만 차감된다(data-integrity §6).
-  async approveLeaveRequest(id: string, approverId: string): Promise<MockLeaveRequest> {
+  async approveLeaveRequest(id: string, approverId: string): Promise<LeaveRequestResponse> {
     return this.prisma.$transaction(async (tx) => {
       // ADR-ATT-05 — 신청 때 막기 전에 쌓인 겹치는 신청(배포 DB 등)이 있어도, 이미 승인된 휴가와 겹치면 승인하지 않는다.
       const pending = await tx.leaveRequest.findUnique({ where: { id }, select: { staffId: true, startDate: true, endDate: true } });
@@ -376,12 +376,12 @@ export class AttendanceService {
           data: { usedDays: { increment: request.days } },
         });
       }
-      return toMockLeave(request);
+      return toLeaveResponse(request);
     });
   }
 
-  async rejectLeaveRequest(id: string, approverId: string): Promise<MockLeaveRequest> {
-    return toMockLeave(await this.prisma.$transaction((tx) => this.review(tx, id, approverId, 'REJECTED')));
+  async rejectLeaveRequest(id: string, approverId: string): Promise<LeaveRequestResponse> {
+    return toLeaveResponse(await this.prisma.$transaction((tx) => this.review(tx, id, approverId, 'REJECTED')));
   }
 
   private async review(tx: Tx, id: string, approverId: string, status: LeaveStatus): Promise<LeaveRequest> {
@@ -401,7 +401,7 @@ export class AttendanceService {
 
   // 하루 1건(근태관리 A-3) — 같은 날 다시 쓰면 덮어쓴다. (staffId, date) unique(log/093)가 최종 방어선이고,
   // 트랜잭션 advisory lock으로 같은 직원·날짜의 upsert를 직렬화해 동시 첫 작성이 unique 위반으로 실패하지 않게 한다(D33 결정 1).
-  async upsertWorkLog(staffId: string, date: string, content: string): Promise<MockWorkLog> {
+  async upsertWorkLog(staffId: string, date: string, content: string): Promise<WorkLogResponse> {
     const d = dateOf(date);
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worklog:${staffId}:${day(d)}`}))`;
@@ -409,17 +409,17 @@ export class AttendanceService {
       const log = existing
         ? await tx.workLog.update({ where: { id: existing.id }, data: { content } })
         : await tx.workLog.create({ data: { staffId, date: d, content } });
-      return toMockWorkLog(log);
+      return toWorkLogResponse(log);
     });
   }
 
-  async listWorkLogs(staffId: string, date?: string): Promise<MockWorkLog[]> {
+  async listWorkLogs(staffId: string, date?: string): Promise<WorkLogResponse[]> {
     if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return [];
     const rows = await this.prisma.workLog.findMany({
       where: { staffId, date: date ? dateOf(date) : undefined },
       orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
     });
-    return rows.map(toMockWorkLog);
+    return rows.map(toWorkLogResponse);
   }
 
   // ADR-ATT-03 — 그 날짜에 그 직원이 소속돼 있던 지점. endDate는 배타적(파견 전환 당일은 새 지점, ADR-AUTH-01).
@@ -524,7 +524,7 @@ function alreadyCheckedIn() {
 
 // ── DB 행 → 이관 전 응답 형식 ─────────────────────────────
 
-function toMockAttendance(r: AttendanceRecord): MockAttendanceRecord {
+function toAttendanceResponse(r: AttendanceRecord): AttendanceRecordResponse {
   return {
     id: r.id,
     staffId: r.staffId,
@@ -537,7 +537,7 @@ function toMockAttendance(r: AttendanceRecord): MockAttendanceRecord {
   };
 }
 
-function toMockLeave(r: LeaveRequest): MockLeaveRequest {
+function toLeaveResponse(r: LeaveRequest): LeaveRequestResponse {
   return {
     id: r.id,
     staffId: r.staffId,
@@ -552,10 +552,10 @@ function toMockLeave(r: LeaveRequest): MockLeaveRequest {
   };
 }
 
-function toMockBalance(b: LeaveBalance): MockLeaveBalance {
+function toBalanceResponse(b: LeaveBalance): LeaveBalanceResponse {
   return { staffId: b.staffId, year: b.year, totalDays: b.totalDays, usedDays: b.usedDays };
 }
 
-function toMockWorkLog(l: WorkLog): MockWorkLog {
+function toWorkLogResponse(l: WorkLog): WorkLogResponse {
   return { id: l.id, staffId: l.staffId, date: day(l.date), content: l.content, createdAt: l.createdAt.toISOString() };
 }

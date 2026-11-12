@@ -1,6 +1,6 @@
 import { IsIn, IsInt, IsString, Max, Min, MinLength } from 'class-validator';
 import { INPUT_LIMITS } from '../../../common/validation/input-limits';
-import { FacilityType } from '../../../fixtures/mock-data.types';
+import { FacilityType } from '../../../common/api-response.types';
 
 const TYPES: FacilityType[] = ['GYM', 'POOL', 'GOLF', 'READING_ROOM', 'ETC'];
 

@@ -7,7 +7,7 @@ import { resetWorkerDb } from './helpers/worker-db';
 /**
  * 강사프로그램게시 도메인 — ADR-PRG-01(capacity 필수)·ADR-PRG-02(상태전이 확정예약 가시화)·
  * ADR-PRG-03(facilityId 지점 일치 검증).
- * MockDataService가 인메모리 상태를 가지므로 테스트마다 새 앱을 띄운다.
+ * 테스트마다 워커 DB를 새로 만들고 앱을 새로 띄운다(test/helpers/app.ts).
  */
 describe('프로그램 무결성 — facilityId 지점 일치', () => {
   let app: INestApplication;

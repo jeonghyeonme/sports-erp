@@ -19,7 +19,7 @@ import { SignupPage } from './pages/SignupPage';
 import { LinkPage } from './pages/LinkPage';
 import { GuidePage } from './pages/GuidePage';
 import { PrivacyPage } from './pages/PrivacyPage';
-import { SlowRequestNotice } from './components/SlowRequestNotice';
+import { SlowRequestNotice } from '@sports-erp/web-shared';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, isRestoring, restoreOffline } = useAuth();

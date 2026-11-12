@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Facility } from '@prisma/client';
-import { FacilityType, MockFacility } from '../../fixtures/mock-data.types';
+import { FacilityType, FacilityResponse } from '../../common/api-response.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { lockBranchForShare } from '../../prisma/integrity';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -8,7 +8,7 @@ import { kstHoursMinutes, toKstDateString } from '../../common/date/kst-date';
 
 // ADR-FAC-05 — 혼잡도 = 지금 진행 중인 회차의 예약 인원(자동) + 예약 외 현장 인원(currentCount, 관리자 입력).
 // reservedCount·totalCount는 조회할 때 계산하고, level은 totalCount 기준으로 다시 매긴다(저장된 level은 쓰지 않는다).
-export type FacilityView = MockFacility & { branchName?: string; reservedCount: number; totalCount: number };
+export type FacilityView = FacilityResponse & { branchName?: string; reservedCount: number; totalCount: number };
 
 /**
  * 시설·혼잡도 — D31. 원천은 DB다.
@@ -26,7 +26,7 @@ export class FacilityService {
       orderBy: { id: 'asc' },
     });
     const reserved = await this.reservedCounts(rows.map((r) => r.id), new Date());
-    return rows.map((r) => withOccupancy({ ...toMockFacility(r), branchName: r.branch.name }, reserved.get(r.id) ?? 0));
+    return rows.map((r) => withOccupancy({ ...toFacilityResponse(r), branchName: r.branch.name }, reserved.get(r.id) ?? 0));
   }
 
   /**
@@ -59,9 +59,9 @@ export class FacilityService {
     return counts;
   }
 
-  async findById(id: string): Promise<MockFacility | null> {
+  async findById(id: string): Promise<FacilityResponse | null> {
     const row = await this.prisma.facility.findUnique({ where: { id } });
-    return row ? toMockFacility(row) : null;
+    return row ? toFacilityResponse(row) : null;
   }
 
   // 혼잡도관리 A-5 POST /facilities — capacity 1 이상 필수(혼잡도관리 A-6 나눗셈 오류 방지).
@@ -149,7 +149,7 @@ export class FacilityService {
       include: { branch: { select: { name: true } } },
     });
     const reserved = await this.reservedCounts([row.id], new Date());
-    return withOccupancy({ ...toMockFacility(row), branchName: row.branch.name }, reserved.get(row.id) ?? 0);
+    return withOccupancy({ ...toFacilityResponse(row), branchName: row.branch.name }, reserved.get(row.id) ?? 0);
   }
 }
 
@@ -169,7 +169,7 @@ function congestionLevel(currentCount: number, capacity: number): number {
   return 5;
 }
 
-function toMockFacility(row: Facility): MockFacility {
+function toFacilityResponse(row: Facility): FacilityResponse {
   return {
     id: row.id,
     branchId: row.branchId,

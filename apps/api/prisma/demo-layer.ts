@@ -10,7 +10,7 @@
  */
 import { Prisma, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { MOCK_DEMO_PASSWORD } from '../src/fixtures/demo-password';
+import { DEMO_PASSWORD } from '../src/fixtures/demo-password';
 
 const SEED = 20261018;
 const HISTORY_DAYS = 90;
@@ -201,7 +201,7 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
   const today = kstToday(now);
   const yesterday = addDays(today, -1);
   const year = Number(today.slice(0, 4));
-  const passwordHash = await bcrypt.hash(MOCK_DEMO_PASSWORD, 10);
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
   const counts: Record<string, number> = {};
   const nowMs = now.getTime();
   const notAfterNow = (d: Date) => new Date(Math.min(d.getTime(), nowMs - 3_600_000));

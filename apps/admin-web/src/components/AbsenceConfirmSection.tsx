@@ -1,16 +1,11 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, ApiError } from '../lib/use-api-list';
 import { useToast } from '../lib/use-toast';
 import { AbsenceCandidateRow, ApiEnvelope, AttendanceRecordRow } from '../lib/types';
 import { Modal } from './Modal';
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 // 근태관리 ADR-ATT-02 — 결근은 배치가 아니라 지점 관리자의 명시적 확정이다. 미리보기(저장 안 함)를 보고
 // 확정하면 그 시점에 다시 계산한 후보만 ABSENT로 저장된다(이미 확정된 날은 건너뛴다 — 여러 번 눌러도 안전).
@@ -58,7 +53,7 @@ export function AbsenceConfirmSection() {
     byStaff.set(r.staffId, entry);
   }
 
-  const confirmMutation = useMutation<AttendanceRecordRow[], AxiosError<ApiErrorBody>>({
+  const confirmMutation = useMutation<AttendanceRecordRow[], ApiError>({
     mutationFn: async () =>
       (
         await api.post<ApiEnvelope<AttendanceRecordRow[]>>('/attendance/absence-confirm', {

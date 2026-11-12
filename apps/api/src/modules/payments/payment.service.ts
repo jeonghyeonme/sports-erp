@@ -6,16 +6,16 @@ import { PageRequest } from '../../common/http/pagination';
 import { PrismaService } from '../../prisma/prisma.service';
 import { lockBranchForShare, lockReservation } from '../../prisma/integrity';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
-import { MockPayment } from '../../fixtures/mock-data.types';
-import { ReservationService, ReservationView, splitVat, toMockPayment } from '../reservations/reservation.service';
+import { PaymentResponse } from '../../common/api-response.types';
+import { ReservationService, ReservationView, splitVat, toPaymentResponse } from '../reservations/reservation.service';
 
 import { kstDayRange } from '../../common/date/kst-date';
 
-export type PaymentView = MockPayment & { memberName?: string; programName?: string; branchName?: string; kind?: 'RESERVATION' | 'PT_PACKAGE' };
+export type PaymentView = PaymentResponse & { memberName?: string; programName?: string; branchName?: string; kind?: 'RESERVATION' | 'PT_PACKAGE' };
 
 export type PTPurchase = {
   ptSession: { id: string; programId: string; programName: string; totalSessions: number; usedSessions: number; remainingSessions: number; purchasedAt: string };
-  payment: MockPayment;
+  payment: PaymentResponse;
 };
 
 /** 결제(모의) — D32. 원천은 DB. */
@@ -33,7 +33,7 @@ export class PaymentService {
    * 나중에 잡아, 예약 → 결제 순서인 취소와 겹치면 교착(40P01)으로 한쪽이 500을 받았다. 취소가 먼저 끝났으면
    * 락 뒤에 읽는 결제가 이미 FAILED라 409다.
    */
-  async mockPay(reservationId: string): Promise<{ reservation: ReservationView; payment: MockPayment }> {
+  async mockPay(reservationId: string): Promise<{ reservation: ReservationView; payment: PaymentResponse }> {
     await this.prisma.$transaction(async (tx) => {
       if (!(await lockReservation(tx, reservationId))) throw notPending();
       const payment = await tx.payment.findUnique({ where: { reservationId } });
@@ -115,7 +115,7 @@ export class PaymentService {
         remainingSessions: pt.totalSessions - pt.usedSessions,
         purchasedAt: toKstDateString(pt.purchasedAt),
       },
-      payment: toMockPayment(payment),
+      payment: toPaymentResponse(payment),
     };
   }
 
@@ -166,7 +166,7 @@ export class PaymentService {
     const items = rows.map((p): PaymentView => {
       const program = (p.reservation?.scheduleSlot.program ?? p.ptSession?.program)!;
       return {
-        ...toMockPayment(p),
+        ...toPaymentResponse(p),
         memberName: p.member.name,
         programName: program.name,
         branchName: program.branch.name,

@@ -1,4 +1,5 @@
 import {
+  Role,
   AssetCategory,
   AssetStatus,
   AssetType,
@@ -10,6 +11,13 @@ import {
 } from './types';
 
 // log/125 F8 — 화면마다 영어 코드(ACTIVE·APPROVED 등)를 그대로 보이던 곳이 있었다. 여러 화면이 같이 쓰는 표시 이름은 여기 둔다.
+export const ROLE_LABEL: Record<Role, string> = {
+  SUPER_ADMIN: '본사 관리자',
+  BRANCH_ADMIN: '지점 관리자',
+  STAFF: '지점 직원',
+  MEMBER: '회원',
+};
+
 export const MEMBER_STATUS_LABEL: Record<MemberRow['status'], string> = { ACTIVE: '활성', DORMANT: '휴면', WITHDRAWN: '탈퇴' };
 
 export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {

@@ -1,5 +1,5 @@
 import { sideBranchDataset } from './side-branch-fixtures';
-import { BranchRecord, MockBranch } from './mock-data.types';
+import { BranchRecord, BranchResponse } from '../common/api-response.types';
 
 /**
  * 지점 원천 레코드 — D29. 원래 prisma/seed.ts(DB 원천)와 MockDataService(이름표 사본)가
@@ -45,7 +45,7 @@ export function allBranchRecords(): BranchRecord[] {
 }
 
 /** 계약 필드를 뺀 mock 사본 — 계약 상태는 DB에서만 읽는다(D70 — 쓰기 트랜잭션 안 지점 행 공유 락). */
-export function toMockBranch(record: BranchRecord): MockBranch {
+export function toBranchResponse(record: BranchRecord): BranchResponse {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { contractPartner, contractStartAt, contractEndAt, contractStatus, ...rest } = record;
   return rest;

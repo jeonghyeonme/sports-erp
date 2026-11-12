@@ -1,17 +1,12 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, ApiError } from '../lib/use-api-list';
 import { useToast } from '../lib/use-toast';
 import { ApiEnvelope, ChangeRequestRow, StaffRow } from '../lib/types';
 
 // 인사정보관리 ADR-STF-09(D11) — 직원 본인 신청 → 지점 관리자 1단계 승인. 항목은 이름·연락처뿐이다.
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 const FIELD_LABEL: Record<ChangeRequestRow['field'], string> = { name: '이름', phone: '연락처' };
 const STATUS_LABEL: Record<ChangeRequestRow['status'], string> = { PENDING: '대기', APPROVED: '승인', REJECTED: '반려' };
@@ -30,7 +25,7 @@ export function MyChangeRequests({ staff }: { staff: StaffRow }) {
   const pendingFields = new Set(rows.filter((r) => r.status === 'PENDING').map((r) => r.field));
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['staff-change-requests'] });
-  const createMutation = useMutation<ChangeRequestRow, AxiosError<ApiErrorBody>>({
+  const createMutation = useMutation<ChangeRequestRow, ApiError>({
     mutationFn: async () =>
       (await api.post<ApiEnvelope<ChangeRequestRow>>('/staff-change-requests', { field, newValue: newValue.trim() })).data
         .data!,
@@ -40,7 +35,7 @@ export function MyChangeRequests({ staff }: { staff: StaffRow }) {
       toast.success(`${FIELD_LABEL[r.field]} 변경을 신청했습니다. 지점 관리자가 승인하면 바뀝니다.`);
     },
   });
-  const cancelMutation = useMutation<unknown, AxiosError<ApiErrorBody>, string>({
+  const cancelMutation = useMutation<unknown, ApiError, string>({
     mutationFn: async (id) => api.delete(`/staff-change-requests/${id}`),
     onSuccess: () => {
       refresh();
@@ -152,7 +147,7 @@ export function ChangeRequestInbox() {
   const inboxQuery = useApiList<ChangeRequestRow>(['staff-change-requests', 'pending'], '/staff-change-requests?status=PENDING');
   const rows = inboxQuery.data ?? [];
 
-  const reviewMutation = useMutation<ChangeRequestRow, AxiosError<ApiErrorBody>, { id: string; action: 'approve' | 'reject' }>({
+  const reviewMutation = useMutation<ChangeRequestRow, ApiError, { id: string; action: 'approve' | 'reject' }>({
     mutationFn: async ({ id, action }) =>
       (await api.patch<ApiEnvelope<ChangeRequestRow>>(`/staff-change-requests/${id}/${action}`)).data.data!,
     onSuccess: (_r, { action }) => {

@@ -1,8 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, ApiError } from '../lib/use-api-list';
 import { groupByBranch } from '../lib/group-by-branch';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { Modal } from '../components/Modal';
@@ -22,10 +21,6 @@ const INSTRUCTOR_SORT: SortAccessors<InstructorRow, InstructorSortKey> = {
 };
 const AUTO_EXPAND_THRESHOLD = 3;
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 interface InstructorForm {
   name: string;
@@ -41,7 +36,7 @@ function CreateInstructorModal({ onClose }: { onClose: () => void }) {
   const toast = useToast();
   const [form, setForm] = useState<InstructorForm>(EMPTY_FORM);
 
-  const createMutation = useMutation<InstructorRow, AxiosError<ApiErrorBody>, InstructorForm>({
+  const createMutation = useMutation<InstructorRow, ApiError, InstructorForm>({
     mutationFn: async (dto) => {
       const payload = {
         name: dto.name,
@@ -119,14 +114,14 @@ export function InstructorsPage() {
   const toast = useToast();
   const can = useCan();
 
-  const deactivateMutation = useMutation<InstructorRow, AxiosError<ApiErrorBody>, string>({
+  const deactivateMutation = useMutation<InstructorRow, ApiError, string>({
     mutationFn: async (id) => (await api.delete<ApiEnvelope<InstructorRow>>(`/instructors/${id}`)).data.data!,
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['instructors'] });
       toast.success(`${updated.name} 강사를 비활성화했습니다.`);
     },
   });
-  const activateMutation = useMutation<InstructorRow, AxiosError<ApiErrorBody>, string>({
+  const activateMutation = useMutation<InstructorRow, ApiError, string>({
     mutationFn: async (id) =>
       (await api.patch<ApiEnvelope<InstructorRow>>(`/instructors/${id}`, { isActive: true })).data.data!,
     onSuccess: (updated) => {

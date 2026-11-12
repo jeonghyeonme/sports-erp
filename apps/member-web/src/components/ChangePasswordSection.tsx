@@ -3,7 +3,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { describeError } from '../lib/errors';
 import { DEMO_MEMBER_EMAILS } from '../lib/demo-account';
-import { PASSWORD_RULE_LABEL, passwordProblem } from '../lib/password-rule';
+import { PASSWORD_RULE_LABEL, passwordProblem } from '@sports-erp/web-shared';
 
 // 내 정보 > 비밀번호 변경(PATCH /auth/password, 권한관리 A-5). 사용자 결정(log/091):
 // 바꾸면 서버가 모든 refresh token을 폐기하므로 바로 로그인 화면으로 보내고 안내를 남긴다. 데모 계정은 안내만 보인다.

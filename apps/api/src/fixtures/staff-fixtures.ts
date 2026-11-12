@@ -1,5 +1,5 @@
 import { sideBranchDataset } from './side-branch-fixtures';
-import { MockStaff, MockStaffAssignment, Role } from './mock-data.types';
+import { StaffResponse, StaffAssignmentResponse, Role } from '../common/api-response.types';
 
 /**
  * 직원·파견·관리자 계정의 시드 원천 — D30. 원천은 DB이고, prisma/seed.ts만 이 목록을 쓴다.
@@ -23,7 +23,7 @@ const HERO_ACCOUNTS: readonly StaffAccountRecord[] = [
   { id: 'account-gangnam-admin', email: 'choi.gangnam@spoism.example', role: 'BRANCH_ADMIN', name: '최강남' },
 ];
 
-const HERO_STAFF: readonly MockStaff[] = [
+const HERO_STAFF: readonly StaffResponse[] = [
   {
     id: 'staff-minsu',
     accountId: 'account-minsu',
@@ -64,8 +64,8 @@ const HERO_STAFF: readonly MockStaff[] = [
 
 export interface StaffSeed {
   accounts: StaffAccountRecord[];
-  staff: MockStaff[];
-  assignments: MockStaffAssignment[];
+  staff: StaffResponse[];
+  assignments: StaffAssignmentResponse[];
 }
 
 /**
@@ -92,7 +92,7 @@ export function staffSeed(): StaffSeed {
     })),
   ];
   // 인사정보관리 A-3 "신규 등록 시 최초 StaffAssignment 자동 생성"을 시드에도 적용 — 모든 직원이 활성 파견 1건으로 시작한다.
-  const assignments = staff.map<MockStaffAssignment>((s) => ({
+  const assignments = staff.map<StaffAssignmentResponse>((s) => ({
     id: `assignment-${s.id}`,
     staffId: s.id,
     branchId: s.branchId,

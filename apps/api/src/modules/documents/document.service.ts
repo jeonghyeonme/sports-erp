@@ -4,7 +4,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { addYearsToDateString, todayKst, toKstDateString } from '../../common/date/kst-date';
 import { lockBranchForShare } from '../../prisma/integrity';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MockDocument } from '../../fixtures/mock-data.types';
+import { DocumentResponse } from '../../common/api-response.types';
 import { PageRequest, SortDir, searchTerm } from '../../common/http/pagination';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { recordAudit } from '../../prisma/audit';
@@ -13,7 +13,7 @@ import { StorageService } from '../storage/storage.service';
 
 type Tx = Prisma.TransactionClient;
 type DocumentRow = Document & { branch: { name: string } | null };
-export type DocumentView = MockDocument & { branchName?: string; relatedStaffName?: string; uploadedByName?: string };
+export type DocumentView = DocumentResponse & { branchName?: string; relatedStaffName?: string; uploadedByName?: string };
 
 const CATEGORIES: DocumentCategory[] = ['HR_RECORD', 'MANUAL', 'OTHER'];
 const dateOf = (d: string) => new Date(`${d.slice(0, 10)}T00:00:00Z`);
@@ -223,7 +223,7 @@ export class DocumentService {
     const staffName = new Map(staff.map((s) => [s.id, s.name]));
     const accountName = new Map(accounts.map((a) => [a.id, a.name]));
     return rows.map((r) => ({
-      ...toMockDocument(r),
+      ...toDocumentResponse(r),
       branchName: r.branch?.name,
       relatedStaffName: r.relatedStaffId ? staffName.get(r.relatedStaffId) : undefined,
       uploadedByName: accountName.get(r.uploadedBy),
@@ -256,7 +256,7 @@ function documentNotFound() {
   return new AppException('DOCUMENT_NOT_FOUND', '문서를 찾을 수 없습니다.', 404);
 }
 
-function toMockDocument(r: Document): MockDocument {
+function toDocumentResponse(r: Document): DocumentResponse {
   return {
     id: r.id,
     category: r.category,

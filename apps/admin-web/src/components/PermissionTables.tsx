@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage } from '../lib/use-api-list';
+import { apiErrorMessage, ApiError } from '../lib/use-api-list';
 import { useToast } from '../lib/use-toast';
+import { ROLE_LABEL } from '../lib/status-labels';
 import {
   ApiEnvelope,
   GovernedRole,
@@ -16,15 +16,9 @@ import {
 // D60 2단계 — 세부 권한 표(본사 전용). 행 = 기능, 열 = 동작(조회·입력·수정·삭제·출력).
 // 역할 상한 밖 칸은 "—"(이 역할이 처음부터 할 수 없는 일 — 바꿀 수 없다).
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
-
-const ROLE_LABEL: Record<GovernedRole, string> = { BRANCH_ADMIN: '지점 관리자', STAFF: '지점 직원' };
 
 function useCatalog() {
-  return useQuery<PermissionCatalog, AxiosError<ApiErrorBody>>({
+  return useQuery<PermissionCatalog, ApiError>({
     queryKey: ['permissions', 'catalog'],
     queryFn: async () => (await api.get<ApiEnvelope<PermissionCatalog>>('/permissions/catalog')).data.data!,
     staleTime: Infinity,
@@ -38,11 +32,11 @@ export function RoleDefaultsTable() {
   const toast = useToast();
   const [role, setRole] = useState<GovernedRole>('BRANCH_ADMIN');
   const catalog = useCatalog();
-  const matrix = useQuery<Record<GovernedRole, RolePermissionCell[]>, AxiosError<ApiErrorBody>>({
+  const matrix = useQuery<Record<GovernedRole, RolePermissionCell[]>, ApiError>({
     queryKey: ['permissions', 'roles'],
     queryFn: async () => (await api.get<ApiEnvelope<Record<GovernedRole, RolePermissionCell[]>>>('/permissions/roles')).data.data!,
   });
-  const update = useMutation<RolePermissionCell[], AxiosError<ApiErrorBody>, RolePermissionCell>({
+  const update = useMutation<RolePermissionCell[], ApiError, RolePermissionCell>({
     mutationFn: async (cell) => (await api.put<ApiEnvelope<RolePermissionCell[]>>(`/permissions/roles/${role}`, cell)).data.data!,
     onSuccess: (cells) => {
       queryClient.setQueryData<Record<GovernedRole, RolePermissionCell[]>>(['permissions', 'roles'], (old) =>
@@ -116,12 +110,12 @@ export function StaffPermissionsTable({ staffId }: { staffId: string }) {
   const queryClient = useQueryClient();
   const toast = useToast();
   const catalog = useCatalog();
-  const matrix = useQuery<StaffPermissionMatrix, AxiosError<ApiErrorBody>>({
+  const matrix = useQuery<StaffPermissionMatrix, ApiError>({
     queryKey: ['permissions', 'staff', staffId, 'overrides'],
     queryFn: async () =>
       (await api.get<ApiEnvelope<StaffPermissionMatrix>>(`/permissions/staff/${staffId}/overrides`)).data.data!,
   });
-  const update = useMutation<StaffPermissionMatrix, AxiosError<ApiErrorBody>, { feature: string; action: PermissionAction; mode: Mode }>({
+  const update = useMutation<StaffPermissionMatrix, ApiError, { feature: string; action: PermissionAction; mode: Mode }>({
     mutationFn: async (cell) =>
       (await api.put<ApiEnvelope<StaffPermissionMatrix>>(`/permissions/staff/${staffId}/overrides`, cell)).data.data!,
     onSuccess: (next) => {

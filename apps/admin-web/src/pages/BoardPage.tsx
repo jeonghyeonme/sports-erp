@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage } from '../lib/use-api-list';
+import { apiErrorMessage, ApiError } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
 import { ApiEnvelope, PostCategory, PostRow } from '../lib/types';
@@ -22,10 +21,6 @@ const CATEGORY_LABEL: Record<PostCategory, string> = {
   OTHER: '기타',
 };
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 export function BoardPage() {
   const { user } = useAuth();
@@ -45,7 +40,7 @@ export function BoardPage() {
 
   const { data, isLoading, isError, error } = useQuery<
     { posts: PostRow[]; total: number },
-    AxiosError<ApiErrorBody>
+    ApiError
   >({
     queryKey: ['posts', scopeFilter, page],
     queryFn: async () => {

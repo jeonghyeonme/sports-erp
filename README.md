@@ -74,7 +74,7 @@ docs/
 | [architecture/](docs/architecture/) | [공유 엔티티](docs/architecture/entities.md) · [시스템 개요](docs/architecture/system-overview.md) · [데이터 정합성](docs/architecture/data-integrity.md) · [날짜·시간](docs/architecture/date-time-handling.md) · [설계 상수](docs/architecture/design-constants.md) · [트래픽·인프라 검토](docs/architecture/traffic-infra-review.md) · [공학적 위험 점검표](docs/architecture/engineering-risks.md) · [데이터 보존](docs/architecture/data-retention.md) |
 | [decisions/](docs/decisions/README.md) | 횡단 결정 D1~ — 요약표·종합 평가 |
 | [process/](docs/process/) | [RFP 분류](docs/process/01_RFP_분류와_되묻기.md) · [도메인 우선순위](docs/process/02_도메인별_우선순위.md) · [도메인 사이클 템플릿](docs/process/03_도메인_사이클_템플릿.md) · [작업 브리프](docs/process/04_작업_브리프.md) |
-| [log/](docs/log/README.md) | 진행 기록(왜 이렇게 일하게 됐나) · [트러블슈팅](docs/log/troubleshooting.md) |
+| [log/](docs/log/README.md) | 진행 기록(왜 이렇게 일하게 됐나) · [트러블슈팅](docs/log/2026-W36.md#troubleshooting) |
 | [reference/](docs/reference/) | [요구사항추적표](docs/reference/요구사항추적표.md)(RFP ↔ 설계 ↔ 코드) · [차별화전략](docs/reference/차별화전략.md) · [기업 구조 분석](docs/reference/기업구조및관리시스템분석.md) · [시스템 비유 설명](docs/reference/시스템_비유_설명.md) · 원본 RFP PDF |
 | [design/](docs/design/디자인시스템.md) | admin-web 디자인 토큰·레이아웃 원칙(고밀도 엔터프라이즈 라이트). 새 화면 작업 전 필독 |
 
@@ -132,7 +132,7 @@ npm run dev:web     # http://localhost:5173
 
 ## 배포
 
-현재 구성과 진행 상태는 [docs/STATUS.md](docs/STATUS.md)를 보세요. 결정 경위는 [D23](docs/decisions/D23.md)(Render+Supabase) → [D24](docs/decisions/D24.md)·[D25](docs/decisions/D25.md)(Cloudflare Worker 엣지 + admin-web 정적 자산) → [D37](docs/decisions/D37.md)(api를 AWS Lambda로 이전, 운영 중) → [D49](docs/decisions/D49.md)(DB 접속을 Session pooler로)입니다.
+현재 구성과 진행 상태는 [docs/STATUS.md](docs/STATUS.md)를 보세요. 결정 경위는 [D23](docs/decisions/archive.md#D23)(Render+Supabase) → [D24](docs/decisions/D24.md)·[D25](docs/decisions/D25.md)(Cloudflare Worker 엣지 + admin-web 정적 자산) → [D37](docs/decisions/D37.md)(api를 AWS Lambda로 이전, 운영 중) → [D49](docs/decisions/D49.md)(DB 접속을 Session pooler로)입니다.
 
 | 구성 요소 | 위치 | 설정 문서 |
 |---|---|---|

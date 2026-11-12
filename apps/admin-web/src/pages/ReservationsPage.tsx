@@ -1,10 +1,9 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
-import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, useApiPage, ApiError } from '../lib/use-api-list';
 import { ExportCsvButton } from '../components/ExportCsvButton';
 import { fetchAllPages, kstDateStamp } from '../lib/csv';
 import { PAYMENT_COLUMNS } from '../lib/export-columns';
@@ -17,10 +16,6 @@ import { useToast } from '../lib/use-toast';
 import { kstToday } from '../lib/kst-date';
 import { PAYMENT_STATUS_LABEL } from '../lib/status-labels';
 import { useDebouncedValue } from '../lib/use-debounced';
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 const STATUS_LABEL: Record<ReservationStatus, string> = {
   REQUESTED: '결제 대기',
@@ -41,7 +36,7 @@ function slotLabel(slot?: ScheduleSlotRow): string {
 function CancelButton({ reservationId }: { reservationId: string }) {
   const queryClient = useQueryClient();
   const toast = useToast();
-  const cancelMutation = useMutation<ReservationRow, AxiosError<ApiErrorBody>, void>({
+  const cancelMutation = useMutation<ReservationRow, ApiError, void>({
     mutationFn: async () => (await api.patch<ApiEnvelope<ReservationRow>>(`/reservations/${reservationId}/cancel`)).data.data!,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
@@ -61,7 +56,7 @@ function CancelButton({ reservationId }: { reservationId: string }) {
 function CheckInButton({ reservationId }: { reservationId: string }) {
   const queryClient = useQueryClient();
   const toast = useToast();
-  const checkInMutation = useMutation<ReservationRow, AxiosError<ApiErrorBody>, void>({
+  const checkInMutation = useMutation<ReservationRow, ApiError, void>({
     mutationFn: async () =>
       (await api.patch<ApiEnvelope<ReservationRow>>(`/reservations/${reservationId}/check-in`)).data.data!,
     onSuccess: () => {
@@ -86,7 +81,7 @@ function SlotCreateModal({ programs, onClose }: { programs: ProgramRow[]; onClos
   const reservablePrograms = programs.filter((p) => p.pricingType !== 'FREE_ACCESS'); // PT 포함(ADR-RSV-09)
   const [programId, setProgramId] = useState(reservablePrograms[0]?.id ?? '');
   const [form, setForm] = useState({ date: kstToday(), startTime: '10:00', endTime: '11:00', capacity: '' });
-  const createMutation = useMutation<ScheduleSlotRow, AxiosError<ApiErrorBody>, typeof form>({
+  const createMutation = useMutation<ScheduleSlotRow, ApiError, typeof form>({
     mutationFn: async (dto) => {
       const payload = {
         date: dto.date,
@@ -180,7 +175,7 @@ function SlotCreateModal({ programs, onClose }: { programs: ProgramRow[]; onClos
 function SlotList({ programs }: { programs: ProgramRow[] }) {
   const reservablePrograms = programs.filter((p) => p.pricingType !== 'FREE_ACCESS'); // PT 포함(ADR-RSV-09)
   const [programId, setProgramId] = useState(reservablePrograms[0]?.id ?? '');
-  const slotsQuery = useQuery<ScheduleSlotRow[], AxiosError<ApiErrorBody>>({
+  const slotsQuery = useQuery<ScheduleSlotRow[], ApiError>({
     queryKey: ['slots', programId],
     queryFn: async () => (await api.get<ApiEnvelope<ScheduleSlotRow[]>>(`/programs/${programId}/slots`)).data.data ?? [],
     enabled: !!programId,

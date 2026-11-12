@@ -1,19 +1,14 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { apiErrorMessage } from '../lib/use-api-list';
+import { apiErrorMessage, ApiError } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
 import { useToast } from '../lib/use-toast';
 import { CONTRACT_FILE_KIND_LABEL } from '../lib/contract-status';
 import { ApiEnvelope, ContractRetentionOverview, ContractRetentionRow } from '../lib/types';
 import { ConfirmModal } from '../components/ConfirmModal';
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 // D71 — 계약 파일 보존 현황(본사 전용). 보존 끝 = 회차가 끝난 날 + 3년. 그 6개월 전부터 실물 이관을 알리고,
 // 이관을 표시한 파일은 보존 끝이 지나면 여기서 시스템 파일을 정리한다(이관 전에는 지우지 않는다).
@@ -23,13 +18,13 @@ export function ContractRetentionPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [confirmPurge, setConfirmPurge] = useState(false);
-  const query = useQuery<ContractRetentionOverview, AxiosError<ApiErrorBody>>({
+  const query = useQuery<ContractRetentionOverview, ApiError>({
     queryKey: ['contract-retention'],
     enabled: isSuperAdmin,
     queryFn: async () => (await api.get<ApiEnvelope<ContractRetentionOverview>>('/branches/contract-files/retention')).data.data!,
   });
 
-  const purge = useMutation<{ purged: number }, AxiosError<ApiErrorBody>, string[]>({
+  const purge = useMutation<{ purged: number }, ApiError, string[]>({
     mutationFn: async (fileIds) =>
       (await api.post<ApiEnvelope<{ purged: number }>>('/branches/contract-files/purge', { fileIds })).data.data!,
     onSuccess: (res) => {

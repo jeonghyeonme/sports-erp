@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Program, ScheduleSlot } from '@prisma/client';
-import { MockProgram, MockScheduleSlot } from '../../fixtures/mock-data.types';
+import { ProgramResponse, ScheduleSlotResponse } from '../../common/api-response.types';
 import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -8,7 +8,7 @@ import { ACTIVE_RESERVATION_STATUSES } from '../../prisma/integrity';
 
 // RFP 강사·프로그램 게시 "종목별 강사 정보 게시" — 회원 웹이 강사 목록을 따로 부르지 않게 소개·전문 종목을 함께 싣는다
 // (방문당 호출 수 design-constants ⑩, log/114). 연락처는 싣지 않는다.
-export type ProgramView = MockProgram & {
+export type ProgramView = ProgramResponse & {
   branchName?: string;
   instructorName?: string;
   instructorSpecialty?: string;
@@ -18,9 +18,9 @@ export type ProgramView = MockProgram & {
 type ProgramInput = {
   name: string;
   category: string;
-  ageGroup: MockProgram['ageGroup'];
+  ageGroup: ProgramResponse['ageGroup'];
   description?: string;
-  pricingType: MockProgram['pricingType'];
+  pricingType: ProgramResponse['pricingType'];
   price: number;
   capacity?: number;
   ptPackageSessions?: number;
@@ -31,14 +31,14 @@ type ProgramInput = {
 };
 
 // 강사프로그램게시 A-3 상태 전이표. ENDED는 종결 상태라 다음 상태가 없다.
-const PROGRAM_STATUS_TRANSITIONS: Record<MockProgram['status'], MockProgram['status'][]> = {
+const PROGRAM_STATUS_TRANSITIONS: Record<ProgramResponse['status'], ProgramResponse['status'][]> = {
   PREPARING: ['RUNNING', 'ENDED'],
   RUNNING: ['PAUSED', 'ENDED'],
   PAUSED: ['RUNNING', 'ENDED'],
   ENDED: [],
 };
 const PROGRAM_STATUSES = Object.keys(PROGRAM_STATUS_TRANSITIONS);
-const PRICING_TYPES: MockProgram['pricingType'][] = ['FREE_ACCESS', 'PAID_SESSION', 'PT_PACKAGE'];
+const PRICING_TYPES: ProgramResponse['pricingType'][] = ['FREE_ACCESS', 'PAID_SESSION', 'PT_PACKAGE'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const AGE_GROUPS: Program['ageGroup'][] = ['ALL', 'CHILD', 'TEEN', 'ADULT', 'SENIOR'];
 // 강사프로그램게시 ADR-PRG-04 — 시간대는 회차 시작 시각("HH:mm", 0 채움이라 문자열 비교가 시각 비교와 같다)으로 나눈다.
@@ -77,7 +77,7 @@ export class ProgramService {
   }): Promise<ProgramView[]> {
     // 예전 mock은 모르는 값으로 거르면 빈 목록이었다 — enum 밖 값을 DB로 보내 500이 나지 않게 같은 동작을 유지한다.
     if (filter.status && !PROGRAM_STATUSES.includes(filter.status)) return [];
-    if (filter.pricingType && !PRICING_TYPES.includes(filter.pricingType as MockProgram['pricingType'])) return [];
+    if (filter.pricingType && !PRICING_TYPES.includes(filter.pricingType as ProgramResponse['pricingType'])) return [];
     if (filter.ageGroup && !AGE_GROUPS.includes(filter.ageGroup as Program['ageGroup'])) return [];
     if (filter.timeBand && !(filter.timeBand in TIME_BANDS)) return [];
     // ADR-PRG-04 — 시간대: 오늘(KST) 이후 회차 중 그 시간대에 시작하는 회차가 하나라도 있는 프로그램.
@@ -100,20 +100,20 @@ export class ProgramService {
     return rows.map(toView);
   }
 
-  async findById(id: string): Promise<MockProgram | null> {
+  async findById(id: string): Promise<ProgramResponse | null> {
     const row = await this.prisma.program.findUnique({ where: { id } });
-    return row ? toMockProgram(row) : null;
+    return row ? toProgramResponse(row) : null;
   }
 
   /** 예약및결제 A-5 GET /programs/:id/slots?date= — bookedCount는 캐시 없이 유효 예약(REQUESTED/CONFIRMED)을 센다(예약및결제 A-3). */
-  async listSlots(programId: string, date?: string): Promise<Array<MockScheduleSlot & { bookedCount: number }>> {
+  async listSlots(programId: string, date?: string): Promise<Array<ScheduleSlotResponse & { bookedCount: number }>> {
     if (date !== undefined && !DATE_RE.test(date)) return [];
     const rows = await this.prisma.scheduleSlot.findMany({
       where: { programId, date: date ? dateOf(date) : undefined },
       include: { _count: { select: { reservations: { where: { status: { in: ACTIVE } } } } } },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { id: 'asc' }],
     });
-    return rows.map((r) => ({ ...toMockSlot(r), bookedCount: r._count.reservations }));
+    return rows.map((r) => ({ ...toSlotResponse(r), bookedCount: r._count.reservations }));
   }
 
   /**
@@ -207,7 +207,7 @@ export class ProgramService {
 
   // 강사프로그램게시 A-5 PATCH /programs/:id/status, A-3 §3-2 전이표. 표에 없는 전이(자기 자신 포함)는 409.
   // DELETE /programs/:id "삭제(소프트)"도 ENDED 전이로 이 메서드를 쓴다(architecture/entities.md D9 소프트 삭제 원칙).
-  async updateStatus(id: string, status: MockProgram['status']): Promise<ProgramView> {
+  async updateStatus(id: string, status: ProgramResponse['status']): Promise<ProgramView> {
     const program = await this.requireProgram(id);
     if (!PROGRAM_STATUS_TRANSITIONS[program.status].includes(status)) {
       throw new AppException(
@@ -229,7 +229,7 @@ export class ProgramService {
   async createSlot(
     programId: string,
     input: { date: string; startTime: string; endTime: string; capacity?: number },
-  ): Promise<MockScheduleSlot & { bookedCount: number }> {
+  ): Promise<ScheduleSlotResponse & { bookedCount: number }> {
     const program = await this.requireProgram(programId);
     if (program.pricingType === 'FREE_ACCESS') {
       throw new AppException('SLOT_NOT_APPLICABLE', '자유 이용 프로그램에는 회차를 추가할 수 없습니다.', 400);
@@ -247,7 +247,7 @@ export class ProgramService {
         capacity,
       },
     });
-    return { ...toMockSlot(row), bookedCount: 0 };
+    return { ...toSlotResponse(row), bookedCount: 0 };
   }
 
   // ── 내부 ──────────────────────────────────────────────
@@ -281,7 +281,7 @@ export class ProgramService {
 }
 
 // ADR-PRG-01 — PAID_SESSION은 정원이 예약 가능 좌석 수 그 자체라 추측해서 기본값을 넣으면 안 된다.
-function assertCapacityForPricingType(pricingType: MockProgram['pricingType'], capacity?: number): void {
+function assertCapacityForPricingType(pricingType: ProgramResponse['pricingType'], capacity?: number): void {
   if (pricingType === 'PAID_SESSION' && (capacity === undefined || capacity < 1)) {
     throw new AppException(
       'PROGRAM_CAPACITY_REQUIRED',
@@ -292,12 +292,12 @@ function assertCapacityForPricingType(pricingType: MockProgram['pricingType'], c
 }
 
 // 강사프로그램게시 A-6 — FREE_ACCESS는 예약 개념이 없어 price·capacity를 서버에서 강제로 비운다(클라이언트 값 무시).
-function normalizePricing(input: { pricingType: MockProgram['pricingType']; price: number; capacity?: number }) {
+function normalizePricing(input: { pricingType: ProgramResponse['pricingType']; price: number; capacity?: number }) {
   if (input.pricingType === 'FREE_ACCESS') return { price: 0, capacity: undefined };
   return { price: input.price, capacity: input.capacity };
 }
 
-export function toMockProgram(row: Program): MockProgram {
+export function toProgramResponse(row: Program): ProgramResponse {
   return {
     id: row.id,
     branchId: row.branchId,
@@ -317,7 +317,7 @@ export function toMockProgram(row: Program): MockProgram {
   };
 }
 
-function toMockSlot(row: ScheduleSlot): MockScheduleSlot {
+function toSlotResponse(row: ScheduleSlot): ScheduleSlotResponse {
   return {
     id: row.id,
     programId: row.programId,
@@ -335,7 +335,7 @@ function toView(
   },
 ): ProgramView {
   return {
-    ...toMockProgram(row),
+    ...toProgramResponse(row),
     branchName: row.branch.name,
     instructorName: row.instructor?.name,
     instructorSpecialty: row.instructor?.specialty ?? undefined,

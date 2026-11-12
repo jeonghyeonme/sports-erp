@@ -1,6 +1,6 @@
 import { IsDateString, IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 import { INPUT_LIMITS } from '../../../common/validation/input-limits';
-import { AgeGroup, PricingType } from '../../../fixtures/mock-data.types';
+import { AgeGroup, PricingType } from '../../../common/api-response.types';
 
 const AGE_GROUPS: AgeGroup[] = ['ALL', 'CHILD', 'TEEN', 'ADULT', 'SENIOR'];
 const PRICING_TYPES: PricingType[] = ['FREE_ACCESS', 'PAID_SESSION', 'PT_PACKAGE'];

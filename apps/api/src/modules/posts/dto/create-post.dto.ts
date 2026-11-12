@@ -1,5 +1,5 @@
 import { IsBoolean, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
-import { PostCategory } from '../../../fixtures/mock-data.types';
+import { PostCategory } from '../../../common/api-response.types';
 
 const CATEGORIES: PostCategory[] = ['NOTICE', 'TRAINING_MATERIAL', 'EVENT', 'OTHER'];
 

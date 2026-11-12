@@ -4,15 +4,15 @@
 // 계약 날짜만 시드 실행일 기준 상대값이다(갱신임박·만료가 날짜가 지나 어긋나지 않게). Math.random은 쓰지 않는다.
 // 시연용 고밀도 데이터는 prisma/demo-layer.ts가 이 위에 얹는다.
 
-import { BranchRecord, MockFacility, MockInstructor, MockMember, MockProgram, MockStaff } from './mock-data.types';
+import { BranchRecord, FacilityResponse, InstructorResponse, MemberResponse, ProgramResponse, StaffResponse } from '../common/api-response.types';
 
 export interface SideBranchDataset {
   branches: BranchRecord[];
-  staff: MockStaff[];
-  members: MockMember[];
-  programs: MockProgram[];
-  facilities: MockFacility[];
-  instructors: MockInstructor[];
+  staff: StaffResponse[];
+  members: MemberResponse[];
+  programs: ProgramResponse[];
+  facilities: FacilityResponse[];
+  instructors: InstructorResponse[];
 }
 
 function dateFromToday(days: number) {
@@ -32,7 +32,7 @@ interface SideBranchSpec {
   contractStartDays: number;
   contractEndDays: number;
   staff: Array<{ name: string; position: string; employmentType: string; phone: string; hireDays: number }>;
-  members: Array<{ name: string; phone: string; joinedDays: number; status?: MockMember['status'] }>;
+  members: Array<{ name: string; phone: string; joinedDays: number; status?: MemberResponse['status'] }>;
   program: { name: string; category: string; price: number };
 }
 

@@ -1,12 +1,11 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
 import { useToast } from '../lib/use-toast';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, ApiError } from '../lib/use-api-list';
 import { groupByBranch } from '../lib/group-by-branch';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { Modal } from '../components/Modal';
@@ -21,10 +20,6 @@ import { STAFF_COLUMNS } from '../lib/export-columns';
 const AUTO_EXPAND_THRESHOLD = 3;
 const EMPLOYMENT_TYPES = ['정규직', '계약직', '파트타임'];
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 // log/125 F12 — 지점 하나만 보는 지점 관리자에게 지점명 검색은 쓸모가 없다. 이름·직원코드로도 찾는다:
 // 지점명이 맞으면 그 지점 전체, 아니면 이름·코드가 맞는 직원만 남긴다. 화면과 CSV(ADR-AUTH-09)가 같이 쓴다.
@@ -124,7 +119,7 @@ function HireStaffModal({ onClose }: { onClose: () => void }) {
   const branchesQuery = useApiList<BranchSummary>(['branches'], '/branches');
   const branches = (branchesQuery.data ?? []).filter((b) => b.contractStatus !== 'TERMINATED');
 
-  const hireMutation = useMutation<StaffRow & { temporaryPassword: string }, AxiosError<ApiErrorBody>, HireForm>({
+  const hireMutation = useMutation<StaffRow & { temporaryPassword: string }, ApiError, HireForm>({
     mutationFn: async (dto) => {
       const payload = {
         branchId: dto.branchId,
@@ -255,7 +250,7 @@ export function StaffPage() {
 
   // 인사정보관리 A-7 — STAFF는 목록(/staff) 대신 본인 레코드(/staff/me)만 조회 가능하므로
   // 응답 모양(단일 객체 vs 배열)이 갈려 두 쿼리를 분리해서 처리한다.
-  const listQuery = useQuery<StaffRow[], AxiosError<ApiErrorBody>>({
+  const listQuery = useQuery<StaffRow[], ApiError>({
     queryKey: ['staff', 'list', tab],
     queryFn: async () =>
       (
@@ -266,7 +261,7 @@ export function StaffPage() {
     enabled: !isSelfServiceOnly,
   });
 
-  const meQuery = useQuery<StaffRow | undefined, AxiosError<ApiErrorBody>>({
+  const meQuery = useQuery<StaffRow | undefined, ApiError>({
     queryKey: ['staff', 'me'],
     queryFn: async () => (await api.get<ApiEnvelope<StaffRow>>('/staff/me')).data.data,
     enabled: isSelfServiceOnly,

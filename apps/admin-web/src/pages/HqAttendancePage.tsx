@@ -4,14 +4,11 @@ import { apiErrorMessage, useApiList } from '../lib/use-api-list';
 import { AbsenceCandidateRow, AttendanceSummaryRow, BranchSummary } from '../lib/types';
 import { ExportCsvButton } from '../components/ExportCsvButton';
 import { ATTENDANCE_SUMMARY_COLUMNS } from '../lib/export-columns';
+import { kstMonth } from '../lib/kst-date';
 
 // 본사 근태 조회 — RFP 개념도 "본사→현장 근태관리"(요구사항추적표 §2-3, D51·log/114).
 // 근태관리 A-7을 "본사는 조회만"으로 좁혔다: 출퇴근·휴가 승인·결근 확정은 지금처럼 지점(관리자·직원)이 하고,
 // 본사는 지점을 골라 그 달 요약과 확정 전 결근 후보를 본다. API는 원래 본사 조회를 허용한다(summary·absence-preview).
-function kstMonth(): string {
-  return new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 7);
-}
-
 export function HqAttendancePage() {
   const branchesQuery = useApiList<BranchSummary>(['branches'], '/branches');
   const branches = useMemo(

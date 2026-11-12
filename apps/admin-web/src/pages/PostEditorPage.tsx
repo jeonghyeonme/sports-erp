@@ -3,12 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, ApiError } from '../lib/use-api-list';
 import { useAuth } from '../lib/use-auth';
 import { useToast } from '../lib/use-toast';
 import { useCan } from '../lib/use-can';
 import { ApiEnvelope, BranchSummary, FacilityRow, PostCategory, PostRow } from '../lib/types';
-import { isHtmlContent } from '../lib/rich-content';
+import { isHtmlContent } from '@sports-erp/web-shared';
 import { ATTACHMENT_ACCEPT, ATTACHMENT_MAX_BYTES, ATTACHMENT_MAX_FILES, uploadAttachment } from '../lib/post-attachments';
 import { RichEditor } from '../components/RichEditor';
 import { PostAttachments } from '../components/PostAttachments';
@@ -16,10 +16,6 @@ import { PostAttachments } from '../components/PostAttachments';
 // D62 — 게시글 글쓰기(/board/new)·수정(/board/:id/edit)을 별도 화면으로. 본문(서식 편집기)과 첨부를 한 화면에서 다룬다.
 // 새 글은 첨부를 골라 두었다가 등록 직후 올리고(글 id가 있어야 올릴 수 있다), 수정은 첨부 칸이 바로 올리고 지운다.
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 const CATEGORY_LABEL: Record<PostCategory, string> = {
   NOTICE: '공지',
@@ -49,7 +45,7 @@ function toEditorHtml(content: string): string {
 
 export function PostEditorPage() {
   const { id } = useParams<{ id: string }>();
-  const postQuery = useQuery<PostRow, AxiosError<ApiErrorBody>>({
+  const postQuery = useQuery<PostRow, ApiError>({
     queryKey: ['posts', id],
     enabled: !!id,
     queryFn: async () => (await api.get<ApiEnvelope<PostRow>>(`/posts/${id}`)).data.data!,
@@ -89,7 +85,7 @@ function PostEditor({ post }: { post?: PostRow }) {
     isBranchPost && !!facilityBranchId,
   );
 
-  const save = useMutation<PostRow, AxiosError<ApiErrorBody>, PostForm>({
+  const save = useMutation<PostRow, ApiError, PostForm>({
     mutationFn: async (f) => {
       if (isEdit) {
         const payload = {

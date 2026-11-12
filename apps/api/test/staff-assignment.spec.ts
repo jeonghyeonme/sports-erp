@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { MOCK_DEMO_PASSWORD } from '../src/fixtures/demo-password';
+import { DEMO_PASSWORD } from '../src/fixtures/demo-password';
 import { addYearsToDateString, toKstDateString } from '../src/common/date/kst-date';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
 import { resetWorkerDb } from './helpers/worker-db';
@@ -95,7 +95,7 @@ describe('파견 발령·퇴사 처리의 실제 효과', () => {
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ email: ACCOUNTS.seochoStaff, password: MOCK_DEMO_PASSWORD });
+      .send({ email: ACCOUNTS.seochoStaff, password: DEMO_PASSWORD });
     expect(loginRes.status).toBe(401);
     expect(loginRes.body.error.code).toBe('ACCOUNT_INACTIVE');
   });

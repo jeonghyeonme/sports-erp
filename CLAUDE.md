@@ -26,7 +26,7 @@ apps/api/          NestJS + Prisma(Supabase Postgres) — 전 도메인 실DB(D3
 apps/admin-web/    React + Vite — 본사/지점 관리자 웹. 작업 규칙은 apps/admin-web/CLAUDE.md
 apps/member-web/   React + Vite — 회원 모바일 웹(/m/, D40·D41). 작업 규칙은 apps/member-web/CLAUDE.md
 apps/member-app/   네이티브 앱은 만들지 않음(D40). README만 있음
-packages/types/    클라이언트-서버 공유 타입
+packages/web-shared/ admin-web·member-web 공유 코드(값 타입·비밀번호 규칙·느린 요청 알림·본문 필터, D78)
 scripts/           doc-check.mjs(문서 검사기)
 docs/              지도는 docs/README.md — STATUS · domains · architecture · decisions · process · log · reference · design · presentation · deliverables
 ```
@@ -37,7 +37,7 @@ docs/              지도는 docs/README.md — STATUS · domains · architectur
 |---|---|
 | 세션 시작·이어하기 | [docs/STATUS.md](docs/STATUS.md) |
 | 도메인 기능 구현·수정 | `docs/domains/<도메인>.md` 맨 위 **요약 카드** → 필요하면 해당 ADR 절 → 부록 A-n |
-| 코드 주석의 근거 따라가기 | `예약및결제 A-6` = 그 도메인 문서 부록 A-6 · `ADR-RSV-01` = 도메인 문서 ADR 절 · `D37` = `docs/decisions/D37.md` · `docs/log/051` = 진행 기록 |
+| 코드 주석의 근거 따라가기 | `예약및결제 A-6` = 그 도메인 문서 부록 A-6 · `ADR-RSV-01` = 도메인 문서 ADR 절 · `D37` = `docs/decisions/D37.md`(지난 결정은 `decisions/archive.md#D29`) · `docs/log/051` = 진행 기록 |
 | 공유 엔티티·스키마 | [entities.md](docs/architecture/entities.md)(단일 진실 공급원) → `apps/api/prisma/schema.prisma` |
 | 횡단 규칙(정합성·날짜·상수) | `docs/architecture/` 해당 파일 |
 | 도메인에 안 걸리는 결정의 경위 | [docs/decisions/README.md](docs/decisions/README.md) 요약표 → 해당 `D<번호>.md` |
@@ -78,7 +78,7 @@ npm run e2e                    # 화면 자동 테스트(D59) — 먼저 api 빌
 
 **구현 작업 원칙 (2026-09-22 확립, `architecture-driver` 스킬의 원본)** — 대화로 구현을 맡기는 방식에서 사용자가 diff를 매번 보지 않고도 방향을 잡을 수 있게:
 1. **구현 전에 근거를 밝힌다** — 어느 도메인 문서의 어느 Driver/ADR, 또는 `D<번호>`에 근거하는지 인용한다. 해당 결정이 없으면 대안·트레이드오프·결정 이유를 최소한 문장으로 먼저 남긴다.
-2. **구현 후 기록한다** — 마무리는 `wrap-up` 스킬 절차(STATUS 갱신 + `docs/log/NNN.md` 한 건 + 도메인 ADR·검증현황·요약 카드).
+2. **구현 후 기록한다** — 마무리는 `wrap-up` 스킬 절차(STATUS 갱신 + 그 주 로그 파일에 한 건 + 도메인 ADR·검증현황·요약 카드).
 3. **커밋 메시지에 근거 ID를 담는다**(한국어, ADR·D 번호 인용).
 4. 스킬 쪽 개선을 역으로 반영하려면 스킬 저장소 CHANGELOG.md를 먼저 확인한다.
 
@@ -91,9 +91,9 @@ npm run e2e                    # 화면 자동 테스트(D59) — 먼저 api 빌
 
 ## 문서 작업 규칙 (D38)
 
-- **한 사실은 한 곳에만.** 현재 상태 → STATUS.md(덮어쓰기, 80줄 상한), 도메인 결정·검증 → 도메인 문서, 횡단 결정 → `decisions/D<번호>.md`(결정 하나에 파일 하나, 고치지 않고 새 번호로 대체), 경위 → `log/NNN.md`(한 건에 파일 하나, append-only).
+- **한 사실은 한 곳에만.** 현재 상태 → STATUS.md(덮어쓰기, 80줄 상한), 도메인 결정·검증 → 도메인 문서, 횡단 결정 → `decisions/D<번호>.md`(결정 하나에 파일 하나, 고치지 않고 새 번호로 대체 — 대체됐거나 끝난 결정은 `decisions/archive.md`로), 경위 → 주 단위 `log/YYYY-Www.md` 안의 번호 붙은 기록(append-only, D79).
 - **위치가 아니라 ID로 인용한다.** 코드 주석은 `예약및결제 A-6`, `ADR-RSV-01`, `D37`처럼 쓴다 — 경로·절 번호가 바뀌어도 깨지지 않는다. 재편 전의 문서 번호 인용 형식(두 자리 번호·`1-n` 번호 + "문서")은 쓰지 않는다(doc-check가 막는다).
-- 새 로그·결정 파일은 기존 파일을 읽지 않고 새로 만든 뒤 해당 README 인덱스에 한 줄만 추가한다.
+- 새 결정 파일은 기존 파일을 읽지 않고 새로 만든다. 새 로그는 그 주 파일 끝에 붙인다(없으면 만든다). 둘 다 해당 README 인덱스에 한 줄만 추가한다.
 - 상대링크는 실제 파일 위치 기준으로 맞추고, 커밋 전 `node scripts/doc-check.mjs`를 통과시킨다.
 
 ## 작업 환경 유의사항

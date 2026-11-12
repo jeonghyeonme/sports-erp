@@ -1,21 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, ApiError } from '../lib/use-api-list';
 import { ApiEnvelope, PermissionStaffRow } from '../lib/types';
 import { RoleDefaultsTable } from '../components/PermissionTables';
 
 import { useToast } from '../lib/use-toast';
-const ROLE_LABEL = {
-  BRANCH_ADMIN: '지점 관리자',
-  STAFF: '지점 직원',
-} as const;
+import { ROLE_LABEL } from '../lib/status-labels';
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 export function PermissionsPage() {
   const queryClient = useQueryClient();
@@ -43,7 +35,7 @@ const toast = useToast();
 
   const updateRole = useMutation<
     PermissionStaffRow,
-    AxiosError<ApiErrorBody>,
+    ApiError,
     { staffId: string; role: 'STAFF' | 'BRANCH_ADMIN' }
   >({
     mutationFn: async ({ staffId, role }) =>

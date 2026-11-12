@@ -4,12 +4,12 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { todayKst, toKstDateString } from '../../common/date/kst-date';
 import { lockBranchForShare } from '../../prisma/integrity';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MockPost } from '../../fixtures/mock-data.types';
+import { PostResponse } from '../../common/api-response.types';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import { hasText, sanitizePostContent } from './post-content';
 
 type PostRow = Post & { branch: { name: string } | null; author: { name: string }; facility: { name: string } | null };
-export type PostView = MockPost & { authorName?: string; branchName?: string; facilityName?: string };
+export type PostView = PostResponse & { authorName?: string; branchName?: string; facilityName?: string };
 
 const SCOPES: PostScope[] = ['HQ_TO_BRANCH', 'BRANCH_TO_MEMBER'];
 const CATEGORIES: PostCategory[] = ['NOTICE', 'TRAINING_MATERIAL', 'EVENT', 'OTHER'];
@@ -181,7 +181,7 @@ export class PostService {
 
 function toViews(rows: PostRow[]): PostView[] {
   return rows.map((r) => ({
-    ...toMockPost(r),
+    ...toPostResponse(r),
     authorName: r.author.name,
     branchName: r.branch?.name,
     facilityName: r.facility?.name,
@@ -200,7 +200,7 @@ function postNotFound() {
   return new AppException('POST_NOT_FOUND', '게시글을 찾을 수 없습니다.', 404);
 }
 
-function toMockPost(r: Post): MockPost {
+function toPostResponse(r: Post): PostResponse {
   return {
     id: r.id,
     scope: r.scope,

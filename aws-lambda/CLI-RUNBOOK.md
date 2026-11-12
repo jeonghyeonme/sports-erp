@@ -3,11 +3,11 @@
 > 콘솔 대신 **사용자 PC의 AWS CLI 자격 증명**으로 [README.md](README.md)의 0~8번을 실행하는 순서다. 근거는 [D37](../docs/decisions/D37.md).
 > 로컬 Claude Code 세션은 이 파일을 위에서부터 따라가면 된다. 리소스를 만들기 전에 사용자에게 아래 "만들 것" 목록을 보여주고 확인받는다.
 > 클라우드 세션에서는 자격 증명 취득이 권한 정책으로 막혀서 이 경로를 택했다(2026-10-02).
-> **어디까지 했는지는 [STATUS](../docs/STATUS.md)를 본다.** 2026-10-03에 0~4번과 6번의 리소스를 만들었다([log/055](../docs/log/055.md)).
+> **어디까지 했는지는 [STATUS](../docs/STATUS.md)를 본다.** 2026-10-03에 0~4번과 6번의 리소스를 만들었다([log/055](../docs/log/2026-W40.md#055)).
 
 ## 전제 (사용자가 먼저 해 둘 것)
 
-1. AWS CLI v2 설치 후 로그인한다. 계정은 **클래식 가입 계정**이고, CLI는 관리자 권한 IAM 사용자로 로그인한다. "새로운 AWS 경험" 계정은 AWS 관리 SCP가 서울 Lambda와 OIDC를 막아서 쓰지 않는다([log/054](../docs/log/054.md)).
+1. AWS CLI v2 설치 후 로그인한다. 계정은 **클래식 가입 계정**이고, CLI는 관리자 권한 IAM 사용자로 로그인한다. "새로운 AWS 경험" 계정은 AWS 관리 SCP가 서울 Lambda와 OIDC를 막아서 쓰지 않는다([log/054](../docs/log/2026-W40.md#054)).
    ```bash
    aws configure set region ap-northeast-2 --profile sports-erp
    aws login --region ap-northeast-2 --profile sports-erp   # 별도 터미널에서 — 프로필 덮어쓰기 y/n 질문은 `!`로는 답할 수 없다
@@ -20,7 +20,7 @@
    ```
    - URL은 **작은따옴표로 감싼다.** 스크립트가 이 파일을 bash로 `source`해서, 따옴표가 없으면 `&`가 백그라운드 기호로 읽힌다.
    - **Session pooler(대시보드 → Connect → Session pooler, 포트 5432)**를 쓴다([D49](../docs/decisions/D49.md)). `connection_limit=1`이 빠지면 실행 환경마다 연결을 여러 개 잡아 풀(Pool Size)을 채운다. 직접 연결(`db.<ref>.supabase.co`)은 쓰지 않는다.
-   - 되돌릴 때는 Transaction pooler(6543) URI에 `?pgbouncer=true&connection_limit=1&pool_timeout=5`를 붙인다. 6543에서 `pgbouncer=true`가 빠지면 부하 중에 `42P05 prepared statement "sN" already exists`로 로그인·조회가 500이 된다. 실제로 이 값이 빠진 채 배포돼 장애가 났다([log/056](../docs/log/056.md)).
+   - 되돌릴 때는 Transaction pooler(6543) URI에 `?pgbouncer=true&connection_limit=1&pool_timeout=5`를 붙인다. 6543에서 `pgbouncer=true`가 빠지면 부하 중에 `42P05 prepared statement "sN" already exists`로 로그인·조회가 500이 된다. 실제로 이 값이 빠진 채 배포돼 장애가 났다([log/056](../docs/log/2026-W40.md#056)).
    - `set-lambda-env.sh`가 위 두 형식이 아니면 중단한다. 그때는 진행하지 말고 `.env`를 고친다.
    - `ORIGIN_SECRET`은 GitHub 저장소 Secrets(`ORIGIN_SECRET`)에도 같은 값으로 넣는다.
    - 비밀번호에 특수문자가 있으면 URL 인코딩한다.

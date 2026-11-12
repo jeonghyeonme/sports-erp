@@ -6,7 +6,7 @@ import { useLoad } from '../lib/use-load';
 import { describeError, errorCode } from '../lib/errors';
 import { isMinor, PHONE_RE, todayKst } from '../lib/format';
 import { ApiEnvelope, LoginResult } from '../lib/types';
-import { PASSWORD_RULE_LABEL, passwordProblem } from '../lib/password-rule';
+import { PASSWORD_RULE_LABEL, passwordProblem } from '@sports-erp/web-shared';
 
 
 interface PublicBranch {

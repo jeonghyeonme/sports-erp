@@ -3,15 +3,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useToast } from '../lib/use-toast';
-import { apiErrorMessage } from '../lib/use-api-list';
+import { apiErrorMessage, ApiError } from '../lib/use-api-list';
 import { CONTRACT_FILE_ACCEPT, CONTRACT_FILE_MAX_BYTES, uploadContractFile } from '../lib/contract-files';
 import { ApiEnvelope, BranchSummary } from '../lib/types';
 import { Modal } from './Modal';
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 export type ContractEditMode = 'renew' | 'correct';
 
@@ -34,7 +30,7 @@ export function ContractEditModal({
   const [endAt, setEndAt] = useState(renewing ? '' : branch.contractEndAt);
   const [file, setFile] = useState<File | null>(null);
 
-  const mutation = useMutation<BranchSummary, AxiosError<ApiErrorBody> | Error>({
+  const mutation = useMutation<BranchSummary, ApiError | Error>({
     mutationFn: async () => {
       if (renewing) {
         if (!file) throw new Error('새 계약서를 올려야 갱신할 수 있습니다.');

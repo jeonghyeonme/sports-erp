@@ -4,7 +4,8 @@
 //   2) 폐기된 옛 문서 이름(`06문서`, `1-7문서`, `1.spec/` 등)이 다시 등장하지 않는가
 //   3) 인용된 ADR ID가 도메인 문서에 정의돼 있는가
 //   4) 진입 문서가 크기 상한을 지키는가(매 세션 읽히는 문서가 비대해지는 것을 막는다)
-//   5) log/·decisions/ 파일이 인덱스(README)에 빠짐없이 올라 있는가
+//   5) log/(주 파일과 그 안의 기록 번호)·decisions/ 파일이 인덱스(README)에 빠짐없이 올라 있는가
+//   6) 로그 기록 인용(`docs/log/051`, 링크의 `#051` 앵커)이 실제 기록을 가리키는가 — 로그는 주 단위 파일(D79)
 // 사용: node scripts/doc-check.mjs   (위반이 있으면 exit 1)
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -19,8 +20,8 @@ const files = execSync('git -c core.quotepath=off ls-files --cached --others --e
   .split('\n')
   .filter((f) => f && existsSync(f));
 
-// 검사에서 빼는 곳: 끝난 과정 기록(원문 보존), 이미 적용된 마이그레이션 SQL(체크섬), 다른 저장소에서 복사한 스킬, 자기완결형 제출본
-const SKIP = [/^docs\/log\/archive\//, /^apps\/api\/prisma\/migrations\//, /^\.claude\/skills\//, /^docs\/deliverables\//, /node_modules\//, /package-lock\.json$/, /^scripts\/doc-check\.mjs$/];
+// 검사에서 빼는 곳: 이미 적용된 마이그레이션 SQL(체크섬), 다른 저장소에서 복사한 스킬, 자기완결형 제출본
+const SKIP = [/^apps\/api\/prisma\/migrations\//, /^\.claude\/skills\//, /^docs\/deliverables\//, /node_modules\//, /package-lock\.json$/, /^scripts\/doc-check\.mjs$/];
 const TEXT = /\.(md|ts|tsx|js|mjs|cjs|css|yml|yaml|json|prisma|sh|toml)$/;
 const targets = files.filter((f) => TEXT.test(f) && !SKIP.some((r) => r.test(f)));
 
@@ -43,6 +44,15 @@ for (const f of files.filter((x) => /^docs\/domains\/.+\.md$/.test(x))) {
   for (const m of readFileSync(f, 'utf8').matchAll(/^#{2,4} (ADR-[A-Z]+-\d+)/gm)) adrDefined.add(m[1]);
 }
 
+// 로그 기록 번호 → 주 파일(D79). 기록은 주 파일 안 `<a id="NNN"></a>` 앵커다.
+const logAnchor = new Map();
+const archivedDecisions = new Set(
+  existsSync('docs/decisions/archive.md') ? [...readFileSync('docs/decisions/archive.md', 'utf8').matchAll(/<a id="(D\d+)"><\/a>/g)].map((m) => m[1]) : [],
+);
+for (const f of files.filter((x) => /^docs\/log\/\d{4}-W\d{2}\.md$/.test(x))) {
+  for (const m of readFileSync(f, 'utf8').matchAll(/<a id="([\w-]+)"><\/a>/g)) logAnchor.set(m[1], f);
+}
+
 for (const f of targets) {
   const text = readFileSync(f, 'utf8');
   const dir = path.dirname(f);
@@ -53,7 +63,14 @@ for (const f of targets) {
       if (/^(https?:|mailto:|#)/.test(t)) continue;
       const p = decodeURI(t.split('#')[0]);
       if (!p) continue;
-      if (!existsSync(path.join(dir, p))) err(f, lineOf(text, m.index), `끊긴 링크: ${t}`);
+      const abs = path.join(dir, p).split(path.sep).join('/'); // Windows에서도 / 로 비교
+      if (!existsSync(abs)) err(f, lineOf(text, m.index), `끊긴 링크: ${t}`);
+      else if (/^docs\/log\/\d{4}-W\d{2}\.md$/.test(abs) && t.includes('#')) {
+        const a = t.split('#')[1];
+        if (logAnchor.get(a) !== abs) err(f, lineOf(text, m.index), `없는 로그 앵커: ${t}`);
+      } else if (abs === 'docs/decisions/archive.md' && t.includes('#') && !archivedDecisions.has(t.split('#')[1])) {
+        err(f, lineOf(text, m.index), `지난 결정에 없는 앵커: ${t}`);
+      }
     }
   }
   // 과거 기록(log/·decisions/)은 당시 경로를 서술한 문장이 많아 링크만 검사한다
@@ -61,6 +78,11 @@ for (const f of targets) {
     for (const m of text.matchAll(/(?<![\w/.-])docs\/[^\s)`'"*,|<>[\]()·]+/g)) {
       const p = m[0].replace(/[가-힣]+$/, '').replace(/[.:;·]+$/, '').replace(/(\.md)[^/]*$/, '$1');
       if (/[{}*]|NNN|<|\.\.\./.test(p)) continue;
+      const lm = p.match(/^docs\/log\/(\d{3})(?:~(\d{3}))?$/);
+      if (lm) {
+        for (const n of lm.slice(1).filter(Boolean)) if (!logAnchor.has(n)) err(f, lineOf(text, m.index), `없는 로그 기록: log/${n}`);
+        continue;
+      }
       const base = p.replace(/~\d+$/, '');
       const prefixHit = files.some((x) => x.startsWith(base));
       if (!existsSync(base) && !existsSync(base + '.md') && !prefixHit) err(f, lineOf(text, m.index), `없는 경로 언급: ${p}`);
@@ -88,11 +110,19 @@ for (const f of files.filter((x) => /^docs\/domains\/.+\.md$/.test(x))) {
   else if (m[1].split('\n').length > CARD_LIMIT) err(f, 0, `요약 카드 ${m[1].split('\n').length}줄 > ${CARD_LIMIT}줄`);
 }
 
-for (const [dir, re] of [['docs/log', /^\d{3}\.md$/], ['docs/decisions', /^D\d+\.md$/]]) {
+for (const [dir, re] of [['docs/log', /^\d{4}-W\d{2}\.md$/], ['docs/decisions', /^D\d+\.md$/]]) {
   const index = existsSync(`${dir}/README.md`) ? readFileSync(`${dir}/README.md`, 'utf8') : '';
   for (const f of files.filter((x) => path.dirname(x) === dir && re.test(path.basename(x)))) {
     if (!index.includes(`(${path.basename(f)})`)) err(`${dir}/README.md`, 0, `인덱스에 없는 파일: ${path.basename(f)}`);
   }
+}
+
+{
+  const index = existsSync('docs/log/README.md') ? readFileSync('docs/log/README.md', 'utf8') : '';
+  for (const [id, f] of logAnchor) {
+    if (/^\d{3}$/.test(id) && !index.includes(`(${path.basename(f)}#${id})`)) err('docs/log/README.md', 0, `인덱스에 없는 기록: ${id}`);
+  }
+  for (const f of files.filter((x) => /^docs\/log\/\d{3}\.md$/.test(x))) err(f, 0, '로그는 주 파일에 붙인다(D79) — 한 건 파일을 만들지 말 것');
 }
 
 if (errors.length) {

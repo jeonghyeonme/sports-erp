@@ -1,10 +1,9 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
-import { apiErrorMessage, useApiList } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, ApiError } from '../lib/use-api-list';
 import { groupByBranch } from '../lib/group-by-branch';
 import { CollapsibleBranchSection } from '../components/CollapsibleBranchSection';
 import { Modal } from '../components/Modal';
@@ -28,10 +27,6 @@ import {
 
 const AUTO_EXPAND_THRESHOLD = 3;
 
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 const AGE_GROUP_LABEL: Record<AgeGroup, string> = {
   ALL: '전체',
@@ -119,7 +114,7 @@ function ProgramFormModal({
   const facilitiesQuery = useApiList<FacilityRow>(['facilities', branchId], `/facilities?branchId=${branchId}`);
   const instructorsQuery = useApiList<InstructorRow>(['instructors', branchId], `/instructors?branchId=${branchId}`);
 
-  const saveMutation = useMutation<ProgramRow, AxiosError<ApiErrorBody>, ProgramForm>({
+  const saveMutation = useMutation<ProgramRow, ApiError, ProgramForm>({
     mutationFn: async (dto) => {
       const payload = {
         name: dto.name,
@@ -386,7 +381,7 @@ export function ProgramsPage() {
   // 결정 취지가 실제로 성립한다(값만 내려주고 화면에서 안 보이면 ADR-BRD-01·ADR-FAC-01과 같은 문제가 재발).
   const statusMutation = useMutation<
     ProgramRow & { affectedReservations?: AffectedReservations },
-    AxiosError<ApiErrorBody>,
+    ApiError,
     { id: string; status: ProgramStatus }
   >({
     mutationFn: async ({ id, status }) =>
@@ -407,7 +402,7 @@ export function ProgramsPage() {
   // ADR-PRG-02 — ENDED(소프트 삭제)도 PAUSED와 같은 종류의 전이라 같은 안내가 필요하다.
   const endMutation = useMutation<
     ProgramRow & { affectedReservations?: AffectedReservations },
-    AxiosError<ApiErrorBody>,
+    ApiError,
     string
   >({
     mutationFn: async (id) =>

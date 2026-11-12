@@ -1,10 +1,9 @@
 import { FormEvent, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/use-auth';
 import { useCan } from '../lib/use-can';
-import { apiErrorMessage, useApiList, useApiPage } from '../lib/use-api-list';
+import { apiErrorMessage, useApiList, useApiPage, ApiError } from '../lib/use-api-list';
 import { Modal } from '../components/Modal';
 import { ApiEnvelope, BranchSummary, DocumentCategory, DocumentRow, StaffRow } from '../lib/types';
 
@@ -20,10 +19,6 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { useDebouncedValue } from '../lib/use-debounced';
 import { DOCUMENT_FILE_ACCEPT, DOCUMENT_FILE_MAX_BYTES, openDocument, uploadDocumentFile } from '../lib/document-files';
 import { DOCUMENT_COLUMNS } from '../lib/export-columns';
-interface ApiErrorBody {
-  code?: string;
-  message?: string;
-}
 
 // D69 — 위탁운영 계약서는 문서 관리가 아니라 지점 상세의 계약 회차에서 올리고 연다(접근 경로 최소화).
 // D69 2차(log/206) — 쌓이는 목록이라 서버 쪽 나누기(20건)·검색(제목·대상 직원)·정렬(서버, apps/api DOCUMENT_SORT_KEYS와 같다).
@@ -76,7 +71,7 @@ function UploadDocumentModal({ onClose }: { onClose: () => void }) {
     (s) => !isSuperAdmin || !form.branchId || s.branchId === form.branchId,
   );
 
-  const uploadMutation = useMutation<DocumentRow, AxiosError<ApiErrorBody>, DocForm & { file: File }>({
+  const uploadMutation = useMutation<DocumentRow, ApiError, DocForm & { file: File }>({
     // 저장소에 먼저 올리고(업로드 URL) 그 경로로 등록한다 — 서버가 크기·형식을 다시 본다.
     mutationFn: async (dto) => {
       const stored = await uploadDocumentFile(dto.file);
@@ -240,7 +235,7 @@ export function DocumentsPage() {
   const total = data?.total ?? 0;
   const alertsQuery = useApiList<DocumentRow>(['documents', 'alerts'], '/documents/retention-alerts', isSuperAdmin);
 
-  const deleteMutation = useMutation<unknown, AxiosError<ApiErrorBody>, DocumentRow>({
+  const deleteMutation = useMutation<unknown, ApiError, DocumentRow>({
     mutationFn: async (doc) => (await api.delete(`/documents/${doc.id}`)).data,
     onSuccess: (_, doc) => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
@@ -255,7 +250,7 @@ export function DocumentsPage() {
     try {
       await openDocument(doc);
     } catch (e) {
-      toast.error(apiErrorMessage(e as AxiosError<ApiErrorBody>) ?? '문서를 열지 못했습니다.');
+      toast.error(apiErrorMessage(e as ApiError) ?? '문서를 열지 못했습니다.');
     } finally {
       setOpening(null);
     }

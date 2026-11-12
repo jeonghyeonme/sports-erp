@@ -1,5 +1,5 @@
 import axios, { InternalAxiosRequestConfig } from 'axios';
-import { trackRequest } from './slow-requests';
+import { trackRequest } from '@sports-erp/web-shared';
 
 // 로컬 개발(vite dev)은 .env.development의 VITE_API_BASE_URL이 적용된다.
 // 프로덕션 빌드(vite build)는 값이 없어 상대경로 폴백을 쓴다 — admin-web이 Cloudflare
