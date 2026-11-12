@@ -9,7 +9,7 @@
 | T0 상주 | 매 턴 | 루트 `CLAUDE.md` — 사업 구조·불변식·명령어·라우팅 표 |
 | T1 조건부 | 그 폴더 파일을 다룰 때 자동 | `apps/api/CLAUDE.md`, `apps/admin-web/CLAUDE.md`, `apps/member-web/CLAUDE.md` |
 | T2 진입점 | 세션·작업 시작 | [STATUS.md](STATUS.md), 각 도메인 문서 맨 위 **요약 카드** |
-| T3 보관 | ID로 찾을 때만 | 도메인 문서 본문·부록, `decisions/D<번호>.md`, `log/NNN.md`, `architecture/` |
+| T3 보관 | ID로 찾을 때만 | 도메인 문서 본문·부록, `decisions/D<번호>.md`, `log/YYYY-Www.md`, `architecture/` |
 
 ## 폴더
 
@@ -18,9 +18,9 @@
 | [STATUS.md](STATUS.md) | 지금 어디까지 왔고 다음은 뭔가 | 세션 끝에 덮어쓴다(80줄 상한) |
 | [domains/](domains/) | 이 기능은 무엇을 해야 하고 왜 이렇게 만들었나 | 도메인당 1파일: 요약 카드 → §0~12(요구사항→Driver→대안→ADR→검증) → 부록 A-3~A-9(옛 설계서 절 번호 그대로: 데이터 모델·화면·API·비즈니스 로직·권한·우선순위·테스트) |
 | [architecture/](architecture/) | 도메인과 무관하게 지금 유효한 규칙은 | [entities](architecture/entities.md)(공유 엔티티 단일 진실 공급원) · [system-overview](architecture/system-overview.md) · [data-integrity](architecture/data-integrity.md) · [date-time-handling](architecture/date-time-handling.md) · [design-constants](architecture/design-constants.md) · [traffic-infra-review](architecture/traffic-infra-review.md) · [data-retention](architecture/data-retention.md)(수동 정리 절차) · [engineering-risks](architecture/engineering-risks.md)(고밀도화 때 챙길 개발 문제 상황 점검표) · [security-plan](architecture/security-plan.md)(보안관리계획·약점 조치표) · [secure-coding-checklist](architecture/secure-coding-checklist.md)(행안부 보안약점 49개 점검) · [dependency-licenses](architecture/dependency-licenses.md)(자동 생성) |
-| [decisions/](decisions/README.md) | 그 횡단 규칙은 언제 왜 정했나 | 결정 하나에 파일 하나(`D37.md`). 고치지 않고 새 번호로 대체. 도메인 안의 결정은 도메인 문서 ADR |
+| [decisions/](decisions/README.md) | 그 횡단 규칙은 언제 왜 정했나 | 결정 하나에 파일 하나(`D37.md`). 고치지 않고 새 번호로 대체. 대체됐거나 끝난 결정은 [archive.md](decisions/archive.md)에 번호 앵커로(D79). 도메인 안의 결정은 도메인 문서 ADR |
 | [process/](process/) | 일은 어떤 절차로 하나 | 방법론: RFP 분류 · 도메인 우선순위 · 도메인 사이클 템플릿 · [작업 브리프](process/04_작업_브리프.md)(남은 일을 새 세션에서 시작하는 법, STATUS가 가리킴) |
-| [log/](log/README.md) | 과거에 무슨 일이 있었나 | 한 건에 파일 하나(`051.md`), append-only. 세션 시작 때 읽지 않는다. 트러블슈팅·끝난 과정 문서(archive/)도 여기 |
+| [log/](log/README.md) | 과거에 무슨 일이 있었나 | 한 주에 파일 하나(`2026-W40.md`), 그 안에 번호 붙은 기록(`#051`), append-only(D79). 세션 시작 때 읽지 않는다. 트러블슈팅·끝난 과정 문서도 여기 |
 | [reference/](reference/) | 바깥에서 온 원본·사람이 판단할 때 쓰는 자료 | 원본 RFP PDF · 요구사항추적표 · 차별화전략 · 기업 구조 분석 · 시스템 비유 설명 |
 | [design/](design/디자인시스템.md) | 화면은 어떤 규칙으로 그리나 | admin-web 작업 전 필독 |
 | [presentation/](presentation/) | 주간 발표 | 발표 작업을 요청받았을 때만 수정 |
@@ -32,8 +32,8 @@
 |---|---|
 | `예약및결제 A-6` | `domains/예약및결제.md` 부록 A-6 |
 | `ADR-RSV-01` | 해당 도메인 문서의 ADR 절 |
-| `D37` | `decisions/D37.md` |
-| `docs/log/051` | `log/051.md` |
+| `D37` | `decisions/D37.md` — 지난 결정이면 `decisions/archive.md#D37`(인덱스 "지난 결정" 표) |
+| `docs/log/051` | 로그 인덱스에서 번호로 찾는다(예: `log/2026-W40.md#051`) |
 | `entities.md §2-1` | `architecture/entities.md` §2-1 |
 
 ## 세션 루프
@@ -41,4 +41,4 @@
 1. **시작**: `CLAUDE.md`(자동) → `STATUS.md` → 해당 도메인 요약 카드
 2. **작업**: 근거(ADR·D 번호)를 먼저 밝히고 구현 → 테스트·lint·빌드
 3. **검증**: 커밋 전 hook(코드: lint·빌드·jest / 문서: doc-check) + CI
-4. **마무리**: `.claude/skills/wrap-up/SKILL.md` — STATUS 덮어쓰기, `log/NNN.md` 한 건, 필요하면 ADR·`D<번호>`·요약 카드 갱신
+4. **마무리**: `.claude/skills/wrap-up/SKILL.md` — STATUS 덮어쓰기, 그 주 로그 파일에 한 건, 필요하면 ADR·`D<번호>`·요약 카드 갱신

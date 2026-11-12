@@ -1,6 +1,6 @@
 ---
 name: wrap-up
-description: 이 저장소(스포이즘 ERP)에서 작업 한 단위를 마칠 때 기록을 남기는 고정 절차 — STATUS.md 덮어쓰기, docs/log/NNN.md 한 건, 필요하면 도메인 ADR·검증현황·요약 카드와 docs/decisions/D<번호>.md, 그리고 doc-check. 구현·문서 작업을 끝내고 커밋하기 전, 또는 사용자가 "정리해줘", "기록 남겨줘", "마무리하자", "wrap up"이라고 할 때 사용한다.
+description: 이 저장소(스포이즘 ERP)에서 작업 한 단위를 마칠 때 기록을 남기는 고정 절차 — STATUS.md 덮어쓰기, 그 주 docs/log/YYYY-Www.md에 로그 한 건, 필요하면 도메인 ADR·검증현황·요약 카드와 docs/decisions/D<번호>.md, 그리고 doc-check. 구현·문서 작업을 끝내고 커밋하기 전, 또는 사용자가 "정리해줘", "기록 남겨줘", "마무리하자", "wrap up"이라고 할 때 사용한다.
 ---
 
 # wrap-up — 작업 마무리 기록 절차 (D38)
@@ -12,7 +12,7 @@ description: 이 저장소(스포이즘 ERP)에서 작업 한 단위를 마칠 �
 | 바뀐 것 | 기록할 곳 |
 |---|---|
 | 지금 상태·다음 할 일·승인 대기 | `docs/STATUS.md` — 항상 |
-| 이번 작업의 경위(왜, 근거, 수치, 검증) | `docs/log/NNN.md` 새 파일 — 항상 |
+| 이번 작업의 경위(왜, 근거, 수치, 검증) | 그 주 로그 파일 `docs/log/YYYY-Www.md`(ISO 주)에 한 건 붙이기 — 항상 |
 | 도메인 안의 결정 | 그 도메인 문서 §10 ADR + §11 검증 현황 + 맨 위 요약 카드 |
 | 도메인에 안 걸리는 결정(인프라·구조·도구) | `docs/decisions/D<다음 번호>.md` 새 파일 + `decisions/README.md` 요약표 한 줄 |
 | 지금 유효한 횡단 규칙 | `docs/architecture/` 해당 파일 |
@@ -22,13 +22,19 @@ description: 이 저장소(스포이즘 ERP)에서 작업 한 단위를 마칠 �
 
 ## 2. 진행 로그 한 건
 
-1. 다음 번호: `ls docs/log | grep -E '^[0-9]{3}\.md$' | sort | tail -1` + 1
-2. `docs/log/NNN.md`를 새로 만든다:
+로그는 주 단위 파일이다(D79). 기록 번호는 계속 이어지는 ID다.
+
+1. 다음 번호: `docs/log/README.md` 기록 표 마지막 줄 번호 + 1 (`tail -3 docs/log/README.md`)
+2. 이번 주 파일: `date +%G-W%V`(ISO 주, 예: `2026-W46`) → `docs/log/2026-W46.md`. 없으면 머리말 두 줄로 만들고 `docs/log/README.md` "주별 파일" 표에도 한 줄 추가한다:
+   `# 진행 로그 2026-W46 (11-09 ~ 11-15)` / `> [진행 로그 인덱스](README.md) · 한 주의 기록을 한 파일에 시간 순으로 둔다(D79).`
+3. 그 파일 **끝에** 붙인다(앞 기록과는 `---` 줄로 나눈다, 파일 끝부분만 읽으면 된다):
 
    ```markdown
-   # NNN. <한 일 — 왜를 담은 제목> (YYYY-MM-DD)
+   ---
 
-   > [진행 로그 인덱스](README.md)
+   <a id="NNN"></a>
+
+   ## NNN. <한 일 — 왜를 담은 제목> (YYYY-MM-DD)
 
    **계기**: …
    **한 일**: …
@@ -36,7 +42,7 @@ description: 이 저장소(스포이즘 ERP)에서 작업 한 단위를 마칠 �
    **검증**: 돌린 테스트·lint·빌드 결과. 안 돌렸거나 테스트가 없으면 "검증되지 않음"
    **커밋**: 바뀐 파일 요약
    ```
-3. `docs/log/README.md` 표 맨 아래에 `| [NNN](NNN.md) | YYYY-MM-DD | 제목 |` 한 줄을 추가한다(파일 끝부분만 읽으면 된다).
+4. `docs/log/README.md` 기록 표 맨 아래에 `| [NNN](YYYY-Www.md#NNN) | YYYY-MM-DD | 제목 |` 한 줄을 추가하고, "주별 파일" 표의 그 주 범위·건수를 고친다. 다른 로그는 `log/2026-W46.md#NNN`으로 링크하고, 코드 주석에서는 `log/NNN`으로 인용한다.
 
 ## 3. STATUS.md 덮어쓰기
 
