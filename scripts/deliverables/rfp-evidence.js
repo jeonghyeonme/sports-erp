@@ -61,6 +61,8 @@ function decisionTitles(ids) {
   const where = new Map();
   const readme = fs.readFileSync(path.join(ROOT, 'docs/decisions/README.md'), 'utf8');
   for (const m of readme.matchAll(/^\| \[(D\d+)\]\(D\d+\.md\) \|/gm)) where.set(m[1], '결정 기록');
+  // 대체됐거나 끝난 결정은 archive.md에 번호 앵커로 있다(D79)
+  for (const m of readme.matchAll(/^\| \[(D\d+)\]\(archive\.md#D\d+\) \|/gm)) where.set(m[1], '결정 기록(지난 결정)');
   const domains = path.join(ROOT, 'docs/domains');
   for (const f of fs.readdirSync(domains).filter((n) => n.endsWith('.md'))) {
     const doc = fs.readFileSync(path.join(domains, f), 'utf8');
@@ -273,7 +275,7 @@ footer.end { margin-top: 48px; font-size: 13px; color: var(--muted); border-top:
 </style>
 
 <header class="masthead"><div class="in">
-  <span class="eyebrow">스포이즘 ERP · 중간 보고 증빙</span>
+  <span class="eyebrow">스포이즘 ERP · RFP 산출물 증빙</span>
   <h1>RFP 이행 증빙</h1>
   <p>제안요청서의 요구 하나하나를 어떻게 이행했는지, 조항마다 원문과 구현한 것, 결정 기록, 실제 화면을 묶었다. 앞의 한눈 표로 전체를 보고, 궁금한 조항은 번호를 눌러 상세로 간다.</p>
   <div class="meta"><span>기준일 <b>${today}</b></span><span>판정 원천 <b>요구사항추적표 §3</b></span><span>조항 <b>${all.length}개</b></span><span>화면 <b>시연 데이터로 로컬 실행</b></span></div>

@@ -24,7 +24,9 @@ OUT = ROOT / 'docs/deliverables/데이터정의서.xlsx'
 TABLES = {
     'Account': ('계정', '로그인 주체. 역할 4개(본사 관리자·지점 관리자·직원·회원) 중 하나를 가진다'),
     'RefreshToken': ('리프레시 토큰', '로그인 유지용 토큰(1회용 교체). 원문 대신 해시를 저장'),
-    'Branch': ('지점(위탁계약 현장)', '아파트·오피스텔과 맺은 위탁운영 계약 현장. 계약 상대방·기간·상태를 가진다'),
+    'Branch': ('지점(위탁계약 현장)', '아파트·오피스텔과 맺은 위탁운영 계약 현장. 계약 상태를 가지고, 상대방·기간은 계약 회차에 있다(D69)'),
+    'ContractRound': ('위탁계약 회차', '지점마다 1, 2, 3… 회차별 계약 상대방·기간·해지 확정일. 지점의 계약 정보 = 가장 최근 회차(D69). 지우는 경로가 없다'),
+    'ContractFile': ('계약 파일', '회차의 계약서·해지 합의서 파일. 교체하면 옛 행에 교체 일시를 남긴다. 보존 = 회차 끝난 날 + 3년, 실물 이관·정리 기록(D69·D71)'),
     'Staff': ('직원', '본사가 채용한 인력. 현재 파견 지점을 캐시로 가진다'),
     'StaffAssignment': ('파견 이력', '직원이 언제 어느 지점에 파견됐는지. 진행 중 파견은 직원당 1건'),
     'StaffProfileChangeRequest': ('인사 변경 신청', '직원 본인의 인사정보 변경 신청과 관리자 1단계 승인(D11, ADR-STF-09)'),
@@ -88,8 +90,14 @@ GLOSSARY = {
     'approvedAt': '승인 일시', 'refundedAt': '환불 일시',
     'currentCount': '현재 인원', 'lastUpdatedAt': '혼잡도 갱신 일시', 'recordedAt': '기록 일시', 'source': '기록 출처',
     'assetType': '자산 유형', 'acquiredAt': '취득일', 'acquisitionCost': '취득가액(원)', 'location': '보관 위치',
+    'roundNo': '계약 회차 번호', 'partner': '위탁계약 상대방', 'startAt': '시작일', 'endAt': '종료일',
+    'terminatedAt': '해지 확정일(해지 합의서)', 'createdBy': '생성한 계정 ID', 'roundId': '계약 회차 ID', 'path': '저장소 경로',
+    'uploadedBy': '올린 계정 ID', 'uploadedAt': '올린 일시', 'replacedAt': '교체된 일시(지금 파일이면 비어 있음)',
+    'archivedAt': '실물 이관 확인 일시', 'archivedBy': '실물 이관 확인 계정 ID', 'purgedAt': '시스템 파일 정리 일시', 'purgedBy': '정리한 계정 ID',
+    'fileUrl': '옛 문서의 파일 주소(http) — 새 문서는 storagePath만(D69 2차)', 'storagePath': '올린 파일의 저장소 경로(D57)',
+    'feature': '세부 권한 기능 코드(D60 카탈로그)', 'allowed': '허용 여부', 'grantedBy': '설정한 본사 관리자 계정 ID',
     'prefix': '코드 접두어', 'lastValue': '마지막 발급 번호', 'attemptedAt': '시도 일시',
-    'action': '행위 — ROLE_CHANGED(역할 전환)·RESIGNED(퇴사)·ASSIGNED(파견 발령)·ASSIGNMENT_ENDED(계약 종료로 파견 종료)·PHONE_VIEWED(상세 전화번호 열람)', 'entity': '대상 테이블', 'before': '변경 전(JSON)', 'after': '변경 후(JSON)',
+    'action': '행위 코드 20종 — 인사(ROLE_CHANGED·RESIGNED·ASSIGNED·ASSIGNMENT_ENDED), 열람(PHONE_VIEWED·문서 열람), 근태 정정·회원 상태·자산 상태, 세부 권한, 지점 등록·계약 갱신·정정·상태, 계약 파일 올리기·교체·이관·정리 등(apps/api/src/prisma/audit.ts AuditAction)', 'entity': '대상 테이블', 'before': '변경 전(JSON)', 'after': '변경 후(JSON)',
 }
 
 DB_TYPE = {'String': 'text', 'Int': 'integer', 'Boolean': 'boolean', 'DateTime': 'timestamp(3)', 'Float': 'double precision',
