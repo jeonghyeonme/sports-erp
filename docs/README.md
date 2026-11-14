@@ -21,7 +21,7 @@
 | [decisions/](decisions/README.md) | 그 횡단 규칙은 언제 왜 정했나 | 결정 하나에 파일 하나(`D37.md`). 고치지 않고 새 번호로 대체. 대체됐거나 끝난 결정은 [archive.md](decisions/archive.md)에 번호 앵커로(D79). 도메인 안의 결정은 도메인 문서 ADR |
 | [process/](process/) | 일은 어떤 절차로 하나 | 방법론: RFP 분류 · 도메인 우선순위 · 도메인 사이클 템플릿 · [작업 브리프](process/04_작업_브리프.md)(남은 일을 새 세션에서 시작하는 법, STATUS가 가리킴) |
 | [log/](log/README.md) | 과거에 무슨 일이 있었나 | 한 주에 파일 하나(`2026-W40.md`), 그 안에 번호 붙은 기록(`#051`), append-only(D79). 세션 시작 때 읽지 않는다. 트러블슈팅·끝난 과정 문서도 여기 |
-| [reference/](reference/) | 바깥에서 온 원본·사람이 판단할 때 쓰는 자료 | 원본 RFP PDF · 요구사항추적표 · 차별화전략 · 기업 구조 분석 · 시스템 비유 설명 |
+| [reference/](reference/) | 바깥에서 온 원본·사람이 판단할 때 쓰는 자료 | 원본 RFP PDF · 요구사항추적표 · [진행률](reference/진행률.md)(전체 진행 %, D80) · 차별화전략 · 기업 구조 분석 · 시스템 비유 설명 |
 | [design/](design/디자인시스템.md) | 화면은 어떤 규칙으로 그리나 | admin-web 작업 전 필독 |
 | [presentation/](presentation/) | 주간 발표 | 발표 작업을 요청받았을 때만 수정 |
 | [deliverables/](deliverables/) | RFP 산출물 제출본 | 자기완결형 Word(docx)·Excel(xlsx) — `scripts/deliverables/`로 재생성, 다른 문서와 링크로 얽지 않는다 |
