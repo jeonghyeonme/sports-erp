@@ -131,6 +131,18 @@ await admin('jeong.haneul@spoism.example', [
   ['F2-2', '/staff/staff-seoyeon'],
   ['F4-2', '/board', (p) => p.getByRole('button', { name: '직원 교육자료' }).click()],
 ]);
+// F2-3 정보 변경 신청함은 대기 신청이 있어야 보인다. 시연 층은 신청 3건을 직원 무작위로 만들어(D58) 서초점에 없을 수 있다 —
+// 캡처 전용 DB에서 서초점 직원(박서연)이 연락처 변경을 하나 신청해 둔다(이미 대기 중이면 서버가 거절해도 그만이다).
+{
+  const api = (path, init) => fetch(`http://localhost:${API_PORT}/api/v1${path}`, { ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } });
+  const login = await (await api('/auth/login', { method: 'POST', body: JSON.stringify({ email: 'park.seoyeon@spoism.example', password: PASSWORD }) })).json();
+  const res = await api('/staff-change-requests', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${login.data.accessToken}` },
+    body: JSON.stringify({ field: 'phone', newValue: '010-5821-3047' }),
+  });
+  console.log('변경 신청 준비', res.status);
+}
 // 지점 관리자(김민수, 서초점)
 await admin('kim.minsu@spoism.example', [
   ['F1-3', '/'],

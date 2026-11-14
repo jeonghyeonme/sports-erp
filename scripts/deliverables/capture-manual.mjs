@@ -68,11 +68,20 @@ async function admin(email, shots) {
     await settle(page);
     if (prepare) await prepare(page);
     await settle(page);
+    await hideDevText(page);
     await page.screenshot({ path: `${OUT}${name}.png` });
     console.log('찍음', name);
   }
   await ctx.close();
 }
+
+// 화면 머리글 설명 중 개발용 표기(결정 번호 D2·ADR 등)가 든 것만 숨긴다 — 회원번호 같은 설명은 남긴다.
+const hideDevText = (page) =>
+  page.evaluate(() => {
+    for (const el of document.querySelectorAll('.page-header .page-desc')) {
+      if (/\bD\d+\b|ADR-|SUPER_ADMIN|BRANCH_ADMIN/.test(el.textContent ?? '')) el.style.display = 'none';
+    }
+  });
 
 await admin('jeong.haneul@spoism.example', [
   ['hq-dashboard', '/'],
@@ -85,7 +94,11 @@ await admin('jeong.haneul@spoism.example', [
 await admin('kim.minsu@spoism.example', [
   ['ba-dashboard', '/'],
   ['ba-members', '/members'],
-  ['ba-member-detail', null, (p) => p.locator('main table tbody tr').first().click()],
+  // 진행 중 PT가 있는 시연 회원 — 상세가 PT 탭부터 열린다(D72). 목록 첫 줄은 정렬에 따라 탈퇴 회원일 수 있다.
+  ['ba-member-detail', null, async (p) => {
+    await p.getByPlaceholder('이름 · 회원번호 · 전화번호').fill('이수진');
+    await p.locator('main table tbody tr', { hasText: '이수진' }).first().click();
+  }],
   ['ba-programs', '/programs'],
   ['ba-reservations', '/reservations'],
   ['ba-attendance', '/attendance'],
