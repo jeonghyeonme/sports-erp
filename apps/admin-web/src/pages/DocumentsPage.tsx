@@ -276,6 +276,7 @@ export function DocumentsPage() {
       {isSuperAdmin && (alertsQuery.data?.length ?? 0) > 0 && (
         <div className="detail-section">
           <h3 className="section-title">보존기한 임박·경과 문서 ({alertsQuery.data!.length}건)</h3>
+          <div className="table-scroll">
           <table>
             <thead>
               <tr>
@@ -298,6 +299,7 @@ export function DocumentsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -339,6 +341,7 @@ export function DocumentsPage() {
       {!isLoading && !isError && rows.length === 0 && <div className="empty-state">조건에 맞는 문서가 없습니다.</div>}
 
       {rows.length > 0 && (
+        <div className="table-scroll">
         <table>
           <thead>
             <tr>
@@ -380,6 +383,7 @@ export function DocumentsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       <Pager page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} disabled={isFetching} />
 

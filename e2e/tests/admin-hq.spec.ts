@@ -88,3 +88,24 @@ test('본사: 대시보드에 운영 실적 숫자 카드·월별 차트가 있�
   await expect(section.locator('.chart-table tbody tr')).toHaveCount(13);
   await expect(section.locator('.chart-table tbody tr').first()).toContainText('(진행 중)');
 });
+
+// D71 — 계약 파일 보존 화면(본사 전용, log/197 D-5 "계약 파일 보존" 공백). 기준 시드에는 보존 끝이 가까운 파일이 없어
+// 두 묶음 모두 비어 있다 — 오류 없이 두 묶음과 안내가 그려지는지 본다.
+test('본사: 계약 파일 보존 화면에서 실물 이관 필요·정리할 파일 묶음을 본다', async ({ page }) => {
+  await adminLogin(page, ACCOUNTS.hq);
+  await openMenu(page, '/contract-retention');
+  await expect(page.locator('main h2', { hasText: '계약 파일 보존' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /실물 이관이 필요한 파일 \(\d+\)/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /보존 끝나 정리할 파일 \(\d+\)/ })).toBeVisible();
+  await expect(page.locator('main .forbidden-note')).toHaveCount(0);
+});
+
+test('지점 관리자: 계약 파일 보존 메뉴가 없고 주소로 들어가도 본사 전용 안내만 보인다', async ({ page }) => {
+  await adminLogin(page, ACCOUNTS.seochoAdmin);
+  await expect(page.locator('nav a[href="/contract-retention"]')).toHaveCount(0);
+  await page.evaluate(() => {
+    history.pushState({}, '', '/contract-retention');
+    dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await expect(page.getByText('계약 파일 보존 현황은 본사 관리자만 볼 수 있습니다.')).toBeVisible();
+});

@@ -633,6 +633,11 @@ table {
   overflow: hidden;
 }
 
+/* 열이 많은 표(문서함 등)는 좁은 폭(900px 이하)에서 본문을 밀지 않고 표만 가로로 스크롤한다(admin-layout e2e). */
+.table-scroll {
+  overflow-x: auto;
+}
+
 th,
 td {
   text-align: left;

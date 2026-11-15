@@ -429,6 +429,7 @@ export function AssetsPage() {
       {!isLoading && !isError && rows.length === 0 && <div className="empty-state">조건에 맞는 자산이 없습니다.</div>}
 
       {!isError && rows.length > 0 && (
+        <div className="table-scroll">
         <table>
           <thead>
             <tr>
@@ -489,6 +490,7 @@ export function AssetsPage() {
             })}
           </tbody>
         </table>
+        </div>
       )}
 
       <Pager page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} disabled={isFetching} />
