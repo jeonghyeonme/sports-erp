@@ -213,3 +213,22 @@ test('지점 관리자: 문서함에 PDF를 올리면 목록에 보이고, 제�
   await row.getByRole('button', { name: title }).click();
   expect((await download).suggestedFilename()).toBe('manual.pdf');
 });
+
+// D51 M5 — 예약 관리의 주간 시간표는 월~일 한 주를 보이고, 이전·다음 주로 옮겨 다니며 "이번 주"로 돌아온다(log/197 D-5 예약 달력).
+test('지점 관리자: 주간 시간표를 다음 주·이전 주로 넘기고 이번 주로 돌아온다', async ({ page }) => {
+  await adminLogin(page, ACCOUNTS.seochoAdmin);
+  await openMenu(page, '/reservations');
+  const range = page.getByText(/^\d{4}-\d{2}-\d{2} ~ \d{4}-\d{2}-\d{2}$/);
+  const thisWeek = await range.innerText();
+  const [mon] = thisWeek.split(' ~ ');
+  const shift = (d: string, days: number) => new Date(Date.parse(`${d}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+
+  await page.getByRole('button', { name: '다음 주 →' }).click();
+  await expect(range).toHaveText(`${shift(mon, 7)} ~ ${shift(mon, 13)}`);
+  await page.getByRole('button', { name: '← 이전 주' }).click();
+  await page.getByRole('button', { name: '← 이전 주' }).click();
+  await expect(range).toHaveText(`${shift(mon, -7)} ~ ${shift(mon, -1)}`);
+  await page.getByRole('button', { name: '이번 주' }).click();
+  await expect(range).toHaveText(thisWeek);
+  expect(new Date(`${mon}T00:00:00Z`).getUTCDay()).toBe(1); // 월요일부터
+});

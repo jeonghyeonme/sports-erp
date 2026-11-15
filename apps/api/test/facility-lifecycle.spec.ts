@@ -100,4 +100,43 @@ describe('시설 생애주기 — 신선도 추적·운영중단 표시', () => 
       expect(activeList.body.data.map((f: { id: string }) => f.id)).toContain('facility-seocho-gym');
     });
   });
+
+  // 혼잡도관리 A-6 — 정원 1 미만은 나눗셈이 안 돼 거부, 단계는 (예약 + 현장) / 정원 비율 20%씩: ≤20 → 1, ≤40 → 2, ≤60 → 3, ≤80 → 4, 그 위 5.
+  describe('정원·5단계 경계(혼잡도관리 A-6)', () => {
+    it.each([0, -1])('정원 %d 으로 등록하면 400', async (capacity) => {
+      expect((await api(admin).post('/facilities', { name: '정원 검사', type: 'GYM', capacity })).status).toBe(400);
+    });
+
+    it('정원을 0으로 고치면 400, 정원은 그대로', async () => {
+      expect((await api(admin).patch('/facilities/facility-seocho-gym', { capacity: 0 })).status).toBe(400);
+      const gym = (await api(admin).get('/facilities?branchId=branch-seocho')).body.data.find((f: { id: string }) => f.id === 'facility-seocho-gym');
+      expect(gym.capacity).toBeGreaterThan(0);
+    });
+
+    it('현장 인원 음수는 400', async () => {
+      expect((await api(admin).post('/facilities/facility-seocho-gym/congestion/manual', { currentCount: -1 })).status).toBe(400);
+    });
+
+    // 예약이 붙지 않는 새 시설(정원 10)이라 단계는 현장 인원만으로 정해진다 — 경계 바로 위·아래를 모두 본다.
+    it('정원 10에서 0~11명 → 1·1·1·2·2·3·3·4·4·5·5·5단계(정원 초과도 5단계)', async () => {
+      const created = await api(admin).post('/facilities', { name: '경계 검사', type: 'GYM', capacity: 10 });
+      expect(created.status).toBe(201);
+      const id = created.body.data.id as string;
+      const levels: number[] = [];
+      for (let n = 0; n <= 11; n++) {
+        const res = await api(admin).post(`/facilities/${id}/congestion/manual`, { currentCount: n });
+        expect(res.status).toBe(201);
+        levels.push(res.body.data.level);
+      }
+      expect(levels).toEqual([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5]);
+    });
+
+    it('정원을 바꾸면 같은 인원으로 단계를 다시 매긴다(8/10 = 4단계 → 8/40 = 1단계)', async () => {
+      const id = (await api(admin).post('/facilities', { name: '정원 변경', type: 'GYM', capacity: 10 })).body.data.id as string;
+      expect((await api(admin).post(`/facilities/${id}/congestion/manual`, { currentCount: 8 })).body.data.level).toBe(4);
+      const res = await api(admin).patch(`/facilities/${id}`, { capacity: 40 });
+      expect(res.status).toBe(200);
+      expect(res.body.data.level).toBe(1);
+    });
+  });
 });

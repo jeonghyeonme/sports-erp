@@ -192,4 +192,47 @@ describe('프로그램 무결성 — facilityId 지점 일치', () => {
       expect(res.body.data.affectedReservations).toEqual({ count: 0, items: [] });
     });
   });
+
+  // 강사프로그램게시 A-3 §3-2 전이표 — 표에 없는 전이(자기 자신 포함)는 409 INVALID_STATUS_TRANSITION이고 상태는 그대로다.
+  // 프로그램은 PREPARING으로 만들어지고, 원하는 출발 상태까지는 표에 있는 전이로만 옮긴다.
+  describe('프로그램 상태 전이표', () => {
+    const PATH: Record<string, string[]> = { PREPARING: [], RUNNING: ['RUNNING'], PAUSED: ['RUNNING', 'PAUSED'], ENDED: ['ENDED'] };
+    async function programIn(status: string): Promise<string> {
+      const created = await api(seochoAdmin).post('/programs', baseProgram);
+      expect(created.status).toBe(201);
+      const id = created.body.data.id as string;
+      for (const s of PATH[status]) expect((await api(seochoAdmin).patch(`/programs/${id}/status`, { status: s })).status).toBe(200);
+      return id;
+    }
+    const statusOf = async (id: string) => (await app.get(PrismaService).program.findUniqueOrThrow({ where: { id } })).status;
+
+    const forbidden: Array<[string, string]> = [
+      ['PREPARING', 'PREPARING'], ['PREPARING', 'PAUSED'],
+      ['RUNNING', 'RUNNING'], ['RUNNING', 'PREPARING'],
+      ['PAUSED', 'PAUSED'], ['PAUSED', 'PREPARING'],
+      ['ENDED', 'PREPARING'], ['ENDED', 'RUNNING'], ['ENDED', 'PAUSED'], ['ENDED', 'ENDED'],
+    ];
+    it.each(forbidden)('%s → %s 는 409, 상태는 그대로', async (from, to) => {
+      const id = await programIn(from);
+      const res = await api(seochoAdmin).patch(`/programs/${id}/status`, { status: to });
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('INVALID_STATUS_TRANSITION');
+      expect(await statusOf(id)).toBe(from);
+    });
+
+    const allowed: Array<[string, string]> = [
+      ['PREPARING', 'RUNNING'], ['PREPARING', 'ENDED'], ['RUNNING', 'PAUSED'], ['RUNNING', 'ENDED'], ['PAUSED', 'RUNNING'], ['PAUSED', 'ENDED'],
+    ];
+    it.each(allowed)('대조군: %s → %s 는 200', async (from, to) => {
+      const id = await programIn(from);
+      const res = await api(seochoAdmin).patch(`/programs/${id}/status`, { status: to });
+      expect(res.status).toBe(200);
+      expect(await statusOf(id)).toBe(to);
+    });
+
+    it('표에 없는 상태 값은 400(검증 단계)', async () => {
+      const id = await programIn('PREPARING');
+      expect((await api(seochoAdmin).patch(`/programs/${id}/status`, { status: 'DELETED' })).status).toBe(400);
+    });
+  });
 });

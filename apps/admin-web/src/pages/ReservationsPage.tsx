@@ -286,7 +286,7 @@ export function ReservationsPage() {
         <>
           <div className="detail-section">
             <h3 className="section-title">예약 현황</h3>
-            <div className="action-row" style={{ gap: 8, marginBottom: 8, alignItems: 'center' }}>
+            <div className="action-row" style={{ gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <input
                 className="search-input"
                 type="search"

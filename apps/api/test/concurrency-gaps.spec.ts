@@ -12,6 +12,8 @@ import { resetWorkerDb } from './helpers/worker-db';
  *    종료 뒤에 커밋돼 종료 지점에 새 행이 남는다. 고친 뒤에는 쓰기 트랜잭션 안에서 지점 행을 공유 락으로 읽어
  *    종료 확정이 커밋될 때까지 기다렸다가 TERMINATED를 보고 409를 낸다.
  * 2. 퇴사·파견 발령: 발령이 직원 행을 잠그지 않으면 커밋 전 퇴사를 ACTIVE로 읽고 발령해, 퇴사자에게 진행 중 파견이 남는다.
+ * 3. 동시 채용(log/197 D-5 "검증되지 않음"이던 것): 같은 지점에 여러 명을 동시에 채용해도 직원 코드가 겹치지 않고(채번 행 락),
+ *    같은 이메일로 동시에 채용하면 하나만 되고 나머지는 500이 아니라 409다(활성 계정 이메일 부분 unique, D27).
  *
  * 순서는 행 락으로 결정적으로 만든다(row-lock.ts) — 테스트가 지점·직원 행을 잡고 커밋 전 변경을 한 뒤, 요청이
  * 락에서 기다리는 것(고친 코드) 또는 요청이 먼저 끝나는 것(고치기 전 코드)을 확인하고 놓는다.
@@ -163,6 +165,28 @@ describe('동시성 빈틈 (D70)', () => {
       ]);
       expect([a.status, b.status]).toEqual([201, 201]);
       expect(await openAssignments()).toBe(1);
+    });
+  });
+
+  describe('3. 동시 채용', () => {
+    const hire = (i: number, email = `concurrent-${i}@spoism.example`) =>
+      send(superAdmin, 'post', '/staff', { branchId: BRANCH.seocho, name: `동시채용${i}`, email });
+
+    it('같은 지점에 5명을 동시에 채용해도 모두 201이고 직원 코드가 겹치지 않는다', async () => {
+      const res = await Promise.all([1, 2, 3, 4, 5].map((i) => hire(i)));
+      expect(res.map((r) => r.status)).toEqual([201, 201, 201, 201, 201]);
+      const codes = res.map((r) => r.body.data.staffCode as string);
+      expect(new Set(codes).size).toBe(5);
+      const inDb = await db(app).staff.findMany({ where: { branchId: BRANCH.seocho }, select: { staffCode: true } });
+      expect(new Set(inDb.map((s) => s.staffCode)).size).toBe(inDb.length);
+    });
+
+    it('같은 이메일로 동시에 두 번 채용하면 하나만 201, 나머지는 409 EMAIL_ALREADY_EXISTS(500 아님)', async () => {
+      const email = 'same-email@spoism.example';
+      const res = await Promise.all([hire(1, email), hire(2, email)]);
+      expect(res.map((r) => r.status).sort()).toEqual([201, 409]);
+      expect(res.find((r) => r.status === 409)!.body.error.code).toBe('EMAIL_ALREADY_EXISTS');
+      expect(await db(app).account.count({ where: { email, isActive: true } })).toBe(1);
     });
   });
 });
