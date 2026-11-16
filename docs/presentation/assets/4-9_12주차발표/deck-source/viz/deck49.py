@@ -260,33 +260,34 @@ S.append(('narrow', content('narrow', '사용감 · 좁은 화면', '좁은 창�
 S.append(('p4', divider('p4', 'PART 04', '전체 진행률', '기준을 세우고 다시 셌습니다',
           'RFP 충족률(기능)과 별도로, 최종 제출까지의 진행률. 약 2분.')))
 
-S.append(('progress', content('progress', '전체 진행률', '최종 제출까지 84%',
+S.append(('progress', content('progress', '전체 진행률', '최종 제출까지 80%',
     f'<div style="display:flex; flex-direction:column; gap:22px">'
     + bar('기능 구현', 40, 94, 'RFP 충족률 58/62')
-    + bar('검증 · 품질', 15, 100, '공백 7곳 채움')
+    + bar('검증 · 품질', 15, 79, '부하 · 비정상 접근 남음')
     + bar('산출물', 20, 100, '8종 지금 기준')
-    + bar('발표 · 제출', 15, 50, '최종 발표 · 제출')
+    + bar('발표 · 제출', 15, 44, '13 · 14 · 15주차(최종)')
     + bar('운영 · 마무리', 10, 40, 'main 병합 등')
     + '</div>'
     + f'<div style="display:flex; align-items:center; gap:24px; padding:22px 28px; background:{CARDBG}; border:1px solid {LINE}; border-radius:12px">'
     f'<p style="font-family:{HEADF}; font-size:56px; font-weight:900; color:{SUB}">66%</p><x-shape kind="arrow-right" style="background:{LINE2}; width:56px; height:32px"></x-shape>'
-    f'<p style="font-family:{HEADF}; font-size:56px; font-weight:900; color:{NAVY}">84%</p>'
-    f'{p("11월 14일 처음 잰 값 → 산출물 재생성 · 검증 보강 뒤", 30, INK)}</div>',
-    'RFP 충족률 94%는 기능만 본다. 최종 제출까지의 진행률을 따로 세기 위해 기준을 세웠다(D80) — 묶음 5개(기능 40 · 검증 15 · 산출물 20 · 발표·제출 15 · 운영·마무리 10)의 가중 평균. 평가 기준표가 없어 남은 작업량 기준 초안 가중치(사용자 확인). 처음 잰 값 66%(11/14) → 산출물 재생성(+10) · 검증 보강(+8) 뒤 84%. 질문 대비: 항목별 판정은 저장소 docs/reference/진행률.md 한 곳에 있다. 이 발표 덱과 갱신 리포트는 아직 반영 전.',
+    f'<p style="font-family:{HEADF}; font-size:56px; font-weight:900; color:{NAVY}">80%</p>'
+    f'{p("11월 14일 처음 잰 값 → 남은 일을 더해 다시 센 값", 30, INK)}</div>',
+    'RFP 충족률 94%는 기능만 본다. 최종 제출까지의 진행률을 따로 세기 위해 기준을 세웠다(D80) — 묶음 5개(기능 40 · 검증 15 · 산출물 20 · 발표·제출 15 · 운영·마무리 10)의 가중 평균. 평가 기준표가 없어 남은 작업량 기준 초안 가중치(사용자 확인). 처음 잰 값 66%(11/14) → 산출물 재생성(+10) · 검증 보강(+8)으로 84%까지 갔다가, 남은 일을 목록에 더해 다시 세니 80%. 더한 것: 검증에 부하 · 스트레스 · 비정상 접근 경로 테스트 3개(11/14), 발표에 13 · 14주차 발표와 15주차 최종 발표(12주차 덱 포함 4/9). 기준(D80)은 새 항목이 생기면 목록에 더해 분모가 늘어난다. 질문 대비: 항목별 판정은 저장소 docs/reference/진행률.md 한 곳에 있다.',
     '결정 기록 D80 · 항목마다 끝냄 1 · 일부 0.5 · 안 함 0으로 세어 가중 평균',
     lead='RFP 충족률(94%)은 기능만 본다. 최종 제출까지 얼마나 왔는지는 따로 세야 했다.')))
 
-nexts = [('Book', '최종 발표 · 제출', '최종 발표 덱 · 제출 폴더'),
-         ('Search', '사용감 직접 점검', '남은 스크롤 · 시설 카드 버튼'),
-         ('Check', '마무리', '운영 PT 구매 확인 · 브랜치 정리 · main 병합')]
+nexts = [('Book', '발표 · 제출', '13 · 14주차 발표<br>15주차 최종 발표 · 제출'),
+         ('Activity', '부하 · 비정상 접근', '부하 · 스트레스 테스트<br>비정상 접근 경로'),
+         ('Search', '사용감 직접 점검', '남은 스크롤<br>시설 카드 버튼'),
+         ('Check', '마무리', '운영 PT 구매 확인<br>브랜치 정리 · main 병합')]
 S.append(('wrap', content('wrap', '정리', '다음 할 일', cards_row([
     f'<x-icon name="{ic}" style="color:{NAVY}; width:48px; height:48px"></x-icon>{h3(t)}{p(d)}' for ic, t, d in nexts]),
-    '남은 것은 진행률의 발표 · 제출(최종 발표 덱 · 제출 폴더)과 운영 · 마무리(운영 PT 확인 · 브랜치 정리 · main 병합). 사용감은 사용자가 직접 더 써 보며 찾는다 — 공지 등록 버튼 · 회원 앱 예약 취소까지의 스크롤, 넓은 화면에서 시설 카드 버튼이 세로로 찌그러지는 것. 검증 범위(질문 대비): api 자동 테스트 671건(실DB), 화면 자동 테스트 35건 — 그 밖의 화면은 lint · 빌드와 수동 점검.',
-    lead='남은 것은 제출 준비, 사용감 점검, 마무리다.')))
+    '남은 것은 진행률의 발표 · 제출(13 · 14주차 발표, 15주차 최종 발표 · 제출 폴더), 검증(부하 · 스트레스 테스트, 비정상 접근 경로 — 토큰 위 · 변조 · 만료, 권한 밖 직접 호출, 잘못된 입력), 운영 · 마무리(운영 PT 확인 · 브랜치 정리 · main 병합). 사용감은 사용자가 직접 더 써 보며 찾는다 — 공지 등록 버튼 · 회원 앱 예약 취소까지의 스크롤, 넓은 화면에서 시설 카드 버튼이 세로로 찌그러지는 것. 검증 범위(질문 대비): api 자동 테스트 671건(실DB), 화면 자동 테스트 35건 — 그 밖의 화면은 lint · 빌드와 수동 점검.',
+    lead='남은 것은 발표 · 제출, 부하 · 비정상 접근 테스트, 사용감 점검, 마무리다.')))
 
 S.append(('closing', f'<section id="closing" data-transition="fade" style="background:{BG}; color:{INK}; font-family:{BODYF}; padding:128px 176px; display:flex; flex-direction:column; gap:24px">{DOTS}'
           f'<div style="flex:1"></div><h1 style="font-family:{HEADF}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:{INK}">감사합니다</h1><div style="flex:1"></div>'
-          f'{notes("맺음(말로): 운영 기록을 갱신 협상 자료로 잇는 갱신 리포트를 만들었고, 산출물 여덟 종류를 지금 기준으로 다시 만들었고, 수동 확인뿐이던 일곱 곳에 자동 테스트를 붙였습니다. 최종 제출까지의 진행률은 84%입니다.")}</section>'))
+          f'{notes("맺음(말로): 운영 기록을 갱신 협상 자료로 잇는 갱신 리포트를 만들었고, 산출물 여덟 종류를 지금 기준으로 다시 만들었고, 수동 확인뿐이던 일곱 곳에 자동 테스트를 붙였습니다. 최종 제출까지의 진행률은 80%입니다.")}</section>'))
 
 os.makedirs(os.path.join(OUT, 'project', 'slides'), exist_ok=True)
 for sid, html in S:
@@ -306,7 +307,7 @@ deck = {
         'report': {'description': '01 계약 갱신 리포트 — 운영 기록을 갱신 협상 자료로(D81)', 'start': 'p1'},
         'deliv': {'description': '02 산출물 — 여덟 종류를 지금 기준으로, 원천에서 생성', 'start': 'p2'},
         'verify': {'description': '03 검증과 사용감 — 수동 확인뿐이던 일곱 곳, 좁은 화면 넘침', 'start': 'p3'},
-        'progress': {'description': '04 전체 진행률 — 기준(D80)과 84%, 다음 할 일', 'start': 'p4'},
+        'progress': {'description': '04 전체 진행률 — 기준(D80)과 80%, 다음 할 일', 'start': 'p4'},
     },
     'faces': {
         'gothic-a1': {'family': 'Gothic A1', 'href': 'https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap'},
