@@ -9,6 +9,7 @@ import { AppLayout } from './layout/AppLayout';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { BranchDetailPage } from './pages/BranchDetailPage';
+import { RenewalReportPage } from './pages/RenewalReportPage';
 import { MembersPage } from './pages/MembersPage';
 import { MemberDetailPage } from './pages/MemberDetailPage';
 import { StaffDetailPage } from './pages/StaffDetailPage';
@@ -63,6 +64,7 @@ export default function App() {
                 <Route element={<AppLayout />}>
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/branches/:branchId" element={<BranchDetailPage />} />
+                  <Route path="/branches/:branchId/renewal-report" element={<RenewalReportPage />} />
                   <Route path="/members" element={<MembersPage />} />
                   <Route path="/members/:id" element={<MemberDetailPage />} />
                   <Route path="/staff" element={<StaffPage />} />

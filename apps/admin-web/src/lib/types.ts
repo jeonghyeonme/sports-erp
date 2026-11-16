@@ -550,3 +550,38 @@ export interface InboxItem {
   count: number;
   link: string;
 }
+
+// D81 — 계약 갱신용 영업 리포트(GET /branches/:branchId/renewal-report, 본사 전용)
+export interface RenewalTotals {
+  revenue: number;
+  reservations: number;
+  completed: number;
+  newMembers: number;
+}
+export interface RenewalReport {
+  generatedAt: string;
+  branch: { id: string; name: string; region: string | null; contractStatus: BranchContractStatus };
+  contract: {
+    current: { roundNo: number; partner: string; startAt: string; endAt: string; daysLeft: number };
+    rounds: Array<{ roundNo: number; partner: string; startAt: string; endAt: string; terminatedAt: string | null }>;
+    renewals: number;
+    firstStartAt: string;
+    servedDays: number;
+  };
+  performance: {
+    months: MonthlyPerformance[];
+    last12: RenewalTotals;
+    recent6: RenewalTotals;
+    prior6: RenewalTotals;
+    completionRate: number | null;
+    companyAverage12: RenewalTotals;
+    branchCount: number;
+  };
+  quality: {
+    members: { active: number; dormant: number; withdrawn: number };
+    programs: { running: number; categories: number };
+    facilities: { active: number; averageLevel90d: number | null };
+    support: { total: number; done: number; rejected: number; open: number; averageResolveDays: number | null };
+    staff: { current: number; arrived12: number; left12: number };
+  };
+}

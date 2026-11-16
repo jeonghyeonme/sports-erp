@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { api } from '../lib/api';
@@ -236,6 +236,10 @@ export function BranchDetailPage() {
                 <button type="button" className="btn-secondary" onClick={() => setContractModalOpen(true)}>
                   계약 상태 변경
                 </button>
+                {/* D81 — 갱신 협상에 들고 갈 리포트(계약 회차·운영 성과·서비스 품질, 인쇄용) */}
+                <Link className="btn-secondary" to={`/branches/${branch.id}/renewal-report`}>
+                  갱신 리포트
+                </Link>
               </div>
             )}
           </div>

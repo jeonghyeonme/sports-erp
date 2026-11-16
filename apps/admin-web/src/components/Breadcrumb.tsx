@@ -25,6 +25,9 @@ const DETAIL_LABEL: Record<string, string> = {
 function buildTrail(items: BreadcrumbNavItem[], pathname: string): Crumb[] {
   const home: Crumb = { label: '홈', to: '/' };
   if (pathname === '/') return [{ label: '홈' }, { label: '대시보드' }];
+  if (/^\/branches\/[^/]+\/renewal-report$/.test(pathname)) {
+    return [home, { label: '대시보드', to: '/' }, { label: '지점 상세', to: pathname.replace(/\/renewal-report$/, '') }, { label: '계약 갱신 리포트' }];
+  }
   if (pathname.startsWith('/branches/')) return [home, { label: '대시보드', to: '/' }, { label: '지점 상세' }];
 
   const match = items
