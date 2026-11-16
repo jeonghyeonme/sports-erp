@@ -247,6 +247,8 @@ describe('지점 데이터 격리', () => {
     { name: '서초점 프로그램 요약 조회', method: 'get', path: () => `/branches/${BRANCH.seocho}/programs/summary` },
     // log/129 F3 — 지점 운영 실적
     { name: '서초점 운영 실적 조회', method: 'get', path: () => `/branches/${BRANCH.seocho}/performance` },
+    // D81 — 계약 갱신 리포트는 본사 전용(지점 관리자 자기 지점 403 대조군은 renewal-report.spec).
+    { name: '서초점 계약 갱신 리포트 조회', method: 'get', path: () => `/branches/${BRANCH.seocho}/renewal-report` },
     // ADR-STF-07 — 계약 상태 변경은 본사 전용(지점 관리자는 자기 지점도 403 — contract-termination.spec).
     { name: '서초점 계약 상태 변경', method: 'patch', path: () => `/branches/${BRANCH.seocho}/contract-status`, body: () => ({ status: 'TERMINATED' }) },
     // D68 — 계약 갱신·정정도 본사 전용(지점 관리자 403 대조군은 contract-renewal.spec).

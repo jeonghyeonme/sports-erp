@@ -37,7 +37,7 @@ const ROLE_LABEL = { SUPER_ADMIN: '본사 관리자', BRANCH_ADMIN: '지점 관�
 // 역할별 메뉴 순서(관리자 웹 AppLayout NAV_BY_ROLE와 같게)와 그 화면의 캡처(capture-manual.mjs)
 const ROLE_SCREENS = {
   SUPER_ADMIN: [
-    ['/', 'hq-dashboard'], ['/branches/:branchId', 'hq-branch'], ['/staff', 'hq-staff'], ['/staff/:id'], ['/attendance'],
+    ['/', 'hq-dashboard'], ['/branches/:branchId', 'hq-branch'], ['/branches/:branchId/renewal-report'], ['/staff', 'hq-staff'], ['/staff/:id'], ['/attendance'],
     ['/permissions', 'hq-permissions'], ['/audit-logs', 'hq-audit'], ['/members'], ['/programs'], ['/instructors'],
     ['/board'], ['/facilities'], ['/assets'], ['/documents'], ['/support-requests', 'hq-support'], ['/contract-retention'],
   ],
@@ -174,7 +174,7 @@ const quick = [
   ...numbered([
     '**대시보드 "처리 대기"** — 업무지원 요청·갱신 임박·만료 지점·재배치 대기 직원·보존기한 임박 문서·실물 이관이 필요한 계약 파일을 확인한다. 아래 "전사 운영 실적"에서 지난달 지점별 순매출을 본다.',
     '**업무지원 요청** — 처리중·완료·반려로 바꾸고 답변을 남긴다.',
-    '**지점 상세** — 계약 회차·계약서와 12개월 운영 실적(순매출·예약·이용 완료·신규 회원)을 갱신 협상 근거로 본다. 계약을 연장하면 새 계약서와 함께 "계약 갱신"(새 회차)을 한다.',
+    '**지점 상세** — 계약 회차·계약서와 12개월 운영 실적(순매출·예약·이용 완료·신규 회원)을 갱신 협상 근거로 본다. 계약을 연장하면 새 계약서와 함께 "계약 갱신"(새 회차)을 한다. 갱신 협상 전에는 "갱신 리포트"(계약 회차·12개월 운영 성과·서비스 품질)를 인쇄해 근거로 쓴다.',
     '**권한 관리** — 직원 역할 전환, "역할 기본 권한"에서 지점 관리자·직원이 쓸 기능을 끄고 켠다. 한 사람만 다르게 하려면 직원 상세 "개인 권한".',
     '**변경 이력** — 인사·권한·전화번호 열람 기록을 확인한다.',
   ]),

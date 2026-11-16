@@ -153,6 +153,7 @@ ROUTE_DESC = {
     'POST /branches/:branchId/contract/files': '계약서 올리기·교체, 해지 합의서 올리기(본사) — 가장 최근 회차만, 계약 종료 지점 409(D69)',
     'POST /branches/:branchId/contract/files/:fileId/archive': '계약 파일 실물 이관 완료 표시(본사, 파일마다)(D71)',
     'GET /branches/:branchId/contract/files/:fileId/download': '계약 파일 열람 — 60초 다운로드 URL, 열 때마다 열람 기록(D69)',
+    'GET /branches/:branchId/renewal-report': '계약 갱신용 영업 리포트(본사) — 계약 회차, 지난 12개월 운영 성과·전사 지점 평균 대비, 서비스 품질·운영 안정성(D81)',
     'GET /branches/performance': '전사 운영 실적(본사 대시보드) — 월별 추이와 지난달 지점별 순매출(D75)',
     'POST /documents/upload-url': '문서 파일 업로드 URL 발급 — 등록과 같은 권한(자원문서관리 ADR-RES-05)',
     'GET /documents/:id/open': '문서 열기 — 올린 파일은 60초 다운로드 URL, 열 때마다 열람 기록(ADR-RES-05)',

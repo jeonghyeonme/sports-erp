@@ -60,7 +60,7 @@ export function MonthlyColumnChart({
     <div className="chart-card" ref={wrapRef}>
       <div className="chart-title">{title}</div>
       <div className="chart-plot">
-        <svg width={width} height={HEIGHT} role="group" aria-label={`${title} 월별 막대 차트`}>
+        <svg width={width} height={HEIGHT} viewBox={`0 0 ${width} ${HEIGHT}`} role="group" aria-label={`${title} 월별 막대 차트`}>
           {ticks.map((t) => (
             <g key={t}>
               <line className="chart-gridline" x1={left} x2={left + plotW} y1={y(t)} y2={y(t)} />

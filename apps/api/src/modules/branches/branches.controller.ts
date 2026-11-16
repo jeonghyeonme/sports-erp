@@ -15,6 +15,7 @@ import { CreateBranchDto } from './dto/create-branch.dto';
 import { PurgeContractFilesDto, SetContractFileDto } from './dto/contract-file.dto';
 import { RequestUploadDto } from '../posts/dto/attachment.dto';
 import { ContractFileService } from './contract-file.service';
+import { renewalReport } from './renewal-report';
 import {
   PERFORMANCE_MAX_MONTHS,
   branchPerformance,
@@ -170,6 +171,14 @@ export class BranchesController {
   @Permission('branch', 'READ')
   async performance(@Param('branchId') branchId: string, @Query('months') monthsQuery?: string) {
     return ok(await branchPerformance(this.prisma, branchId, parseMonths(monthsQuery, 3)));
+  }
+
+  // D81 — 계약 갱신용 영업 리포트(본사 전용, 지점 하나): 계약 회차·12개월 운영 성과(전사 평균 대비)·서비스 품질. 읽기만.
+  // 지점 관리자는 자기 지점이어도 403(@Roles) — 갱신 협상은 본사 업무다.
+  @Get(':branchId/renewal-report')
+  @Roles('SUPER_ADMIN')
+  async renewalReport(@Param('branchId') branchId: string) {
+    return ok(await renewalReport(this.prisma, branchId));
   }
 
   // D75(log/208) — 전사 운영 실적(본사 대시보드): 월별 추이 + 지난달(다 끝난 달) 지점별 순매출. 본사 전용.

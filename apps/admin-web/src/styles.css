@@ -1787,3 +1787,52 @@ tbody tr:hover td {
 .stat-delta-base {
   color: var(--color-text-muted);
 }
+
+/* D81 — 계약 갱신 리포트: 화면에서는 일반 화면처럼, 인쇄에서는 메뉴·상단 바·버튼·도움말을 빼고 리포트만. */
+.renewal-report-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.renewal-metrics {
+  margin-bottom: 16px;
+}
+@media print {
+  .sidebar,
+  .topbar,
+  .help-panel,
+  .breadcrumb,
+  .no-print,
+  .slow-notice {
+    display: none !important;
+  }
+  .app-shell,
+  .main-area,
+  .content {
+    display: block;
+    overflow: visible;
+    padding: 0;
+  }
+  /* 절 전체를 한 쪽에 붙이면 앞 쪽이 비고 뒤로 밀린다 — 카드·차트·표 줄 단위로만 안 쪼갠다. 차트는 인쇄에서도 두 열. */
+  .renewal-report .card,
+  .renewal-report .chart-card,
+  .renewal-report tr {
+    break-inside: avoid;
+  }
+  .renewal-report .section-title {
+    break-after: avoid;
+  }
+  .renewal-report .chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .renewal-report .chart-table {
+    display: none;
+  }
+  /* 차트는 화면 폭에서 잰 너비로 그려진다 — 인쇄 폭에 맞게 비율대로 줄인다(viewBox). */
+  .renewal-report .chart-card svg {
+    width: 100%;
+    height: auto;
+  }
+}

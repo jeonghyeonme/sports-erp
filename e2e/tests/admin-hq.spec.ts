@@ -109,3 +109,36 @@ test('지점 관리자: 계약 파일 보존 메뉴가 없고 주소로 들어�
   });
   await expect(page.getByText('계약 파일 보존 현황은 본사 관리자만 볼 수 있습니다.')).toBeVisible();
 });
+
+// D81 — 계약 갱신용 영업 리포트: 지점 상세 "갱신 리포트" → 계약 개요·운영 성과·서비스 품질 세 묶음, 인쇄 버튼. 본사 전용.
+test('본사: 지점 상세에서 계약 갱신 리포트를 열면 계약·운영 성과·서비스 품질이 한 장에 보인다', async ({ page }) => {
+  await adminLogin(page, ACCOUNTS.hq);
+  await page.getByText('서초점').first().click();
+  await expect(page).toHaveURL(/\/branches\/[^/]+$/);
+  await page.getByRole('link', { name: '갱신 리포트' }).click();
+  await expect(page).toHaveURL(/\/renewal-report$/);
+  await expect(page.locator('main h2', { hasText: '서초점 계약 갱신 리포트' })).toBeVisible();
+  for (const title of ['1. 계약 개요', '2. 운영 성과', '3. 서비스 품질·운영 안정성']) {
+    await expect(page.locator('main h3', { hasText: title })).toBeVisible();
+  }
+  await expect(page.locator('main table').first()).toContainText('1회차');
+  await expect(page.locator('main table.renewal-metrics')).toContainText('회차 결제 순매출');
+  await expect(page.getByRole('button', { name: '인쇄 · PDF 저장' })).toBeVisible();
+  await page.getByRole('link', { name: '지점 상세로' }).click();
+  await expect(page).toHaveURL(/\/branches\/[^/]+$/);
+});
+
+test('지점 관리자: 지점 상세에 갱신 리포트 버튼이 없고 주소로 들어가도 본사 전용 안내만 보인다', async ({ page }) => {
+  await adminLogin(page, ACCOUNTS.seochoAdmin);
+  // 관리자 웹은 토큰을 메모리에 둬 새로고침하면 로그인이 풀린다 — 앱 안에서 주소만 바꾼다.
+  const go = (p: string) =>
+    page.evaluate((path) => {
+      history.pushState({}, '', path);
+      dispatchEvent(new PopStateEvent('popstate'));
+    }, p);
+  await go('/branches/branch-seocho');
+  await expect(page.locator('main h3', { hasText: '계약 정보' }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: '갱신 리포트' })).toHaveCount(0);
+  await go('/branches/branch-seocho/renewal-report');
+  await expect(page.getByText('계약 갱신 리포트는 본사 관리자만 볼 수 있습니다.')).toBeVisible();
+});
