@@ -115,15 +115,15 @@ def flow(steps, arrow_color=LINE2, active=None):
 
 def bar(label_, weight, pct, note_=''):
     # 진행률 막대 — 묶음 이름 · 가중치 · 완료율(채운 길이) · 기여 점수
-    w = 900
+    w = 820
     fill = GREEN if pct >= 100 else (NAVY if pct >= 60 else AMBER)
     return (f'<div style="display:flex; align-items:center; gap:24px">'
-            f'<p style="font-family:{HEADF}; font-size:32px; font-weight:700; color:{INK}; width:300px; flex-shrink:0">{label_}</p>'
-            f'<p style="font-family:{MONOF}; font-size:24px; color:{SUB}; width:110px; flex-shrink:0">{weight}%</p>'
+            f'<p style="font-family:{HEADF}; font-size:32px; font-weight:700; color:{INK}; width:280px; flex-shrink:0; white-space:nowrap">{label_}</p>'
+            f'<p style="font-family:{MONOF}; font-size:24px; color:{SUB}; width:120px; flex-shrink:0; white-space:nowrap">가중 {weight}%</p>'
             f'<div style="width:{w}px; height:36px; background:{SOFT}; border-radius:8px; display:flex; flex-shrink:0">'
             f'<div style="width:{int(w * pct / 100)}px; height:36px; background:{fill}; border-radius:8px"></div></div>'
-            f'<p style="font-family:{MONOF}; font-size:28px; font-weight:700; color:{fill}; width:110px">{pct}%</p>'
-            f'<p style="font-size:24px; color:{SUB}; width:260px">{note_}</p></div>')
+            f'<p style="font-family:{MONOF}; font-size:28px; font-weight:700; color:{fill}; width:150px; flex-shrink:0; white-space:nowrap">{pct}%</p>'
+            f'<p style="font-size:26px; color:{SUB}; white-space:nowrap">{note_}</p></div>')
 
 
 def frame(img, alt, url, w, h):
@@ -163,7 +163,7 @@ S.append(('agenda', content('agenda', '오늘 순서', '12주차에 한 일',
           f'<div style="display:flex; gap:40px; align-items:flex-start"><div style="width:640px; display:flex; flex-direction:column; gap:14px">{mono("11주차 발표에서 남긴 다음 할 일", color=SUB)}{todo}</div>'
           f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{mono("이번 발표 순서", color=SUB)}{rows}</div></div>',
           '11주차 발표 마지막 장의 다음 할 일 세 가지에서 출발한다. 영업 리포트와 산출물은 마쳤고, 사용감은 테스트가 찾아낸 좁은 화면 문제를 고쳤지만 사용자가 직접 더 점검하는 일이 남아 진행 중이다. 그다음 전체 진행률 기준을 세워 지금 위치를 숫자로 보인다.',
-          lead='11주차 발표의 마지막 장에 남긴 세 가지에서 이어진다. 둘은 마쳤고, 사용감 점검은 일부를 고치고 계속하고 있다.')))
+          lead='11주차에 남긴 다음 할 일 세 가지 — 둘은 마쳤고, 사용감 점검은 진행 중이다.')))
 
 # PART 01 계약 갱신 리포트
 S.append(('p1', divider('p1', 'PART 01', '계약 갱신 리포트', '운영 기록을 갱신 협상 자료로 잇습니다',
@@ -183,18 +183,18 @@ S.append(('report-why', content('report-why', '계약 갱신 리포트 · 왜', 
 
 S.append(('report-shot', shot('report-shot', '계약 갱신 리포트 · 화면', '갱신 임박 지점의 리포트', IMG['report'], '마포점 계약 갱신 리포트 화면 — 계약 개요와 운영 성과 표',
     'localhost · 본사(정하늘) · /branches/branch-mapo/renewal-report',
-    ['<b>계약 개요</b> — 남은 기간 · 운영 기간 · 갱신 횟수와 회차 이력',
-     '<b>운영 성과</b> — 지난 12개월 합계, 최근 6개월 증감, 전사 지점 평균 대비',
-     '<b>서비스 품질</b> — 회원 · 프로그램 · 혼잡도 · 업무지원 처리 · 파견 인력 변동(아래로 이어짐)'],
+    ['<b>계약 개요</b><br>남은 기간 · 갱신 횟수 · 회차',
+     '<b>운영 성과</b><br>12개월 합계 · 전사 평균 대비',
+     '<b>서비스 품질</b><br>회원 · 혼잡도 · 업무지원 · 인력'],
     '갱신 임박(남은 35일) 마포점. 화면 위쪽 — 계약 개요와 운영 성과 표. 아래로 내리면 월별 차트 4장(11주차 차트 재사용)과 서비스 품질. 숫자는 로컬 시연 데이터(지난 90일치)라 "최근 6개월 증감"은 대부분 "앞 기간 기록 없음"으로 나온다 — 실제 운영이면 앞 기간이 채워진다. 평균 대비는 지점 규모 차이를 보정하지 않은 값이라 추세와 함께 본다(도움말에도 적음). 이렇게 말하지 말 것: "매출이 9% 낮다"를 판단처럼 말하지 않는다 — 시연 데이터다.')))
 
 S.append(('report-print', content('report-print', '계약 갱신 리포트 · 인쇄', '인쇄하면 A4 한 장',
     f'<div style="display:flex; gap:48px; align-items:center">'
     f'<img src="{IMG["print"]}" alt="계약 갱신 리포트 인쇄본 A4 한 장" style="width:470px; height:665px; object-fit:contain; background:{CARDBG}; border:1px solid {LINE2}; border-radius:8px; {SHADOW}">'
     f'<div style="flex:1; display:flex; flex-direction:column; gap:20px">'
-    f'<div style="{CARD}">{mono("열기")}{p("지점 상세 “계약 정보”의 “갱신 리포트” → “인쇄 · PDF 저장”", 30, INK)}{p("메뉴 · 상단 바 · 버튼은 인쇄에서 빠지고, 차트는 종이 폭에 맞게 줄어든다")}</div>'
-    f'<div style="{CARD}">{mono("원칙")}{p("본사만 연다 — 지점 관리자는 자기 지점도 볼 수 없다(갱신 협상은 본사 업무)", 28, INK)}{p("이미 쌓인 기록에서 계산만 한다 — 새로 저장하는 데이터 없음", 28, INK)}</div>'
-    f'<div style="{CARD}">{mono("검증")}{p("리포트 숫자가 원천(운영 실적 · 계약 회차 · 회원 · 시설 기록)과 같은지 자동 테스트로 확인", 28, INK)}</div>'
+    f'<div style="{CARD}">{mono("열기")}{p("지점 상세 “계약 정보”의 “갱신 리포트” → “인쇄 · PDF 저장”", 30, INK)}{p("메뉴 · 버튼은 빠지고 차트는 종이 폭에 맞춘다")}</div>'
+    f'<div style="{CARD}">{mono("원칙")}{p("본사 전용 — 지점 관리자는 볼 수 없다", 28, INK)}{p("쌓인 기록에서 계산만 — 새로 저장하는 것 없음", 28, INK)}</div>'
+    f'<div style="{CARD}">{mono("검증")}{p("리포트 숫자가 원천 기록과 같은지 자동 테스트로 확인", 28, INK)}</div>'
     f'</div></div>',
     '인쇄본은 시연 데이터로 PDF를 떠서 눈으로 확인했다. 처음엔 3쪽에 차트가 카드 밖으로 넘쳤다 — 쪽 나눔 기준을 카드 단위로 바꾸고 차트를 종이 폭에 맞춰 줄여 한 장이 됐다. 조항 변경 제안 메모 칸은 넣지 않았다(사용자 결정) — 리포트는 데이터만 보이고, 제안은 따로 문서로 준비한다. 검증: api 자동 테스트 6건(숫자가 원천과 같음, 지점 관리자 403, 없는 지점 404), 화면 자동 테스트 2건.',
     '결정 기록 D81 · 조항 변경 제안 메모는 넣지 않음(사용자 결정)',
@@ -204,9 +204,9 @@ S.append(('report-print', content('report-print', '계약 갱신 리포트 · �
 S.append(('p2', divider('p2', 'PART 02', '산출물', '여덟 종류를 지금 기준으로 다시 만들었습니다',
           '10월 23일(중간 제출) 기준이던 산출물을 11월 14일 기준으로. 약 3분.')))
 
-deliv = [('요구사항 정의서', 'API 118개 · 충족률 94%'), ('데이터 정의서', '테이블 36 · 계약 회차 · 문서 파일 칸'),
-         ('기업 분석 및 제안서', '위탁계약 회차 · 회원 앱 PT · 경과'), ('아키텍처 설계서', '계약 처리 흐름 · 결정 이력'),
-         ('사용자 매뉴얼', '회원 찾기 · 계약 파일 보존 · 갱신 리포트'), ('교육 자료', '빠른 시작 — 운영 게시판 첨부 교체'),
+deliv = [('요구사항 정의서', 'API 118개 · 충족률 94%'), ('데이터 정의서', '테이블 36개'),
+         ('기업 분석 및 제안서', '계약 회차 · 회원 앱 PT'), ('아키텍처 설계서', '계약 처리 흐름 · 결정 이력'),
+         ('사용자 매뉴얼', '새 화면 · 캡처 21장'), ('교육 자료', '운영 게시판 첨부 교체'),
          ('진행 보고서 5부', '5부 범위를 11월까지'), ('RFP 이행 증빙', '94% · 화면 30장 새로')]
 grid = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px">' + ''.join(
     f'<div style="display:flex; align-items:center; gap:20px; padding:20px 26px; background:{CARDBG}; border:1px solid {LINE}; border-radius:12px">'
@@ -218,43 +218,43 @@ S.append(('deliv', content('deliv', '산출물', '무엇을 다시 만들었나'
     '진행 기록 log/227 · 원천에서 생성기로 만든다(scripts/deliverables/)',
     lead='중간 제출 때(10월 23일) 만든 산출물에는 그 뒤의 위탁계약 회차 · 문서 파일 · 회원 앱 PT가 빠져 있었다.')))
 
-src_rows = [('화면 도움말 · 회원 앱 이용 안내', '사용자 매뉴얼 · 교육 자료', '화면에 없는 설명은 매뉴얼에도 없다 — 빠진 도움말(계약 파일 보존)을 찾아 채움'),
-            ('요구사항 추적표 · 실제 API 경로', '요구사항 정의서 · RFP 이행 증빙', '설명 없는 API가 있으면 생성기가 멈춘다 — 새 경로 14개에 설명을 채움'),
-            ('DB 스키마 · 마이그레이션', '데이터 정의서', '이름표 없는 새 테이블에서 멈춘다 — 계약 회차 · 계약 파일 이름표를 채움')]
+src_rows = [('화면 도움말 · 이용 안내', '사용자 매뉴얼 · 교육 자료', '빠진 도움말 1곳 채움'),
+            ('요구사항 추적표 · API 경로', '요구사항 정의서 · 이행 증빙', '설명 없는 API 14개 채움'),
+            ('DB 스키마', '데이터 정의서', '이름표 없는 테이블 2개 채움')]
 src_html = ''.join(
     f'<div style="display:flex; align-items:center; gap:18px">'
     f'<div style="width:470px; padding:22px 26px; background:{CARDBG}; border:2px solid {LINE2}; border-radius:12px">{mono("원천", color=SUB)}{p(a, 28, INK)}</div>'
     f'<x-shape kind="arrow-right" style="background:{LINE2}; width:44px; height:28px"></x-shape>'
     f'<div style="width:470px; padding:22px 26px; background:#E7ECF1; border:2px solid {NAVY}; border-radius:12px">{mono("산출물")}{p(b, 28, INK)}</div>'
-    f'<p style="flex:1; font-size:26px; line-height:1.4; color:{SUB}">{c}</p></div>' for a, b, c in src_rows)
+    f'<p style="flex:1; font-size:28px; color:{SUB}; white-space:nowrap">{c}</p></div>' for a, b, c in src_rows)
 S.append(('deliv-source', content('deliv-source', '산출물 · 만드는 방법', '원천 한 곳에서 생성한다', src_html,
     '산출물을 손으로 고치지 않고, 코드 · 문서에 있는 원천에서 생성기로 만든다(한 사실은 한 곳에만, D38). 그래서 다시 만드는 비용이 작고, 생성기가 빠진 것을 잡아 준다 — 이번에 설명 없는 API 14개, 이름표 없는 새 테이블 2개, 도움말 없는 화면 1개를 찾았다. 질문 대비: 제안서 · 설계서 · 진행 보고서의 본문은 생성기 안에 사람이 쓴 문장이라, 숫자(라우트 · 테이블 · 테스트 수)는 코드에서 다시 세어 고쳤다.',
     '생성기 scripts/deliverables/ · 한 사실은 한 곳에만(D38)',
-    lead='산출물은 손으로 고치지 않는다. 화면 · 문서 · 스키마가 원천이고, 생성기가 그것을 읽어 만든다.')))
+    lead='산출물은 손으로 고치지 않는다. 생성기가 원천을 읽어 만들고, 빠진 설명이 있으면 멈춘다.')))
 
 # PART 03 검증과 사용감
 S.append(('p3', divider('p3', 'PART 03', '검증과 사용감', '수동 확인뿐이던 곳에 자동 테스트를 붙였습니다',
           '검증 공백 7곳을 테스트로 채웠고, 새 테스트가 좁은 화면의 넘침 3곳을 찾았다. 약 3분.')))
 
 S.append(('verify', content('verify', '검증', '수동 확인뿐이던 일곱 곳', cards_row([
-    f'{mono("업무 규칙")}{h3("서버가 지키는 규칙")}{p("프로그램 상태 전이(허용 안 된 전이 거부) · 혼잡도 5단계 경계값 · 같은 지점 동시 채용(직원 코드 중복 없음)", 28, INK)}',
-    f'{mono("화면 흐름")}{h3("역할별 화면")}{p("직원 채용 → 다른 지점 발령 · 인사서류 올리기 → 직원 상세에서 열기 · 계약 파일 보존 · 자산 · 업무지원 검색과 정렬 · 주간 시간표", 28, INK)}',
-    f'{mono("좁은 화면")}{h3("800px 폭")}{p("지점 관리자 · 본사 화면 18곳에서 본문이 옆으로 넘치지 않는지, 회차 등록 창이 화면 안에 들어오는지", 28, INK)}'])
+    f'{mono("업무 규칙")}{h3("서버가 지키는 규칙")}{p("프로그램 상태 전이<br>혼잡도 5단계 경계<br>동시 채용", 28, INK)}',
+    f'{mono("화면 흐름")}{h3("역할별 화면")}{p("채용 → 발령<br>인사서류 열기<br>계약 파일 보존<br>목록 검색 · 정렬<br>주간 시간표", 28, INK)}',
+    f'{mono("좁은 화면")}{h3("800px 폭")}{p("화면 18곳 가로 넘침<br>회차 등록 창 위치", 28, INK)}'])
     + f'<div style="display:flex; align-items:center; gap:16px; padding:20px 28px; background:{SOFT}; border-radius:12px"><x-icon name="Search" style="color:{NAVY}; width:30px; height:30px"></x-icon>'
     f'{p("좁은 화면 검사는 실제 문제를 찾았다 — 다음 장", 28, INK)}</div>',
     '11주차까지 "검증되지 않음 — 수동 확인"으로 적어 두던 일곱 곳(진행률 기준의 검증 묶음). 업무 규칙은 api 자동 테스트(실DB)로, 화면은 화면 자동 테스트(Playwright)로 붙였다. 지금 api 671건 · 화면 35건. 이렇게 말하지 말 것: "모든 화면이 검증됐다" — 화면 자동 테스트는 역할별 핵심 경로만 본다. 여전히 수동 확인인 것: 직원 정보 수정 · 퇴사 화면, 회원 앱 날짜 띠, 계약 파일 실물 이관 · 정리 버튼.',
     '진행 기록 log/228 · 남은 수동 확인: 직원 수정 · 퇴사 화면, 회원 앱 날짜 띠, 계약 파일 이관 · 정리 버튼',
-    lead='지금까지 "검증되지 않음 — 수동 확인"으로 남겨 두던 곳들이다.')))
+    lead='지금까지 “검증되지 않음 — 수동 확인”으로 남겨 두던 곳들이다.')))
 
 S.append(('narrow', content('narrow', '사용감 · 좁은 화면', '좁은 창에서 넘치던 곳을 고쳤다',
     f'<div style="display:flex; gap:40px; align-items:flex-start">'
     f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{pill("변경 전", AMBER, "#F6ECDD")}{frame(IMG["narrow_before"], "800px 폭 예약 관리 — 상태 선택이 화면 밖으로 잘림", "예약 관리 · 800px", 820, 322)}'
-    f'{p("검색 · 날짜 · 상태 · 오늘이 한 줄에 줄바꿈 없이 이어져 오른쪽이 잘린다", 28, INK)}</div>'
+    f'{p("필터 줄이 화면 밖으로 잘린다", 28, INK)}</div>'
     f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{pill("변경 후", GREEN, "#E3F1EA")}{frame(IMG["narrow_after"], "800px 폭 예약 관리 — 필터가 두 줄로 줄바꿈", "예약 관리 · 800px", 820, 322)}'
-    f'{p("필터가 두 줄로 내려와 모두 보인다. 열이 많은 문서함 · 자산 표는 표만 옆으로 넘긴다", 28, INK)}</div></div>',
+    f'{p("두 줄로 내려와 모두 보인다", 28, INK)}</div></div>',
     '좁은 노트북이나 창을 나눠 쓸 때(800px). 테스트가 찾은 넘침 세 곳 — 예약 관리 필터 줄, 문서함 표, 자산 표. 필터 줄은 줄바꿈되게, 표는 표만 가로로 넘기게 고쳤다(본문은 밀리지 않음). 테스트가 처음에 실행마다 결과가 달랐는데, 목록이 그려지기 전에 재면 통과하는 측정 시점 문제였다 — 목록이 다 뜬 뒤 재도록 고쳤다. 정직하게: 같은 폭에서 위쪽 상단 바(처리 대기 · 비밀번호 변경 버튼)는 아직 줄바꿈된다 — 넘침 검사로는 안 잡히는 종류라 다음 할 일로 남겼다.',
-    '진행 기록 log/228 · 같은 폭에서 상단 바 버튼은 아직 줄바꿈된다 — 다음 할 일',
-    lead='관리자 웹은 데스크톱 기준이지만, 좁은 노트북이나 창을 나눠 쓸 때도 내용이 잘리면 안 된다.')))
+    '문서함 · 자산 표는 표만 옆으로 넘기게 고침 · 상단 바 버튼 줄바꿈은 다음 할 일',
+    lead='좁은 노트북이나 창을 나눠 쓸 때(800px)도 내용이 잘리면 안 된다.')))
 
 # PART 04 전체 진행률
 S.append(('p4', divider('p4', 'PART 04', '전체 진행률', '기준을 세우고 다시 셌습니다',
@@ -263,26 +263,26 @@ S.append(('p4', divider('p4', 'PART 04', '전체 진행률', '기준을 세우�
 S.append(('progress', content('progress', '전체 진행률', '최종 제출까지 84%',
     f'<div style="display:flex; flex-direction:column; gap:22px">'
     + bar('기능 구현', 40, 94, 'RFP 충족률 58/62')
-    + bar('검증 · 품질', 15, 100, '알려진 공백 7곳 채움')
+    + bar('검증 · 품질', 15, 100, '공백 7곳 채움')
     + bar('산출물', 20, 100, '8종 지금 기준')
-    + bar('발표 · 제출', 15, 50, '최종 발표 · 제출 남음')
-    + bar('운영 · 마무리', 10, 40, 'main 병합 등 남음')
+    + bar('발표 · 제출', 15, 50, '최종 발표 · 제출')
+    + bar('운영 · 마무리', 10, 40, 'main 병합 등')
     + '</div>'
     + f'<div style="display:flex; align-items:center; gap:24px; padding:22px 28px; background:{CARDBG}; border:1px solid {LINE}; border-radius:12px">'
     f'<p style="font-family:{HEADF}; font-size:56px; font-weight:900; color:{SUB}">66%</p><x-shape kind="arrow-right" style="background:{LINE2}; width:56px; height:32px"></x-shape>'
     f'<p style="font-family:{HEADF}; font-size:56px; font-weight:900; color:{NAVY}">84%</p>'
-    f'{p("기준을 처음 잰 11월 14일 → 산출물 재생성 · 검증 보강 뒤. 묶음마다 항목을 끝냄 1 · 일부 0.5 · 안 함 0으로 세어 가중 평균", 28, SUB)}</div>',
+    f'{p("11월 14일 처음 잰 값 → 산출물 재생성 · 검증 보강 뒤", 30, INK)}</div>',
     'RFP 충족률 94%는 기능만 본다. 최종 제출까지의 진행률을 따로 세기 위해 기준을 세웠다(D80) — 묶음 5개(기능 40 · 검증 15 · 산출물 20 · 발표·제출 15 · 운영·마무리 10)의 가중 평균. 평가 기준표가 없어 남은 작업량 기준 초안 가중치(사용자 확인). 처음 잰 값 66%(11/14) → 산출물 재생성(+10) · 검증 보강(+8) 뒤 84%. 질문 대비: 항목별 판정은 저장소 docs/reference/진행률.md 한 곳에 있다. 이 발표 덱과 갱신 리포트는 아직 반영 전.',
-    '결정 기록 D80 · 항목별 판정 docs/reference/진행률.md',
+    '결정 기록 D80 · 항목마다 끝냄 1 · 일부 0.5 · 안 함 0으로 세어 가중 평균',
     lead='RFP 충족률(94%)은 기능만 본다. 최종 제출까지 얼마나 왔는지는 따로 세야 했다.')))
 
-nexts = [('Book', '최종 발표 · 제출', '최종 발표 덱, 제출 폴더 — 발표 · 제출 묶음의 남은 절반'),
-         ('Search', '사용감 직접 점검', '좁은 폭 상단 바, 남은 스크롤 두 곳, 시설 카드 버튼 — 사용자가 직접 더 써 보며'),
-         ('Check', '마무리', '운영에서 회원 앱 PT 구매 확인, 작업 브랜치 정리, 완성본(main) 병합')]
+nexts = [('Book', '최종 발표 · 제출', '최종 발표 덱 · 제출 폴더'),
+         ('Search', '사용감 직접 점검', '좁은 폭 상단 바 · 남은 스크롤 · 시설 카드 버튼'),
+         ('Check', '마무리', '운영 PT 구매 확인 · 브랜치 정리 · main 병합')]
 S.append(('wrap', content('wrap', '정리', '다음 할 일', cards_row([
     f'<x-icon name="{ic}" style="color:{NAVY}; width:48px; height:48px"></x-icon>{h3(t)}{p(d)}' for ic, t, d in nexts]),
     '남은 것은 진행률의 발표 · 제출(최종 발표 덱 · 제출 폴더)과 운영 · 마무리(운영 PT 확인 · 브랜치 정리 · main 병합). 사용감은 사용자가 직접 더 써 보며 찾는다 — 이번에 본 좁은 폭 상단 바, 공지 등록 버튼 · 회원 앱 예약 취소까지의 스크롤, 넓은 화면에서 시설 카드 버튼이 세로로 찌그러지는 것. 검증 범위(질문 대비): api 자동 테스트 671건(실DB), 화면 자동 테스트 35건 — 그 밖의 화면은 lint · 빌드와 수동 점검.',
-    lead='11주차의 다음 할 일 가운데 둘을 마쳤다. 남은 것은 제출 준비와 사용감 점검, 마무리다.')))
+    lead='남은 것은 제출 준비, 사용감 점검, 마무리다.')))
 
 S.append(('closing', f'<section id="closing" data-transition="fade" style="background:{BG}; color:{INK}; font-family:{BODYF}; padding:128px 176px; display:flex; flex-direction:column; gap:24px">{DOTS}'
           f'<div style="flex:1"></div><h1 style="font-family:{HEADF}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:{INK}">감사합니다</h1><div style="flex:1"></div>'
