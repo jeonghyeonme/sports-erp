@@ -10,8 +10,8 @@ IMG = {  # 아티팩트 자산(/_blob) — screenshots/의 파일을 올린 주�
     'button': '/_blob/81c65c8514c3d03b4444320a7fb0f26e',
     'report': '/_blob/cd01d702e3637d7c3ea48f119bc97bf5',
     'print': '/_blob/3c1578a9a718dbc2468b957be4fb3c79',
-    'narrow_before': '/_blob/b4fae15b470ba737e840d5d6b7fd0ec1',
-    'narrow_after': '/_blob/83c988ccf675f425206cb1b4c53bb14b',
+    'narrow_before': '/_blob/a7e596ab9562a589108eedd83ea63d2c',
+    'narrow_after': '/_blob/3f4e70c57429020434710e88a1553030',
 }
 
 INK, SUB, NAVY, AMBER, GREEN, LINE, LINE2, BG, CARDBG, SOFT = '#14191C', '#4B5563', '#1E3A5F', '#9A5A0C', '#187650', '#E1E4E1', '#CBD0CD', '#F4F5F3', '#FFFFFF', '#EBEEEC'
@@ -246,15 +246,15 @@ S.append(('verify', content('verify', '검증', '수동 확인뿐이던 일곱 �
     '진행 기록 log/228 · 남은 수동 확인: 직원 수정 · 퇴사 화면, 회원 앱 날짜 띠, 계약 파일 이관 · 정리 버튼',
     lead='지금까지 “검증되지 않음 — 수동 확인”으로 남겨 두던 곳들이다.')))
 
-S.append(('narrow', content('narrow', '사용감 · 좁은 화면', '좁은 창에서 넘치던 곳을 고쳤다',
+S.append(('narrow', content('narrow', '사용감 · 좁은 화면', '좁은 창에서 깨지던 곳을 고쳤다',
     f'<div style="display:flex; gap:40px; align-items:flex-start">'
-    f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{pill("변경 전", AMBER, "#F6ECDD")}{frame(IMG["narrow_before"], "800px 폭 예약 관리 — 상태 선택이 화면 밖으로 잘림", "예약 관리 · 800px", 820, 322)}'
-    f'{p("필터 줄이 화면 밖으로 잘린다", 28, INK)}</div>'
-    f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{pill("변경 후", GREEN, "#E3F1EA")}{frame(IMG["narrow_after"], "800px 폭 예약 관리 — 필터가 두 줄로 줄바꿈", "예약 관리 · 800px", 820, 322)}'
-    f'{p("두 줄로 내려와 모두 보인다", 28, INK)}</div></div>',
-    '좁은 노트북이나 창을 나눠 쓸 때(800px). 테스트가 찾은 넘침 세 곳 — 예약 관리 필터 줄, 문서함 표, 자산 표. 필터 줄은 줄바꿈되게, 표는 표만 가로로 넘기게 고쳤다(본문은 밀리지 않음). 테스트가 처음에 실행마다 결과가 달랐는데, 목록이 그려지기 전에 재면 통과하는 측정 시점 문제였다 — 목록이 다 뜬 뒤 재도록 고쳤다. 정직하게: 같은 폭에서 위쪽 상단 바(처리 대기 · 비밀번호 변경 버튼)는 아직 줄바꿈된다 — 넘침 검사로는 안 잡히는 종류라 다음 할 일로 남겼다.',
-    '문서함 · 자산 표는 표만 옆으로 넘기게 고침 · 상단 바 버튼 줄바꿈은 다음 할 일',
-    lead='좁은 노트북이나 창을 나눠 쓸 때(800px)도 내용이 잘리면 안 된다.')))
+    f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{pill("변경 전", AMBER, "#F6ECDD")}{frame(IMG["narrow_before"], "800px 폭 예약 관리 — 상단 버튼·이름·상태가 글자 중간에서 꺾이고 필터가 잘림", "예약 관리 · 800px", 720, 513)}'
+    f'{p("버튼 · 이름이 꺾이고 필터가 잘린다", 28, INK)}</div>'
+    f'<div style="flex:1; display:flex; flex-direction:column; gap:14px">{pill("변경 후", GREEN, "#E3F1EA")}{frame(IMG["narrow_after"], "800px 폭 예약 관리 — 상단 바 두 줄, 라벨 한 줄, 필터 두 줄", "예약 관리 · 800px", 720, 513)}'
+    f'{p("한 줄로 읽히고 모두 보인다", 28, INK)}</div></div>',
+    '좁은 노트북이나 창을 나눠 쓸 때(800px). 테스트가 찾은 넘침 세 곳 — 예약 관리 필터 줄, 문서함 표, 자산 표. 필터 줄은 줄바꿈되게, 표는 표만 가로로 넘기게 고쳤다(본문은 밀리지 않음). 테스트가 처음에 실행마다 결과가 달랐는데, 목록이 그려지기 전에 재면 통과하는 측정 시점 문제였다 — 목록이 다 뜬 뒤 재도록 고쳤다. 덱을 만들며 눈으로 찾은 것도 고쳤다: 상단 바 버튼과 표 안 이름 · 상태 · 버튼이 글자 중간에서 꺾였다 — 넘침 검사로는 안 잡히는 종류라 "꺾인 글자" 검사를 테스트에 더했다. 상단 바는 좁은 폭에서 두 줄(이름 · 버튼 / 회원 찾기), 표 칸은 띄어쓰기에서만 줄바꿈.',
+    '문서함 · 자산 · 회원 표는 표만 옆으로 · 꺾인 글자도 테스트가 본다(log/233)',
+    lead='좁은 노트북이나 창을 나눠 쓸 때(800px)도 글자가 잘리거나 꺾이면 안 된다.')))
 
 # PART 04 전체 진행률
 S.append(('p4', divider('p4', 'PART 04', '전체 진행률', '기준을 세우고 다시 셌습니다',
@@ -277,11 +277,11 @@ S.append(('progress', content('progress', '전체 진행률', '최종 제출까�
     lead='RFP 충족률(94%)은 기능만 본다. 최종 제출까지 얼마나 왔는지는 따로 세야 했다.')))
 
 nexts = [('Book', '최종 발표 · 제출', '최종 발표 덱 · 제출 폴더'),
-         ('Search', '사용감 직접 점검', '좁은 폭 상단 바 · 남은 스크롤 · 시설 카드 버튼'),
+         ('Search', '사용감 직접 점검', '남은 스크롤 · 시설 카드 버튼'),
          ('Check', '마무리', '운영 PT 구매 확인 · 브랜치 정리 · main 병합')]
 S.append(('wrap', content('wrap', '정리', '다음 할 일', cards_row([
     f'<x-icon name="{ic}" style="color:{NAVY}; width:48px; height:48px"></x-icon>{h3(t)}{p(d)}' for ic, t, d in nexts]),
-    '남은 것은 진행률의 발표 · 제출(최종 발표 덱 · 제출 폴더)과 운영 · 마무리(운영 PT 확인 · 브랜치 정리 · main 병합). 사용감은 사용자가 직접 더 써 보며 찾는다 — 이번에 본 좁은 폭 상단 바, 공지 등록 버튼 · 회원 앱 예약 취소까지의 스크롤, 넓은 화면에서 시설 카드 버튼이 세로로 찌그러지는 것. 검증 범위(질문 대비): api 자동 테스트 671건(실DB), 화면 자동 테스트 35건 — 그 밖의 화면은 lint · 빌드와 수동 점검.',
+    '남은 것은 진행률의 발표 · 제출(최종 발표 덱 · 제출 폴더)과 운영 · 마무리(운영 PT 확인 · 브랜치 정리 · main 병합). 사용감은 사용자가 직접 더 써 보며 찾는다 — 공지 등록 버튼 · 회원 앱 예약 취소까지의 스크롤, 넓은 화면에서 시설 카드 버튼이 세로로 찌그러지는 것. 검증 범위(질문 대비): api 자동 테스트 671건(실DB), 화면 자동 테스트 35건 — 그 밖의 화면은 lint · 빌드와 수동 점검.',
     lead='남은 것은 제출 준비, 사용감 점검, 마무리다.')))
 
 S.append(('closing', f'<section id="closing" data-transition="fade" style="background:{BG}; color:{INK}; font-family:{BODYF}; padding:128px 176px; display:flex; flex-direction:column; gap:24px">{DOTS}'

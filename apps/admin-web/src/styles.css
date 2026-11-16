@@ -556,11 +556,43 @@ body {
   color: var(--color-text-muted);
 }
 
+/* 좁은 화면(900px 이하, log/233) — 상단 바를 두 줄로: 1줄 이름·버튼, 2줄 회원 찾기(전체 폭).
+   글자는 줄바꿈하지 않고, 이름이 길면 말줄임. 도움말 버튼은 "?"만(접근 이름은 aria-label). 높이는 고정(88px)이라 도움말 패널이 그 아래에 붙는다. */
+@media (max-width: 900px) {
+  .topbar {
+    height: 88px;
+    flex-wrap: wrap;
+    align-content: center;
+    row-gap: 8px;
+    column-gap: 12px;
+    padding: 0 16px;
+  }
+  .topbar .who {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar-actions {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .help-btn-label {
+    display: none;
+  }
+  .topbar .quick-search {
+    order: 1;
+    flex: 1 0 100%;
+    margin: 0;
+  }
+}
+
 /* 좁은 화면에서는 본문 위에 겹쳐 띄운다(본문 폭을 빼앗지 않게). */
 @media (max-width: 900px) {
   .help-panel {
     position: fixed;
-    top: 52px;
+    top: 88px;
     right: 0;
     bottom: 0;
     width: min(320px, 100vw);
@@ -670,6 +702,18 @@ tbody tr:hover td {
   border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 600;
+  white-space: nowrap; /* 좁은 표에서 "확정"이 세로로 쪼개지지 않게(log/233) */
+}
+
+/* 표 안 버튼("체크인"·"취소")도 한 줄, 칸 글자는 띄어쓰기에서만 줄바꿈 — 좁은 폭에서 "한연|우"처럼
+   이름이 글자 중간에서 끊기지 않게(log/233) */
+td button {
+  white-space: nowrap;
+}
+td,
+th {
+  word-break: keep-all;
+  overflow-wrap: break-word; /* 띄어쓰기 없는 아주 긴 값만 마지막 수단으로 끊는다 */
 }
 
 .badge.RUNNING,

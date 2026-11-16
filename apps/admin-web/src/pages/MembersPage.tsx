@@ -275,34 +275,37 @@ export function MembersPage() {
       )}
 
       {!isError && rows.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              {isSuperAdmin && <SortTh label="지점" sortKey="branch" sort={sort} onToggle={toggleSort} />}
-              <SortTh label="회원번호" sortKey="memberNo" sort={sort} onToggle={toggleSort} />
-              <SortTh label="이름" sortKey="name" sort={sort} onToggle={toggleSort} />
-              <th>연락처</th>
-              <SortTh label="담당 직원" sortKey="assignedStaff" sort={sort} onToggle={toggleSort} />
-              <SortTh label="상태" sortKey="status" sort={sort} onToggle={toggleSort} />
-              <SortTh label="가입일" sortKey="joinedAt" sort={sort} onToggle={toggleSort} />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((m) => (
-              <tr key={m.id} className="branch-row" onClick={() => navigate(`/members/${m.id}`)}>
-                {isSuperAdmin && <td>{m.branchName ?? '-'}</td>}
-                <td>{m.memberNo}</td>
-                <td>{m.name}</td>
-                <td>{m.phone ?? '-'}</td>
-                <td>{m.assignedStaffName ?? '회원권만(미배정)'}</td>
-                <td>
-                  <span className={`badge ${m.status}`}>{STATUS_LABEL[m.status] ?? m.status}</span>
-                </td>
-                <td>{m.joinedAt}</td>
+        // 좁은 폭에서는 표만 가로로 넘긴다(log/228·233 — 칸 글자는 띄어쓰기에서만 줄바꿈해 표가 넓어질 수 있다)
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                {isSuperAdmin && <SortTh label="지점" sortKey="branch" sort={sort} onToggle={toggleSort} />}
+                <SortTh label="회원번호" sortKey="memberNo" sort={sort} onToggle={toggleSort} />
+                <SortTh label="이름" sortKey="name" sort={sort} onToggle={toggleSort} />
+                <th>연락처</th>
+                <SortTh label="담당 직원" sortKey="assignedStaff" sort={sort} onToggle={toggleSort} />
+                <SortTh label="상태" sortKey="status" sort={sort} onToggle={toggleSort} />
+                <SortTh label="가입일" sortKey="joinedAt" sort={sort} onToggle={toggleSort} />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((m) => (
+                <tr key={m.id} className="branch-row" onClick={() => navigate(`/members/${m.id}`)}>
+                  {isSuperAdmin && <td>{m.branchName ?? '-'}</td>}
+                  <td>{m.memberNo}</td>
+                  <td>{m.name}</td>
+                  <td>{m.phone ?? '-'}</td>
+                  <td>{m.assignedStaffName ?? '회원권만(미배정)'}</td>
+                  <td>
+                    <span className={`badge ${m.status}`}>{STATUS_LABEL[m.status] ?? m.status}</span>
+                  </td>
+                  <td>{m.joinedAt}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <Pager page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} disabled={isFetching} />
