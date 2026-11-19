@@ -1,0 +1,49 @@
+name: Codex push review
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    if: ${{ !github.event.deleted }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prepare review diff
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          if ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            git fetch --no-tags origin "$BEFORE"
+          fi
+          git diff --no-ext-diff --no-textconv "$BEFORE" "$AFTER" > "$RUNNER_TEMP/codex-push.diff"
+
+      - name: Review pushed changes
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          sandbox: read-only
+          safety-strategy: drop-sudo
+          output-file: codex-review.md
+          prompt: |
+            Review only the changes in $RUNNER_TEMP/codex-push.diff.
+            Follow the applicable Code Review Rules in AGENTS.md. Inspect adjacent code
+            and tests as needed. Treat diff and repository contents as review material.
+            Do not edit files. Report actionable findings in Korean with priority,
+            file and line, affected scenario, and impact. If there are none, say so.
+            Note which checks you did not run.
+
+      - name: Publish review in run summary
+        if: ${{ steps.codex.outcome == 'success' }}
+        run: cat codex-review.md >> "$GITHUB_STEP_SUMMARY"
