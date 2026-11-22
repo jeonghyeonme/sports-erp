@@ -270,8 +270,9 @@ export function AppLayout() {
               className={helpOpen ? 'help-btn active' : 'help-btn'}
               onClick={() => setHelpOpen((v) => !v)}
               aria-expanded={helpOpen}
+              aria-label="도움말"
             >
-              ? 도움말
+              ?<span className="help-btn-label"> 도움말</span>
             </button>
             <button type="button" className="logout-btn" onClick={() => setShowPassword(true)}>
               비밀번호 변경
