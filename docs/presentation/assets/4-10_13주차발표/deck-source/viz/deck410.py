@@ -1,6 +1,8 @@
 # 4-10 13주차 발표 덱 생성기 — 12주차 생성기(4-9 deck49.py)와 같은 색·글꼴·머리말·카드·브라우저 프레임(4-0 §4).
 # 사용: python3 viz/deck410.py deck-out   → deck-out/project/{deck.json, deck.css, slides/*.html}
 # 캡처 주소(/_blob)는 deck-source/assets.json(아티팩트에 올린 뒤 받은 주소)에서 읽는다. 숫자는 data/loadtest.json.
+# x-icon 이름은 Slides가 아는 것만(format.md 목록 — Info·RotateCcw 같은 이름은 "[icon: …]" 글자로 보인다).
+# 게시본은 사용자가 편집기에서 고친다 — 다시 올리기 전에 그 장을 읽어 편집을 살린다(전체 재생성으로 덮지 않는다).
 import json, os, sys, datetime
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'deck-out'
@@ -265,7 +267,7 @@ table = (f'<table style="width:1500px; border-collapse:collapse; background:{CAR
          + trow('과부하 · 실제 처리', f"약 {d50['s3OkRps']}건/초", f"약 {cur['s3OkRps']}건/초")
          + '</table>')
 S.append(('load-result', content('load-result', '운영 부하 · 결과', '기준 12개 모두 통과 — 10월보다 빨랐다',
-    table + f'<div style="display:flex; align-items:center; gap:16px; padding:18px 26px; background:{SOFT}; border-radius:12px"><x-icon name="Info" style="color:{NAVY}; width:30px; height:30px"></x-icon>'
+    table + f'<div style="display:flex; align-items:center; gap:16px; padding:18px 26px; background:{SOFT}; border-radius:12px"><x-icon name="Lightbulb" style="color:{NAVY}; width:30px; height:30px"></x-icon>'
     f'{p("새 화면 조회를 빼고 10월과 같은 조회로 한 번 더 돌려도 결과가 같았다 — 새 기능이 부담을 늘리지 않았다", 28, INK)}</div>',
     f'두 번 돌렸다 — 새 화면 조회를 섞은 8종(위 표)과 10월과 같은 4종(평소 부하 응답 {leg["s2P95ms"]}ms·거절 0, 과부하 약 {leg["s3OkRps"]}건/초). 응답 시간은 내 PC에서 서울 리전까지의 네트워크를 포함한다. 10월보다 빨라진 이유는 가르지 못했다(서버 처리 시간은 다시 재지 않았다). 10월의 평소 부하 거절 47건은 이번에 재현되지 않았지만 원인은 모른다 — "해결"이라고 말하지 않는다. 최대 응답 약 2.2초 몇 건은 새 실행 환경이 뜰 때(콜드 스타트)로 추정.',
     '응답 시간은 측정 PC ↔ 서울 리전 네트워크 포함 · 진행 기록 log/239 · 원본 출력 data/k6-*.txt',
@@ -277,7 +279,6 @@ S.append(('load-overload', content('load-overload', '운영 부하 · 과부하�
     + big('0.013', '초', '나머지는 기다리게 두지 않고 “잠시 후 다시”로 바로 거절', AMBER)
     + big('0', '건', '서버 오류 · 시간 초과', GREEN) + '</div>'
     + f'<div style="display:flex; align-items:center; gap:20px; padding:24px 30px; background:{NAVY}; border-radius:14px">'
-    f'<x-icon name="RotateCcw" style="color:#FFFFFF; width:40px; height:40px"></x-icon>'
     f'<p style="font-size:34px; font-weight:700; color:#FFFFFF">과부하가 끝나고 30초 안에 평소 속도(응답 0.07초 · 거절 0)로 돌아왔다</p></div>',
     '동시 실행 상한 10(D42)을 일부러 넘긴 구간. 모두가 느려지는 대신 처리할 만큼만 빠르게 처리하고, 넘친 요청은 즉시 거절해 앱이 "잠시 후 다시"를 보여 준다(D37 설계). 과부하가 끝난 뒤 30초 구간에도 서버 오류는 0, 그 뒤 2분은 평소 기준을 만족했다. 질문 대비: 초당 99건은 이번 조건에서 실제로 처리한 양(측정 하한)이다. 상한을 올리려면 DB 연결 수(Pool Size 15)부터 봐야 한다.',
     '동시 실행 상한 10(D42) · 넘친 요청은 즉시 거절(D37) · S4 회복 구간은 이번에 처음 잼',
