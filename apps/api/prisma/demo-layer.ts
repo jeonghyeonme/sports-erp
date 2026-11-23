@@ -468,6 +468,18 @@ export async function applyDemoLayer(prisma: PrismaClient, now = new Date()): Pr
     }
     memberPoolByBranch.set(b.id, branchMembers);
 
+    // PT 회차(log/245) — PT는 회원이 앱에서 산 횟수로 트레이너가 연 회차(정원 1)를 예약한다(ADR-RSV-09). 시연 데이터에
+    // PT 회차가 없어 운영에서 "예약 가능한 회차가 없다"만 보였다. 앞으로 3주의 월·수·금 10:00·19:00을 빈 회차로 연다.
+    // 난수를 쓰지 않아 다른 시연 데이터는 그대로다. 계약 종료 지점은 열지 않는다.
+    if (!win.terminated) {
+      for (let d = addDays(today, 1); d <= addDays(win.end, win.future); d = addDays(d, 1)) {
+        if (![1, 3, 5].includes(weekday(d))) continue;
+        for (const [start, end] of [['10:00', '10:50'], ['19:00', '19:50']]) {
+          slots.push({ id: `demo-slot-${key}-pt-${d}-${start.slice(0, 2)}`, programId: ptProgramId, date: asDate(d), startTime: start, endTime: end, capacity: 1 });
+        }
+      }
+    }
+
     // ── 회차·예약·결제 ──
     const pastPool = branchMembers.filter((m) => m.status !== 'WITHDRAWN');
     const futurePool = branchMembers.filter((m) => m.status === 'ACTIVE');
