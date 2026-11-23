@@ -1,17 +1,32 @@
 {
   "v": 5,
+  "attachments": {},
   "createdOnFiles": {
-    "v": 1,
-    "at": "2026-11-23T06:30:10Z"
+    "at": "2026-11-23T06:30:10Z",
+    "v": 1
   },
-  "lists": "css",
+  "designSystems": [],
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    }
+  },
   "format": {
-    "v": 1,
     "shared": [
       "project/deck.css"
-    ]
+    ],
+    "v": 1
   },
-  "title": "스포이즘 ERP 13주차 발표",
+  "lists": "css",
   "order": [
     "cover",
     "agenda",
@@ -28,19 +43,18 @@
     "ops-data",
     "ops-pt",
     "ops-admin",
-    "rfp",
     "progress",
     "wrap",
     "closing"
   ],
   "sections": {
-    "intro": {
-      "description": "표지, 오늘 순서 — 12주차의 다음 할 일에서 출발",
-      "start": "cover"
-    },
     "abnormal": {
       "description": "01 비정상 접근 — 세 경로와 테스트가 찾은 정보 노출",
       "start": "p1"
+    },
+    "intro": {
+      "description": "표지, 오늘 순서 — 12주차의 다음 할 일에서 출발",
+      "start": "cover"
     },
     "load": {
       "description": "02 운영 부하 — 10월 이후 재측정, 기준 12개 통과, 과부하와 회복",
@@ -51,23 +65,10 @@
       "start": "p3"
     },
     "wrapup": {
-      "description": "RFP 충족률 100%, 진행률 88%, 다음 할 일",
-      "start": "rfp"
+      "before": null,
+      "description": "진행률 91%, 다음 할 일",
+      "start": "progress"
     }
   },
-  "faces": {
-    "gothic-a1": {
-      "family": "Gothic A1",
-      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
-    },
-    "noto-sans-kr": {
-      "family": "Noto Sans KR",
-      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
-    },
-    "jetbrains-mono": {
-      "family": "JetBrains Mono",
-      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-    }
-  },
-  "designSystems": []
+  "title": "스포이즘 ERP 13주차 발표"
 }

@@ -8,7 +8,7 @@
 | 영역 | 상태 | 근거 |
 |---|---|---|
 | 방향 | **실운영은 하지 않는다**(2026-10-22, 사용자). 실운영이 있어야 끝나는 RFP 부분 3조항(PG 실제 호출 N7-3 · 업무위탁 계약서 N8-2 · 검수·도입 T3-2)과 순간 몰림 거절 원인 확인은 범위 밖. 키오스크 제외 | [D67](decisions/D67.md) |
-| 진행률 | **전체 약 88%**(2026-11-23) — 기능 100% · 검증 100% · 산출물 100% · 발표·제출 44% · 운영·마무리 60%의 가중 평균(D82 분모 변경·운영 PT 확인, log/247·248). 항목별 판정은 [진행률](reference/진행률.md) | [D80](decisions/D80.md) |
+| 진행률 | **전체 약 91%**(2026-11-23) — 기능 100% · 검증 100% · 산출물 100% · 발표·제출 67% · 운영·마무리 60%의 가중 평균(log/247·248·250). 남은 것: 14·15주차 덱, 최종 제출 폴더, 브랜치 정리, main 병합. 항목별 판정은 [진행률](reference/진행률.md) | [D80](decisions/D80.md) |
 | RFP | 72조항 중 구현+조정 59/59(**100%**) — 분모는 조항 수에서 해당 없음 10개·의도적 제외 3개(T2-1·P2-2·P2-3)를 뺀 값(D82, 2026-11-23 — D76 방식 59/62 = 95%, 조항 수 전부 59/72 = 82%). 100%를 말할 때는 분모 설명을 함께. N7-3(PG 연계 확인)은 문서 확인으로 조정. 판정 원천은 [요구사항추적표](reference/요구사항추적표.md) §3 — 요구사항 정의서·RFP 이행 증빙·제안서·아키텍처 설계서는 11-23 재생성 | [D82](decisions/D82.md) |
 | 도메인 9개 | 문서화·핵심 ADR 구현 완료. 도메인별 검증 범위는 각 도메인 문서 §11 | `domains/` |
 | 데이터 | 전 도메인 Prisma(Supabase Postgres, 36개 테이블, 배포 DB도 같음 — 문서 파일 칸 2026-11-08 적용, log/207) — `MockDataService` 삭제 | [D36](decisions/D36.md) |
@@ -26,7 +26,7 @@
 
 > 13주차 구성안 초안은 [4-10](presentation/4-10_13주차발표_슬라이드구성.md) — 부하·스트레스·회복 장(log/239)만 확정 후보, 숫자는 `assets/4-10_13주차발표/deck-source/data/loadtest.json`. [4-0 공통지침](presentation/4-0_발표자료_공통지침.md)을 먼저 읽는다. 덱 숫자는 추적표(94%)·진행률(83%).
 
-1. **13주차 덱 확인·조정**(사용자): 19장 게시(https://claude.ai/artifact/SsVt82tXqZVNUrigqD5WuG, 구성안 [4-10](presentation/4-10_13주차발표_슬라이드구성.md), 생성기 `deck410.py`, log/249) — 게시본 렌더(겹침·잘림)를 아직 눈으로 보지 않았다. 고칠 장을 알려 주면 생성기로 고친다. RFP 장은 분모 설명을 화면에 넣지 않고 노트에만(사용자 결정).
+1. **13주차 덱 확인·조정**(사용자): 게시(사용자가 편집기에서 RFP 장을 지워 18장)(https://claude.ai/artifact/SsVt82tXqZVNUrigqD5WuG, 구성안 [4-10](presentation/4-10_13주차발표_슬라이드구성.md), 생성기 `deck410.py`, log/249) — 게시본 렌더(겹침·잘림)를 아직 눈으로 보지 않았다. 고칠 장을 알려 주면 생성기로 고친다. RFP 장은 분모 설명을 화면에 넣지 않고 노트에만(사용자 결정).
 2. **11·12주차 덱 렌더 확인**(사용자): 게시본(https://claude.ai/artifact/XVecKCuRR2Js23EYSAgDVk · https://claude.ai/artifact/XE6YHQsgbGyPxvbKt4vbM2)의 겹침·잘림을 아직 눈으로 보지 않았다(진행률 ④ "11주차 덱 렌더 확인" 0). 12주차 덱 12장 각주 "log/233"은 "log/236"이어야 한다(아티팩트 수정이 세션에서 거부됨 — 사용자가 고치거나 허용).
 3. **시연 데이터**: 배포 DB는 2026-11-23에 재시드했다(사용자 요청, log/244 — 앞으로 회차는 12-12까지라 그 뒤 운영 시연·테스트에는 다시 재시드가 필요). 발표 캡처는 로컬 DB에 `npm run seed:demo`를 다시 얹은 뒤 찍는다(4-0 §5).
 4. **원격 브랜치 정리**(사용자 — 세션은 삭제 불가): `dev`에 병합된 `claude/*` 9개(jolly-brahmagupta-bmaxnp·list-consistency·csv-export·list-search·list-sort·document-files·document-files-ops·visualization·status-before-presentation)와, PR #164 병합 뒤 `claude/nifty-euler-troux5`·이 세션 브랜치. **지우기 전 확인할 것 둘**: `claude/vibrant-goodall-waxslk`에는 `dev`에 없는 발표 덱 소스(구성안 "4-8_8주차", 생성기 `deck48.js`, 2026-11-02 — 아티팩트 "10주차 발표" YS4CX2S87R882cwTdjPxzZ)가 있다 — 새 번호로 들일지 버릴지. `codex/push-code-review`는 넣지 않기로 한 워크플로(log/233)라 삭제 대상.

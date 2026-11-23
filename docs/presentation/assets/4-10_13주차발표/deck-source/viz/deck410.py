@@ -337,33 +337,20 @@ S.append(('ops-admin', content('ops-admin', '운영에서 써 보며 · 관리�
     lead='지점에 시설이 많거나 글이 길 때 — 테스트 데이터에선 안 보이던 경우다.')))
 
 # 마무리
-area = ''.join(f'<div style="flex:1; display:flex; flex-direction:column; gap:10px; padding:26px 28px; background:{CARDBG}; border:1px solid {LINE}; border-radius:12px">'
-               f'{mono(a, color=SUB)}<p style="font-family:{HEADF}; font-size:56px; font-weight:900; color:{GREEN}">100%</p></div>'
-               for a in ('기능 · 성능', '시스템 · 데이터 · 보안', '과업 · 산출물'))
-S.append(('rfp', content('rfp', 'RFP 충족률', 'RFP 충족률 100%',
-    f'<div style="display:flex; align-items:center; gap:40px">'
-    f'<p style="font-family:{HEADF}; font-size:200px; font-weight:900; line-height:1; color:{NAVY}">100%</p>'
-    f'<div style="display:flex; align-items:center; gap:20px; padding:22px 28px; background:{CARDBG}; border:1px solid {LINE}; border-radius:12px">'
-    f'<p style="font-family:{HEADF}; font-size:48px; font-weight:900; color:{SUB}">94%</p><x-shape kind="arrow-right" style="background:{LINE2}; width:56px; height:32px"></x-shape>'
-    f'<p style="font-family:{HEADF}; font-size:48px; font-weight:900; color:{NAVY}">100%</p>{p("12주차 → 13주차", 28, INK)}</div></div>'
-    f'<div style="display:flex; gap:16px">{area}</div>',
-    '말로 붙일 것(분모 설명): RFP 72조항 중 발주기관·계약·대면 행위처럼 이 프로젝트에 대상이 없는 10개(해당 없음)와, 근거 자료가 없어 하지 않기로 한 분석 3개(유사 기업 시스템 분석·도입 기대효과 분석·유사기업 매뉴얼 분석 — 의도적 제외)를 분모에서 뺀 59개 중 59개(D82). 12주차 94%와 기준이 다르다 — 12주차 기준이면 95%, 72조항 전부를 분모로 하면 82%. PG 결제 연계 확인은 테스트 키 실제 호출 대신 문서 확인과 결제 어댑터 설계로 조정(실운영 제외 D67).',
-    '판정 원천 docs/reference/요구사항추적표.md §3 · 결정 기록 D82',
-    lead='RFP 조항별 판정을 다시 정리했다.')))
-
-S.append(('progress', content('progress', '전체 진행률', '최종 제출까지 88%',
+# RFP 장(rfp)은 사용자가 게시본에서 지웠다(2026-11-23) — 분모 설명은 진행률 장 노트에.
+S.append(('progress', content('progress', '전체 진행률', '최종 제출까지 91%',
     f'<div style="display:flex; flex-direction:column; gap:22px">'
     + bar('기능 구현', 40, 100, '94 → 100')
     + bar('검증 · 품질', 15, 100, '79 → 100')
     + bar('산출물', 20, 100, '8종 지금 기준')
-    + bar('발표 · 제출', 15, 44, '14 · 15주차 남음')
+    + bar('발표 · 제출', 15, 67, '44 → 67')
     + bar('운영 · 마무리', 10, 60, '40 → 60')
     + '</div>'
     + f'<div style="display:flex; align-items:center; gap:24px; padding:22px 28px; background:{CARDBG}; border:1px solid {LINE}; border-radius:12px">'
     f'<p style="font-family:{HEADF}; font-size:56px; font-weight:900; color:{SUB}">80%</p><x-shape kind="arrow-right" style="background:{LINE2}; width:56px; height:32px"></x-shape>'
-    f'<p style="font-family:{HEADF}; font-size:56px; font-weight:900; color:{NAVY}">88%</p>'
+    f'<p style="font-family:{HEADF}; font-size:56px; font-weight:900; color:{NAVY}">91%</p>'
     f'{p("12주차 → 13주차", 30, INK)}</div>',
-    '진행률 기준(D80) — 묶음 5개(기능 40 · 검증 15 · 산출물 20 · 발표·제출 15 · 운영·마무리 10)의 가중 평균. 이번에 오른 것: 검증 79 → 100%(부하 · 스트레스 · 비정상 접근 3항목), 운영·마무리 40 → 60%(운영에서 PT 구매·예약 확인), 기능 94 → 100%(RFP 충족률 — 분모 설명은 앞 장). 산출물은 RFP 판정을 바꾼 뒤 요구사항 정의서·이행 증빙·제안서·설계서를 다시 만들어 100% 유지. 남은 것: 발표·제출(14주차, 15주차 최종 덱, 최종 제출 폴더), 마무리(브랜치 정리, main 병합).',
+    '진행률 기준(D80) — 묶음 5개(기능 40 · 검증 15 · 산출물 20 · 발표·제출 15 · 운영·마무리 10)의 가중 평균. 이번에 오른 것: 검증 79 → 100%(부하 · 스트레스 · 비정상 접근 3항목), 운영·마무리 40 → 60%(운영에서 PT 구매·예약 확인), 발표·제출 44 → 67%(13주차 덱 작성, 11주차 덱 렌더 확인 — 발표 때 문제없었음), 기능 94 → 100%(RFP 충족률 — 말로 붙일 것: 해당 없음 10·의도적 제외 3을 분모에서 뺀 59/59, D82. 12주차 기준이면 95%, 72조항 전부로는 82%). 산출물은 RFP 판정을 바꾼 뒤 요구사항 정의서·이행 증빙·제안서·설계서를 다시 만들어 100% 유지. 남은 것: 발표·제출(14주차 덱, 15주차 최종 덱, 최종 제출 폴더), 마무리(브랜치 정리, main 병합).',
     '결정 기록 D80 · 항목마다 끝냄 1 · 일부 0.5 · 안 함 0으로 세어 가중 평균 · docs/reference/진행률.md',
     lead='최종 제출까지의 진행률 — 검증과 운영 확인이 채워졌다.')))
 
@@ -377,7 +364,7 @@ S.append(('wrap', content('wrap', '정리', '다음 할 일', cards_row([
 
 S.append(('closing', f'<section id="closing" data-transition="fade" style="background:{BG}; color:{INK}; font-family:{BODYF}; padding:128px 176px; display:flex; flex-direction:column; gap:24px">{DOTS}'
           f'<div style="flex:1"></div><h1 style="font-family:{HEADF}; font-size:176px; font-weight:900; line-height:1.05; letter-spacing:-2px; color:{INK}">감사합니다</h1><div style="flex:1"></div>'
-          f'{notes("맺음(말로): 12주차에 남긴 검증 두 가지 — 비정상 접근과 운영 부하 — 를 끝냈고, 배포한 뒤 직접 써 보며 회원 확인 시트 · 시연 데이터 날짜 · PT 흐름 · 관리자 화면을 고쳤습니다. 이제 운영에서 회원이 예약 · 결제 · 취소와 PT 구매 · 예약을 끝까지 할 수 있습니다. 최종 제출까지 88%입니다.")}</section>'))
+          f'{notes("맺음(말로): 12주차에 남긴 검증 두 가지 — 비정상 접근과 운영 부하 — 를 끝냈고, 배포한 뒤 직접 써 보며 회원 확인 시트 · 시연 데이터 날짜 · PT 흐름 · 관리자 화면을 고쳤습니다. 이제 운영에서 회원이 예약 · 결제 · 취소와 PT 구매 · 예약을 끝까지 할 수 있습니다. 최종 제출까지 91%입니다.")}</section>'))
 
 os.makedirs(os.path.join(OUT, 'project', 'slides'), exist_ok=True)
 for sid, html in S:
@@ -401,7 +388,7 @@ deck = {
         'abnormal': {'description': '01 비정상 접근 — 세 경로와 테스트가 찾은 정보 노출', 'start': 'p1'},
         'load': {'description': '02 운영 부하 — 10월 이후 재측정, 기준 12개 통과, 과부하와 회복', 'start': 'p2'},
         'ops': {'description': '03 운영에서 써 보며 고친 것 — 확인 시트, 시연 데이터, PT 흐름, 관리자 화면', 'start': 'p3'},
-        'wrapup': {'description': 'RFP 충족률 100%, 진행률 88%, 다음 할 일', 'start': 'rfp'},
+        'wrapup': {'description': '진행률 91%, 다음 할 일', 'start': 'progress'},
     },
     'faces': {
         'gothic-a1': {'family': 'Gothic A1', 'href': 'https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap'},
