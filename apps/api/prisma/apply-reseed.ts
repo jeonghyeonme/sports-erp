@@ -13,12 +13,13 @@ import { PrismaClient } from '@prisma/client';
 import { readFileSync } from 'fs';
 
 // 데이터 테이블 전부(_prisma_migrations 제외). 새 모델이 생기면 여기에 더한다 — 빠지면 그 테이블은 지워지지 않는다.
+// 2026-11-23(log/243) — 10월 이후 생긴 4개(세부 권한 D60, 계약 회차·파일 D69)를 더해 36개.
 const TABLES = [
-  'Account', 'Asset', 'Attachment', 'AttendanceRecord', 'AuditLog', 'Branch', 'CodeSequence', 'CongestionSnapshot',
-  'CourseEnrollment', 'Document', 'Facility', 'FacilityCheckIn', 'Instructor', 'LeaveBalance', 'LeaveRequest', 'Member',
-  'MemberLinkAttempt', 'PTSession', 'PTSessionLog', 'Payment', 'Post', 'PostReadReceipt', 'Program',
-  'ProgramScheduleTemplate', 'RefreshToken', 'Reservation', 'ScheduleSlot', 'Staff', 'StaffAssignment',
-  'StaffProfileChangeRequest', 'SupportRequest', 'WorkLog',
+  'Account', 'AccountPermission', 'Asset', 'Attachment', 'AttendanceRecord', 'AuditLog', 'Branch', 'CodeSequence',
+  'CongestionSnapshot', 'ContractFile', 'ContractRound', 'CourseEnrollment', 'Document', 'Facility', 'FacilityCheckIn',
+  'Instructor', 'LeaveBalance', 'LeaveRequest', 'Member', 'MemberLinkAttempt', 'PTSession', 'PTSessionLog', 'Payment',
+  'Post', 'PostReadReceipt', 'Program', 'ProgramScheduleTemplate', 'RefreshToken', 'Reservation', 'RolePermission',
+  'ScheduleSlot', 'Staff', 'StaffAssignment', 'StaffProfileChangeRequest', 'SupportRequest', 'WorkLog',
 ];
 
 async function main() {
