@@ -49,6 +49,7 @@ export interface Program {
   instructorName?: string;
   instructorSpecialty?: string;
   instructorBio?: string;
+  upcomingSlotCount?: number; // 목록에서만 — 지금 이후에 시작하는 회차 수(log/242)
 }
 
 export interface ScheduleSlot {

@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { todayKst } from '../src/common/date/kst-date';
+import { kstHoursMinutes, todayKst } from '../src/common/date/kst-date';
 import { ACCOUNTS, BRANCH, createApp, db, login } from './helpers/app';
 import { useDenseTemplate } from './helpers/worker-db';
 
@@ -90,6 +90,23 @@ describe('목록 필터 — 프로그램 종목·연령대·시간대(ADR-PRG-04
       const res = await band('NIGHT');
       expect(res.status).toBe(200);
       expect(res.body.data).toEqual([]);
+    });
+  });
+
+  describe('프로그램 목록의 앞으로 회차 수(log/242 — 회원 웹이 회차 없는 카드를 비활성으로)', () => {
+    it('지금 이후에 시작하는 회차만 센다 — 지난 회차는 0, 오늘 회차는 시작 전일 때만', async () => {
+      const res = await get(tok.seochoMember, `/programs?branchId=${BRANCH.seocho}`);
+      expect(res.status).toBe(200);
+      const count = Object.fromEntries(
+        (res.body.data as Array<{ id: string; upcomingSlotCount: number }>).filter((p) => p.id.startsWith('pf-')).map((p) => [p.id, p.upcomingSlotCount]),
+      );
+      const { hours } = kstHoursMinutes(new Date());
+      expect(count).toEqual({
+        'pf-morning': 1,
+        'pf-afternoon': 1,
+        'pf-evening': hours < 18 ? 2 : 1, // 오늘 18:00 회차는 18시 전에만 앞으로 회차다
+        'pf-past-only': 0,
+      });
     });
   });
 

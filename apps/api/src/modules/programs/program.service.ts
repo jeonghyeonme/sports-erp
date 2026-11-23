@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, Program, ScheduleSlot } from '@prisma/client';
 import { ProgramResponse, ScheduleSlotResponse } from '../../common/api-response.types';
 import { AppException } from '../../common/exceptions/app.exception';
-import { todayKst, toKstDateString } from '../../common/date/kst-date';
+import { kstHoursMinutes, todayKst, toKstDateString } from '../../common/date/kst-date';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACTIVE_RESERVATION_STATUSES } from '../../prisma/integrity';
 
@@ -13,6 +13,8 @@ export type ProgramView = ProgramResponse & {
   instructorName?: string;
   instructorSpecialty?: string;
   instructorBio?: string;
+  // 목록(list)에서만 — 지금 이후에 시작하는 회차 수. 회원 웹이 회차가 없는 프로그램 카드를 비활성으로 보인다(log/242).
+  upcomingSlotCount?: number;
 };
 
 type ProgramInput = {
@@ -94,10 +96,10 @@ export class ProgramService {
           ? { some: { date: { gte: dateOf(todayKst()) }, startTime: { gte: band.gte, lt: band.lt } } }
           : undefined,
       },
-      include: withNames,
+      include: { ...withNames, _count: { select: { scheduleSlots: { where: upcomingSlotWhere() } } } },
       orderBy: { id: 'asc' },
     });
-    return rows.map(toView);
+    return rows.map((r) => ({ ...toView(r), upcomingSlotCount: r._count.scheduleSlots }));
   }
 
   async findById(id: string): Promise<ProgramResponse | null> {
@@ -326,6 +328,14 @@ function toSlotResponse(row: ScheduleSlot): ScheduleSlotResponse {
     endTime: row.endTime,
     capacity: row.capacity,
   };
+}
+
+/** 지금(KST) 이후에 시작하는 회차 — 내일 이후 전부 + 오늘 중 시작 시각이 지나지 않은 것("HH:mm" 문자열 비교). */
+function upcomingSlotWhere(): Prisma.ScheduleSlotWhereInput {
+  const today = todayKst();
+  const { hours, minutes } = kstHoursMinutes(new Date());
+  const now = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  return { OR: [{ date: { gt: dateOf(today) } }, { date: dateOf(today), startTime: { gt: now } }] };
 }
 
 function toView(
