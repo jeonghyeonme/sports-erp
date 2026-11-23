@@ -45,7 +45,13 @@ export function ProgramsPage() {
     (p) => (!category || p.category === category) && (!ageGroup || p.ageGroup === ageGroup || p.ageGroup === 'ALL'),
   );
   const filtered = category !== '' || ageGroup !== '' || timeBand !== '';
-  const reservable = programs.filter((p) => p.pricingType !== 'FREE_ACCESS');
+  // log/242 — 앞으로 회차가 없는 프로그램은 눌러도 "예약할 수 있는 회차가 없습니다"뿐이라 비활성으로 아래에 둔다.
+  // PT는 회차가 없어도 앱에서 패키지를 살 수 있으면(ptPackageSessions) 연다. 값이 없으면(옛 api) 연다.
+  const hasSlots = (p: Program) => p.upcomingSlotCount === undefined || p.upcomingSlotCount > 0;
+  const canOpen = (p: Program) => hasSlots(p) || (p.pricingType === 'PT_PACKAGE' && !!p.ptPackageSessions);
+  const sessionPrograms = programs.filter((p) => p.pricingType !== 'FREE_ACCESS');
+  const reservable = [...sessionPrograms.filter(canOpen)].sort((a, b) => Number(hasSlots(b)) - Number(hasSlots(a)));
+  const closed = sessionPrograms.filter((p) => !canOpen(p));
   const others = programs.filter((p) => p.pricingType === 'FREE_ACCESS');
 
   return (
@@ -105,10 +111,30 @@ export function ProgramsPage() {
                 {p.instructorName && ` · ${p.instructorName}`}
               </span>
               <span className="program-price">{priceLabel(p)}</span>
+              {!hasSlots(p) && <span className="muted">예약할 수 있는 회차 없음 · 패키지 구매 가능</span>}
             </Link>
           </li>
         ))}
       </ul>
+
+      {closed.length > 0 && (
+        <section className="stack-sm">
+          <h2 className="section-title">지금 열린 회차 없음</h2>
+          <ul className="list">
+            {closed.map((p) => (
+              <li key={p.id} className="panel program-card is-static" aria-disabled="true">
+                <span className="program-name">{p.name}</span>
+                <span className="muted">
+                  {p.category}
+                  {p.ageGroup !== 'ALL' && ` · ${AGE_GROUP_LABEL[p.ageGroup]}`}
+                  {p.instructorName && ` · ${p.instructorName}`}
+                </span>
+                <span className="muted">회차가 열리면 예약할 수 있습니다.</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {others.length > 0 && (
         <section className="stack-sm">
