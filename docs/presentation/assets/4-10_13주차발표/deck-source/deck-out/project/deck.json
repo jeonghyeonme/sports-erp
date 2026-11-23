@@ -1,0 +1,73 @@
+{
+  "v": 5,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-23T06:30:10Z"
+  },
+  "lists": "css",
+  "format": {
+    "v": 1,
+    "shared": [
+      "project/deck.css"
+    ]
+  },
+  "title": "스포이즘 ERP 13주차 발표",
+  "order": [
+    "cover",
+    "agenda",
+    "p1",
+    "abnormal",
+    "abnormal-found",
+    "p2",
+    "load-why",
+    "load-plan",
+    "load-result",
+    "load-overload",
+    "p3",
+    "ops-sheet",
+    "ops-data",
+    "ops-pt",
+    "ops-admin",
+    "rfp",
+    "progress",
+    "wrap",
+    "closing"
+  ],
+  "sections": {
+    "intro": {
+      "description": "표지, 오늘 순서 — 12주차의 다음 할 일에서 출발",
+      "start": "cover"
+    },
+    "abnormal": {
+      "description": "01 비정상 접근 — 세 경로와 테스트가 찾은 정보 노출",
+      "start": "p1"
+    },
+    "load": {
+      "description": "02 운영 부하 — 10월 이후 재측정, 기준 12개 통과, 과부하와 회복",
+      "start": "p2"
+    },
+    "ops": {
+      "description": "03 운영에서 써 보며 고친 것 — 확인 시트, 시연 데이터, PT 흐름, 관리자 화면",
+      "start": "p3"
+    },
+    "wrapup": {
+      "description": "RFP 충족률 100%, 진행률 88%, 다음 할 일",
+      "start": "rfp"
+    }
+  },
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
+}

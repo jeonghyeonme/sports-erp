@@ -26,7 +26,7 @@
 
 > 13주차 구성안 초안은 [4-10](presentation/4-10_13주차발표_슬라이드구성.md) — 부하·스트레스·회복 장(log/239)만 확정 후보, 숫자는 `assets/4-10_13주차발표/deck-source/data/loadtest.json`. [4-0 공통지침](presentation/4-0_발표자료_공통지침.md)을 먼저 읽는다. 덱 숫자는 추적표(94%)·진행률(83%).
 
-1. **13주차 덱 제작**: 최종 구성안 [4-10](presentation/4-10_13주차발표_슬라이드구성.md)(18장·15분, 2026-11-23) — 사용자 확인 뒤 생성기(12주차 `deck49.py` 부품)로 만든다. 게시글 작성 수정 전 캡처는 다시 찍는다.
+1. **13주차 덱 확인·조정**(사용자): 19장 게시(https://claude.ai/artifact/SsVt82tXqZVNUrigqD5WuG, 구성안 [4-10](presentation/4-10_13주차발표_슬라이드구성.md), 생성기 `deck410.py`, log/249) — 게시본 렌더(겹침·잘림)를 아직 눈으로 보지 않았다. 고칠 장을 알려 주면 생성기로 고친다. RFP 장은 분모 설명을 화면에 넣지 않고 노트에만(사용자 결정).
 2. **11·12주차 덱 렌더 확인**(사용자): 게시본(https://claude.ai/artifact/XVecKCuRR2Js23EYSAgDVk · https://claude.ai/artifact/XE6YHQsgbGyPxvbKt4vbM2)의 겹침·잘림을 아직 눈으로 보지 않았다(진행률 ④ "11주차 덱 렌더 확인" 0). 12주차 덱 12장 각주 "log/233"은 "log/236"이어야 한다(아티팩트 수정이 세션에서 거부됨 — 사용자가 고치거나 허용).
 3. **시연 데이터**: 배포 DB는 2026-11-23에 재시드했다(사용자 요청, log/244 — 앞으로 회차는 12-12까지라 그 뒤 운영 시연·테스트에는 다시 재시드가 필요). 발표 캡처는 로컬 DB에 `npm run seed:demo`를 다시 얹은 뒤 찍는다(4-0 §5).
 4. **원격 브랜치 정리**(사용자 — 세션은 삭제 불가): `dev`에 병합된 `claude/*` 9개(jolly-brahmagupta-bmaxnp·list-consistency·csv-export·list-search·list-sort·document-files·document-files-ops·visualization·status-before-presentation)와, PR #164 병합 뒤 `claude/nifty-euler-troux5`·이 세션 브랜치. **지우기 전 확인할 것 둘**: `claude/vibrant-goodall-waxslk`에는 `dev`에 없는 발표 덱 소스(구성안 "4-8_8주차", 생성기 `deck48.js`, 2026-11-02 — 아티팩트 "10주차 발표" YS4CX2S87R882cwTdjPxzZ)가 있다 — 새 번호로 들일지 버릴지. `codex/push-code-review`는 넣지 않기로 한 워크플로(log/233)라 삭제 대상.

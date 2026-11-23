@@ -1,6 +1,15 @@
 # 13주차 발표 덱 — 생성 소스 (준비 중)
 
-구성안은 상위 문서 `4-10_13주차발표_슬라이드구성.md`(최종안, 2026-11-23). 덱은 아직 만들지 않았다.
+구성안은 상위 문서 `4-10_13주차발표_슬라이드구성.md`(최종안, 2026-11-23).
+
+- **게시된 덱:** https://claude.ai/artifact/SsVt82tXqZVNUrigqD5WuG (비공개 — 공유는 소유자가 Share 메뉴에서). 2026-11-23 19장 게시(구성안 18장 + 감사합니다).
+
+```bash
+cd docs/presentation/assets/4-10_13주차발표/deck-source
+python3 viz/deck410.py deck-out   # deck-out/project/{deck.json, deck.css, slides/*.html}
+```
+
+게시: `root`=`deck-out`, `file_path`=`project/deck.json`(순서·섹션을 바꿀 때만), 바뀐 슬라이드만 `files`로. 캡처는 아티팩트 자산(`/_blob/<id>`) — 주소는 `assets.json`(키 → 올린 주소). 다시 올리면 `assets.json`을 고친다. 생성기의 공통 부품(색·머리말·카드·브라우저 프레임)은 12주차 `deck49.py`와 같다. 부하 장의 숫자는 `data/loadtest.json`에서 읽는다.
 
 ## screenshots/
 
