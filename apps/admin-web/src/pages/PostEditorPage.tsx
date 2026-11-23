@@ -273,7 +273,8 @@ function PostEditor({ post }: { post?: PostRow }) {
             {apiErrorMessage(save.error)}
           </div>
         )}
-        <div className="action-row" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
+        {/* log/241 — 내용이 길면 등록 버튼이 첫 화면 밖이라 스크롤해야 했다(B09). 화면 아래에 붙여 둔다 */}
+        <div className="action-row form-actions-sticky" style={{ marginTop: 16, justifyContent: 'flex-end' }}>
           <button type="button" className="btn-secondary" onClick={() => navigate(isEdit ? `/board/${post.id}` : '/board')}>
             취소
           </button>

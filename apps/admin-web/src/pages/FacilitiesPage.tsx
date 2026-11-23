@@ -259,6 +259,8 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
 
       {canManage && facility.isActive && (
         <>
+          {/* 현장 인원 입력과 시설 관리 버튼을 두 줄로 — 한 줄에 넣으면 카드 폭(약 230px)이 모자라
+              버튼 글자가 한 글자씩 세로로 쌓였다(log/212 발견, log/241) */}
           <form className="action-row" style={{ marginTop: 12 }} onSubmit={submitCorrection}>
             <input
               type="number"
@@ -266,23 +268,29 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
               placeholder="예약 외 현장 인원" aria-label="예약 외 현장 인원"
               value={manualCount} inputMode="numeric"
               onChange={(e) => setManualCount(e.target.value)}
-              style={{ width: 120 }}
+              style={{ flex: 1, minWidth: 0 }}
             />
-            <button type="submit" className="btn-secondary" disabled={correctMutation.isPending}>
+            <button type="submit" className="btn-secondary" style={{ whiteSpace: 'nowrap' }} disabled={correctMutation.isPending}>
               입력
             </button>
-            <button type="button" className="btn-secondary" onClick={() => setEditing(true)}>
+          </form>
+          <p style={{ fontSize: 12, color: '#6b7280', marginTop: 6, marginBottom: 0 }}>
+            예약 인원은 진행 중인 회차에서 자동으로 더해집니다. 여기에는 예약 없이 이용 중인 인원만 넣으세요.
+          </p>
+          <div className="action-row" style={{ marginTop: 10, justifyContent: 'flex-end' }}>
+            <button type="button" className="btn-secondary" style={{ whiteSpace: 'nowrap' }} onClick={() => setEditing(true)}>
               정보 수정
             </button>
             <button
               type="button"
               className="btn-secondary"
+              style={{ whiteSpace: 'nowrap' }}
               onClick={deactivate}
               disabled={toggleActiveMutation.isPending}
             >
               운영 중단
             </button>
-          </form>
+          </div>
           {toggleActiveMutation.isError && (
             <div className="forbidden-note" style={{ marginTop: 8 }}>
               {apiErrorMessage(toggleActiveMutation.error)}
@@ -293,9 +301,6 @@ function ManageableFacilityCard({ facility, canManage }: { facility: FacilityRow
               {apiErrorMessage(correctMutation.error)}
             </div>
           )}
-          <p style={{ fontSize: 12, color: '#6b7280', marginTop: 6, marginBottom: 0 }}>
-            예약 인원은 진행 중인 회차에서 자동으로 더해집니다. 여기에는 예약 없이 이용 중인 인원만 넣으세요.
-          </p>
         </>
       )}
 

@@ -56,6 +56,8 @@ async function expectLabelsOneLine(page: Page) {
   });
   expect(overflow, '상단 바 가로 넘침(px)').toBeLessThanOrEqual(1);
   expect(await wrappedTexts(page, 'main td .badge, main td button'), `표 안에서 줄바꿈된 라벨 ${page.url()}`).toEqual([]);
+  // 카드 버튼 — 시설 카드의 입력·정보 수정·운영 중단이 한 글자씩 세로로 쌓였다(log/212 발견, 카드 폭이 좁을 때)
+  expect(await wrappedTexts(page, 'main .card-grid button'), `카드 안에서 줄바꿈된 버튼 ${page.url()}`).toEqual([]);
 }
 
 test('800px 폭: 지점 관리자 주요 화면이 가로로 넘치지 않고 회차 등록 창이 화면 안에 들어온다', async ({ page }) => {
@@ -69,7 +71,6 @@ test('800px 폭: 지점 관리자 주요 화면이 가로로 넘치지 않고 �
     await expect(page.locator('main h2').first()).toBeVisible();
     await page.waitForLoadState('networkidle');
     await expectNoHorizontalOverflow(page);
-  await expectLabelsOneLine(page);
     await expectLabelsOneLine(page);
   }
 
@@ -96,7 +97,6 @@ test('800px 폭: 본사 화면(대시보드·지점 상세·권한·변경 이�
     await expect(page.locator('main h2').first()).toBeVisible();
     await page.waitForLoadState('networkidle');
     await expectNoHorizontalOverflow(page);
-  await expectLabelsOneLine(page);
     await expectLabelsOneLine(page);
   }
 });

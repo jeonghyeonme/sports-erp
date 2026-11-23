@@ -177,6 +177,24 @@ body {
   gap: 8px;
 }
 
+/* 긴 폼(게시글 작성)의 저장 버튼 줄 — 스크롤해도 화면 아래에 붙어 있다(log/241, B09) */
+.form-actions-sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 16px -18px -16px;
+  padding: 12px 18px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+/* .content는 가로 넘침용 overflow:auto라 높이가 늘어나기만 하고 실제 스크롤은 페이지가 한다 — 그대로면
+   sticky가 기준을 .content로 잡아 붙지 않는다. 이 줄이 있는 화면(넓은 표가 없는 작성 화면)만 풀어 준다. */
+.content:has(.form-actions-sticky) {
+  overflow: visible;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
