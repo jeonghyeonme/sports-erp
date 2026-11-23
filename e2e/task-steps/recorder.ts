@@ -42,6 +42,16 @@ export class Steps {
 
   private async offscreen(target: Locator): Promise<boolean> {
     await target.waitFor({ state: 'attached' });
+    // 시트·모달이 올라오는 중에 재면 화면 밖으로 잘못 센다 — 끝이 있는 애니메이션이 끝난 뒤에 잰다(log/241).
+    // 무한 반복(로딩 스피너 등)은 기다리지 않는다.
+    await this.page.evaluate(() =>
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((a) => a.effect?.getTiming().iterations !== Infinity)
+          .map((a) => a.finished.catch(() => undefined)),
+      ),
+    );
     const box = await target.boundingBox();
     const vp = this.page.viewportSize();
     if (!box || !vp) return false;

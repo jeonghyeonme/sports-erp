@@ -1,0 +1,16 @@
+{
+  "_source": "docs/log/2026-W47.md#239 — 사용자 PC(Windows) k6 v1.x, 운영 Lambda Function URL 직접, 2026-11-22. D50 열은 docs/decisions/D50.md(2026-10-12). k6 시간은 네트워크 포함, 서버 처리 시간 W는 이번에 재지 않음.",
+  "s3ArrivalsNote": "S3 성공 = (전체 요청 − 로그인 − setup − S2 15,000 − S4 7,500) − S3 거절, ÷ 60초. S4 첫 30초 거절은 따로 표시되지 않아 0으로 가정.",
+  "timeline": [
+    {"id": "S1", "label": "로그인 몰림", "start": 0, "end": 120, "rate": "0→40명"},
+    {"id": "S2", "label": "평소 부하", "start": 150, "end": 450, "rate": "50 rps"},
+    {"id": "S3", "label": "과부하", "start": 480, "end": 540, "rate": "300 rps"},
+    {"id": "S4", "label": "회복", "start": 540, "end": 690, "rate": "50 rps"}
+  ],
+  "runs": {
+    "d50": {"date": "2026-10-12", "mix": "조회 4종", "loginP95ms": 234, "loginRejected": 38, "s2P95ms": 150, "s2Rejected": 47, "s3OkRps": 93, "s3OkP95ms": 3070, "s3RejectP95ms": 1280, "s3Failed": 0, "s3Note": "측정 PC 병목(가상 사용자 400 소진)", "recovery": null},
+    "current": {"date": "2026-11-22", "mix": "조회 8종(새 화면 4종 포함)", "loginP95ms": 188, "loginRejected": 0, "s2P95ms": 69, "s2Rejected": 0, "s3OkRps": 99, "s3Rejected": 12058, "s3OkP95ms": 71, "s3RejectP95ms": 13, "s3Failed": 0, "recoveryWindowFailed": 0, "recoveredP95ms": 67, "recoveredRejected": 0, "maxMs": 2250, "totalRequests": 42439},
+    "legacy": {"date": "2026-11-22", "mix": "조회 4종(D50과 같음)", "loginP95ms": 196, "loginRejected": 0, "s2P95ms": 68, "s2Rejected": 0, "s3OkRps": 99, "s3Rejected": 12081, "s3OkP95ms": 67, "s3RejectP95ms": 13, "s3Failed": 0, "recoveryWindowFailed": 0, "recoveredP95ms": 66, "recoveredRejected": 0, "maxMs": 2230, "totalRequests": 42435}
+  },
+  "thresholds": "12개 — 로그인 p95<500ms·오류 0 / S2 성공 p95<300ms·거절 0·실패 0 / S3 성공 p95<500ms·거절 p95<100ms·실패 0 / S4 첫 30초 실패 0 / 회복 뒤 p95<300ms·거절 0·실패 0"
+}

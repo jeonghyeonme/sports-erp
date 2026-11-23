@@ -1,0 +1,64 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-16T08:29:15Z"
+  },
+  "lists": "css",
+  "title": "스포이즘 ERP 12주차 발표",
+  "order": [
+    "cover",
+    "agenda",
+    "p1",
+    "report-why",
+    "report-shot",
+    "report-print",
+    "p2",
+    "deliv",
+    "deliv-source",
+    "p3",
+    "verify",
+    "narrow",
+    "p4",
+    "progress",
+    "wrap",
+    "closing"
+  ],
+  "sections": {
+    "intro": {
+      "description": "표지, 오늘 순서 — 11주차의 다음 할 일에서 출발",
+      "start": "cover"
+    },
+    "report": {
+      "description": "01 계약 갱신 리포트 — 운영 기록을 갱신 협상 자료로(D81)",
+      "start": "p1"
+    },
+    "deliv": {
+      "description": "02 산출물 — 여덟 종류를 지금 기준으로, 원천에서 생성",
+      "start": "p2"
+    },
+    "verify": {
+      "description": "03 검증과 사용감 — 수동 확인뿐이던 일곱 곳, 좁은 화면 넘침",
+      "start": "p3"
+    },
+    "progress": {
+      "description": "04 전체 진행률 — 기준(D80)과 80%, 다음 할 일",
+      "start": "p4"
+    }
+  },
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
+}

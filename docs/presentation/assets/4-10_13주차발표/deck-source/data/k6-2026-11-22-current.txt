@@ -1,0 +1,32 @@
+# k6 run -e BASE_URL=<Function URL>/api/v1 -e ORIGIN_SECRET=<비밀> loadtest/k6-lambda.js   (MIX=current, 사용자 PC PowerShell, 2026-11-22)
+# 요약 출력에서 THRESHOLDS·TOTAL RESULTS만 옮김(로고·시나리오 목록 제외). 해석은 docs/log/2026-W47.md#239
+
+  █ THRESHOLDS
+    failed{scenario:s2_mixed_50rps}          ✓ 'count==0' count=0
+    failed{scenario:s3_overload_300rps}      ✓ 'count==0' count=0
+    failed{scenario:s4_recovered}            ✓ 'count==0' count=0
+    failed{scenario:s4_recovery_window}      ✓ 'count==0' count=0
+    login_duration                           ✓ 'p(95)<500' p(95)=188.37ms
+    login_errors                             ✓ 'count==0' count=0
+    ok_duration{scenario:s2_mixed_50rps}     ✓ 'p(95)<300' p(95)=69.4ms
+    ok_duration{scenario:s3_overload_300rps} ✓ 'p(95)<500' p(95)=71.11ms
+    ok_duration{scenario:s4_recovered}       ✓ 'p(95)<300' p(95)=66.79ms
+    rejected{scenario:s2_mixed_50rps}        ✓ 'count==0' count=0
+    rejected{scenario:s4_recovered}          ✓ 'count==0' count=0
+    rejected_duration{scenario:s3_overload_300rps} ✓ 'p(95)<100' p(95)=13.33ms
+
+  █ TOTAL RESULTS
+    checks_succeeded...: 100.00% 1928 out of 1928   (로그인 200)
+    login_duration.....: avg=162.95ms min=136.08ms med=156.41ms max=2.25s p(90)=171.58ms p(95)=188.37ms
+    ok_duration........: avg=55.94ms min=33.24ms med=55.18ms max=2.24s p(90)=66.1ms p(95)=69.33ms
+      s2_mixed_50rps     avg=56.3ms  min=37.65ms med=55.8ms  max=175.25ms p(90)=66.27ms p(95)=69.4ms
+      s3_overload_300rps avg=57.77ms min=34.95ms med=55.92ms max=2.24s    p(90)=67.52ms p(95)=71.11ms
+      s4_recovered       avg=53.13ms min=33.24ms med=52.48ms max=179.65ms p(90)=63.7ms  p(95)=66.79ms
+    rejected...........: 12058 (s2 0, s4_recovered 0)
+    rejected_duration..: avg=10.36ms min=6.44ms med=10.15ms max=60.01ms p(90)=12.12ms p(95)=13.33ms
+    http_req_duration..: avg=47.87ms med=51.4ms max=2.25s p(90)=66.97ms p(95)=91.51ms
+    http_req_failed....: 28.41% 12058 out of 42439
+    http_reqs..........: 42439 61.354239/s
+    vus_max............: 120
+    data_received......: 110 MB   data_sent: 20 MB
+    running (11m31.7s), 42430 complete and 0 interrupted iterations

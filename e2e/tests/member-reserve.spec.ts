@@ -27,6 +27,14 @@ test('회원: 회차를 예약·결제하고 내 예약에서 취소한다', asy
   await card.getByRole('button', { name: '예약 취소' }).click();
   // 확인은 아래에서 올라오는 시트(BottomSheet)에서 한 번 더 누른다.
   const sheet = page.locator('[role=dialog]', { hasText: '예약을 취소할까요?' });
+  // 시트 배경은 화면 전체를 덮고 시트는 화면 안에 있다 — 화면 전환 애니메이션 안에 그려지면 본문 기준이 되어
+  // 목록이 길 때 시트가 페이지 맨 아래(화면 밖)에 붙었다(log/241).
+  await expect(sheet).toBeVisible();
+  const vp = page.viewportSize()!;
+  const backdrop = await page.locator('.sheet-backdrop').boundingBox();
+  expect(backdrop).toEqual({ x: 0, y: 0, width: vp.width, height: vp.height });
+  // 시트는 아래에서 올라오는 애니메이션(0.28초)이 있어 자리를 잡을 때까지 다시 잰다
+  await expect.poll(async () => { const b = (await sheet.boundingBox())!; return b.y + b.height; }).toBeLessThanOrEqual(vp.height);
   await sheet.getByRole('button', { name: '예약 취소' }).click();
   // 결제한 예약을 마감 전에 취소하면 환불된다(예약및결제 A-6) — 지난·취소한 예약 목록으로 옮겨 간다.
   const past = page.locator('section, div', { has: page.locator('h2', { hasText: '지난·취소한 예약' }) }).last();

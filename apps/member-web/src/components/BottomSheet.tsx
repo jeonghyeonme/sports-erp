@@ -1,4 +1,5 @@
 import { ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Props {
   title: string;
@@ -19,12 +20,15 @@ export function BottomSheet({ title, onClose, busy, children }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, busy]);
 
-  return (
+  // body로 포털 — 화면 전환 애니메이션(.page-enter, transform)이 걸린 조상 안에서는 position:fixed가 화면이 아니라
+  // 그 조상 기준이 되어, 목록이 길면 시트가 페이지 맨 아래(화면 밖)에 붙었다(시연 데이터 M02, log/241).
+  return createPortal(
     <div className="sheet-backdrop" onClick={() => !busy && onClose()}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <h2 className="sheet-title">{title}</h2>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
