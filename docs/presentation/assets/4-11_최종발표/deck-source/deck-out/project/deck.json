@@ -1,0 +1,62 @@
+{
+  "v": 5,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-28T12:24:30Z"
+  },
+  "lists": "css",
+  "format": {
+    "v": 1,
+    "shared": [
+      "project/deck.css"
+    ]
+  },
+  "title": "스포이즘 ERP 최종 발표",
+  "order": [
+    "cover",
+    "business",
+    "rfp-core",
+    "system",
+    "isolation",
+    "contract",
+    "load",
+    "demo",
+    "rfp",
+    "progress",
+    "deliverables",
+    "closing"
+  ],
+  "sections": {
+    "intro": {
+      "description": "표지, 사업 구조 — 지점은 계약 현장",
+      "start": "cover"
+    },
+    "design": {
+      "description": "RFP 핵심 두 요구와 그것을 지킨 구조 — 시스템, 지점 격리, 계약 상태, 부하",
+      "start": "rfp-core"
+    },
+    "demo": {
+      "description": "시연 — 본사 → 회원 → 지점 → 본사",
+      "start": "demo"
+    },
+    "result": {
+      "description": "결과 — RFP 충족률, 진행률, 산출물, 마무리",
+      "start": "rfp"
+    }
+  },
+  "faces": {
+    "gothic-a1": {
+      "family": "Gothic A1",
+      "href": "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&display=swap"
+    },
+    "noto-sans-kr": {
+      "family": "Noto Sans KR",
+      "href": "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    }
+  },
+  "designSystems": []
+}
